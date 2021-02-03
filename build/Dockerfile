@@ -1,0 +1,16 @@
+FROM registry.access.redhat.com/ubi7/ubi-minimal:latest
+
+ENV OPERATOR=/usr/local/bin/contrail-operator \
+    USER_UID=1001 \
+    USER_NAME=contrail-operator
+
+# install operator binary
+COPY build/_output/bin/tf-operator ${OPERATOR}
+ENV CGO_ENABLED=1
+
+COPY build/bin /usr/local/bin
+RUN  /usr/local/bin/user_setup
+
+ENTRYPOINT ["/usr/local/bin/entrypoint"]
+
+USER ${USER_UID}

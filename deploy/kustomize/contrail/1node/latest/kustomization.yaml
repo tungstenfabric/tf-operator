@@ -1,0 +1,118 @@
+bases:
+- ../../../base/contrail
+
+# set replicas=1
+patchesStrategicMerge:
+  - replicas.yaml
+
+# set contrail-status image
+patchesJson6902:
+  - target:
+      kind: Manager
+      name: cluster1
+      group: contrail.juniper.net
+      version: v1alpha1
+    path: contrail-status.json
+
+images:
+- name: python
+  newTag: 3.8.2-alpine
+  newName: python
+- name: busybox
+  newTag: latest
+  newName: busybox
+- name: cassandra
+  # newTag: "3.11.4"
+  # newName: cassandra
+  newTag: latest
+  newName: tungstenfabric/contrail-external-cassandra
+- name: zookeeper
+  # newTag: "3.5.5"
+  # newName: zookeeper
+  newTag: latest
+  newName: tungstenfabric/contrail-external-zookeeper
+- name: rabbitmq
+  # newTag: "3.7"
+  # newName: rabbitmq
+  newTag: latest
+  newName: tungstenfabric/contrail-external-rabbitmq
+- name: redis
+  # newTag: "4.0.14"
+  # newName: redis
+  newTag: latest
+  newName: tungstenfabric/contrail-external-redis
+- name: contrail-analytics-api
+  newTag: latest
+  newName: tungstenfabric/contrail-analytics-api
+- name: contrail-controller-config-api
+  newTag: latest
+  newName: tungstenfabric/contrail-controller-config-api
+- name: contrail-analytics-collector
+  newTag: latest
+  newName: tungstenfabric/contrail-analytics-collector
+- name: contrail-controller-config-devicemgr
+  newTag: latest
+  newName: tungstenfabric/contrail-controller-config-devicemgr
+- name: contrail-controller-config-dnsmasq
+  newTag: latest
+  newName: tungstenfabric/contrail-controller-config-dnsmasq
+- name: contrail-controller-config-schema
+  newTag: latest
+  newName: tungstenfabric/contrail-controller-config-schema
+- name: contrail-controller-config-svcmonitor
+  newTag: latest
+  newName: tungstenfabric/contrail-controller-config-svcmonitor
+- name: contrail-analytics-query-engine
+  newTag: latest
+  newName: tungstenfabric/contrail-analytics-query-engine
+- name: contrail-controller-control-control
+  newTag: latest
+  newName: tungstenfabric/contrail-controller-control-control
+- name: contrail-controller-control-dns
+  newTag: latest
+  newName: tungstenfabric/contrail-controller-control-dns
+- name: contrail-controller-control-named
+  newTag: latest
+  newName: tungstenfabric/contrail-controller-control-named
+- name: contrail-kubernetes-kube-manager
+  newTag: latest
+  newName: tungstenfabric/contrail-kubernetes-kube-manager
+- name: contrail-node-init
+  newTag: latest
+  newName: tungstenfabric/contrail-node-init
+- name: contrail-vrouter-agent
+  newTag: latest
+  newName: tungstenfabric/contrail-vrouter-agent
+- name: contrail-kubernetes-cni-init
+  newTag: latest
+  newName: tungstenfabric/contrail-kubernetes-cni-init
+- name: contrail-vrouter-kernel-build-init
+  newTag: latest
+  newName: tungstenfabric/contrail-vrouter-kernel-build-init
+- name: contrail-vrouter-kernel-init
+  newTag: latest
+  newName: tungstenfabric/contrail-vrouter-kernel-init
+- name: contrail-node-init
+  newTag: latest
+  newName: tungstenfabric/contrail-node-init
+- name: contrail-vrouter-agent
+  newTag: latest
+  newName: tungstenfabric/contrail-vrouter-agent
+- name: contrail-vrouter-kernel-build-init
+  newTag: latest
+  newName: tungstenfabric/contrail-vrouter-kernel-build-init
+- name: contrail-vrouter-kernel-init
+  newTag: latest
+  newName: tungstenfabric/contrail-vrouter-kernel-init
+- name: contrail-controller-webui-job
+  newTag: latest
+  newName: tungstenfabric/contrail-controller-webui-job
+- name: contrail-controller-webui-web
+  newTag: latest
+  newName: tungstenfabric/contrail-controller-webui-web
+- name: contrail-provisioner
+  newTag: latest
+  newName: tungstenfabric/contrail-provisioner
+- name: contrail-nodemgr
+  newTag: latest
+  newName: tungstenfabric/contrail-nodemgr

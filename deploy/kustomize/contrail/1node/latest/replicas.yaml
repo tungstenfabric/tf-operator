@@ -1,0 +1,9 @@
+---
+apiVersion: contrail.juniper.net/v1alpha1
+kind: Manager
+metadata:
+  name: cluster1
+  namespace: contrail
+spec:
+  commonConfiguration:
+    replicas: 1

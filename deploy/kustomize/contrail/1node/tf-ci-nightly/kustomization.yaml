@@ -1,0 +1,114 @@
+bases:
+- ../../../base/contrail
+
+# set replicas=1
+patchesStrategicMerge:
+  - replicas.yaml
+
+# set contrail-status image
+patchesJson6902:
+  - target:
+      kind: Manager
+      name: cluster1
+      group: contrail.juniper.net
+      version: v1alpha1
+    path: contrail-status.json
+
+images:
+# Public containers
+# TODO: use tf mirrors
+- name: python
+  newTag: 3.8.2-alpine
+  newName: python
+- name: busybox
+  newTag: latest
+  newName: busybox
+# Contrail externals
+- name: cassandra
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-external-cassandra
+- name: zookeeper
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-external-zookeeper
+- name: rabbitmq
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-external-rabbitmq
+- name: redis
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-external-redis
+# Contrail
+- name: contrail-analytics-api
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-analytics-api
+- name: contrail-controller-config-api
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-controller-config-api
+- name: contrail-analytics-collector
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-analytics-collector
+- name: contrail-controller-config-devicemgr
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-controller-config-devicemgr
+- name: contrail-controller-config-dnsmasq
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-controller-config-dnsmasq
+- name: contrail-controller-config-schema
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-controller-config-schema
+- name: contrail-controller-config-svcmonitor
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-controller-config-svcmonitor
+- name: contrail-analytics-query-engine
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-analytics-query-engine
+- name: contrail-controller-control-control
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-controller-control-control
+- name: contrail-controller-control-dns
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-controller-control-dns
+- name: contrail-controller-control-named
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-controller-control-named
+- name: contrail-kubernetes-kube-manager
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-kubernetes-kube-manager
+- name: contrail-node-init
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-node-init
+- name: contrail-vrouter-agent
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-vrouter-agent
+- name: contrail-kubernetes-cni-init
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-kubernetes-cni-init
+- name: contrail-vrouter-kernel-build-init
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-vrouter-kernel-build-init
+- name: contrail-vrouter-kernel-init
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-vrouter-kernel-init
+- name: contrail-node-init
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-node-init
+- name: contrail-vrouter-agent
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-vrouter-agent
+- name: contrail-vrouter-kernel-build-init
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-vrouter-kernel-build-init
+- name: contrail-vrouter-kernel-init
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-vrouter-kernel-init
+- name: contrail-controller-webui-job
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-controller-webui-job
+- name: contrail-controller-webui-web
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-controller-webui-web
+- name: contrail-provisioner
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-provisioner
+- name: contrail-nodemgr
+  newTag: nightly
+  newName: tf-nexus.progmaticlab.com:5102/contrail-nodemgr

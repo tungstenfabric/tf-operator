@@ -1,0 +1,12 @@
+[
+  {
+    "op": "replace",
+    "path": "/spec/services/vrouters/0/spec/serviceConfiguration/contrailStatusImage",
+    "value": "tungstenfabric/contrail-status:latest"
+  },
+  {
+    "op": "replace",
+    "path": "/spec/services/vrouters/1/spec/serviceConfiguration/contrailStatusImage",
+    "value": "tungstenfabric/contrail-status:latest"
+  }
+]

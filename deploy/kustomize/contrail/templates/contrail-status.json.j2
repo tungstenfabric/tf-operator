@@ -1,0 +1,12 @@
+[
+  {
+    "op": "replace",
+    "path": "/spec/services/vrouters/0/spec/serviceConfiguration/contrailStatusImage",
+    "value": "{{ CONTAINER_REGISTRY }}/contrail-status:{{ CONTRAIL_CONTAINER_TAG }}"
+  },
+  {
+    "op": "replace",
+    "path": "/spec/services/vrouters/1/spec/serviceConfiguration/contrailStatusImage",
+    "value": "{{ CONTAINER_REGISTRY }}/contrail-status:{{ CONTRAIL_CONTAINER_TAG }}"
+  }
+]
