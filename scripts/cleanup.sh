@@ -1,12 +1,14 @@
 #!/bin/bash -x
 
-WORKSPACE=${WORKSPACE:-$HOME}
+[ "${DEBUG,,}" == "true" ] && set -x
 
-cd $WORKSPACE
+my_file="$(readlink -e "$0")"
+my_dir="$(dirname $my_file)"
+cd $my_dir/..
 
-kubectl delete -k ./tf-operator/deploy/kustomize/contrail/1node/latest/
-kubectl delete -k ./tf-operator/deploy/kustomize/operator/latest/
-kubectl delete -f ./tf-operator/deploy/crds/
+kubectl delete -k ./deploy/kustomize/contrail/1node/latest/
+kubectl delete -k ./deploy/kustomize/operator/latest/
+kubectl delete -f ./deploy/crds/
 
 # TODO: implement for HA setup
 kubectl delete pv  cassandra1-pv-0 zookeeper1-pv-0
