@@ -5,12 +5,12 @@ type go >/dev/null 2>&1 || {
 }
 
 export WORKSPACE=${WORKSPACE:-$HOME}
-export CONTRAIL_REPOSITORY=${CONTRAIL_REPOSITORY:-"localhost:5000"}
+export CONTRAIL_REGISTRY=${CONTRAIL_REGISTRY:-"localhost:5000"}
 export CONTRAIL_CONTAINER_TAG=${CONTRAIL_CONTAINER_TAG:-"latest"}
 export CGO_ENABLED=1
 
-target=${CONTRAIL_REPOSITORY}/tf-operator:${CONTRAIL_CONTAINER_TAG}
-cd ${WORKSPACE}/tf-operator
+target=${CONTRAIL_REGISTRY}/tf-operator:${CONTRAIL_CONTAINER_TAG}
+cd ${WORKSPACE}/contrail/tf-operator
 
 function run_cmd(){
   local me=$(whoami)
