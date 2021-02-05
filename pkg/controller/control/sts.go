@@ -95,7 +95,7 @@ spec:
           image: tungstenfabric/contrail-nodemgr:latest
           env:
             - name: VENDOR_DOMAIN
-              value: tungsten.io
+              value: io.tungsten
             - name: NODE_TYPE
               value: control
             - name: POD_IP

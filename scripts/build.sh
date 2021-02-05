@@ -18,8 +18,12 @@ target=${CONTAINER_REGISTRY}/tf-operator:${CONTRAIL_CONTAINER_TAG}
 
 function run_cmd(){
   local me=$(whoami)
-  if [[ "root" == "$me" ]] || groups | grep -q 'docker' ; then
+  if [[ "root" == "$me" ]] || ! grep -q "^docker:" /etc/group || groups | grep -q 'docker' ; then
     $@
+    return
+  fi
+  if ! grep -q "^docker:.*:$me" /etc/group ; then
+    sudo usermod -aG docker $me
   fi
   echo $@ | sg docker -c bash
 }

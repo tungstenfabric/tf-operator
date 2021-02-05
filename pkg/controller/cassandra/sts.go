@@ -46,7 +46,7 @@ spec:
             fieldRef:
               fieldPath: status.podIP
         - name: VENDOR_DOMAIN
-          value: tungsten.io
+          value: io.tungsten
         # TODO: move do go code for flexibility
         - name: NODE_TYPE
           value: database
@@ -94,7 +94,7 @@ spec:
         image: tungstenfabric/contrail-nodemgr:latest
         env:
         - name: VENDOR_DOMAIN
-          value: tungsten.io
+          value: io.tungsten
         - name: NODE_TYPE
           value: database
         - name: POD_IP

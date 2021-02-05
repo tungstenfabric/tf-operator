@@ -20,10 +20,3 @@ sudo mv ./operator-sdk-v0.17.2-x86_64-linux-gnu /usr/local/bin/operator-sdk
 
 # docker setup
 sudo docker run -d -p 5000:5000 --restart=always --name registry registry:2
-cat <<EOF >daemon.json
-{
-  "insecure-registries" : ["tf-nexus.progmaticlab.com:5002"]
-}
-EOF
-sudo mv daemon.json /etc/docker/
-sudo systemctl restart docker

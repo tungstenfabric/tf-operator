@@ -18,7 +18,7 @@ func GetDaemonset() *apps.DaemonSet {
 
 	var vendorDomainEnv = core.EnvVar{
 		Name:  "VENDOR_DOMAIN",
-		Value: "tungsten.io",
+		Value: "io.tungsten",
 	}
 
 	var introspectSslEnableEnv = core.EnvVar{
