@@ -280,9 +280,9 @@ spec:
             type: ""
           name: var-run
         - hostPath:
-            path: /usr/local/bin
+            path: /usr/bin
             type: ""
-          name: host-usr-local-bin
+          name: host-usr-bin
         - downwardAPI:
             defaultMode: 420
             items:

@@ -69,10 +69,10 @@ func GetSTS() *apps.StatefulSet {
 			},
 		},
 		{
-			Name: "host-usr-local-bin",
+			Name: "host-usr-bin",
 			VolumeSource: core.VolumeSource{
 				HostPath: &core.HostPathVolumeSource{
-					Path: "/usr/local/bin",
+					Path: "/usr/bin",
 				},
 			},
 		},

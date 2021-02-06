@@ -108,7 +108,7 @@ func GetDaemonset() *apps.DaemonSet {
 			},
 			VolumeMounts: []core.VolumeMount{
 				{
-					Name:      "host-usr-local-bin",
+					Name:      "host-usr-bin",
 					MountPath: "/host/usr/bin",
 				},
 			},
@@ -124,15 +124,11 @@ func GetDaemonset() *apps.DaemonSet {
 			},
 			VolumeMounts: []core.VolumeMount{
 				{
-					Name:      "host-usr-local-bin",
-					MountPath: "/host/usr/bin",
-				},
-				{
 					Name:      "network-scripts",
 					MountPath: "/etc/sysconfig/network-scripts",
 				},
 				{
-					Name:      "host-usr-local-bin",
+					Name:      "host-usr-bin",
 					MountPath: "/host/bin",
 				},
 				{
@@ -247,7 +243,7 @@ func GetDaemonset() *apps.DaemonSet {
 					MountPath: "/etc/sysconfig/network-scripts",
 				},
 				{
-					Name:      "host-usr-local-bin",
+					Name:      "host-usr-bin",
 					MountPath: "/host/bin",
 				},
 				{
@@ -312,10 +308,10 @@ func GetDaemonset() *apps.DaemonSet {
 			},
 		},
 		{
-			Name: "host-usr-local-bin",
+			Name: "host-usr-bin",
 			VolumeSource: core.VolumeSource{
 				HostPath: &core.HostPathVolumeSource{
-					Path: "/usr/local/bin",
+					Path: "/usr/bin",
 				},
 			},
 		},

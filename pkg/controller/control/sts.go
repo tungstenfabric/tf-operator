@@ -166,9 +166,9 @@ spec:
             type: ""
           name: var-run
         - hostPath:
-            path: /usr/local/bin
+            path: /usr/bin
             type: ""
-          name: host-usr-local-bin
+          name: host-usr-bin
         - emptyDir: {}
           name: etc-contrail
         - emptyDir: {}
