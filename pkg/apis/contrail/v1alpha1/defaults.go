@@ -162,7 +162,7 @@ const (
 	KubernetesApiServer                         string = "10.96.0.1"
 	KubernetesApiPort                           int    = 8080
 	KubernetesApiSSLPort                        int    = 6443
-	KubernetesClusterName                       string = "kubernetes"
+	KubernetesClusterName                       string = "k8s"
 	KubernetesPodSubnets                        string = "10.32.0.0/12"
 	KubernetesIpFabricSubnets                   string = "10.64.0.0/12"
 	KubernetesServiceSubnets                    string = "10.96.0.0/12"
