@@ -152,6 +152,7 @@ spec:
           cassandraInstance: cassandra1
           controlInstance: control1
           contrailStatusImage: contrail-status
+          useKubeadmConfig: true
           containers:
           - name: init
             image: python:alpine
@@ -182,6 +183,7 @@ spec:
           cassandraInstance: cassandra1
           controlInstance: control1
           contrailStatusImage: contrail-status
+          useKubeadmConfig: true
           containers:
           - name: init
             image: python:alpine

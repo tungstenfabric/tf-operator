@@ -372,8 +372,7 @@ sandesh_ca_cert={{ .SANDESH_CA_CERTFILE }}
 var ContrailCNIConfig = template.Must(template.New("").Parse(`{
   "cniVersion": "0.3.1",
   "contrail" : {
-      "cluster-name"  : "cluster.local",
-			"mode"          : "k8s",
+      "cluster-name"  : "{{ .KubernetesClusterName }}",
       "meta-plugin"   : "multus",
       "vrouter-ip"    : "127.0.0.1",
       "vrouter-port"  : 9091,
@@ -381,8 +380,7 @@ var ContrailCNIConfig = template.Must(template.New("").Parse(`{
       "poll-timeout"  : 5,
       "poll-retries"  : 15,
       "log-file"      : "/var/log/contrail/cni/opencontrail.log",
-      "log-level"     : "4",
-      "cnisocket-path": "/var/run/contrail/cni.socket"
+      "log-level"     : "4"
   },
   "name": "contrail-k8s-cni",
   "type": "contrail-k8s-cni"

@@ -1842,6 +1842,11 @@ func (in *VrouterConfiguration) DeepCopyInto(out *VrouterConfiguration) {
 			(*out)[key] = val
 		}
 	}
+	if in.UseKubeadmConfig != nil {
+		in, out := &in.UseKubeadmConfig, &out.UseKubeadmConfig
+		*out = new(bool)
+		**out = **in
+	}
 	return
 }
 

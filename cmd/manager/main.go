@@ -18,10 +18,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 
 	"github.com/Juniper/contrail-operator/pkg/apis"
-	"github.com/Juniper/contrail-operator/pkg/apis/contrail/v1alpha1"
 	"github.com/Juniper/contrail-operator/pkg/controller"
 	"github.com/Juniper/contrail-operator/pkg/controller/kubemanager"
-	"github.com/Juniper/contrail-operator/pkg/k8s"
 )
 
 var log = logf.Log.WithName("cmd")
@@ -89,24 +87,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	clientset, err := v1alpha1.GetClientset()
-	if err != nil {
-		log.Error(err, "")
-		os.Exit(1)
-	}
-
-	var kubemanagerClusterInfo v1alpha1.KubemanagerClusterInfo
-
-	config := k8s.ClusterConfig{Client: clientset.CoreV1()}
-	kubemanagerClusterInfo = config
-
 	// Setup all Controllers.
 	if err := controller.AddToManager(mgr); err != nil {
 		log.Error(err, "")
 		os.Exit(1)
 	}
 
-	if err := kubemanager.Add(mgr, kubemanagerClusterInfo); err != nil {
+	if err := kubemanager.Add(mgr); err != nil {
 		log.Error(err, "")
 		os.Exit(1)
 	}

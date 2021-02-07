@@ -1,4 +1,4 @@
-package v1alpha1
+package k8s
 
 import (
 	"bytes"
@@ -11,7 +11,6 @@ import (
 	core_v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
-	// "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"

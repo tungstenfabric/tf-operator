@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"net"
 	"time"
+
+	"github.com/Juniper/contrail-operator/pkg/k8s"
 )
 
 type CertificateSubject struct {
@@ -42,17 +44,27 @@ func (c CertificateSubject) generateCertificateTemplate() (x509.Certificate, *rs
 		ips = append(ips, net.ParseIP(ip))
 	}
 
+	// TODO: it might be not good to have here this code
+	cinfo, err := k8s.ClusterInfoInstance()
+	if err != nil {
+		return x509.Certificate{}, nil, err
+	}
+	cfg, err := cinfo.ClusterParameters()
+	if err != nil {
+		return x509.Certificate{}, nil, err
+	}
+
 	certificateTemplate := x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
 			CommonName:         c.ip,
 			Country:            []string{"US"},
 			Province:           []string{"CA"},
-			Locality:           []string{"Sunnyvale"},
-			Organization:       []string{"Juniper Networks"},
-			OrganizationalUnit: []string{"Contrail"},
+			Locality:           []string{"San Francisco"},
+			Organization:       []string{"Linux Foundation"},
+			OrganizationalUnit: []string{"Tungsten Fabric"},
 		},
-		DNSNames:    []string{c.hostname,c.hostname + ".cluster.local"},
+		DNSNames:    []string{c.hostname, c.hostname + "." + cfg.Networking.DNSDomain},
 		IPAddresses: ips,
 		NotBefore:   notBefore,
 		NotAfter:    notAfter,

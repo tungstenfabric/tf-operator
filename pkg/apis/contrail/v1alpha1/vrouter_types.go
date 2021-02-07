@@ -13,6 +13,7 @@ import (
 
 	configtemplates "github.com/Juniper/contrail-operator/pkg/apis/contrail/v1alpha1/templates"
 	"github.com/Juniper/contrail-operator/pkg/certificates"
+	"github.com/Juniper/contrail-operator/pkg/k8s"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -159,6 +160,8 @@ type VrouterConfiguration struct {
 	KubernetesApiPort       string `json:"kubernetesApiPort,omitempty"`
 	KubernetesApiSecurePort string `json:"kubernetesApiSecurePort,omitempty"`
 	KubernetesPodSubnets    string `json:"kubernetesPodSubnets,omitempty"`
+	KubernetesClusterName   string `json:"kubernetesClusterName,omitempty"`
+	UseKubeadmConfig        *bool  `json:"useKubeadmConfig,omitempty"`
 
 	// Logging
 	LogDir   string `json:"logDir,omitempty"`
@@ -506,11 +509,15 @@ func (c *Vrouter) CreateEnvConfigMap(instanceType string, client client.Client, 
 
 // CreateCNIConfigMap creates vRouter configMaps with rendered values
 func (c *Vrouter) CreateCNIConfigMap(client client.Client, scheme *runtime.Scheme, request reconcile.Request) (*corev1.ConfigMap, error) {
+	config, err := c.GetCNIConfig(client, request)
+	if err != nil {
+		return nil, err
+	}
 	configMap, err := c.CreateConfigMap(request.Name+"-cni-config", client, scheme, request)
 	if err != nil {
 		return nil, err
 	}
-	configMap.Data["10-tf-cni.conf"] = c.GetCNIConfig()
+	configMap.Data["10-tf-cni.conf"] = config
 	return configMap, client.Update(context.TODO(), configMap)
 }
 
@@ -779,7 +786,7 @@ func (vrouterPod *VrouterPod) GetAgentContainerStatus() (*corev1.ContainerStatus
 
 // ExecToAgentContainer uninterractively exec to the vrouteragent container.
 func (vrouterPod *VrouterPod) ExecToAgentContainer(command []string, stdin io.Reader) (string, string, error) {
-	stdout, stderr, err := ExecToPodThroughAPI(command,
+	stdout, stderr, err := k8s.ExecToPodThroughAPI(command,
 		"vrouteragent",
 		vrouterPod.Pod.ObjectMeta.Name,
 		vrouterPod.Pod.ObjectMeta.Namespace,
@@ -888,10 +895,38 @@ func (c *Vrouter) GetAgentConfigsForPod(vrouterPod *VrouterPod, hostVars *map[st
 	return
 }
 
-func (c *Vrouter) GetCNIConfig() string {
+// GetCNIConfig creates CNI plugin config
+func (c *Vrouter) GetCNIConfig(client client.Client, request reconcile.Request) (string, error) {
+	// TODO: it might be not good to have here this code
+	cinfo, err := k8s.ClusterInfoInstance()
+	if err != nil {
+		return "", err
+	}
+	cfg, err := cinfo.ClusterParameters()
+	if err != nil {
+		return "", err
+	}
+
+	var useKubeadmConfig bool = KubernetesUseKubeadm
+	if c.Spec.ServiceConfiguration.UseKubeadmConfig != nil {
+		useKubeadmConfig = *c.Spec.ServiceConfiguration.UseKubeadmConfig
+	}
+	kubernetesClusterName := KubernetesClusterName
+	if c.Spec.ServiceConfiguration.KubernetesClusterName != "" {
+		kubernetesClusterName = c.Spec.ServiceConfiguration.KubernetesClusterName
+	} else {
+		if useKubeadmConfig {
+			kubernetesClusterName = cfg.ClusterName
+		}
+	}
+
 	var contrailCNIBuffer bytes.Buffer
-	configtemplates.ContrailCNIConfig.Execute(&contrailCNIBuffer, struct{}{})
-	return contrailCNIBuffer.String()
+	configtemplates.ContrailCNIConfig.Execute(&contrailCNIBuffer, struct {
+		KubernetesClusterName string
+	}{
+		KubernetesClusterName: kubernetesClusterName,
+	})
+	return contrailCNIBuffer.String(), nil
 }
 
 // UpdateAgentConfigMapForPod recalculates files `/etc/agentconfigmaps/config_name.{$pod_ip}` in the agent configMap

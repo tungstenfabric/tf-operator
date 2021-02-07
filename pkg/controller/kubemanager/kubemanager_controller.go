@@ -6,6 +6,7 @@ import (
 
 	"github.com/Juniper/contrail-operator/pkg/apis/contrail/v1alpha1"
 	"github.com/Juniper/contrail-operator/pkg/certificates"
+	"github.com/Juniper/contrail-operator/pkg/k8s"
 
 	"github.com/Juniper/contrail-operator/pkg/controller/utils"
 
@@ -90,16 +91,20 @@ func resourceHandler(myclient client.Client) handler.Funcs {
 
 // Add creates a new Kubemanager Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
-func Add(mgr manager.Manager, ci v1alpha1.KubemanagerClusterInfo) error {
+func Add(mgr manager.Manager) error {
+	ci, err := k8s.ClusterInfoInstance()
+	if err != nil {
+		return err
+	}
 	return add(mgr, newReconciler(mgr, ci))
 }
 
-func newReconciler(mgr manager.Manager, ci v1alpha1.KubemanagerClusterInfo) reconcile.Reconciler {
+func newReconciler(mgr manager.Manager, ci *k8s.ClusterInfo) reconcile.Reconciler {
 	return NewReconciler(mgr.GetClient(), mgr.GetScheme(), mgr.GetConfig(), ci)
 }
 
 // NewReconciler returns a new reconcile.Reconciler.
-func NewReconciler(client client.Client, scheme *runtime.Scheme, cfg *rest.Config, ci v1alpha1.KubemanagerClusterInfo) reconcile.Reconciler {
+func NewReconciler(client client.Client, scheme *runtime.Scheme, cfg *rest.Config, ci *k8s.ClusterInfo) reconcile.Reconciler {
 	return &ReconcileKubemanager{Client: client, Scheme: scheme,
 		Config: cfg, clusterInfo: ci}
 }
@@ -187,7 +192,7 @@ type ReconcileKubemanager struct {
 	Client      client.Client
 	Scheme      *runtime.Scheme
 	Config      *rest.Config
-	clusterInfo v1alpha1.KubemanagerClusterInfo
+	clusterInfo *k8s.ClusterInfo
 }
 
 // Reconcile reads that state of the cluster for a Kubemanager object and makes changes based on the state read
@@ -202,8 +207,9 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 	reqLogger.Info("Reconciling Kubemanager")
 	instanceType := "kubemanager"
 	instance := &v1alpha1.Kubemanager{}
+	var err error
 
-	if err := r.Client.Get(context.TODO(), request.NamespacedName, instance); err != nil && errors.IsNotFound(err) {
+	if err = r.Client.Get(context.TODO(), request.NamespacedName, instance); err != nil && errors.IsNotFound(err) {
 		return reconcile.Result{}, nil
 	}
 
@@ -351,6 +357,7 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 		return reconcile.Result{}, err
 	}
 	if len(podIPList.Items) > 0 {
+
 		if err = instance.InstanceConfiguration(request, podIPList, r.Client, r.clusterInfo); err != nil {
 			log.Error(err, "InstanceConfiguration failed")
 			return reconcile.Result{}, err

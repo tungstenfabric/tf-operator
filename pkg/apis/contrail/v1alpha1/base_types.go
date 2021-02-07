@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/Juniper/contrail-operator/pkg/certificates"
+	"github.com/Juniper/contrail-operator/pkg/k8s"
 )
 
 var src = mRand.NewSource(time.Now().UnixNano())
@@ -657,7 +658,7 @@ func getPodInitStatus(reconcileClient client.Client,
 							}
 							if getMac {
 								command := []string{"/bin/sh", "-c", "ip addr show | sed -n '/inet " + pod.Status.PodIP + "\\//{g;h;p};h;x' | awk '{print $2}' | head -n 1"}
-								physicalInterfaceMac, _, err := ExecToPodThroughAPI(command, "init", pod.Name, pod.Namespace, nil)
+								physicalInterfaceMac, _, err := k8s.ExecToPodThroughAPI(command, "init", pod.Name, pod.Namespace, nil)
 								if err != nil {
 									log.Error(err, "Failed to get iface", strings.Join(command, " "), physicalInterfaceMac)
 									return map[string]string{}, fmt.Errorf("failed getting mac")
@@ -667,7 +668,7 @@ func getPodInitStatus(reconcileClient client.Client,
 								// ideally is to remove all of this ip addr hacks
 								if getInterface {
 									command := []string{"/bin/sh", "-c", "ip addr show | sed -n '/ether " + annotationMap["physicalInterfaceMac"] + " /{g;h;p};h;x' | awk '{print $2}' | tr -d ':' | grep -v vhost0"}
-									physicalInterface, _, err := ExecToPodThroughAPI(command, "init", pod.Name, pod.Namespace, nil)
+									physicalInterface, _, err := k8s.ExecToPodThroughAPI(command, "init", pod.Name, pod.Namespace, nil)
 									if err != nil {
 										log.Error(err, "Failed to get iface", strings.Join(command, " "), physicalInterface)
 										return map[string]string{}, fmt.Errorf("failed getting interface")
@@ -677,7 +678,7 @@ func getPodInitStatus(reconcileClient client.Client,
 							}
 							if getGateway {
 								command := []string{"/bin/sh", "-c", "ip route get 1.1.1.1 | grep -v cache | sed -e 's/.* via \\(.*\\) dev.*/\\1/'"}
-								gateway, _, err := ExecToPodThroughAPI(command, "init", pod.Name, pod.Namespace, nil)
+								gateway, _, err := k8s.ExecToPodThroughAPI(command, "init", pod.Name, pod.Namespace, nil)
 								if err != nil {
 									log.Error(err, "Failed to get gateway", strings.Join(command, " "), gateway)
 									return map[string]string{}, fmt.Errorf("failed getting gateway")
@@ -686,7 +687,7 @@ func getPodInitStatus(reconcileClient client.Client,
 							}
 							if getPrefix {
 								command := []string{"/bin/sh", "-c", "ip addr show | sed -n 's/.*" + pod.Status.PodIP + "\\/\\([^ ]*\\).*/\\1/p' | head -n 1"}
-								prefixLength, _, err := ExecToPodThroughAPI(command, "init", pod.Name, pod.Namespace, nil)
+								prefixLength, _, err := k8s.ExecToPodThroughAPI(command, "init", pod.Name, pod.Namespace, nil)
 								if err != nil {
 									log.Error(err, "Failed to get prefix", strings.Join(command, " "), prefixLength)
 									return map[string]string{}, fmt.Errorf("failed getting prefix")
@@ -697,7 +698,7 @@ func getPodInitStatus(reconcileClient client.Client,
 							if cidr, ok := pod.Annotations["dataSubnet"]; ok {
 								if cidr != "" {
 									command := []string{"/bin/sh", "-c", "ip r | grep " + cidr + " | awk -F' ' '{print $NF}'"}
-									addr, _, err := ExecToPodThroughAPI(command, "init", pod.Name, pod.Namespace, nil)
+									addr, _, err := k8s.ExecToPodThroughAPI(command, "init", pod.Name, pod.Namespace, nil)
 									if err != nil {
 										log.Error(err, "Failed to get data subnet ip", strings.Join(command, " "), addr)
 										return map[string]string{}, fmt.Errorf("failed getting ip address from data subnet")

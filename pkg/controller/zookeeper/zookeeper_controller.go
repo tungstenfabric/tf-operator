@@ -13,6 +13,7 @@ import (
 
 	"github.com/Juniper/contrail-operator/pkg/apis/contrail/v1alpha1"
 	"github.com/Juniper/contrail-operator/pkg/controller/utils"
+	"github.com/Juniper/contrail-operator/pkg/k8s"
 	"github.com/Juniper/contrail-operator/pkg/label"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -416,7 +417,7 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 				strconv.Itoa(*zookeeperDefaultConfiguration.ElectionPort)+":"+strconv.Itoa(*zookeeperDefaultConfiguration.ServerPort), found.Status.PodIP)
 			runScript := fmt.Sprintf("zkCli.sh -server %s reconfig -add \"%s\"", found.Status.PodIP, serverDef)
 			command := []string{"bash", "-c", runScript, serverDef}
-			_, _, err = v1alpha1.ExecToPodThroughAPI(command, "zookeeper", found.Name, found.Namespace, nil)
+			_, _, err = k8s.ExecToPodThroughAPI(command, "zookeeper", found.Name, found.Namespace, nil)
 			if err != nil {
 				return reconcile.Result{}, err
 			}

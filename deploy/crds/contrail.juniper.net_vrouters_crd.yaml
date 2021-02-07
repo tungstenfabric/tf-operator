@@ -228,6 +228,8 @@ spec:
                   type: string
                 kubernetesApiSecurePort:
                   type: string
+                kubernetesClusterName:
+                  type: string
                 kubernetesPodSubnets:
                   type: string
                 logDir:
@@ -311,6 +313,8 @@ spec:
                 tsnAgentMode:
                   description: TSN
                   type: string
+                useKubeadmConfig:
+                  type: boolean
                 vrouterCryptInterface:
                   type: string
                 vrouterDecryptInterface:
