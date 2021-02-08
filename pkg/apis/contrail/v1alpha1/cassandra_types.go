@@ -174,22 +174,24 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 		collectorEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(collectorEndpointList, " ")
 		var nodeManagerConfigBuffer bytes.Buffer
 		configtemplates.CassandraNodemanagerConfig.Execute(&nodeManagerConfigBuffer, struct {
-			ListenAddress       string
-			Hostname            string
-			CollectorServerList string
-			CqlPort             string
-			JmxLocalPort        string
-			CAFilePath          string
-			MinimumDiskGB       int
-			LogLevel            string
+			ListenAddress            string
+			InstrospectListenAddress string
+			Hostname                 string
+			CollectorServerList      string
+			CqlPort                  string
+			JmxLocalPort             string
+			CAFilePath               string
+			MinimumDiskGB            int
+			LogLevel                 string
 		}{
-			ListenAddress:       podList.Items[idx].Status.PodIP,
-			Hostname:            podList.Items[idx].Annotations["hostname"],
-			CollectorServerList: collectorEndpointListSpaceSeparated,
-			CqlPort:             strconv.Itoa(*cassandraConfig.CqlPort),
-			JmxLocalPort:        strconv.Itoa(*cassandraConfig.JmxLocalPort),
-			CAFilePath:          certificates.SignerCAFilepath,
-			MinimumDiskGB:       *cassandraConfig.MinimumDiskGB,
+			ListenAddress:            podList.Items[idx].Status.PodIP,
+			InstrospectListenAddress: c.Spec.CommonConfiguration.IntrospectionListenAddress(podList.Items[idx].Status.PodIP),
+			Hostname:                 podList.Items[idx].Annotations["hostname"],
+			CollectorServerList:      collectorEndpointListSpaceSeparated,
+			CqlPort:                  strconv.Itoa(*cassandraConfig.CqlPort),
+			JmxLocalPort:             strconv.Itoa(*cassandraConfig.JmxLocalPort),
+			CAFilePath:               certificates.SignerCAFilepath,
+			MinimumDiskGB:            *cassandraConfig.MinimumDiskGB,
 			// TODO: move to params
 			LogLevel: "SYS_DEBUG",
 		})
@@ -267,7 +269,7 @@ func (c *Cassandra) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, requ
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *Cassandra) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) (*corev1.PodList, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance(instanceType, &c.Spec.CommonConfiguration, request, reconcileClient, true, true, false, false, false, false)
+	return PodIPListAndIPMapFromInstance(instanceType, &c.Spec.CommonConfiguration, request, reconcileClient, true, false, false, false, false)
 }
 
 //PodsCertSubjects gets list of Cassandra pods certificate subjets which can be passed to the certificate API

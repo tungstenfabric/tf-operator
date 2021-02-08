@@ -38,6 +38,19 @@ type KubernetesClusterNetworking struct {
 	ServiceSubnet string `json:"serviceSubnet,omitempty"`
 }
 
+// ClusterDNSDomain returns Cluster DNS domain set in kubeadm config
+func ClusterDNSDomain() (string, error) {
+	cinfo, err := ClusterInfoInstance()
+	if err != nil {
+		return "", err
+	}
+	cfg, err := cinfo.ClusterParameters()
+	if err != nil {
+		return "", err
+	}
+	return cfg.Networking.DNSDomain, nil
+}
+
 // ClusterParameters requsts kubeadm cluster configmap
 func (c *ClusterInfo) ClusterParameters() (*KubernetesClusterConfig, error) {
 	kcm, err := c.Client.ConfigMaps("kube-system").Get("kubeadm-config", metav1.GetOptions{})

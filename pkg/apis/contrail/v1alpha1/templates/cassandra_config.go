@@ -130,10 +130,11 @@ certfile = {{ .CAFilePath }}
 
 // CassandraNodemanagerConfig is a template for nodemanager.{$POD_IP} file
 var CassandraNodemanagerConfig = template.Must(template.New("").Parse(`[DEFAULTS]
-http_server_ip=0.0.0.0
+http_server_ip={{ .InstrospectListenAddress }}
 log_file=/var/log/contrail/cassandra-nodemgr.log
 log_level={{ .LogLevel }}
 log_local=1
+hostname={{ .Hostname }}
 hostip={{ .ListenAddress }}
 db_port={{ .CqlPort }}
 db_jmx_port={{ .JmxLocalPort }}

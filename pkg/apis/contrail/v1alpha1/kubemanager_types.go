@@ -187,59 +187,61 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 		}
 		token := string(secret.Data["token"])
 		configtemplates.KubemanagerConfig.Execute(&kubemanagerConfigBuffer, struct {
-			Token                 string
-			ListenAddress         string
-			CloudOrchestrator     string
-			KubernetesAPIServer   string
-			KubernetesAPIPort     string
-			KubernetesAPISSLPort  string
-			KubernetesClusterName string
-			PodSubnet             string
-			IPFabricSubnet        string
-			ServiceSubnet         string
-			IPFabricForwarding    string
-			IPFabricSnat          string
-			APIServerList         string
-			APIServerPort         string
-			CassandraServerList   string
-			ZookeeperServerList   string
-			RabbitmqServerList    string
-			RabbitmqServerPort    string
-			CollectorServerList   string
-			HostNetworkService    string
-			RabbitmqUser          string
-			RabbitmqPassword      string
-			RabbitmqVhost         string
-			CAFilePath            string
-			LogLevel              string
-			PublicFIPPool         string
+			Token                    string
+			ListenAddress            string
+			InstrospectListenAddress string
+			CloudOrchestrator        string
+			KubernetesAPIServer      string
+			KubernetesAPIPort        string
+			KubernetesAPISSLPort     string
+			KubernetesClusterName    string
+			PodSubnet                string
+			IPFabricSubnet           string
+			ServiceSubnet            string
+			IPFabricForwarding       string
+			IPFabricSnat             string
+			APIServerList            string
+			APIServerPort            string
+			CassandraServerList      string
+			ZookeeperServerList      string
+			RabbitmqServerList       string
+			RabbitmqServerPort       string
+			CollectorServerList      string
+			HostNetworkService       string
+			RabbitmqUser             string
+			RabbitmqPassword         string
+			RabbitmqVhost            string
+			CAFilePath               string
+			LogLevel                 string
+			PublicFIPPool            string
 		}{
-			Token:                 token,
-			ListenAddress:         podList.Items[idx].Status.PodIP,
-			CloudOrchestrator:     kubemanagerConfig.CloudOrchestrator,
-			KubernetesAPIServer:   kubemanagerConfig.KubernetesAPIServer,
-			KubernetesAPIPort:     strconv.Itoa(*kubemanagerConfig.KubernetesAPIPort),
-			KubernetesAPISSLPort:  strconv.Itoa(*kubemanagerConfig.KubernetesAPISSLPort),
-			KubernetesClusterName: kubemanagerConfig.KubernetesClusterName,
-			PodSubnet:             kubemanagerConfig.PodSubnets,
-			IPFabricSubnet:        kubemanagerConfig.IPFabricSubnets,
-			ServiceSubnet:         kubemanagerConfig.ServiceSubnets,
-			IPFabricForwarding:    strconv.FormatBool(*kubemanagerConfig.IPFabricForwarding),
-			IPFabricSnat:          strconv.FormatBool(*kubemanagerConfig.IPFabricSnat),
-			APIServerList:         configApiIPListCommaSeparated,
-			APIServerPort:         strconv.Itoa(configNodesInformation.APIServerPort),
-			CassandraServerList:   cassandraEndpointListSpaceSeparated,
-			ZookeeperServerList:   zookeeperEndpointListCommaSeparated,
-			RabbitmqServerList:    rabbitmqSSLEndpointListCommaSeparated,
-			RabbitmqServerPort:    strconv.Itoa(rabbitmqNodesInformation.Port),
-			CollectorServerList:   configCollectorEndpointListSpaceSeparated,
-			HostNetworkService:    strconv.FormatBool(*kubemanagerConfig.HostNetworkService),
-			RabbitmqUser:          rabbitmqSecretUser,
-			RabbitmqPassword:      rabbitmqSecretPassword,
-			RabbitmqVhost:         rabbitmqSecretVhost,
-			CAFilePath:            certificates.SignerCAFilepath,
-			LogLevel:              kubemanagerConfig.LogLevel,
-			PublicFIPPool:         kubemanagerConfig.PublicFIPPool,
+			Token:                    token,
+			ListenAddress:            podList.Items[idx].Status.PodIP,
+			InstrospectListenAddress: c.Spec.CommonConfiguration.IntrospectionListenAddress(podList.Items[idx].Status.PodIP),
+			CloudOrchestrator:        kubemanagerConfig.CloudOrchestrator,
+			KubernetesAPIServer:      kubemanagerConfig.KubernetesAPIServer,
+			KubernetesAPIPort:        strconv.Itoa(*kubemanagerConfig.KubernetesAPIPort),
+			KubernetesAPISSLPort:     strconv.Itoa(*kubemanagerConfig.KubernetesAPISSLPort),
+			KubernetesClusterName:    kubemanagerConfig.KubernetesClusterName,
+			PodSubnet:                kubemanagerConfig.PodSubnets,
+			IPFabricSubnet:           kubemanagerConfig.IPFabricSubnets,
+			ServiceSubnet:            kubemanagerConfig.ServiceSubnets,
+			IPFabricForwarding:       strconv.FormatBool(*kubemanagerConfig.IPFabricForwarding),
+			IPFabricSnat:             strconv.FormatBool(*kubemanagerConfig.IPFabricSnat),
+			APIServerList:            configApiIPListCommaSeparated,
+			APIServerPort:            strconv.Itoa(configNodesInformation.APIServerPort),
+			CassandraServerList:      cassandraEndpointListSpaceSeparated,
+			ZookeeperServerList:      zookeeperEndpointListCommaSeparated,
+			RabbitmqServerList:       rabbitmqSSLEndpointListCommaSeparated,
+			RabbitmqServerPort:       strconv.Itoa(rabbitmqNodesInformation.Port),
+			CollectorServerList:      configCollectorEndpointListSpaceSeparated,
+			HostNetworkService:       strconv.FormatBool(*kubemanagerConfig.HostNetworkService),
+			RabbitmqUser:             rabbitmqSecretUser,
+			RabbitmqPassword:         rabbitmqSecretPassword,
+			RabbitmqVhost:            rabbitmqSecretVhost,
+			CAFilePath:               certificates.SignerCAFilepath,
+			LogLevel:                 kubemanagerConfig.LogLevel,
+			PublicFIPPool:            kubemanagerConfig.PublicFIPPool,
 		})
 		data["kubemanager."+podList.Items[idx].Status.PodIP] = kubemanagerConfigBuffer.String()
 
@@ -327,7 +329,7 @@ func (c *Kubemanager) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, re
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *Kubemanager) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) (*corev1.PodList, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance(instanceType, &c.Spec.CommonConfiguration, request, reconcileClient, true, false, false, false, false, false)
+	return PodIPListAndIPMapFromInstance(instanceType, &c.Spec.CommonConfiguration, request, reconcileClient, true, false, false, false, false)
 }
 
 //PodsCertSubjects gets list of Kubemanager pods certificate subjets which can be passed to the certificate API

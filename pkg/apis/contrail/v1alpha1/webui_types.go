@@ -144,7 +144,7 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 	for idx := range podList.Items {
 		var webuiWebConfigBuffer bytes.Buffer
 		err := configtemplates.WebuiWebConfig.Execute(&webuiWebConfigBuffer, struct {
-			HostIP                    string
+			PodIP                     string
 			Hostname                  string
 			APIServerList             string
 			APIServerPort             string
@@ -165,7 +165,7 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 			Manager                   string
 			CAFilePath                string
 		}{
-			HostIP:                    podList.Items[idx].Status.PodIP,
+			PodIP:                     podList.Items[idx].Status.PodIP,
 			Hostname:                  podList.Items[idx].Name,
 			APIServerList:             configApiIPListCommaSeparatedQuoted,
 			APIServerPort:             strconv.Itoa(configNodesInformation.APIServerPort),
@@ -281,7 +281,7 @@ func (c *Webui) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, request 
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *Webui) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) (*corev1.PodList, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance(instanceType, &c.Spec.CommonConfiguration, request, reconcileClient, true, false, false, false, false, false)
+	return PodIPListAndIPMapFromInstance(instanceType, &c.Spec.CommonConfiguration, request, reconcileClient, true, false, false, false, false)
 }
 
 //PodsCertSubjects gets list of Config pods certificate subjets which can be passed to the certificate API

@@ -99,8 +99,8 @@ config.vcenter.wsdl = "/usr/src/contrail/contrail-web-core/webroot/js/vim.wsdl";
 config.introspect = {};
 config.introspect.ssl = {};
 config.introspect.ssl.enabled = true;
-config.introspect.ssl.key = '/etc/certificates/server-key-{{ .HostIP }}.pem';
-config.introspect.ssl.cert = '/etc/certificates/server-{{ .HostIP }}.crt';
+config.introspect.ssl.key = '/etc/certificates/server-key-{{ .PodIP }}.pem';
+config.introspect.ssl.cert = '/etc/certificates/server-{{ .PodIP }}.crt';
 config.introspect.ssl.ca = '{{ .CAFilePath }}';
 config.introspect.ssl.strictSSL = true;
 
@@ -159,8 +159,8 @@ config.getDomainsFromApiServer = false;
 config.jsonSchemaPath = "/usr/src/contrail/contrail-web-core/src/serverroot/configJsonSchemas";
 
 config.server_options = {};
-config.server_options.key_file = '/etc/certificates/server-key-{{ .HostIP }}.pem';
-config.server_options.cert_file = '/etc/certificates/server-{{ .HostIP }}.crt';
+config.server_options.key_file = '/etc/certificates/server-key-{{ .PodIP }}.pem';
+config.server_options.cert_file = '/etc/certificates/server-{{ .PodIP }}.crt';
 config.server_options.ciphers = 'ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:AES256-SHA';
 
 module.exports = config;

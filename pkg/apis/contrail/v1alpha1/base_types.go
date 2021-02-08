@@ -96,6 +96,9 @@ type PodConfiguration struct {
 	// zero and not specified. Defaults to 1.
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty" protobuf:"varint,1,opt,name=replicas"`
+	// Use 0.0.0.0 for isntrospection ports
+	// +optional
+	IntrospectListenAll *bool `json:"introspectListenAll,omitempty"`
 }
 
 //GetReplicas is used to get number of desired pods.
@@ -104,6 +107,18 @@ func (cc *PodConfiguration) GetReplicas() int32 {
 		return *cc.Replicas
 	}
 	return int32(1)
+}
+
+// IntrospectionListenAddress returns listen address for instrospection
+func (cc *PodConfiguration) IntrospectionListenAddress(addr string) string {
+	f := IntrospectListenAll
+	if cc != nil && cc.IntrospectListenAll != nil {
+		f = *cc.IntrospectListenAll
+	}
+	if f {
+		return "0.0.0.0"
+	}
+	return addr
 }
 
 func (ss *ServiceStatus) ready() bool {
@@ -617,7 +632,14 @@ func getPodsHostname(c client.Reader, pod *corev1.Pod) (string, error) {
 
 	for _, a := range n.Status.Addresses {
 		if a.Type == corev1.NodeHostName {
-			return a.Address, nil
+			// TODO: until moved to latest operator framework FQDN for pod is not available
+			// so, artificially use FQDN based on host domain
+			// TODO: commonize things between pods
+			dnsDomain, err := k8s.ClusterDNSDomain()
+			if err != nil || dnsDomain == "" || strings.HasSuffix(a.Address, dnsDomain) {
+				return a.Address, nil
+			}
+			return a.Address + "." + dnsDomain, nil
 		}
 	}
 
@@ -626,7 +648,6 @@ func getPodsHostname(c client.Reader, pod *corev1.Pod) (string, error) {
 
 func getPodInitStatus(reconcileClient client.Client,
 	podList *corev1.PodList,
-	getHostname bool,
 	getInterface bool,
 	getMac bool,
 	getPrefix bool,
@@ -640,94 +661,93 @@ func getPodInitStatus(reconcileClient client.Client,
 		if pod.Status.PodIP == "" {
 			return map[string]string{}, nil
 		}
-		if getHostname || getInterface || getMac || getPrefix {
-			for _, initStatus := range pod.Status.InitContainerStatuses {
-				if initStatus.Name == "init" {
-					if initStatus.State.Terminated == nil {
-						if initStatus.State.Running != nil {
-							annotationMap := pod.GetAnnotations()
-							if annotationMap == nil {
-								annotationMap = make(map[string]string)
-							}
-							if getHostname {
-								hostname, err := getPodsHostname(reconcileClient, &pod)
-								if err != nil {
-									return map[string]string{}, err
-								}
-								annotationMap["hostname"] = hostname
-							}
-							if getMac {
-								command := []string{"/bin/sh", "-c", "ip addr show | sed -n '/inet " + pod.Status.PodIP + "\\//{g;h;p};h;x' | awk '{print $2}' | head -n 1"}
-								physicalInterfaceMac, _, err := k8s.ExecToPodThroughAPI(command, "init", pod.Name, pod.Namespace, nil)
-								if err != nil {
-									log.Error(err, "Failed to get iface", strings.Join(command, " "), physicalInterfaceMac)
-									return map[string]string{}, fmt.Errorf("failed getting mac")
-								}
-								annotationMap["physicalInterfaceMac"] = strings.Trim(physicalInterfaceMac, "\n")
-								// TODO: it is not possible to detect iface in case if vhost0 already init via this method..
-								// ideally is to remove all of this ip addr hacks
-								if getInterface {
-									command := []string{"/bin/sh", "-c", "ip addr show | sed -n '/ether " + annotationMap["physicalInterfaceMac"] + " /{g;h;p};h;x' | awk '{print $2}' | tr -d ':' | grep -v vhost0"}
-									physicalInterface, _, err := k8s.ExecToPodThroughAPI(command, "init", pod.Name, pod.Namespace, nil)
-									if err != nil {
-										log.Error(err, "Failed to get iface", strings.Join(command, " "), physicalInterface)
-										return map[string]string{}, fmt.Errorf("failed getting interface")
-									}
-									annotationMap["physicalInterface"] = strings.Trim(physicalInterface, "\n")
-								}
-							}
-							if getGateway {
-								command := []string{"/bin/sh", "-c", "ip route get 1.1.1.1 | grep -v cache | sed -e 's/.* via \\(.*\\) dev.*/\\1/'"}
-								gateway, _, err := k8s.ExecToPodThroughAPI(command, "init", pod.Name, pod.Namespace, nil)
-								if err != nil {
-									log.Error(err, "Failed to get gateway", strings.Join(command, " "), gateway)
-									return map[string]string{}, fmt.Errorf("failed getting gateway")
-								}
-								annotationMap["gateway"] = strings.Trim(gateway, "\n")
-							}
-							if getPrefix {
-								command := []string{"/bin/sh", "-c", "ip addr show | sed -n 's/.*" + pod.Status.PodIP + "\\/\\([^ ]*\\).*/\\1/p' | head -n 1"}
-								prefixLength, _, err := k8s.ExecToPodThroughAPI(command, "init", pod.Name, pod.Namespace, nil)
-								if err != nil {
-									log.Error(err, "Failed to get prefix", strings.Join(command, " "), prefixLength)
-									return map[string]string{}, fmt.Errorf("failed getting prefix")
-								}
-								annotationMap["prefixLength"] = strings.Trim(prefixLength, "\n")
-							}
-
-							if cidr, ok := pod.Annotations["dataSubnet"]; ok {
-								if cidr != "" {
-									command := []string{"/bin/sh", "-c", "ip r | grep " + cidr + " | awk -F' ' '{print $NF}'"}
-									addr, _, err := k8s.ExecToPodThroughAPI(command, "init", pod.Name, pod.Namespace, nil)
-									if err != nil {
-										log.Error(err, "Failed to get data subnet ip", strings.Join(command, " "), addr)
-										return map[string]string{}, fmt.Errorf("failed getting ip address from data subnet")
-									}
-									ip := strings.Trim(addr, "\n")
-									if net.ParseIP(ip) != nil {
-										annotationMap["dataSubnetIP"] = ip
-									} else {
-										return map[string]string{}, fmt.Errorf("no valid ip from data subnet")
-									}
-								}
-							}
-
-							podList.Items[idx].SetAnnotations(annotationMap)
-							(&podList.Items[idx]).SetAnnotations(annotationMap)
-							foundPod := &corev1.Pod{}
-							err := reconcileClient.Get(context.TODO(), types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, foundPod)
-							if err != nil {
-								return map[string]string{}, err
-							}
-							foundPod.SetAnnotations(annotationMap)
-							err = reconcileClient.Update(context.TODO(), foundPod)
-							if err != nil {
-								return map[string]string{}, err
-							}
-							podList.Items[idx] = *foundPod
-						} else {
-							return map[string]string{}, nil
+		for _, initStatus := range pod.Status.InitContainerStatuses {
+			if initStatus.Name == "init" {
+				if initStatus.State.Terminated == nil {
+					if initStatus.State.Running != nil {
+						annotationMap := pod.GetAnnotations()
+						if annotationMap == nil {
+							annotationMap = make(map[string]string)
 						}
+						hostname, err := getPodsHostname(reconcileClient, &pod)
+						if err != nil {
+							return map[string]string{}, err
+						}
+						annotationMap["hostname"] = hostname
+
+						if getMac {
+							command := []string{"/bin/sh", "-c", "ip addr show | sed -n '/inet " + pod.Status.PodIP + "\\//{g;h;p};h;x' | awk '{print $2}' | head -n 1"}
+							physicalInterfaceMac, _, err := k8s.ExecToPodThroughAPI(command, "init", pod.Name, pod.Namespace, nil)
+							if err != nil {
+								log.Error(err, "Failed to get iface", strings.Join(command, " "), physicalInterfaceMac)
+								return map[string]string{}, fmt.Errorf("failed getting mac")
+							}
+							annotationMap["physicalInterfaceMac"] = strings.Trim(physicalInterfaceMac, "\n")
+							// TODO: it is not possible to detect iface in case if vhost0 already init via this method..
+							// ideally is to remove all of this ip addr hacks
+							if getInterface {
+								command := []string{"/bin/sh", "-c", "ip addr show | sed -n '/ether " + annotationMap["physicalInterfaceMac"] + " /{g;h;p};h;x' | awk '{print $2}' | tr -d ':' | grep -v vhost0"}
+								physicalInterface, _, err := k8s.ExecToPodThroughAPI(command, "init", pod.Name, pod.Namespace, nil)
+								if err != nil {
+									log.Error(err, "Failed to get iface", strings.Join(command, " "), physicalInterface)
+									return map[string]string{}, fmt.Errorf("failed getting interface")
+								}
+								annotationMap["physicalInterface"] = strings.Trim(physicalInterface, "\n")
+							}
+						}
+
+						if getGateway {
+							command := []string{"/bin/sh", "-c", "ip route get 1.1.1.1 | grep -v cache | sed -e 's/.* via \\(.*\\) dev.*/\\1/'"}
+							gateway, _, err := k8s.ExecToPodThroughAPI(command, "init", pod.Name, pod.Namespace, nil)
+							if err != nil {
+								log.Error(err, "Failed to get gateway", strings.Join(command, " "), gateway)
+								return map[string]string{}, fmt.Errorf("failed getting gateway")
+							}
+							annotationMap["gateway"] = strings.Trim(gateway, "\n")
+						}
+
+						if getPrefix {
+							command := []string{"/bin/sh", "-c", "ip addr show | sed -n 's/.*" + pod.Status.PodIP + "\\/\\([^ ]*\\).*/\\1/p' | head -n 1"}
+							prefixLength, _, err := k8s.ExecToPodThroughAPI(command, "init", pod.Name, pod.Namespace, nil)
+							if err != nil {
+								log.Error(err, "Failed to get prefix", strings.Join(command, " "), prefixLength)
+								return map[string]string{}, fmt.Errorf("failed getting prefix")
+							}
+							annotationMap["prefixLength"] = strings.Trim(prefixLength, "\n")
+						}
+
+						if cidr, ok := pod.Annotations["dataSubnet"]; ok {
+							if cidr != "" {
+								command := []string{"/bin/sh", "-c", "ip r | grep " + cidr + " | awk -F' ' '{print $NF}'"}
+								addr, _, err := k8s.ExecToPodThroughAPI(command, "init", pod.Name, pod.Namespace, nil)
+								if err != nil {
+									log.Error(err, "Failed to get data subnet ip", strings.Join(command, " "), addr)
+									return map[string]string{}, fmt.Errorf("failed getting ip address from data subnet")
+								}
+								ip := strings.Trim(addr, "\n")
+								if net.ParseIP(ip) != nil {
+									annotationMap["dataSubnetIP"] = ip
+								} else {
+									return map[string]string{}, fmt.Errorf("no valid ip from data subnet")
+								}
+							}
+						}
+
+						podList.Items[idx].SetAnnotations(annotationMap)
+						(&podList.Items[idx]).SetAnnotations(annotationMap)
+						foundPod := &corev1.Pod{}
+						err = reconcileClient.Get(context.TODO(), types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, foundPod)
+						if err != nil {
+							return map[string]string{}, err
+						}
+						foundPod.SetAnnotations(annotationMap)
+						err = reconcileClient.Update(context.TODO(), foundPod)
+						if err != nil {
+							return map[string]string{}, err
+						}
+						podList.Items[idx] = *foundPod
+					} else {
+						return map[string]string{}, nil
 					}
 				}
 			}
@@ -743,7 +763,6 @@ func PodIPListAndIPMapFromInstance(instanceType string,
 	request reconcile.Request,
 	reconcileClient client.Client,
 	waitForInit bool,
-	getHostname bool,
 	getInterface bool,
 	getMac bool,
 	getPrefix bool,
@@ -760,7 +779,7 @@ func PodIPListAndIPMapFromInstance(instanceType string,
 	if len(podList.Items) > 0 {
 		if waitForInit {
 			if int32(len(podList.Items)) == *commonConfiguration.Replicas {
-				podNameIPMap, err = getPodInitStatus(reconcileClient, podList, getHostname, getInterface, getMac, getPrefix, getGateway, waitForInit)
+				podNameIPMap, err = getPodInitStatus(reconcileClient, podList, getInterface, getMac, getPrefix, getGateway, waitForInit)
 				if err != nil {
 					return podList, podNameIPMap, err
 				}
@@ -769,7 +788,7 @@ func PodIPListAndIPMapFromInstance(instanceType string,
 				return &corev1.PodList{}, map[string]string{}, nil
 			}
 		} else if len(podList.Items) > 0 {
-			podNameIPMap, err = getPodInitStatus(reconcileClient, podList, getHostname, getInterface, getMac, getPrefix, getGateway, waitForInit)
+			podNameIPMap, err = getPodInitStatus(reconcileClient, podList, getInterface, getMac, getPrefix, getGateway, waitForInit)
 			if err != nil {
 				return podList, podNameIPMap, err
 			}

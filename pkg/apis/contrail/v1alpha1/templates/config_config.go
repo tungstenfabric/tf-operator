@@ -4,8 +4,8 @@ import "text/template"
 
 var ConfigAPIServerConfig = template.Must(template.New("").Parse(`encryption:
 ca: {{ .CAFilePath }}
-cert: /etc/certificates/server-{{ .HostIP }}.crt
-key: /etc/certificates/server-key-{{ .HostIP }}.pem
+cert: /etc/certificates/server-{{ .PodIP }}.crt
+key: /etc/certificates/server-key-{{ .PodIP }}.pem
 insecure: false
 apiServerList:
 {{range .APIServerList}}
@@ -20,7 +20,7 @@ var ConfigNodeConfig = template.Must(template.New("").Parse(`{{range .APIServerL
 `))
 
 var ConfigAPIVNC = template.Must(template.New("").Parse(`[global]
-WEB_SERVER = {{ .HostIP }}
+WEB_SERVER = {{ .ListenAddress }}
 WEB_PORT = {{ .ListenPort }} ; connection to api-server directly
 BASE_URL = /
 use_ssl = True
@@ -39,10 +39,10 @@ cafile = {{ .CAFilePath }}
 
 // ConfigAPIConfig is the template of the Config API service configuration.
 var ConfigAPIConfig = template.Must(template.New("").Parse(`[DEFAULTS]
-listen_ip_addr=0.0.0.0
+listen_ip_addr={{ .ListenAddress }}
 listen_port={{ .ListenPort }}
 http_server_port={{ .ApiIntrospectPort}}
-http_server_ip=0.0.0.0
+http_server_ip={{ .InstrospectListenAddress }}
 log_file=/var/log/contrail/contrail-api.log
 log_level={{ .LogLevel }}
 log_local=1
@@ -52,8 +52,8 @@ aaa_mode={{ .AAAMode }}
 cloud_admin_role=admin
 global_read_only_role=
 config_api_ssl_enable=True
-config_api_ssl_certfile=/etc/certificates/server-{{ .HostIP }}.crt
-config_api_ssl_keyfile=/etc/certificates/server-key-{{ .HostIP }}.pem
+config_api_ssl_certfile=/etc/certificates/server-{{ .PodIP }}.crt
+config_api_ssl_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
 config_api_ssl_ca_cert={{ .CAFilePath }}
 cassandra_server_list={{ .CassandraServerList }}
 cassandra_use_ssl=true
@@ -64,8 +64,8 @@ rabbit_vhost={{ .RabbitmqVhost }}
 rabbit_user={{ .RabbitmqUser }}
 rabbit_password={{ .RabbitmqPassword }}
 rabbit_use_ssl=True
-kombu_ssl_keyfile=/etc/certificates/server-key-{{ .HostIP }}.pem
-kombu_ssl_certfile=/etc/certificates/server-{{ .HostIP }}.crt
+kombu_ssl_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+kombu_ssl_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 kombu_ssl_ca_certs={{ .CAFilePath }}
 kombu_ssl_version=tlsv1_2
 rabbit_health_check_interval=10
@@ -77,14 +77,14 @@ enable_api_stats_log=True
 introspect_ssl_enable=True
 introspect_ssl_insecure=True
 sandesh_ssl_enable=True
-sandesh_keyfile=/etc/certificates/server-key-{{ .HostIP }}.pem
-sandesh_certfile=/etc/certificates/server-{{ .HostIP }}.crt
+sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 sandesh_ca_cert={{ .CAFilePath }}`))
 
 // ConfigDeviceManagerConfig is the template of the DeviceManager service configuration.
 var ConfigDeviceManagerConfig = template.Must(template.New("").Parse(`[DEFAULTS]
 host_ip={{ .FabricMgmtIP }}
-http_server_ip=0.0.0.0
+http_server_ip={{ .InstrospectListenAddress }}
 api_server_ip={{ .ApiServerList}}
 api_server_port=8082
 http_server_port={{ .DeviceManagerIntrospectPort}}
@@ -110,8 +110,8 @@ rabbit_vhost={{ .RabbitmqVhost }}
 rabbit_user={{ .RabbitmqUser }}
 rabbit_password={{ .RabbitmqPassword }}
 rabbit_use_ssl=True
-kombu_ssl_keyfile=/etc/certificates/server-key-{{ .HostIP }}.pem
-kombu_ssl_certfile=/etc/certificates/server-{{ .HostIP }}.crt
+kombu_ssl_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+kombu_ssl_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 kombu_ssl_ca_certs={{ .CAFilePath }}
 kombu_ssl_version=tlsv1_2
 rabbit_health_check_interval=10
@@ -120,8 +120,8 @@ collectors={{ .CollectorServerList }}
 introspect_ssl_enable=True
 introspect_ssl_insecure=True
 sandesh_ssl_enable=True
-sandesh_keyfile=/etc/certificates/server-key-{{ .HostIP }}.pem
-sandesh_certfile=/etc/certificates/server-{{ .HostIP }}.crt
+sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 sandesh_ca_cert={{ .CAFilePath }}`))
 
 // ConfigKeystoneAuthConf is the template of the DeviceManager keystone auth configuration.
@@ -150,8 +150,8 @@ collectors={{ .CollectorServerList }}
 introspect_ssl_enable=True
 introspect_ssl_insecure=True
 sandesh_ssl_enable=True
-sandesh_keyfile=/etc/certificates/server-key-{{ .HostIP }}.pem
-sandesh_certfile=/etc/certificates/server-{{ .HostIP }}.crt
+sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 sandesh_ca_cert={{ .CAFilePath }}`))
 
 // ConfigDNSMasqBaseConfig is the template of the DNSMasq service configuration.
@@ -168,8 +168,8 @@ var ConfigDNSMasqConfig = `conf-dir=/var/lib/dnsmasq/,*.conf
 
 // ConfigSchematransformerConfig is the template of the SchemaTransformer service configuration.
 var ConfigSchematransformerConfig = template.Must(template.New("").Parse(`[DEFAULTS]
-host_ip={{ .HostIP }}
-http_server_ip=0.0.0.0
+host_ip={{ .ListenAddress }}
+http_server_ip={{ .InstrospectListenAddress }}
 http_server_port={{ .SchemaIntrospectPort}}
 api_server_ip={{ .ApiServerList}}
 api_server_port=8082
@@ -186,8 +186,8 @@ rabbit_vhost={{ .RabbitmqVhost }}
 rabbit_user={{ .RabbitmqUser }}
 rabbit_password={{ .RabbitmqPassword }}
 rabbit_use_ssl=True
-kombu_ssl_keyfile=/etc/certificates/server-key-{{ .HostIP }}.pem
-kombu_ssl_certfile=/etc/certificates/server-{{ .HostIP }}.crt
+kombu_ssl_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+kombu_ssl_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 kombu_ssl_ca_certs={{ .CAFilePath }}
 kombu_ssl_version=tlsv1_2
 rabbit_health_check_interval=10
@@ -196,19 +196,19 @@ collectors={{ .CollectorServerList }}
 introspect_ssl_enable=True
 introspect_ssl_insecure=True
 sandesh_ssl_enable=True
-sandesh_keyfile=/etc/certificates/server-key-{{ .HostIP }}.pem
-sandesh_certfile=/etc/certificates/server-{{ .HostIP }}.crt
+sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 sandesh_ca_cert={{ .CAFilePath }}
 [SECURITY]
 use_certs=True
 ca_certs={{ .CAFilePath }}
-certfile=/etc/certificates/server-{{ .HostIP }}.crt
-keyfile=/etc/certificates/server-key-{{ .HostIP }}.pem`))
+certfile=/etc/certificates/server-{{ .PodIP }}.crt
+keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem`))
 
 // ConfigServicemonitorConfig is the template of the ServiceMonitor service configuration.
 var ConfigServicemonitorConfig = template.Must(template.New("").Parse(`[DEFAULTS]
-host_ip={{ .HostIP }}
-http_server_ip=0.0.0.0
+host_ip={{ .ListenAddress }}
+http_server_ip={{ .InstrospectListenAddress }}
 http_server_port={{ .SvcMonitorIntrospectPort}}
 api_server_ip={{ .ApiServerList }}
 api_server_port=8082
@@ -225,21 +225,21 @@ rabbit_vhost={{ .RabbitmqVhost }}
 rabbit_user={{ .RabbitmqUser }}
 rabbit_password={{ .RabbitmqPassword }}
 rabbit_use_ssl=True
-kombu_ssl_keyfile=/etc/certificates/server-key-{{ .HostIP }}.pem
-kombu_ssl_certfile=/etc/certificates/server-{{ .HostIP }}.crt
+kombu_ssl_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+kombu_ssl_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 kombu_ssl_ca_certs={{ .CAFilePath }}
 kombu_ssl_version=tlsv1_2
 rabbit_health_check_interval=10
 collectors={{ .CollectorServerList }}
 analytics_api_ssl_enable = True
 analytics_api_insecure_enable = False
-analytics_api_ssl_certfile = /etc/certificates/server-{{ .HostIP }}.crt
-analytics_api_ssl_keyfile = /etc/certificates/server-key-{{ .HostIP }}.pem
+analytics_api_ssl_certfile = /etc/certificates/server-{{ .PodIP }}.crt
+analytics_api_ssl_keyfile = /etc/certificates/server-key-{{ .PodIP }}.pem
 analytics_api_ssl_ca_cert = {{ .CAFilePath }}
 [SECURITY]
 use_certs=True
-keyfile=/etc/certificates/server-key-{{ .HostIP }}.pem
-certfile=/etc/certificates/server-{{ .HostIP }}.crt
+keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+certfile=/etc/certificates/server-{{ .PodIP }}.crt
 ca_certs={{ .CAFilePath }}
 [SCHEDULER]
 # Analytics server list used to get vrouter status and schedule service instance
@@ -249,17 +249,17 @@ aaa_mode={{ .AAAMode }}
 introspect_ssl_enable=True
 introspect_ssl_insecure=True
 sandesh_ssl_enable=True
-sandesh_keyfile=/etc/certificates/server-key-{{ .HostIP }}.pem
-sandesh_certfile=/etc/certificates/server-{{ .HostIP }}.crt
+sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 sandesh_ca_cert={{ .CAFilePath }}`))
 
 // ConfigAnalyticsapiConfig is the template of the AnalyticsAPI service configuration.
 var ConfigAnalyticsapiConfig = template.Must(template.New("").Parse(`[DEFAULTS]
-host_ip={{ .HostIP }}
+host_ip={{ .ListenAddress }}
 http_server_port={{ .AnalyticsApiIntrospectPort}}
-http_server_ip=0.0.0.0
+http_server_ip={{ .InstrospectListenAddress }}
 rest_api_port=8081
-rest_api_ip=0.0.0.0
+rest_api_ip={{ .ListenAddress }}
 aaa_mode={{ .AAAMode }}
 log_file=/var/log/contrail/contrail-analytics-api.log
 log_level={{ .LogLevel }}
@@ -273,8 +273,8 @@ api_server_use_ssl=True
 zk_list={{ .ZookeeperServerList }}
 analytics_api_ssl_enable = True
 analytics_api_insecure_enable = True
-analytics_api_ssl_certfile = /etc/certificates/server-{{ .HostIP }}.crt
-analytics_api_ssl_keyfile = /etc/certificates/server-key-{{ .HostIP }}.pem
+analytics_api_ssl_certfile = /etc/certificates/server-{{ .PodIP }}.crt
+analytics_api_ssl_keyfile = /etc/certificates/server-key-{{ .PodIP }}.pem
 analytics_api_ssl_ca_cert = {{ .CAFilePath }}
 [REDIS]
 redis_uve_list={{ .RedisServerList }}
@@ -283,8 +283,8 @@ redis_password=
 introspect_ssl_enable=True
 introspect_ssl_insecure=True
 sandesh_ssl_enable=True
-sandesh_keyfile=/etc/certificates/server-key-{{ .HostIP }}.pem
-sandesh_certfile=/etc/certificates/server-{{ .HostIP }}.crt
+sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 sandesh_ca_cert={{ .CAFilePath }}`))
 
 // ConfigCollectorConfig is the template of the Collector service configuration.
@@ -294,10 +294,10 @@ analytics_config_audit_ttl={{ .AnalyticsConfigAuditTTL }}
 analytics_statistics_ttl={{ .AnalyticsStatisticsTTL }}
 analytics_flow_ttl={{ .AnalyticsFlowTTL }}
 partitions=30
-hostip={{ .HostIP }}
 hostname={{ .Hostname }}
+hostip={{ .ListenAddress }}
 http_server_port={{ .CollectorIntrospectPort}}
-http_server_ip=0.0.0.0
+http_server_ip={{ .InstrospectListenAddress }}
 syslog_port=514
 sflow_port=6343
 ipfix_port=4739
@@ -315,7 +315,7 @@ cassandra_use_ssl=true
 cassandra_ca_certs={{ .CAFilePath }}
 [COLLECTOR]
 port=8086
-server=0.0.0.0
+server={{ .ListenAddress }}
 protobuf_port=3333
 [STRUCTURED_SYSLOG_COLLECTOR]
 # TCP & UDP port to listen on for receiving structured syslog messages
@@ -339,24 +339,24 @@ rabbitmq_vhost={{ .RabbitmqVhost }}
 rabbitmq_user={{ .RabbitmqUser }}
 rabbitmq_password={{ .RabbitmqPassword }}
 rabbitmq_use_ssl=True
-rabbitmq_ssl_keyfile=/etc/certificates/server-key-{{ .HostIP }}.pem
-rabbitmq_ssl_certfile=/etc/certificates/server-{{ .HostIP }}.crt
+rabbitmq_ssl_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+rabbitmq_ssl_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 rabbitmq_ssl_ca_certs={{ .CAFilePath }}
 rabbitmq_ssl_version=tlsv1_2
 [SANDESH]
 introspect_ssl_enable=True
 introspect_ssl_insecure=True
 sandesh_ssl_enable=True
-sandesh_keyfile=/etc/certificates/server-key-{{ .HostIP }}.pem
-sandesh_certfile=/etc/certificates/server-{{ .HostIP }}.crt
+sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 sandesh_ca_cert={{ .CAFilePath }}`))
 
 // ConfigQueryEngineConfig is the template of the Config Nodemanager service configuration.
 var ConfigQueryEngineConfig = template.Must(template.New("").Parse(`[DEFAULT]
 analytics_data_ttl={{ .AnalyticsDataTTL }}
-hostip={{ .HostIP }}
 hostname={{ .Hostname }}
-http_server_ip=0.0.0.0
+hostip={{ .ListenAddress }}
+http_server_ip={{ .InstrospectListenAddress }}
 http_server_port=8091
 log_file=/var/log/contrail/contrail-query-engine.log
 log_level={{ .LogLevel }}
@@ -380,18 +380,18 @@ redis_ssl_enable=False
 introspect_ssl_enable=True
 introspect_ssl_insecure=True
 sandesh_ssl_enable=True
-sandesh_keyfile=/etc/certificates/server-key-{{ .HostIP }}.pem
-sandesh_certfile=/etc/certificates/server-{{ .HostIP }}.crt
+sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 sandesh_ca_cert={{ .CAFilePath }}`))
 
 // ConfigNodemanagerConfigConfig is the template of the Config Nodemanager service configuration.
 var ConfigNodemanagerConfigConfig = template.Must(template.New("").Parse(`[DEFAULTS]
-http_server_ip=0.0.0.0
+http_server_ip={{ .InstrospectListenAddress }}
 log_file=/var/log/contrail/contrail-config-nodemgr.log
 log_level={{ .LogLevel }}
 log_local=1
 hostname={{ .Hostname }}
-hostip={{ .HostIP }}
+hostip={{ .ListenAddress }}
 db_port={{ .CassandraPort }}
 db_jmx_port={{ .CassandraJmxPort }}
 db_use_ssl=True
@@ -401,18 +401,18 @@ server_list={{ .CollectorServerList }}
 introspect_ssl_enable=True
 introspect_ssl_insecure=True
 sandesh_ssl_enable=True
-sandesh_keyfile=/etc/certificates/server-key-{{ .HostIP }}.pem
-sandesh_certfile=/etc/certificates/server-{{ .HostIP }}.crt
+sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 sandesh_ca_cert={{ .CAFilePath }}`))
 
 // ConfigNodemanagerAnalyticsConfig is the template of the Analytics Nodemanager service configuration.
 var ConfigNodemanagerAnalyticsConfig = template.Must(template.New("").Parse(`[DEFAULTS]
-http_server_ip=0.0.0.0
+http_server_ip={{ .InstrospectListenAddress }}
 log_file=/var/log/contrail/contrail-config-nodemgr.log
 log_level={{ .LogLevel }}
 log_local=1
 hostname={{ .Hostname }}
-hostip={{ .HostIP }}
+hostip={{ .ListenAddress }}
 db_port={{ .CassandraPort }}
 db_jmx_port={{ .CassandraJmxPort }}
 db_use_ssl=True
@@ -422,6 +422,6 @@ server_list={{ .CollectorServerList }}
 introspect_ssl_enable=True
 introspect_ssl_insecure=True
 sandesh_ssl_enable=True
-sandesh_keyfile=/etc/certificates/server-key-{{ .HostIP }}.pem
-sandesh_certfile=/etc/certificates/server-{{ .HostIP }}.crt
+sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 sandesh_ca_cert={{ .CAFilePath }}`))

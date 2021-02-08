@@ -45,11 +45,7 @@ func (c CertificateSubject) generateCertificateTemplate() (x509.Certificate, *rs
 	}
 
 	// TODO: it might be not good to have here this code
-	cinfo, err := k8s.ClusterInfoInstance()
-	if err != nil {
-		return x509.Certificate{}, nil, err
-	}
-	cfg, err := cinfo.ClusterParameters()
+	dnsDomain, err := k8s.ClusterDNSDomain()
 	if err != nil {
 		return x509.Certificate{}, nil, err
 	}
@@ -64,7 +60,7 @@ func (c CertificateSubject) generateCertificateTemplate() (x509.Certificate, *rs
 			Organization:       []string{"Linux Foundation"},
 			OrganizationalUnit: []string{"Tungsten Fabric"},
 		},
-		DNSNames:    []string{c.hostname, c.hostname + "." + cfg.Networking.DNSDomain},
+		DNSNames:    []string{c.hostname, c.hostname + "." + dnsDomain},
 		IPAddresses: ips,
 		NotBefore:   notBefore,
 		NotAfter:    notAfter,

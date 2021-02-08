@@ -1233,6 +1233,11 @@ func (in *ManagerConfiguration) DeepCopyInto(out *ManagerConfiguration) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.IntrospectListenAll != nil {
+		in, out := &in.IntrospectListenAll, &out.IntrospectListenAll
+		*out = new(bool)
+		**out = **in
+	}
 	return
 }
 

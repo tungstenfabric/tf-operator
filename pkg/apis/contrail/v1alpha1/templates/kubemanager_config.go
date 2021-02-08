@@ -11,7 +11,7 @@ log_file=/var/log/contrail/contrail-kube-manager.log
 log_level={{ .LogLevel }}
 log_local=1
 nested_mode=0
-http_server_ip=0.0.0.0
+http_server_ip={{ .InstrospectListenAddress }}
 [KUBERNETES]
 kubernetes_api_server={{ .KubernetesAPIServer }}
 kubernetes_api_port={{ .KubernetesAPIPort }}
