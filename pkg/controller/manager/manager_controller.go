@@ -128,20 +128,6 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, nil
 	}
 
-	// TODO: is it needed?
-	// provisionConfigMap := &corev1.ConfigMap{}
-	// if err = r.client.Get(context.TODO(), types.NamespacedName{Name: "provision-config", Namespace: request.Namespace}, provisionConfigMap); err != nil {
-	// 	if errors.IsNotFound(err) {
-	// 		provisionConfigMap.Name = "provision-config"
-	// 		provisionConfigMap.Namespace = request.Namespace
-	// 		data := map[string]string{"apiserver.yaml": "", "confignodes.yaml": "", "controlnodes.yaml": "", "analyticsnodes.yaml": "", "vrouternodes.yaml": ""}
-	// 		provisionConfigMap.Data = data
-	// 		if err = controllerutil.SetControllerReference(instance, provisionConfigMap, r.scheme); err != nil {
-	// 			return reconcile.Result{}, err
-	// 		}
-	// 	}
-	// }
-
 	if err := r.processCSRSignerCaConfigMap(instance); err != nil {
 		return reconcile.Result{}, err
 	}

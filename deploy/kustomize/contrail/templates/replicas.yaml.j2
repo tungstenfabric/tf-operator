@@ -1,3 +1,8 @@
+{%- if CONTRAIL_REPLICAS is not defined -%}
+{%- if CONTROLLER_NODES is defined and CONTROLLER_NODES|length -%}
+{%- set CONTRAIL_REPLICAS = " ".join(CONTROLLER_NODES.split(",")).split()|length -%}
+{%- endif -%}
+{%- endif -%}
 ---
 apiVersion: contrail.juniper.net/v1alpha1
 kind: Manager
@@ -6,4 +11,4 @@ metadata:
   namespace: contrail
 spec:
   commonConfiguration:
-    replicas: 1
+    replicas: {{ CONTRAIL_REPLICAS | default(1) }}

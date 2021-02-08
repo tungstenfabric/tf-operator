@@ -1,3 +1,9 @@
+{%- if CONTRAIL_CONTAINER_TAG is not defined or CONTRAIL_CONTAINER_TAG == "" -%}
+{%- set CONTRAIL_CONTAINER_TAG = "latest" -%}
+{%- endif -%}
+{%- if CONTAINER_REGISTRY is not defined or CONTAINER_REGISTRY == "" -%}
+{%- set CONTAINER_REGISTRY = "tungstenfabric" -%}
+{%- endif -%}
 bases:
 - ../../base/contrail
 
