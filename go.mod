@@ -10,6 +10,7 @@ require (
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
 	github.com/emicklei/go-restful v2.11.1+incompatible // indirect
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
+	github.com/go-logr/logr v0.1.0
 	github.com/go-openapi/spec v0.19.4
 	github.com/go-pg/pg/v10 v10.0.0-beta.2
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
@@ -39,6 +40,7 @@ require (
 	k8s.io/utils v0.0.0-20200229041039-0a110f9eb7ab // indirect
 	sigs.k8s.io/controller-runtime v0.5.2
 	sigs.k8s.io/kind v0.7.1-0.20200303021537-981bd80d3802
+	sigs.k8s.io/yaml v1.2.0
 )
 
 // Pinned to kubernetes-1.16.2

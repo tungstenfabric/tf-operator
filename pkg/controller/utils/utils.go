@@ -16,21 +16,27 @@ var reqLogger = log.WithValues()
 
 // const defines the Group constants.
 const (
-	CASSANDRA   = "Cassandra.contrail.juniper.net"
-	ZOOKEEPER   = "Zookeeper.contrail.juniper.net"
-	RABBITMQ    = "Rabbitmq.contrail.juniper.net"
-	CONFIG      = "Config.contrail.juniper.net"
-	CONTROL     = "Control.contrail.juniper.net"
-	WEBUI       = "Webui.contrail.juniper.net"
-	VROUTER     = "Vrouter.contrail.juniper.net"
-	KUBEMANAGER = "Kubemanager.contrail.juniper.net"
-	MANAGER     = "Manager.contrail.juniper.net"
-	REPLICASET  = "ReplicaSet.apps"
-	DEPLOYMENT  = "Deployment.apps"
+	ANALYTICSSNMP = "AnalyticsSnmp.contrail.juniper.net"
+	CASSANDRA     = "Cassandra.contrail.juniper.net"
+	ZOOKEEPER     = "Zookeeper.contrail.juniper.net"
+	RABBITMQ      = "Rabbitmq.contrail.juniper.net"
+	CONFIG        = "Config.contrail.juniper.net"
+	CONTROL       = "Control.contrail.juniper.net"
+	WEBUI         = "Webui.contrail.juniper.net"
+	VROUTER       = "Vrouter.contrail.juniper.net"
+	KUBEMANAGER   = "Kubemanager.contrail.juniper.net"
+	MANAGER       = "Manager.contrail.juniper.net"
+	REPLICASET    = "ReplicaSet.apps"
+	DEPLOYMENT    = "Deployment.apps"
 )
 
 func RemoveIndex(s []corev1.Container, index int) []corev1.Container {
 	return append(s[:index], s[index+1:]...)
+}
+
+// AnalyticsSnmpGroupKind returns group kind.
+func AnalyticsSnmpGroupKind() schema.GroupKind {
+	return schema.ParseGroupKind(ANALYTICSSNMP)
 }
 
 // WebuiGroupKind returns group kind.
