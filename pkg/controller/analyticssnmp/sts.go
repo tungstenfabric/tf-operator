@@ -83,6 +83,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
+            - name: PROVISION_HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.annotations['hostname']
           volumeMounts:
             - mountPath: /var/log/contrail
               name: contrail-logs
@@ -101,6 +105,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
+            - name: PROVISION_HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.annotations['hostname']
           volumeMounts:
             - mountPath: /var/log/contrail
               name: contrail-logs

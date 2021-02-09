@@ -162,24 +162,6 @@ sandesh_keyfile=/etc/certificates/server-key-{{ .ListenAddress }}.pem
 sandesh_certfile=/etc/certificates/server-{{ .ListenAddress }}.crt
 sandesh_ca_cert={{ .CAFilePath }}`))
 
-// ControlProvisionConfig is the template of the Control provision script.
-var ControlProvisionConfig = template.Must(template.New("").Parse(`#!/bin/bash
-servers=$(echo {{ .APIServerList }} | tr ',' ' ')
-for server in $servers ; do
-  /opt/contrail/utils/provision_control.py --oper $1 \
-  --api_server_use_ssl true \
-  --host_ip {{ .DataIP }} \
-  --router_asn {{ .ASNNumber }} \
-  --bgp_server_port {{ .BGPPort }} \
-  --api_server_ip $server \
-  --api_server_port {{ .APIServerPort }} \
-  --host_name {{ .Hostname }}
-  if [[ $? -eq 0 ]]; then
-    break
-  fi
-done
-`))
-
 // ControlDeProvisionConfig is the template of the Control de-provision script.
 // TODO:
 //  - support keystone

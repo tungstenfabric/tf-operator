@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/Juniper/contrail-operator/pkg/apis/contrail/v1alpha1"
-	configtemplates "github.com/Juniper/contrail-operator/pkg/apis/contrail/v1alpha1/templates"
 	"github.com/Juniper/contrail-operator/pkg/certificates"
 	"github.com/Juniper/contrail-operator/pkg/controller/utils"
 	"github.com/Juniper/contrail-operator/pkg/k8s"
@@ -29,10 +29,12 @@ import (
 )
 
 // InstanceType is a string value for AnalyticsSnmp
-var InstanceType = "analyticssnmp"
+var instanceType = "analyticssnmp"
 
 // Log is a default logger for AnalyticsSnmp
-var Log = logf.Log.WithName("controller_" + InstanceType)
+var log = logf.Log.WithName("controller_" + instanceType)
+var restartTime, _ = time.ParseDuration("1s")
+var requeueReconcile = reconcile.Result{Requeue: true, RequeueAfter: restartTime}
 
 func resourceHandler(myclient client.Client) handler.Funcs {
 	appHandler := handler.Funcs{
@@ -107,7 +109,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 }
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller.
-	c, err := controller.New(InstanceType+"-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New(instanceType+"-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
@@ -116,7 +118,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err = c.Watch(&source.Kind{Type: &v1alpha1.AnalyticsSnmp{}}, &handler.EnqueueRequestForObject{}); err != nil {
 		return err
 	}
-	serviceMap := map[string]string{"contrail_manager": InstanceType}
+	serviceMap := map[string]string{"contrail_manager": instanceType}
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
 	podHandler := resourceHandler(mgr.GetClient())
 	predInitStatus := utils.PodInitStatusChange(serviceMap)
@@ -140,9 +142,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	cassandraServiceMap := map[string]string{"contrail_manager": "cassandra"}
-	predCassandraPodIPChange := utils.PodIPChange(cassandraServiceMap)
-	if err = c.Watch(srcPod, podHandler, predCassandraPodIPChange); err != nil {
+	srcCassandra := &source.Kind{Type: &v1alpha1.Cassandra{}}
+	cassandraHandler := resourceHandler(mgr.GetClient())
+	predCassandraSizeChange := utils.CassandraActiveChange()
+	if err = c.Watch(srcCassandra, cassandraHandler, predCassandraSizeChange); err != nil {
 		return err
 	}
 
@@ -157,6 +160,13 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	zookeeperHandler := resourceHandler(mgr.GetClient())
 	predZookeeperSizeChange := utils.ZookeeperActiveChange()
 	if err = c.Watch(srcZookeeper, zookeeperHandler, predZookeeperSizeChange); err != nil {
+		return err
+	}
+
+	srcConfig := &source.Kind{Type: &v1alpha1.Config{}}
+	configHandler := resourceHandler(mgr.GetClient())
+	predConfigSizeChange := utils.ConfigActiveChange()
+	if err = c.Watch(srcConfig, configHandler, predConfigSizeChange); err != nil {
 		return err
 	}
 
@@ -188,14 +198,17 @@ type ReconcileAnalyticsSnmp struct {
 
 // Reconcile reconciles AnalyticsSnmp.
 func (r *ReconcileAnalyticsSnmp) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := Log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Reconciling AnalyticsSnmp")
 
 	// Get instance
 	instance := &v1alpha1.AnalyticsSnmp{}
-	if err := r.Client.Get(context.TODO(), request.NamespacedName, instance); err != nil && errors.IsNotFound(err) {
-		reqLogger.Error(err, "Instance not found.")
-		return reconcile.Result{}, nil
+	err := r.Client.Get(context.TODO(), request.NamespacedName, instance)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return reconcile.Result{}, nil
+		}
+		return reconcile.Result{}, err
 	}
 
 	if !instance.GetDeletionTimestamp().IsZero() {
@@ -208,151 +221,115 @@ func (r *ReconcileAnalyticsSnmp) Reconcile(request reconcile.Request) (reconcile
 	zookeeperInstance := v1alpha1.Zookeeper{}
 	rabbitmqInstance := v1alpha1.Rabbitmq{}
 	configInstance := v1alpha1.Config{}
-	cassandraActive := cassandraInstance.IsActive(instance.Spec.ServiceConfiguration.CassandraInstance,
-		request.Namespace, r.Client)
-	zookeeperActive := zookeeperInstance.IsActive(instance.Spec.ServiceConfiguration.ZookeeperInstance,
-		request.Namespace, r.Client)
-	rabbitmqActive := rabbitmqInstance.IsActive(instance.Labels["contrail_cluster"],
-		request.Namespace, r.Client)
-	configActive := configInstance.IsActive(instance.Labels["contrail_cluster"],
-		request.Namespace, r.Client)
+	cassandraActive := cassandraInstance.IsActive(instance.Spec.ServiceConfiguration.CassandraInstance, request.Namespace, r.Client)
+	zookeeperActive := zookeeperInstance.IsActive(instance.Spec.ServiceConfiguration.ZookeeperInstance, request.Namespace, r.Client)
+	rabbitmqActive := rabbitmqInstance.IsActive(instance.Spec.ServiceConfiguration.RabbitmqInstance, request.Namespace, r.Client)
+	configActive := configInstance.IsActive(instance.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, r.Client)
 	if !cassandraActive || !zookeeperActive || !rabbitmqActive || !configActive {
-		reqLogger.Info(fmt.Sprintf("%t %t %t %t", cassandraActive, zookeeperActive, rabbitmqActive, configActive))
+		reqLogger.Info("Dependencies not ready", "db", cassandraActive, "zk", zookeeperActive, "rmq", rabbitmqActive, "api", configActive)
 		return reconcile.Result{}, nil
 	}
 
 	// Get or create configmaps
-	configMap, isConfigMapCreated, err := r.GetOrCreateConfigMap(FullName("configmap", request), instance, request)
-	if err != nil {
-		reqLogger.Error(err, "ConfigMap not created.")
-		return reconcile.Result{}, err
-	}
-
-	_, err = v1alpha1.CreateSecret(request.Name+"-secret-certificates", r.Client, r.Scheme, request, InstanceType, instance)
+	configMapName := request.Name + "-" + instanceType + "-configmap"
+	configMap, err := instance.CreateConfigMap(configMapName, r.Client, r.Scheme, request)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 
-	// Get Statefulset
-	statefulSet, err := v1alpha1.QuerySTS(FullName("statefulset", request), request.Namespace, r.Client)
+	_, err = v1alpha1.CreateSecret(request.Name+"-secret-certificates", r.Client, r.Scheme, request, instanceType, instance)
 	if err != nil {
-		reqLogger.Error(err, "StatefulSet not found.")
 		return reconcile.Result{}, err
 	}
 
-	// Stateful set does not exist
-	if statefulSet == nil {
-		statefulSet, err = r.GetStatefulSet(request, instance, reqLogger)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-		v1alpha1.CreateSTS(statefulSet, InstanceType, request, r.Client)
-
-		return reconcile.Result{Requeue: true}, nil
+	statefulSet := &appsv1.StatefulSet{}
+	if statefulSet, err = r.GetSTS(request, instance, reqLogger); err != nil {
+		return reconcile.Result{}, nil
 	}
 
-	// Get pods
-	podIpList, podIpMap, err := v1alpha1.PodIPListAndIPMapFromInstance(InstanceType,
-		&instance.Spec.CommonConfiguration,
-		request,
-		r.Client,
-		true, false, false, false, false,
-	)
+	if err = instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if _, err = instance.UpdateSTS(statefulSet, instanceType, request, r.Client); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	podIPList, podIPMap, err := instance.PodIPListAndIPMapFromInstance(instanceType, request, r.Client)
 	if err != nil {
 		reqLogger.Error(err, "Pod list not found")
 		return reconcile.Result{}, err
 	}
-	if len(podIpMap) <= 0 {
-		reqLogger.Info("No pods.")
-		return reconcile.Result{Requeue: true}, nil
-	}
 
-	// Fill config map or check if it changed to update statefulset
-	if isConfigMapCreated {
-		reqLogger.Info("Configmap just created")
-		return reconcile.Result{Requeue: true}, nil
-	}
+	if len(podIPMap) > 0 {
 
-	// Get needed data
-	dataForConfigMap, err := instance.GetDataForConfigMap(podIpList, request, r.Client, reqLogger)
-	if err != nil {
-		reqLogger.Error(err, "Cannot get data for the ConfigMap.")
-	}
-	// Check data changed
-	configChanged := false
-	for file, content := range configMap.Data {
-		neededContent, found := dataForConfigMap[file]
-		if found && neededContent != content {
-			configChanged = true
-			break
-		}
-	}
-	// Update satefulset if config was changed
-	if configChanged {
-		statefulSet, err = r.GetStatefulSet(request, instance, reqLogger)
-		if err != nil {
-			return reconcile.Result{}, nil
-		}
-		if err = r.Client.Update(context.TODO(), statefulSet); err != nil {
-			reqLogger.Error(err, "Update statefulset failed")
+		if err = r.ensureCertificatesExist(instance, podIPList, instanceType); err != nil {
 			return reconcile.Result{}, err
 		}
-		return reconcile.Result{Requeue: true}, nil
-	}
 
-	// Ensure certificates exists
-	certSubjects := v1alpha1.PodsCertSubjects(podIpList,
-		instance.Spec.CommonConfiguration.HostNetwork,
-		v1alpha1.PodAlternativeIPs{},
-	)
-	crt := certificates.NewCertificate(r.Client, r.Scheme, instance, certSubjects, InstanceType)
-	if err := crt.EnsureExistsAndIsSigned(); err != nil {
-		reqLogger.Error(err, "Certificates for pod not exist.")
-		return reconcile.Result{Requeue: true}, nil
-	}
-
-	// Add new config files
-	if !reflect.DeepEqual(configMap.Data, dataForConfigMap) {
-		// Update configmap
-		configMap.Data = dataForConfigMap
-		if err := r.Client.Update(context.TODO(), configMap); err != nil {
-			reqLogger.Error(err, "Cannot update the ConfigMap.")
+		if err := instance.InstanceConfiguration(configMapName, podIPList, request, r.Client); err != nil {
+			reqLogger.Error(err, "InstanceConfiguration failed")
+			return reconcile.Result{}, err
 		}
-		return reconcile.Result{Requeue: true}, nil
+
+		if err = v1alpha1.SetPodsToReady(podIPList, r.Client); err != nil {
+			reqLogger.Error(err, "Failed to set pods to ready")
+			return reconcile.Result{}, err
+		}
 	}
 
-	// Set pod `status` label to `ready`
-	if err = v1alpha1.SetPodsToReady(podIpList, r.Client); err != nil {
-		reqLogger.Error(err, "Failed to set pods to ready")
+	falseVal := false
+	if instance.Status.ConfigChanged == nil {
+		instance.Status.ConfigChanged = &falseVal
+	}
+	beforeCheck := *instance.Status.ConfigChanged
+	newConfigMap := &corev1.ConfigMap{}
+	if err = r.Client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: request.Namespace}, newConfigMap); err != nil {
+		return reconcile.Result{}, err
+	}
+	*instance.Status.ConfigChanged = !reflect.DeepEqual(configMap.Data, newConfigMap.Data)
+
+	if *instance.Status.ConfigChanged {
+		reqLogger.Info("Update StatefulSet: ConfigChanged")
+		if err := r.Client.Update(context.TODO(), statefulSet); err != nil {
+			reqLogger.Error(err, "Update StatefulSet failed")
+			return reconcile.Result{}, err
+		}
+		return requeueReconcile, nil
+	}
+
+	if beforeCheck != *instance.Status.ConfigChanged {
+		reqLogger.Info("Update Status: ConfigChanged")
+		if err := r.Client.Status().Update(context.TODO(), instance); err != nil {
+			reqLogger.Error(err, "Update Status failed")
+			return reconcile.Result{}, err
+		}
+		return requeueReconcile, nil
+	}
+
+	instance.Status.Active = &falseVal
+	if err = instance.SetInstanceActive(r.Client, instance.Status.Active, statefulSet, request); err != nil {
+		reqLogger.Error(err, "SetInstanceActive failed")
 		return reconcile.Result{}, err
 	}
 
+	reqLogger.Info("Done")
 	return reconcile.Result{}, nil
+}
+
+func (r *ReconcileAnalyticsSnmp) ensureCertificatesExist(instance *v1alpha1.AnalyticsSnmp, pods []corev1.Pod, instanceType string) error {
+	subjects := instance.PodsCertSubjects(pods)
+	crt := certificates.NewCertificate(r.Client, r.Scheme, instance, subjects, instanceType)
+	return crt.EnsureExistsAndIsSigned()
 }
 
 // FullName ...
 func FullName(name string, request reconcile.Request) string {
-	return request.Name + "-" + InstanceType + "-" + name
+	return request.Name + "-" + instanceType + "-" + name
 }
 
-// GetOrCreateConfigMap ...
-func (r *ReconcileAnalyticsSnmp) GetOrCreateConfigMap(name string,
-	instance *v1alpha1.AnalyticsSnmp,
-	request reconcile.Request,
-) (configMap *corev1.ConfigMap, isCreated bool, err error) {
-
-	configMap, isCreated, err = v1alpha1.GetOrCreateConfigMap(name,
-		r.Client,
-		r.Scheme,
-		request,
-		InstanceType,
-		instance,
-	)
-	return
-}
-
-// GetStatefulSet ...
-func (r *ReconcileAnalyticsSnmp) GetStatefulSet(request reconcile.Request, instance *v1alpha1.AnalyticsSnmp, reqLogger logr.Logger) (*appsv1.StatefulSet, error) {
+// GetSTS prepare STS object for creation
+func (r *ReconcileAnalyticsSnmp) GetSTS(request reconcile.Request, instance *v1alpha1.AnalyticsSnmp, reqLogger logr.Logger) (*appsv1.StatefulSet, error) {
 	// Get basic stateful set
 	statefulSet, err := GetStatefulsetFromYaml()
 	if err != nil {
@@ -361,7 +338,7 @@ func (r *ReconcileAnalyticsSnmp) GetStatefulSet(request reconcile.Request, insta
 	}
 
 	// Add common configuration to stateful set
-	if err := v1alpha1.PrepareSTS(statefulSet, &instance.Spec.CommonConfiguration, InstanceType, request, r.Scheme, instance, true); err != nil {
+	if err := v1alpha1.PrepareSTS(statefulSet, &instance.Spec.CommonConfiguration, instanceType, request, r.Scheme, instance, true); err != nil {
 		reqLogger.Error(err, "Cant prepare the stateful set.")
 		return nil, err
 	}
@@ -381,7 +358,7 @@ func (r *ReconcileAnalyticsSnmp) GetStatefulSet(request reconcile.Request, insta
 			RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{{
 				LabelSelector: &metav1.LabelSelector{
 					MatchExpressions: []metav1.LabelSelectorRequirement{{
-						Key:      InstanceType,
+						Key:      instanceType,
 						Operator: "In",
 						Values:   []string{request.Name},
 					}},
@@ -400,97 +377,51 @@ func (r *ReconcileAnalyticsSnmp) GetStatefulSet(request reconcile.Request, insta
 			continue
 		}
 
-		// Add image from manifest
+		if instanceContainer.Command != nil {
+			container.Command = instanceContainer.Command
+		}
+
 		container.Image = instanceContainer.Image
 
-		// Add volume mounts to container
-		volumeMountList := []corev1.VolumeMount{}
-		if len(container.VolumeMounts) > 0 {
-			volumeMountList = container.VolumeMounts
-		}
-		volumeMount := corev1.VolumeMount{
-			Name:      FullName("volume", request),
-			MountPath: "/etc/contrailconfigmaps",
-		}
-		volumeMountList = append(volumeMountList, volumeMount)
-		volumeMount = corev1.VolumeMount{
-			Name:      request.Name + "-secret-certificates",
-			MountPath: "/etc/certificates",
-		}
-		volumeMountList = append(volumeMountList, volumeMount)
-		volumeMount = corev1.VolumeMount{
-			Name:      request.Name + "-csr-signer-ca",
-			MountPath: certificates.SignerCAMountPath,
-		}
-		volumeMountList = append(volumeMountList, volumeMount)
-		container.VolumeMounts = volumeMountList
+		container.VolumeMounts = append(container.VolumeMounts,
+			corev1.VolumeMount{
+				Name:      FullName("volume", request),
+				MountPath: "/etc/contrailconfigmaps",
+			},
+			corev1.VolumeMount{
+				Name:      request.Name + "-secret-certificates",
+				MountPath: "/etc/certificates",
+			},
+			corev1.VolumeMount{
+				Name:      request.Name + "-csr-signer-ca",
+				MountPath: certificates.SignerCAMountPath,
+			},
+		)
 
 		if container.Name == "analytics-snmp-collector" {
-			if instanceContainer.Command == nil {
-				container.Command = []string{"bash", "-c", "ln -sf /etc/contrailconfigmaps/vncini.${POD_IP} /etc/contrail/vnc_api_lib.ini; /usr/bin/tf-snmp-collector -c /etc/contrailconfigmaps/tf-snmp-collector.${POD_IP} --device-config-file /etc/contrail/device.ini"}
-			} else {
-				container.Command = instanceContainer.Command
+			if container.Command == nil {
+				container.Command = []string{"bash", "-c", "ln -sf /etc/contrailconfigmaps/vnc_api_lib.ini.${POD_IP} /etc/contrail/vnc_api_lib.ini; /usr/bin/tf-snmp-collector -c /etc/contrailconfigmaps/tf-snmp-collector.${POD_IP} --device-config-file /etc/contrail/device.ini"}
 			}
 		}
 
 		if container.Name == "analytics-snmp-topology" {
-			if instanceContainer.Command == nil {
-				container.Command = []string{"bash", "-c", "ln -sf /etc/contrailconfigmaps/vncini.${POD_IP} /etc/contrail/vnc_api_lib.ini; /usr/bin/tf-topology -c /etc/contrailconfigmaps/tf-topology.${POD_IP}"}
-			} else {
-				container.Command = instanceContainer.Command
+			if container.Command == nil {
+				container.Command = []string{"bash", "-c", "ln -sf /etc/contrailconfigmaps/vnc_api_lib.ini.${POD_IP} /etc/contrail/vnc_api_lib.ini; /usr/bin/tf-topology -c /etc/contrailconfigmaps/tf-topology.${POD_IP}"}
 			}
 		}
 
 		if container.Name == "nodemanager" {
-			if instanceContainer.Command == nil {
-				command := []string{"bash", "-c",
-					"ln -sf /etc/contrailconfigmaps/vncini.${POD_IP} /etc/contrail/vnc_api_lib.ini; " +
-						"ln -sf /etc/contrailconfigmaps/nodemanager.${POD_IP} /etc/contrail/contrail-analytics-snmp-nodemgr.conf; " +
-						"exec /usr/bin/contrail-nodemgr --nodetype=contrail-analytics-snmp",
-				}
+			if container.Command == nil {
+				command := []string{"bash", "/etc/contrailconfigmaps/analytics-snmp-nodemanager-runner.sh"}
 				container.Command = command
-			} else {
-				container.Command = instanceContainer.Command
 			}
 		}
 
 		if container.Name == "provisioner" {
-			if instanceContainer.Command != nil {
-				container.Command = instanceContainer.Command
+			if container.Command == nil {
+				command := []string{"bash", "/etc/contrailconfigmaps/analytics-snmp-provisioner.sh"}
+				container.Command = command
 			}
-
-			envList := []corev1.EnvVar{}
-			if len(container.Env) > 0 {
-				envList = container.Env
-			}
-			envList = append(envList, corev1.EnvVar{
-				Name:  "SSL_ENABLE",
-				Value: "True",
-			})
-			envList = append(envList, corev1.EnvVar{
-				Name:  "SERVER_CA_CERTFILE",
-				Value: certificates.SignerCAFilepath,
-			})
-			envList = append(envList, corev1.EnvVar{
-				Name:  "SERVER_CERTFILE",
-				Value: "/etc/certificates/server-$(POD_IP).crt",
-			})
-			envList = append(envList, corev1.EnvVar{
-				Name:  "SERVER_KEYFILE",
-				Value: "/etc/certificates/server-key-$(POD_IP).pem",
-			})
-
-			configNodesInformation, err := v1alpha1.NewConfigClusterConfiguration(instance.Labels["contrail_cluster"], request.Namespace, r.Client)
-			if err != nil {
-				reqLogger.Error(err, "Cant get configNodesInformation")
-				return nil, err
-			}
-			configNodeList := configNodesInformation.APIServerIPList
-			envList = append(envList, corev1.EnvVar{
-				Name:  "CONFIG_NODES",
-				Value: configtemplates.JoinListWithSeparator(configNodeList, ","),
-			})
-			container.Env = envList
 		}
 	}
 

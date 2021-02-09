@@ -50,8 +50,10 @@ type WebuiSpec struct {
 // WebuiConfiguration is the Spec for the cassandras API.
 // +k8s:openapi-gen=true
 type WebuiConfiguration struct {
-	Containers         []*Container `json:"containers,omitempty"`
+	ConfigInstance     string       `json:"configInstance,omitempty"`
+	ControlInstance    string       `json:"controlInstance,omitempty"`
 	CassandraInstance  string       `json:"cassandraInstance,omitempty"`
+	Containers         []*Container `json:"containers,omitempty"`
 	KeystoneSecretName string       `json:"keystoneSecretName,omitempty"`
 }
 
@@ -98,8 +100,9 @@ func init() {
 	SchemeBuilder.Register(&Webui{}, &WebuiList{})
 }
 
+// InstanceConfiguration updates configmaps
 func (c *Webui) InstanceConfiguration(request reconcile.Request,
-	podList *corev1.PodList,
+	podList []corev1.Pod,
 	client client.Client) error {
 	instanceConfigMapName := request.Name + "-" + "webui" + "-configmap"
 	configMapInstanceDynamicConfig := &corev1.ConfigMap{}
@@ -110,20 +113,17 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 		return err
 	}
 
-	controlNodesInformation, err := NewControlClusterConfiguration("", "master",
-		request.Namespace, client)
+	controlNodesInformation, err := NewControlClusterConfiguration(c.Spec.ServiceConfiguration.ControlInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}
 
-	cassandraNodesInformation, err := NewCassandraClusterConfiguration(c.Spec.ServiceConfiguration.CassandraInstance,
-		request.Namespace, client)
+	cassandraNodesInformation, err := NewCassandraClusterConfiguration(c.Spec.ServiceConfiguration.CassandraInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}
 
-	configNodesInformation, err := NewConfigClusterConfiguration(c.Labels["contrail_cluster"],
-		request.Namespace, client)
+	configNodesInformation, err := NewConfigClusterConfiguration(c.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}
@@ -139,9 +139,10 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 	analyticsIPListCommaSeparatedQuoted := configtemplates.JoinListWithSeparatorAndSingleQuotes(configNodesInformation.AnalyticsServerIPList, ",")
 	controlXMPPIPListCommaSeparatedQuoted := configtemplates.JoinListWithSeparatorAndSingleQuotes(controlNodesInformation.ControlServerIPList, ",")
 	cassandraIPListCommaSeparatedQuoted := configtemplates.JoinListWithSeparatorAndSingleQuotes(cassandraNodesInformation.ServerIPList, ",")
-	sort.SliceStable(podList.Items, func(i, j int) bool { return podList.Items[i].Status.PodIP < podList.Items[j].Status.PodIP })
+	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
 	var data = make(map[string]string)
-	for idx := range podList.Items {
+	for _, pod := range podList {
+		hostname := pod.Annotations["hostname"]
 		var webuiWebConfigBuffer bytes.Buffer
 		err := configtemplates.WebuiWebConfig.Execute(&webuiWebConfigBuffer, struct {
 			PodIP                     string
@@ -165,8 +166,8 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 			Manager                   string
 			CAFilePath                string
 		}{
-			PodIP:                     podList.Items[idx].Status.PodIP,
-			Hostname:                  podList.Items[idx].Name,
+			PodIP:                     pod.Status.PodIP,
+			Hostname:                  hostname,
 			APIServerList:             configApiIPListCommaSeparatedQuoted,
 			APIServerPort:             strconv.Itoa(configNodesInformation.APIServerPort),
 			AnalyticsServerList:       analyticsIPListCommaSeparatedQuoted,
@@ -189,7 +190,7 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 		if err != nil {
 			log.Error(err, "configtemplates.WebuiWebConfig.Execute failed")
 		}
-		data["config.global.js."+podList.Items[idx].Status.PodIP] = webuiWebConfigBuffer.String()
+		data["config.global.js."+pod.Status.PodIP] = webuiWebConfigBuffer.String()
 		//fmt.Println("DATA ", data)
 		var webuiAuthConfigBuffer bytes.Buffer
 		err = configtemplates.WebuiAuthConfig.Execute(&webuiAuthConfigBuffer, struct {
@@ -206,7 +207,7 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 		if err != nil {
 			log.Error(err, "configtemplates.WebuiWebConfig.Execute failed")
 		}
-		data["contrail-webui-userauth.js."+podList.Items[idx].Status.PodIP] = webuiAuthConfigBuffer.String()
+		data["contrail-webui-userauth.js."+pod.Status.PodIP] = webuiAuthConfigBuffer.String()
 	}
 	configMapInstanceDynamicConfig.Data = data
 	err = client.Update(context.TODO(), configMapInstanceDynamicConfig)
@@ -265,7 +266,7 @@ func (c *Webui) AddSecretVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeCon
 }
 
 // SetPodsToReady sets Webui PODs to ready.
-func (c *Webui) SetPodsToReady(podIPList *corev1.PodList, client client.Client) error {
+func (c *Webui) SetPodsToReady(podIPList []corev1.Pod, client client.Client) error {
 	return SetPodsToReady(podIPList, client)
 }
 
@@ -275,17 +276,17 @@ func (c *Webui) CreateSTS(sts *appsv1.StatefulSet, instanceType string, request 
 }
 
 // UpdateSTS updates the STS.
-func (c *Webui) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client, strategy string) error {
-	return UpdateSTS(sts, instanceType, request, reconcileClient, strategy)
+func (c *Webui) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
+	return UpdateSTS(sts, instanceType, request, reconcileClient, "rolling")
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
-func (c *Webui) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) (*corev1.PodList, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance(instanceType, &c.Spec.CommonConfiguration, request, reconcileClient, true, false, false, false, false)
+func (c *Webui) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
+	return PodIPListAndIPMapFromInstance(instanceType, &c.Spec.CommonConfiguration, request, reconcileClient)
 }
 
 //PodsCertSubjects gets list of Config pods certificate subjets which can be passed to the certificate API
-func (c *Webui) PodsCertSubjects(podList *corev1.PodList) []certificates.CertificateSubject {
+func (c *Webui) PodsCertSubjects(podList []corev1.Pod) []certificates.CertificateSubject {
 	var altIPs PodAlternativeIPs
 	return PodsCertSubjects(podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
 }

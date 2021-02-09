@@ -128,7 +128,8 @@ spec:
                 SNMP API.
               properties:
                 cassandraInstance:
-                  description: Dependeces
+                  type: string
+                configInstance:
                   type: string
                 containers:
                   items:
@@ -145,14 +146,12 @@ spec:
                     type: object
                   type: array
                 logFilePath:
-                  description: 'Service parameters: common'
                   type: string
                 logLevel:
                   type: string
                 logLocal:
                   type: string
-                nodemanagerLogFileName:
-                  description: 'Service parameters: nodemanager'
+                rabbitmqInstance:
                   type: string
                 snmpCollectorFastScanFrequency:
                   type: integer
@@ -161,14 +160,12 @@ spec:
                 snmpCollectorLogFileName:
                   type: string
                 snmpCollectorScanFrequency:
-                  description: 'Service parameters: snmp-collector'
                   type: integer
                 topologyIntrospectListenPort:
                   type: integer
                 topologyLogFileName:
                   type: string
                 topologySnmpFrequency:
-                  description: 'Service parameters: topology'
                   type: integer
                 zookeeperInstance:
                   type: string
@@ -181,6 +178,12 @@ spec:
           properties:
             active:
               type: boolean
+            configChanged:
+              type: boolean
+            nodes:
+              additionalProperties:
+                type: string
+              type: object
           type: object
       type: object
   version: v1alpha1

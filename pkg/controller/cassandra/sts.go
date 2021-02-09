@@ -119,10 +119,6 @@ spec:
         env:
         - name: NODE_TYPE
           value: database
-        - name: PROVISION_RETRIES
-          value: 1000
-        - name: PROVISION_DELAY
-          value: 5
         - name: POD_IP
           valueFrom:
             fieldRef:

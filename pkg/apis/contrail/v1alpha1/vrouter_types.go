@@ -14,9 +14,12 @@ import (
 	configtemplates "github.com/Juniper/contrail-operator/pkg/apis/contrail/v1alpha1/templates"
 	"github.com/Juniper/contrail-operator/pkg/certificates"
 	"github.com/Juniper/contrail-operator/pkg/k8s"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -72,21 +75,9 @@ type AgentStatus struct {
 	EncryptedParams string             `json:"encryptedParams,omitempty"`
 }
 
-// AgentServiceStatus is the status value.
+// AgentServiceStatus is the status value: Starting, Ready, Updating
 // +k8s:openapi-gen=true
 type AgentServiceStatus string
-
-const (
-	// Starting - agent status  is starting.
-	// +k8s:openapi-gen=true
-	Starting AgentServiceStatus = "Starting"
-	// Ready - agent status  is ready.
-	// +k8s:openapi-gen=true
-	Ready AgentServiceStatus = "Ready"
-	// Updating - agent status  is updating.
-	// +k8s:openapi-gen=true
-	Updating AgentServiceStatus = "Updating"
-)
 
 // VrouterSpec is the Spec for the vrouter API.
 // +k8s:openapi-gen=true
@@ -253,45 +244,6 @@ const (
 	UBUNTU Distribution = "ubuntu"
 )
 
-const (
-	VrouterAgentConfigMountPath string = "/etc/agentconfigmaps"
-)
-
-var VrouterDefaultContainers = []*Container{
-	{
-		Name:  "init",
-		Image: "python:3.8.2-alpine",
-	},
-	{
-		Name:  "nodeinit",
-		Image: "tungstenfabric/contrail-node-init",
-	},
-	{
-		Name:  "vrouteragent",
-		Image: "tungstenfabric/contrail-vrouter-agent",
-	},
-	{
-		Name:  "vroutercni",
-		Image: "tungstenfabric/contrail-kubernetes-cni-init",
-	},
-	{
-		Name:  "vrouterkernelbuildinit",
-		Image: "tungstenfabric/contrail-vrouter-kernel-build-init",
-	},
-	{
-		Name:  "vrouterkernelinit",
-		Image: "tungstenfabric/contrail-vrouter-kernel-init",
-	},
-	{
-		Name:  "multusconfig",
-		Image: "busybox:1.31",
-	},
-}
-
-var DefaultVrouter = VrouterConfiguration{
-	Containers: VrouterDefaultContainers,
-}
-
 func init() {
 	SchemeBuilder.Register(&Vrouter{}, &VrouterList{})
 }
@@ -445,17 +397,38 @@ func (c *Vrouter) UpdateDS(ds *appsv1.DaemonSet,
 		}
 		return err
 	}
-	imagesChanged := false
+	containersChanges := false
 	for _, intendedContainer := range ds.Spec.Template.Spec.Containers {
 		for _, currentContainer := range currentDS.Spec.Template.Spec.Containers {
 			if intendedContainer.Name == currentContainer.Name {
 				if intendedContainer.Image != currentContainer.Image {
-					imagesChanged = true
+					vrouter_log.Info("Image changed",
+						"container", currentContainer.Name,
+						"currentContainer.Image", currentContainer.Image,
+						"intendedContainer.Image", intendedContainer.Image,
+					)
+					containersChanges = true
+					break
+				}
+				if !cmp.Equal(intendedContainer.Env, currentContainer.Env,
+					cmpopts.IgnoreFields(corev1.ObjectFieldSelector{}, "APIVersion"),
+				) {
+					containersChanges = true
+					vrouter_log.Info("Env changed",
+						"container", currentContainer.Name,
+						"currentContainer.Env", currentContainer.Env,
+						"intendedContainer.Env", intendedContainer.Env,
+					)
+					break
 				}
 			}
 		}
+		if containersChanges {
+			break
+		}
 	}
-	if imagesChanged {
+
+	if containersChanges {
 
 		ds.Spec.Template.ObjectMeta.Labels["version"] = currentDS.Spec.Template.ObjectMeta.Labels["version"]
 
@@ -486,12 +459,12 @@ func (c *Vrouter) SetInstanceActive(client client.Client, activeStatus *bool, ds
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
-func (c *Vrouter) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client, getPhysicalInterface bool, getPhysicalInterfaceMac bool, getPrefixLength bool, getGateway bool) (*corev1.PodList, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance(instanceType, &c.Spec.CommonConfiguration, request, reconcileClient, false, getPhysicalInterface, getPhysicalInterfaceMac, getPrefixLength, getGateway)
+func (c *Vrouter) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
+	return PodIPListAndIPMapFromInstance(instanceType, &c.Spec.CommonConfiguration, request, reconcileClient)
 }
 
 //PodsCertSubjects gets list of Vrouter pods certificate subjets which can be passed to the certificate API
-func (c *Vrouter) PodsCertSubjects(podList *corev1.PodList) []certificates.CertificateSubject {
+func (c *Vrouter) PodsCertSubjects(podList []corev1.Pod) []certificates.CertificateSubject {
 	var altIPs PodAlternativeIPs
 	return PodsCertSubjects(podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
 }
@@ -522,7 +495,7 @@ func (c *Vrouter) CreateCNIConfigMap(client client.Client, scheme *runtime.Schem
 }
 
 // SetPodsToReady sets Kubemanager PODs to ready.
-func (c *Vrouter) SetPodsToReady(podIPList *corev1.PodList, client client.Client) error {
+func (c *Vrouter) SetPodsToReady(podIPList []corev1.Pod, client client.Client) error {
 	return SetPodsToReady(podIPList, client)
 }
 
@@ -670,11 +643,14 @@ func (c *Vrouter) GetNodesByLabels(clnt client.Client, labels client.MatchingLab
 
 	arrIps := []string{}
 	for _, pod := range pods.Items {
+		if pod.Status.PodIP == "" || pod.Status.Phase != "Running" {
+			continue
+		}
 		arrIps = append(arrIps, pod.Status.PodIP)
 	}
-	sort.Strings(arrIps)
 
-	ips := strings.Join(arrIps[:], ", ")
+	sort.Strings(arrIps)
+	ips := strings.Join(arrIps[:], ",")
 	return ips, nil
 }
 
@@ -696,9 +672,8 @@ func (c *Vrouter) GetConfigNodes(clnt client.Client) string {
 }
 
 // GetParamsEnv
-func (c *Vrouter) GetParamsEnv(clnt client.Client) string {
+func (c *Vrouter) GetParamsEnv(clusterParams *ClusterParams) string {
 	vrouterConfig := c.VrouterConfigurationParameters()
-	clusterParams := ClusterParams{ConfigNodes: c.GetConfigNodes(clnt), ControlNodes: c.GetConfigNodes(clnt)}
 
 	var vrouterManifestParamsEnv bytes.Buffer
 	configtemplates.VRouterAgentParams.Execute(&vrouterManifestParamsEnv, struct {
@@ -706,35 +681,9 @@ func (c *Vrouter) GetParamsEnv(clnt client.Client) string {
 		ClusterParams ClusterParams
 	}{
 		ServiceConfig: *vrouterConfig,
-		ClusterParams: clusterParams,
+		ClusterParams: *clusterParams,
 	})
 	return vrouterManifestParamsEnv.String()
-}
-
-// SetParamsToAgents use `params.env` file from GetParamsEnv and throw it to all agents
-func (c *Vrouter) SetParamsToAgents(request reconcile.Request, clnt client.Client) error {
-	configName := types.NamespacedName{
-		Name:      request.Name + "-vrouter-agent-config",
-		Namespace: request.Namespace,
-	}
-
-	config := &corev1.ConfigMap{}
-	if err := clnt.Get(context.Background(), configName, config); err != nil {
-		return err
-	}
-
-	data := config.Data
-	if data == nil {
-		data = make(map[string]string)
-	}
-	data["params.env"] = c.GetParamsEnv(clnt)
-
-	config.Data = data
-	if err := clnt.Update(context.Background(), config); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // EncryptString
@@ -746,20 +695,6 @@ func EncryptString(str string) string {
 	return string(key)
 }
 
-// SetParams
-func (agentStatus AgentStatus) SetParams(params string) {
-	agentStatus.EncryptedParams = EncryptString(params)
-}
-
-// SaveClusterStatus
-func (c *Vrouter) SaveClusterStatus(nodeName string, clnt client.Client) error {
-	if s := c.LookupAgentStatus(nodeName); s != nil {
-		s.ControlNodes = c.GetControlNodes(clnt)
-		s.ConfigNodes = c.GetConfigNodes(clnt)
-	}
-	return nil
-}
-
 // VrouterPod is a pod, created by vrouter.
 type VrouterPod struct {
 	Pod *corev1.Pod
@@ -767,21 +702,13 @@ type VrouterPod struct {
 
 // GetAgentContainerStatus gets the vrouteragent container status.
 func (vrouterPod *VrouterPod) GetAgentContainerStatus() (*corev1.ContainerStatus, error) {
-	containerStatuses := vrouterPod.Pod.Status.ContainerStatuses
 	// Iterate over all pod's containers
-	var agentContainerStatus corev1.ContainerStatus
-	for _, containerStatus := range containerStatuses {
+	for _, containerStatus := range vrouterPod.Pod.Status.ContainerStatuses {
 		if containerStatus.Name == "vrouteragent" {
-			agentContainerStatus = containerStatus
+			return &containerStatus, nil
 		}
 	}
-	// Check if container was found in pod
-	if &agentContainerStatus == nil {
-		//log.Info("ERROR: Container vrouteragent not found in vrouteragent pod")
-		return nil, fmt.Errorf("ERROR: Container vrouteragent not found for pod %v", vrouterPod.Pod)
-	}
-
-	return &agentContainerStatus, nil
+	return nil, fmt.Errorf("ERROR: Container vrouteragent not found for pod %v", vrouterPod.Pod)
 }
 
 // ExecToAgentContainer uninterractively exec to the vrouteragent container.
@@ -795,10 +722,20 @@ func (vrouterPod *VrouterPod) ExecToAgentContainer(command []string, stdin io.Re
 	return stdout, stderr, err
 }
 
+// ExecToNodemanagerContainer uninterractively exec to the vrouteragent container.
+func (vrouterPod *VrouterPod) ExecToNodemanagerContainer(command []string, stdin io.Reader) (string, string, error) {
+	stdout, stderr, err := k8s.ExecToPodThroughAPI(command,
+		"nodemanager",
+		vrouterPod.Pod.ObjectMeta.Name,
+		vrouterPod.Pod.ObjectMeta.Namespace,
+		stdin,
+	)
+	return stdout, stderr, err
+}
+
 // IsAgentRunning checks if agent running on the vrouteragent container.
-func (vrouterPod *VrouterPod) IsAgentRunning() bool {
-	command := []string{"/usr/bin/test", "-f", "/var/run/vrouter-agent.pid"}
-	if _, _, err := vrouterPod.ExecToAgentContainer(command, nil); err != nil {
+func (vrouterPod *VrouterPod) IsAgentContainerRunning() bool {
+	if _, _, err := vrouterPod.ExecToAgentContainer([]string{"true"}, nil); err != nil {
 		return false
 	}
 	return true
@@ -806,7 +743,7 @@ func (vrouterPod *VrouterPod) IsAgentRunning() bool {
 
 // GetEncryptedFileFromAgentContainer gets encrypted file from vrouteragent container
 func (vrouterPod *VrouterPod) GetEncryptedFileFromAgentContainer(path string) (string, error) {
-	command := []string{"/usr/bin/sha1sum", path}
+	command := []string{"bash", "-c", fmt.Sprintf("[ ! -e %s ] || /usr/bin/sha1sum %s", path, path)}
 	stdout, _, err := vrouterPod.ExecToAgentContainer(command, nil)
 	shakey := strings.Split(stdout, " ")[0]
 	return shakey, err
@@ -827,34 +764,42 @@ func (vrouterPod *VrouterPod) IsFileInAgentContainerEqualTo(path string, content
 }
 
 // RecalculateAgentParametrs recalculates parameters for agent from `/etc/contrail/params.env` to `/parametrs.sh`
-func (vrouterPod *VrouterPod) RecalculateAgentParameters() error {
-	command := fmt.Sprintf("source %v/params.env; source /actions.sh; source /common.sh; source /agent-functions.sh; prepare_agent_config_vars", VrouterAgentConfigMountPath)
-	_, _, err := vrouterPod.ExecToAgentContainer([]string{"/usr/bin/bash", "-c", command}, nil)
-	return err
+func (vrouterPod *VrouterPod) RecalculateAgentParameters() (string, string, error) {
+	command := "source /etc/contrailconfigmaps/params.env.${POD_IP}; source /actions.sh; source /common.sh; source /agent-functions.sh; prepare_agent_config_vars"
+	return vrouterPod.ExecToAgentContainer([]string{"/usr/bin/bash", "-c", command}, nil)
 }
 
 // GetAgentParaments gets parametrs from `/parametrs.sh`
-func (vrouterPod *VrouterPod) GetAgentParameters(hostParams *map[string]string) error {
+func (vrouterPod *VrouterPod) GetAgentParameters(hostParams *map[string]string) (string, string, error) {
 	command := []string{"/usr/bin/bash", "-c", "source /actions.sh; get_parameters"}
-	stdio, _, err := vrouterPod.ExecToAgentContainer(command, nil)
+	stdout, stderr, err := vrouterPod.ExecToAgentContainer(command, nil)
 	if err != nil {
-		return err
+		return stdout, stderr, err
 	}
 
-	scanner := bufio.NewScanner(strings.NewReader(stdio))
+	scanner := bufio.NewScanner(strings.NewReader(stdout))
 	for scanner.Scan() {
 		keyValue := strings.SplitAfterN(scanner.Text(), "=", 2)
 		key := strings.TrimSuffix(keyValue[0], "=")
 		value := removeQuotes(keyValue[1])
 		(*hostParams)[key] = value
 	}
-	return nil
+	return "", "", nil
 }
 
 // ReloadAgentConfigs sends SIGHUP to the vrouteragent container process to reload config file.
 func (vrouterPod *VrouterPod) ReloadAgentConfigs() error {
+	vrouter_log.Info("ReloadAgentConfigs", "pod", vrouterPod.Pod.Name)
 	command := []string{"/usr/bin/bash", "-c", "source /contrail-functions.sh; reload_config"}
 	_, _, err := vrouterPod.ExecToAgentContainer(command, nil)
+	return err
+}
+
+// ReloadNodemanager sends sighup to nodemanager
+func (vrouterPod *VrouterPod) ReloadNodemanager() error {
+	vrouter_log.Info("ReloadNodemanager", "pod", vrouterPod.Pod.Name)
+	command := []string{"/usr/bin/bash", "-c", "kill -HUP 1"}
+	_, _, err := vrouterPod.ExecToNodemanagerContainer(command, nil)
 	return err
 }
 
@@ -868,7 +813,7 @@ func removeQuotes(str string) string {
 	return str
 }
 
-// GetAgentConfigsForPod returns correct values of `/etc/agentconfigmaps/config_name.{$pod_ip}` files
+// GetAgentConfigsForPod returns correct values of `/etc/contrailconfigmaps/config_name.{$pod_ip}` files
 func (c *Vrouter) GetAgentConfigsForPod(vrouterPod *VrouterPod, hostVars *map[string]string) (agentConfig, lbaasAuthConfig, vncAPILibIniConfig, nodemgrConfig string) {
 	newMap := make(map[string]string)
 	for key, val := range *hostVars {
@@ -929,145 +874,199 @@ func (c *Vrouter) GetCNIConfig(client client.Client, request reconcile.Request) 
 	return contrailCNIBuffer.String(), nil
 }
 
-// UpdateAgentConfigMapForPod recalculates files `/etc/agentconfigmaps/config_name.{$pod_ip}` in the agent configMap
-func (c *Vrouter) UpdateAgentConfigMapForPod(vrouterPod *VrouterPod,
-	hostVars *map[string]string,
+// DefaultAgentConfigMapData initial data (runners)
+// TODO: move to separate configmap
+func (c *Vrouter) DefaultAgentConfigMapData(configMap *corev1.ConfigMap, client client.Client) error {
+	if configMap.Data["vrouter-nodemanager-runner.sh"] == "" {
+		nmr, err := GetNodemanagerRunner()
+		if err != nil {
+			return err
+		}
+		configMap.Data["vrouter-nodemanager-runner.sh"] = nmr
+	}
+	if configMap.Data["vrouter-provisioner.sh"] == "" {
+		if err := UpdateProvisionerRunner("vrouter-provisioner", configMap); err != nil {
+			return err
+		}
+	}
+	return client.Update(context.Background(), configMap)
+}
+
+// UpdateAgentParams updates configmap with params data
+func (c *Vrouter) UpdateAgentParams(vrouterPod *VrouterPod,
+	params string,
+	configMap *corev1.ConfigMap,
 	client client.Client,
 ) error {
-	configMapNamespacedName := types.NamespacedName{
-		Name:      c.ObjectMeta.Name + "-vrouter-agent-config",
-		Namespace: c.ObjectMeta.Namespace,
-	}
 
-	configMap := &corev1.ConfigMap{}
-	if err := client.Get(context.Background(), configMapNamespacedName, configMap); err != nil {
-		return err
-	}
+	configMap.Data["params.env."+vrouterPod.Pod.Status.PodIP] = params
+	return client.Update(context.Background(), configMap)
+}
+
+// UpdateAgentConfigMapForPod recalculates files `/etc/contrailconfigmaps/config_name.{$pod_ip}` in the agent configMap
+func (c *Vrouter) UpdateAgentConfigMapForPod(vrouterPod *VrouterPod,
+	clusterParams *ClusterParams,
+	hostVars *map[string]string,
+	configMap *corev1.ConfigMap,
+	client client.Client,
+) error {
 
 	agentConfig, lbaasAuthConfig, vncAPILibIniConfig, nodemgrConfig := c.GetAgentConfigsForPod(vrouterPod, hostVars)
 
 	podIP := vrouterPod.Pod.Status.PodIP
-	data := configMap.Data
-	data["contrail-vrouter-agent.conf."+podIP] = agentConfig
-	data["contrail-lbaas.auth.conf."+podIP] = lbaasAuthConfig
-	data["vnc_api_lib.ini."+podIP] = vncAPILibIniConfig
-	data["nodemanager.conf."+podIP] = nodemgrConfig
+	configMap.Data["contrail-vrouter-agent.conf."+podIP] = agentConfig
+	configMap.Data["contrail-lbaas.auth.conf."+podIP] = lbaasAuthConfig
+	configMap.Data["vnc_api_lib.ini."+podIP] = vncAPILibIniConfig
+	configMap.Data["vrouter-nodemanager.conf."+podIP] = nodemgrConfig
 
-	// Save config data
-	configMap.Data = data
-	err := client.Update(context.Background(), configMap)
-	return err
+	// update with provisioner configs
+	if err := UpdateProvisionerConfigMapData("vrouter-provisioner", clusterParams.ConfigNodes, configMap); err != nil {
+		return err
+	}
+
+	return client.Update(context.Background(), configMap)
 }
 
-// IsClusterChanged
-func (c *Vrouter) IsClusterChanged(nodeName string, clnt client.Client) bool {
-	if s := c.LookupAgentStatus(nodeName); s != nil {
-		return s.ControlNodes != c.GetControlNodes(clnt) || s.ConfigNodes != c.GetConfigNodes(clnt)
-	}
-	return false
-}
+// UpdateAgent waits for config updates and reload containers
+func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouterPod *VrouterPod, configMap *corev1.ConfigMap, clnt client.Client) (bool, error) {
 
-// UpdateAgent
-func (c *Vrouter) UpdateAgent(nodeName string, vrouterPod *VrouterPod, clnt client.Client, reconsFlag *bool) error {
-	eq, err := vrouterPod.IsFileInAgentContainerEqualTo(VrouterAgentConfigMountPath+"/params.env", c.GetParamsEnv(clnt))
+	log := vrouter_log.WithName("UpdateAgent").WithValues("nodeName", nodeName)
+	clusterParams := ClusterParams{ConfigNodes: c.GetConfigNodes(clnt), ControlNodes: c.GetControlNodes(clnt)}
+	log.Info("UpdateAgent start", "clusterParams", clusterParams)
+	params := c.GetParamsEnv(&clusterParams)
+	paramsSha256 := EncryptString(params)
+
+	if agentStatus.EncryptedParams != paramsSha256 {
+
+		if agentStatus.Status != "Updating" {
+			if err := c.UpdateAgentParams(vrouterPod, params, configMap, clnt); err != nil {
+				log.Error(err, "UpdateAgentParams failed")
+				return true, err
+			}
+			log.Info("Start update", "currentSha", agentStatus.EncryptedParams, "newSha", paramsSha256)
+			agentStatus.Status = "Updating"
+			// let params.env be populated to nodes
+			return true, nil
+		}
+
+		if !vrouterPod.IsAgentContainerRunning() {
+			log.Info("Agent container is not runned yet")
+			return true, nil
+		}
+
+		eq, err := vrouterPod.IsFileInAgentContainerEqualTo("/etc/contrailconfigmaps/params.env."+vrouterPod.Pod.Status.PodIP, params)
+		if err != nil || !eq {
+			log.Info("params.env is not ready", "err", err)
+			// reset status to allow UpdateAgentParams on next iteration as params might be changed since that one more times
+			agentStatus.Status = "Starting"
+			return true, err
+		}
+
+		if stdout, stderr, err := vrouterPod.RecalculateAgentParameters(); err != nil {
+			log.Error(err, "RecalculateAgentParameters failed", "stdout", stdout, "stderr", stderr)
+			return true, err
+		}
+
+		hostVars := make(map[string]string)
+		if stdout, stderr, err := vrouterPod.GetAgentParameters(&hostVars); err != nil {
+			log.Error(err, "GetAgentParameters failed", "stdout", stdout, "stderr", stderr)
+			return true, err
+		}
+
+		if err := c.UpdateAgentConfigMapForPod(vrouterPod, &clusterParams, &hostVars, configMap, clnt); err != nil {
+			log.Error(err, "UpdateAgentConfigMapForPod failed")
+			return true, err
+		}
+
+		// Update sha as update of configmap called successfully
+		agentStatus.EncryptedParams = paramsSha256
+		log.Info("Params sha updated", "sha", paramsSha256)
+	}
+
+	if agentStatus.Status == "Ready" {
+		log.Info("Agent is in Ready state, no changes")
+		return false, nil
+	}
+
+	// wait till new files is delivered to agent
+	provData, err := ProvisionerEnvData(clusterParams.ConfigNodes)
+	if err != nil {
+		log.Error(err, "ProvisionerEnvData failed")
+		return true, nil
+	}
+
+	eq, err := vrouterPod.IsAgentConfigsAvaliable(c, provData, configMap)
 	if err != nil || !eq {
-		*reconsFlag = true
-		return err
-	}
-
-	if err := vrouterPod.RecalculateAgentParameters(); err != nil {
-		*reconsFlag = true
-		return err
-	}
-
-	hostVars := make(map[string]string)
-	if err := vrouterPod.GetAgentParameters(&hostVars); err != nil {
-		*reconsFlag = true
-		return err
-	}
-
-	if err := c.UpdateAgentConfigMapForPod(vrouterPod, &hostVars, clnt); err != nil {
-		*reconsFlag = true
-		return err
-	}
-
-	eq, err = vrouterPod.IsAgentConfigsAvaliable(c, &hostVars, clnt)
-	if err != nil || !eq {
-		*reconsFlag = true
-		return err
-	}
-
-	if err := c.SaveClusterStatus(nodeName, clnt); err != nil {
-		*reconsFlag = true
-		return err
-	}
-
-	agentStatus := c.LookupAgentStatus(nodeName)
-	if agentStatus != nil {
-		agentStatus.EncryptedParams = EncryptString(c.GetParamsEnv(clnt))
+		log.Info("Configs are not available", "err", err)
+		return true, err
 	}
 
 	// Send SIGHUP то container process to reload config file
+	if err = vrouterPod.ReloadNodemanager(); err != nil {
+		log.Error(err, "ReloadNodemanager failed")
+		return true, err
+	}
+
 	if err = vrouterPod.ReloadAgentConfigs(); err != nil {
-		*reconsFlag = true
-		return err
+		log.Error(err, "ReloadAgentConfigs failed")
+		return true, err
 	}
 
-	if agentStatus != nil {
-		agentStatus.Status = "Ready"
-	}
+	agentStatus.ConfigNodes = clusterParams.ConfigNodes
+	agentStatus.ControlNodes = clusterParams.ControlNodes
 
-	return nil
+	needReconcile := agentStatus.Status != "Ready"
+	agentStatus.Status = "Ready"
+
+	log.Info("UpdateAgent finished", "needReconcile", needReconcile)
+	return needReconcile, nil
 }
 
-// IsAgentConfigsAvaliable
-func (vrouterPod *VrouterPod) IsAgentConfigsAvaliable(vrouter *Vrouter, hostVars *map[string]string, clnt client.Client) (bool, error) {
+// IsAgentConfigsAvaliable checks config inside container
+func (vrouterPod *VrouterPod) IsAgentConfigsAvaliable(vrouter *Vrouter, provisionerData string, configMap *corev1.ConfigMap) (bool, error) {
 	podIP := vrouterPod.Pod.Status.PodIP
 
-	agentConfig, lbaasAuthConfig, vncAPILibIniConfig, nodemgrConfig := vrouter.GetAgentConfigsForPod(vrouterPod, hostVars)
+	log := vrouter_log.WithName("IsAgentConfigsAvaliable").WithName(podIP)
 
-	path := VrouterAgentConfigMountPath + "/contrail-vrouter-agent.conf." + podIP
-	eq, err := vrouterPod.IsFileInAgentContainerEqualTo(path, agentConfig)
+	path := "/etc/contrailconfigmaps/contrail-vrouter-agent.conf." + podIP
+	eq, err := vrouterPod.IsFileInAgentContainerEqualTo(path, configMap.Data["contrail-vrouter-agent.conf."+podIP])
 	if err != nil || !eq {
+		log.Info("contrail-vrouter-agent.conf not ready", "err", err)
 		return eq, err
 	}
 
-	path = VrouterAgentConfigMountPath + "/contrail-lbaas.auth.conf." + podIP
-	eq, err = vrouterPod.IsFileInAgentContainerEqualTo(path, lbaasAuthConfig)
+	path = "/etc/contrailconfigmaps/contrail-lbaas.auth.conf." + podIP
+	eq, err = vrouterPod.IsFileInAgentContainerEqualTo(path, configMap.Data["contrail-lbaas.auth.conf."+podIP])
 	if err != nil || !eq {
+		log.Info("contrail-lbaas.auth.conf not ready", "err", err)
 		return eq, err
 	}
 
-	path = VrouterAgentConfigMountPath + "/vnc_api_lib.ini." + podIP
-	eq, err = vrouterPod.IsFileInAgentContainerEqualTo(path, vncAPILibIniConfig)
+	path = "/etc/contrailconfigmaps/vnc_api_lib.ini." + podIP
+	eq, err = vrouterPod.IsFileInAgentContainerEqualTo(path, configMap.Data["vnc_api_lib.ini."+podIP])
 	if err != nil || !eq {
+		log.Info("vnc_api_lib.ini not ready", "err", err)
 		return eq, nil
 	}
 
-	path = VrouterAgentConfigMountPath + "/nodemanager.conf." + podIP
-	eq, err = vrouterPod.IsFileInAgentContainerEqualTo(path, nodemgrConfig)
+	path = "/etc/contrailconfigmaps/vrouter-nodemanager.conf." + podIP
+	eq, err = vrouterPod.IsFileInAgentContainerEqualTo(path, configMap.Data["vrouter-nodemanager.conf."+podIP])
 	if err != nil || !eq {
+		log.Info("vrouter-nodemanager.conf not ready", "err", err)
+		return eq, nil
+	}
+
+	path = "/etc/contrailconfigmaps/vrouter-provisioner.env"
+	eq, err = vrouterPod.IsFileInAgentContainerEqualTo(path, provisionerData)
+	if err != nil || !eq {
+		log.Info("vrouter-provisioner.env not ready", "err", err)
 		return eq, nil
 	}
 
 	return true, nil
 }
 
-// isParamsEnvEqual
-func (c *Vrouter) isParamsEnvEqual(clnt client.Client, vrouterPod *VrouterPod) (bool, error) {
-	shakey1, err := vrouterPod.GetEncryptedFileFromAgentContainer(VrouterAgentConfigMountPath + "/params.env")
-	if err != nil {
-		return false, err
-	}
-
-	shakey2 := EncryptString(c.GetParamsEnv(clnt))
-
-	if shakey1 == shakey2 {
-		return true, nil
-	}
-	return false, nil
-}
-
+// IsActiveOnControllers returns true if agents on master nodes are active
 func (c *Vrouter) IsActiveOnControllers(clnt client.Client) (bool, error) {
 	if c.Status.Agents == nil {
 		return false, nil
@@ -1085,6 +1084,7 @@ func (c *Vrouter) IsActiveOnControllers(clnt client.Client) (bool, error) {
 	return true, nil
 }
 
+// LookupAgentStatus lookup AgentStatus for an agent
 func (c *Vrouter) LookupAgentStatus(name string) *AgentStatus {
 	if c.Status.Agents == nil {
 		return nil

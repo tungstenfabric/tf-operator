@@ -365,7 +365,8 @@ spec:
                   name:
                     type: string
                   status:
-                    description: AgentServiceStatus is the status value.
+                    description: 'AgentServiceStatus is the status value: Starting,
+                      Ready, Updating'
                     type: string
                 type: object
               type: array

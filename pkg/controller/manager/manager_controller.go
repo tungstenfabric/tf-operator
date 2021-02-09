@@ -114,7 +114,7 @@ type ReconcileManager struct {
 
 // Reconcile reconciles the manager.
 func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Reconciling Manager")
 	instance := &v1alpha1.Manager{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
@@ -133,9 +133,6 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	/*
-		nodes, err := r.getNodes(labels.SelectorFromSet(instance.Spec.CommonConfiguration.NodeSelector))
-	*/
 	nodes, err := r.getControllerNodes()
 	if err != nil {
 		return reconcile.Result{}, err
@@ -148,49 +145,45 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 
 	nodesHostAliases := r.getNodesHostAliases(nodes)
 
-	if err := r.processAnalyticsSnmp(instance, replicas); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	if err := r.processCassandras(instance, replicas, nodesHostAliases); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	if err := r.processZookeepers(instance, replicas); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	if err := r.processWebui(instance, replicas); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	if err := r.processConfig(instance, replicas, nodesHostAliases); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	if err := r.processKubemanagers(instance, replicas); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	if err := r.processControls(instance, replicas); err != nil {
-		return reconcile.Result{}, err
+	if err := r.processVRouters(instance, replicas); err != nil {
+		log.Error(err, "processRabbitMQ")
 	}
 
 	if err := r.processRabbitMQ(instance, replicas); err != nil {
-		return reconcile.Result{}, err
+		log.Error(err, "processRabbitMQ")
 	}
 
-	if err := r.processVRouters(instance, replicas); err != nil {
-		return reconcile.Result{}, err
+	if err := r.processCassandras(instance, replicas, nodesHostAliases); err != nil {
+		log.Error(err, "processCassandras")
+	}
+
+	if err := r.processZookeepers(instance, replicas); err != nil {
+		log.Error(err, "processZookeepers")
+	}
+
+	if err := r.processControls(instance, replicas); err != nil {
+		log.Error(err, "processConfig")
+	}
+
+	if err := r.processConfig(instance, replicas, nodesHostAliases); err != nil {
+		log.Error(err, "processConfig")
+	}
+
+	if err := r.processWebui(instance, replicas); err != nil {
+		log.Error(err, "processWebui")
+	}
+
+	if err := r.processAnalyticsSnmp(instance, replicas); err != nil {
+		log.Error(err, "processAnalyticsSnmp")
+	}
+
+	if err := r.processKubemanagers(instance, replicas); err != nil {
+		log.Error(err, "processKubemanagers")
 	}
 
 	r.setConditions(instance)
 
-	err = r.client.Status().Update(context.TODO(), instance)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-	return reconcile.Result{}, nil
+	return reconcile.Result{}, r.client.Status().Update(context.TODO(), instance)
 }
 
 func (r *ReconcileManager) setConditions(manager *v1alpha1.Manager) {
@@ -198,7 +191,6 @@ func (r *ReconcileManager) setConditions(manager *v1alpha1.Manager) {
 	if manager.IsClusterReady() {
 		readyStatus = v1alpha1.ConditionTrue
 	}
-
 	manager.Status.Conditions = []v1alpha1.ManagerCondition{{
 		Type:   v1alpha1.ManagerReady,
 		Status: readyStatus,
@@ -287,6 +279,9 @@ func (r *ReconcileManager) processAnalyticsSnmp(manager *v1alpha1.Manager, repli
 		}
 		return controllerutil.SetControllerReference(manager, analyticsSnmp, r.scheme)
 	})
+	if err != nil {
+		return err
+	}
 	status := &v1alpha1.ServiceStatus{}
 	status.Name = &analyticsSnmp.Name
 	status.Active = analyticsSnmp.Status.Active
@@ -378,7 +373,7 @@ func (r *ReconcileManager) processCassandras(manager *v1alpha1.Manager, replicas
 		return nil
 	}
 
-	var cassandraStatusList []*v1alpha1.ServiceStatus
+	cassandraStatusList := []*v1alpha1.ServiceStatus{}
 	for _, cassandraService := range manager.Spec.Services.Cassandras {
 		cassandra := &v1alpha1.Cassandra{}
 		cassandra.ObjectMeta = cassandraService.ObjectMeta
@@ -402,10 +397,9 @@ func (r *ReconcileManager) processCassandras(manager *v1alpha1.Manager, replicas
 		}
 		status := &v1alpha1.ServiceStatus{}
 		status.Name = &cassandra.Name
-		status.Active = &cassandra.Status.Active
+		status.Active = cassandra.Status.Active
 		cassandraStatusList = append(cassandraStatusList, status)
 	}
-
 	manager.Status.Cassandras = cassandraStatusList
 	return nil
 }
@@ -446,6 +440,9 @@ func (r *ReconcileManager) processWebui(manager *v1alpha1.Manager, replicas int3
 		}
 		return controllerutil.SetControllerReference(manager, webui, r.scheme)
 	})
+	if err != nil {
+		return err
+	}
 	status := &v1alpha1.ServiceStatus{}
 	status.Name = &webui.Name
 	status.Active = &webui.Status.Active
@@ -491,11 +488,14 @@ func (r *ReconcileManager) processConfig(manager *v1alpha1.Manager, replicas int
 		}
 		return controllerutil.SetControllerReference(manager, config, r.scheme)
 	})
+	if err != nil {
+		return err
+	}
 	status := &v1alpha1.ServiceStatus{}
 	status.Name = &config.Name
 	status.Active = config.Status.Active
 	manager.Status.Config = status
-	return err
+	return nil
 }
 
 func (r *ReconcileManager) processKubemanagers(manager *v1alpha1.Manager, replicas int32) error {
@@ -528,18 +528,13 @@ func (r *ReconcileManager) processKubemanagers(manager *v1alpha1.Manager, replic
 	}
 
 	var kubemanagerServiceStatus []*v1alpha1.ServiceStatus
+
 	for _, kubemanagerService := range manager.Spec.Services.Kubemanagers {
-		if !kubemanagerDependenciesReady(kubemanagerService.Spec.ServiceConfiguration.CassandraInstance, kubemanagerService.Spec.ServiceConfiguration.ZookeeperInstance, manager.ObjectMeta, r.client) {
-			continue
-		}
 		kubemanager := &v1alpha1.Kubemanager{}
 		kubemanager.ObjectMeta = kubemanagerService.ObjectMeta
 		kubemanager.ObjectMeta.Namespace = manager.Namespace
 		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, kubemanager, func() error {
-			kubemanager.Spec.ServiceConfiguration.KubemanagerConfiguration = kubemanagerService.Spec.ServiceConfiguration.KubemanagerConfiguration
-			if err := fillKubemanagerConfiguration(kubemanager, kubemanagerService.Spec.ServiceConfiguration.CassandraInstance, kubemanagerService.Spec.ServiceConfiguration.ZookeeperInstance, manager.ObjectMeta, r.client); err != nil {
-				return err
-			}
+			kubemanager.Spec.ServiceConfiguration = kubemanagerService.Spec.ServiceConfiguration
 			kubemanager.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, kubemanagerService.Spec.CommonConfiguration)
 			if kubemanager.Spec.CommonConfiguration.Replicas == nil {
 				kubemanager.Spec.CommonConfiguration.Replicas = &replicas
@@ -649,6 +644,9 @@ func (r *ReconcileManager) processRabbitMQ(manager *v1alpha1.Manager, replicas i
 		}
 		return controllerutil.SetControllerReference(manager, rabbitMQ, r.scheme)
 	})
+	if err != nil {
+		return err
+	}
 	status := &v1alpha1.ServiceStatus{}
 	status.Name = &rabbitMQ.Name
 	status.Active = rabbitMQ.Status.Active
@@ -729,44 +727,4 @@ func (r *ReconcileManager) processCSRSignerCaConfigMap(manager *v1alpha1.Manager
 	})
 
 	return err
-}
-
-func kubemanagerDependenciesReady(cassandraName, zookeeperName string, managerMeta v1.ObjectMeta, client client.Client) bool {
-	cassandraInstance := v1alpha1.Cassandra{}
-	zookeeperInstance := v1alpha1.Zookeeper{}
-	rabbitmqInstance := v1alpha1.Rabbitmq{}
-	configInstance := v1alpha1.Config{}
-
-	cassandraActive := cassandraInstance.IsActive(cassandraName, managerMeta.Namespace, client)
-	zookeeperActive := zookeeperInstance.IsActive(zookeeperName, managerMeta.Namespace, client)
-	rabbitmqActive := rabbitmqInstance.IsActive(managerMeta.Name,
-		managerMeta.Namespace, client)
-	configActive := configInstance.IsActive(managerMeta.Name,
-		managerMeta.Namespace, client)
-
-	return cassandraActive && zookeeperActive && rabbitmqActive && configActive
-}
-
-func fillKubemanagerConfiguration(kubemanager *v1alpha1.Kubemanager, cassandraName, zookeeperName string, managerMeta v1.ObjectMeta, client client.Client) error {
-	cassandraConfig, err := v1alpha1.NewCassandraClusterConfiguration(cassandraName, managerMeta.Namespace, client)
-	if err != nil {
-		return err
-	}
-	(&kubemanager.Spec.ServiceConfiguration).CassandraNodesConfiguration = &cassandraConfig
-	zookeeperConfig, err := v1alpha1.NewZookeeperClusterConfiguration(zookeeperName, managerMeta.Namespace, client)
-	if err != nil {
-		return err
-	}
-	(&kubemanager.Spec.ServiceConfiguration).ZookeeperNodesConfiguration = &zookeeperConfig
-	rabbitmqConfig, err := v1alpha1.NewRabbitmqClusterConfiguration(managerMeta.Name, managerMeta.Namespace, client)
-	if err != nil {
-		return err
-	}
-	(&kubemanager.Spec.ServiceConfiguration).RabbbitmqNodesConfiguration = &rabbitmqConfig
-	configConfig, err := v1alpha1.NewConfigClusterConfiguration(managerMeta.Name, managerMeta.Namespace, client)
-	if err != nil {
-		return err
-	}
-	(&kubemanager.Spec.ServiceConfiguration).ConfigNodesConfiguration = &configConfig
-	return nil
 }

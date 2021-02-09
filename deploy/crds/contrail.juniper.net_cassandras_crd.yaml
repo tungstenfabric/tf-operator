@@ -124,6 +124,8 @@ spec:
               properties:
                 clusterName:
                   type: string
+                configInstance:
+                  type: string
                 containers:
                   items:
                     description: Container defines name, image and command.
@@ -177,6 +179,8 @@ spec:
               type: boolean
             clusterIP:
               type: string
+            configChanged:
+              type: boolean
             nodes:
               additionalProperties:
                 type: string
@@ -192,12 +196,6 @@ spec:
                 port:
                   type: string
               type: object
-            readyReplicas:
-              format: int32
-              type: integer
-            replicas:
-              format: int32
-              type: integer
           type: object
       type: object
   version: v1alpha1

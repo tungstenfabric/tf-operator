@@ -154,12 +154,16 @@ type ReconcileRabbitmq struct {
 
 // Reconcile reconciles the Rabbitmq resource.
 func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Reconciling Rabbitmq")
 	instanceType := "rabbitmq"
 	instance := &v1alpha1.Rabbitmq{}
-	if err := r.Client.Get(context.TODO(), request.NamespacedName, instance); err != nil && errors.IsNotFound(err) {
-		return reconcile.Result{}, nil
+	err := r.Client.Get(context.TODO(), request.NamespacedName, instance)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return reconcile.Result{}, nil
+		}
+		return reconcile.Result{}, err
 	}
 
 	if !instance.GetDeletionTimestamp().IsZero() {
@@ -313,7 +317,7 @@ func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
-	if err = instance.UpdateSTS(statefulSet, instanceType, request, r.Client, "rolling"); err != nil {
+	if _, err = instance.UpdateSTS(statefulSet, instanceType, request, r.Client); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -321,7 +325,7 @@ func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Resu
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	if len(podIPList.Items) > 0 {
+	if len(podIPList) > 0 {
 		if err = instance.InstanceConfiguration(request, podIPList, r.Client); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -347,7 +351,7 @@ func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Resu
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileRabbitmq) ensureCertificatesExist(rabbitmq *v1alpha1.Rabbitmq, pods *corev1.PodList, instanceType string) error {
+func (r *ReconcileRabbitmq) ensureCertificatesExist(rabbitmq *v1alpha1.Rabbitmq, pods []corev1.Pod, instanceType string) error {
 	subjects := rabbitmq.PodsCertSubjects(pods)
 	crt := certificates.NewCertificate(r.Client, r.Scheme, rabbitmq, subjects, instanceType)
 	return crt.EnsureExistsAndIsSigned()

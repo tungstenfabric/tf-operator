@@ -162,6 +162,9 @@ spec:
                               items:
                                 type: string
                               type: array
+                            introspectListenAll:
+                              description: Use 0.0.0.0 for isntrospection ports
+                              type: boolean
                             nodeSelector:
                               additionalProperties:
                                 type: string
@@ -226,7 +229,8 @@ spec:
                             the Analytics SNMP API.
                           properties:
                             cassandraInstance:
-                              description: Dependeces
+                              type: string
+                            configInstance:
                               type: string
                             containers:
                               items:
@@ -243,14 +247,12 @@ spec:
                                 type: object
                               type: array
                             logFilePath:
-                              description: 'Service parameters: common'
                               type: string
                             logLevel:
                               type: string
                             logLocal:
                               type: string
-                            nodemanagerLogFileName:
-                              description: 'Service parameters: nodemanager'
+                            rabbitmqInstance:
                               type: string
                             snmpCollectorFastScanFrequency:
                               type: integer
@@ -259,14 +261,12 @@ spec:
                             snmpCollectorLogFileName:
                               type: string
                             snmpCollectorScanFrequency:
-                              description: 'Service parameters: snmp-collector'
                               type: integer
                             topologyIntrospectListenPort:
                               type: integer
                             topologyLogFileName:
                               type: string
                             topologySnmpFrequency:
-                              description: 'Service parameters: topology'
                               type: integer
                             zookeeperInstance:
                               type: string
@@ -280,6 +280,12 @@ spec:
                       properties:
                         active:
                           type: boolean
+                        configChanged:
+                          type: boolean
+                        nodes:
+                          additionalProperties:
+                            type: string
+                          type: object
                       type: object
                   type: object
                 cassandras:
@@ -410,6 +416,8 @@ spec:
                             properties:
                               clusterName:
                                 type: string
+                              configInstance:
+                                type: string
                               containers:
                                 items:
                                   description: Container defines name, image and command.
@@ -464,6 +472,8 @@ spec:
                             type: boolean
                           clusterIP:
                             type: string
+                          configChanged:
+                            type: boolean
                           nodes:
                             additionalProperties:
                               type: string
@@ -479,12 +489,6 @@ spec:
                               port:
                                 type: string
                             type: object
-                          readyReplicas:
-                            format: int32
-                            type: integer
-                          replicas:
-                            format: int32
-                            type: integer
                         type: object
                     type: object
                   type: array
@@ -670,6 +674,8 @@ spec:
                             fabricMgmtIP:
                               type: string
                             logLevel:
+                              type: string
+                            rabbitmqInstance:
                               type: string
                             rabbitmqPassword:
                               type: string
@@ -870,6 +876,8 @@ spec:
                                 type: integer
                               cassandraInstance:
                                 type: string
+                              configInstance:
+                                type: string
                               containers:
                                 items:
                                   description: Container defines name, image and command.
@@ -898,6 +906,8 @@ spec:
                                 type: integer
                               logLevel:
                                 type: string
+                              rabbitmqInstance:
+                                type: string
                               rabbitmqPassword:
                                 type: string
                               rabbitmqUser:
@@ -913,6 +923,8 @@ spec:
                       status:
                         properties:
                           active:
+                            type: boolean
+                          configChanged:
                             type: boolean
                           nodes:
                             additionalProperties:
@@ -1086,8 +1098,8 @@ spec:
                                 type: array
                             type: object
                           serviceConfiguration:
-                            description: KubemanagerManagerServiceConfiguration defines
-                              service configuration of Kubemanager
+                            description: KubemanagerServiceConfiguration is the Spec
+                              for the kubemanagers API.
                             properties:
                               cassandraInstance:
                                 type: string
@@ -1096,6 +1108,8 @@ spec:
                               clusterRole:
                                 type: string
                               clusterRoleBinding:
+                                type: string
+                              configInstance:
                                 type: string
                               containers:
                                 items:
@@ -1134,6 +1148,8 @@ spec:
                               podSubnets:
                                 type: string
                               publicFIPPool:
+                                type: string
+                              rabbitmqInstance:
                                 type: string
                               rabbitmqPassword:
                                 type: string
@@ -1784,6 +1800,8 @@ spec:
                           properties:
                             cassandraInstance:
                               type: string
+                            configInstance:
+                              type: string
                             containers:
                               items:
                                 description: Container defines name, image and command.
@@ -1798,6 +1816,8 @@ spec:
                                     type: string
                                 type: object
                               type: array
+                            controlInstance:
+                              type: string
                             keystoneSecretName:
                               type: string
                           type: object

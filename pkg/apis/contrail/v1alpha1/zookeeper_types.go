@@ -82,11 +82,11 @@ func init() {
 
 // InstanceConfiguration creates the zookeeper instance configuration.
 func (c *Zookeeper) InstanceConfiguration(request reconcile.Request, confCMName string,
-	podList *corev1.PodList,
+	podList []corev1.Pod,
 	client client.Client) error {
 	zookeeperConfig := c.ConfigurationParameters()
-	pods := make([]corev1.Pod, len(podList.Items))
-	copy(pods, podList.Items)
+	pods := make([]corev1.Pod, len(podList))
+	copy(pods, podList)
 	sort.SliceStable(pods, func(i, j int) bool { return pods[i].Name < pods[j].Name })
 
 	confCMData, err := configtemplates.DynamicZookeeperConfig(pods, strconv.Itoa(*zookeeperConfig.ElectionPort), strconv.Itoa(*zookeeperConfig.ServerPort), strconv.Itoa(*zookeeperConfig.ClientPort))
@@ -139,15 +139,10 @@ func (c *Zookeeper) CreateConfigMap(configMapName string,
 // IsActive returns true if instance is active.
 func (c *Zookeeper) IsActive(name string, namespace string, client client.Client) bool {
 	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, c)
-	if err != nil {
+	if err != nil || c.Status.Active == nil {
 		return false
 	}
-	if c.Status.Active != nil {
-		if *c.Status.Active {
-			return true
-		}
-	}
-	return false
+	return *c.Status.Active
 }
 
 // IsUpgrading returns true if instance is upgrading.
@@ -184,7 +179,7 @@ func (c *Zookeeper) AddSecretVolumesToIntendedSTS(sts *appsv1.StatefulSet, volum
 }
 
 // SetPodsToReady sets Zookeeper PODs to ready.
-func (c *Zookeeper) SetPodsToReady(podIPList *corev1.PodList, client client.Client) error {
+func (c *Zookeeper) SetPodsToReady(podIPList []corev1.Pod, client client.Client) error {
 	return SetPodsToReady(podIPList, client)
 }
 
@@ -194,13 +189,13 @@ func (c *Zookeeper) CreateSTS(sts *appsv1.StatefulSet, instanceType string, requ
 }
 
 // UpdateSTS updates the STS.
-func (c *Zookeeper) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client, strategy string) error {
-	return UpdateSTS(sts, instanceType, request, reconcileClient, strategy)
+func (c *Zookeeper) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
+	return UpdateSTS(sts, instanceType, request, reconcileClient, "rolling")
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
-func (c *Zookeeper) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) (*corev1.PodList, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance(instanceType, &c.Spec.CommonConfiguration, request, reconcileClient, false, false, false, false, false)
+func (c *Zookeeper) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
+	return PodIPListAndIPMapFromInstance(instanceType, &c.Spec.CommonConfiguration, request, reconcileClient)
 }
 
 // SetInstanceActive sets the Cassandra instance to active.

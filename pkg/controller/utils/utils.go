@@ -347,7 +347,18 @@ func CassandraActiveChange() predicate.Funcs {
 			if !ok {
 				reqLogger.Info("type conversion mismatch")
 			}
-			return !oldCassandra.Status.Active && newCassandra.Status.Active
+			newActive := false
+			oldActive := false
+			if newCassandra.Status.Active != nil {
+				newActive = *newCassandra.Status.Active
+			}
+			if oldCassandra.Status.Active != nil {
+				oldActive = *oldCassandra.Status.Active
+			}
+			if !oldActive && newActive {
+				return true
+			}
+			return false
 		},
 	}
 }

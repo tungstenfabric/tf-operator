@@ -4,29 +4,28 @@ import "text/template"
 
 // RabbitmqConfig is the template of the Rabbitmq service configuration.
 var RabbitmqConfig = template.Must(template.New("").Parse(`#!/bin/bash
+mkdir -p /var/lib/rabbitmq /var/log/rabbitmq
 echo $RABBITMQ_ERLANG_COOKIE > /var/lib/rabbitmq/.erlang.cookie
+set -x
 chmod 0600 /var/lib/rabbitmq/.erlang.cookie
 touch /var/run/rabbitmq.pid
-chown -R rabbitmq:rabbitmq /var/lib/rabbitmq /var/run/rabbitmq.pid
-if [[ $(grep $POD_IP /etc/rabbitmq/0) ]] ; then
+chown -R rabbitmq:rabbitmq /var/lib/rabbitmq /var/log/rabbitmq /var/run/rabbitmq.pid
+export RABBITMQ_NODENAME=rabbit@${POD_IP}
+bootstrap_node="rabbit@$(cat /etc/rabbitmq/0)"
+if [[ "$RABBITMQ_NODENAME" == "$bootstrap_node" ]] ; then
   exec rabbitmq-server
 else
-  rabbitmqctl --node rabbit@${POD_IP} forget_cluster_node rabbit@${POD_IP}
-  rabbitmqctl --node rabbit@$(cat /etc/rabbitmq/0) ping
-  while [[ $? -ne 0 ]]; do
-	  rabbitmqctl --node rabbit@$(cat /etc/rabbitmq/0) ping
-  done
   rabbitmq-server -detached
-  rabbitmqctl --node rabbit@$(cat /etc/rabbitmq/0) node_health_check
-  while [[ $? -ne 0 ]]; do
-	  rabbitmqctl --node rabbit@$(cat /etc/rabbitmq/0) node_health_check
+  while true; do
+    rabbitmqctl --node $bootstrap_node ping && break
   done
-  rabbitmqctl stop_app
-  sleep 2
-  rabbitmqctl join_cluster rabbit@$(cat /etc/rabbitmq/0)
-  rabbitmqctl shutdown
+  rabbitmqctl --node $RABBITMQ_NODENAME stop_app
+  rabbitmqctl --node $bootstrap_node forget_cluster_node $RABBITMQ_NODENAME
+  rabbitmqctl --node $RABBITMQ_NODENAME join_cluster $bootstrap_node
+  rabbitmqctl --node $RABBITMQ_NODENAME shutdown
   exec rabbitmq-server
 fi
+
 `))
 
 // RabbitmqDefinition is the template for Rabbitmq user/vhost configuration

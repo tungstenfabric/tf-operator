@@ -46,6 +46,8 @@ type ControlSpec struct {
 type ControlConfiguration struct {
 	Containers        []*Container `json:"containers,omitempty"`
 	CassandraInstance string       `json:"cassandraInstance,omitempty"`
+	RabbitmqInstance  string       `json:"rabbitmqInstance,omitempty"`
+	ConfigInstance    string       `json:"configInstance,omitempty"`
 	BGPPort           *int         `json:"bgpPort,omitempty"`
 	ASNNumber         *int         `json:"asnNumber,omitempty"`
 	XMPPPort          *int         `json:"xmppPort,omitempty"`
@@ -69,6 +71,7 @@ type ControlStatus struct {
 	Nodes         map[string]string               `json:"nodes,omitempty"`
 	Ports         ControlStatusPorts              `json:"ports,omitempty"`
 	ServiceStatus map[string]ControlServiceStatus `json:"serviceStatus,omitempty"`
+	ConfigChanged *bool                           `json:"configChanged,omitempty"`
 }
 
 // +k8s:openapi-gen=true
@@ -122,7 +125,7 @@ func init() {
 }
 
 func (c *Control) InstanceConfiguration(request reconcile.Request,
-	podList *corev1.PodList,
+	podList []corev1.Pod,
 	client client.Client) error {
 	instanceConfigMapName := request.Name + "-" + "control" + "-configmap"
 	configMapInstanceDynamicConfig := &corev1.ConfigMap{}
@@ -143,7 +146,7 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 		return err
 	}
 
-	rabbitmqNodesInformation, err := NewRabbitmqClusterConfiguration(c.Labels["contrail_cluster"],
+	rabbitmqNodesInformation, err := NewRabbitmqClusterConfiguration(c.Spec.ServiceConfiguration.RabbitmqInstance,
 		request.Namespace, client)
 	if err != nil {
 		return err
@@ -162,15 +165,10 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 		rabbitmqSecretVhost = string(rabbitmqSecret.Data["vhost"])
 	}
 
-	configNodesInformation, err := NewConfigClusterConfiguration(c.Labels["contrail_cluster"],
+	configNodesInformation, err := NewConfigClusterConfiguration(c.Spec.ServiceConfiguration.ConfigInstance,
 		request.Namespace, client)
 	if err != nil {
 		return err
-	}
-
-	var podIPList []string
-	for _, pod := range podList.Items {
-		podIPList = append(podIPList, pod.Status.PodIP)
 	}
 
 	controlConfig := c.ConfigurationParameters()
@@ -189,18 +187,18 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 	cassandraCQLEndpointList := configtemplates.EndpointList(cassandraNodesInformation.ServerIPList, cassandraNodesInformation.CQLPort)
 	cassandraCQLEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(cassandraCQLEndpointList, " ")
 
-	sort.SliceStable(podList.Items, func(i, j int) bool { return podList.Items[i].Status.PodIP < podList.Items[j].Status.PodIP })
+	configApiIPListSpaceSeparated := configtemplates.JoinListWithSeparator(configNodesInformation.APIServerIPList, " ")
+	configApiIPListCommaSeparated := configtemplates.JoinListWithSeparator(configNodesInformation.APIServerIPList, ",")
+	configApiIPListCommaSeparatedQuoted := configtemplates.JoinListWithSeparatorAndSingleQuotes(configNodesInformation.APIServerIPList, ",")
+	configCollectorEndpointList := configtemplates.EndpointList(configNodesInformation.CollectorServerIPList, configNodesInformation.CollectorPort)
+	configCollectorEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(configCollectorEndpointList, " ")
+
+	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
 	var data = make(map[string]string)
-	for _, pod := range podList.Items {
+	for _, pod := range podList {
 		hostname := pod.Annotations["hostname"]
-		dataIP := getDataIP(&pod)
 		podIP := pod.Status.PodIP
 		instrospectListenAddress := c.Spec.CommonConfiguration.IntrospectionListenAddress(podIP)
-		configApiIPListSpaceSeparated := configtemplates.JoinListWithSeparator(configNodesInformation.APIServerIPList, " ")
-		configApiIPListCommaSeparated := configtemplates.JoinListWithSeparator(configNodesInformation.APIServerIPList, ",")
-		configApiIPListCommaSeparatedQuoted := configtemplates.JoinListWithSeparatorAndSingleQuotes(configNodesInformation.APIServerIPList, ",")
-		configCollectorEndpointList := configtemplates.EndpointList(configNodesInformation.CollectorServerIPList, configNodesInformation.CollectorPort)
-		configCollectorEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(configCollectorEndpointList, " ")
 		var controlControlConfigBuffer bytes.Buffer
 		configtemplates.ControlControlConfig.Execute(&controlControlConfigBuffer, struct {
 			PodIP                    string
@@ -302,25 +300,21 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 			CAFilePath:               certificates.SignerCAFilepath,
 			LogLevel:                 controlConfig.LogLevel,
 		})
-		data["nodemanager."+podIP] = controlNodemanagerBuffer.String()
+		data["control-nodemanager.conf."+podIP] = controlNodemanagerBuffer.String()
 
-		var controlProvisionBuffer bytes.Buffer
-		configtemplates.ControlProvisionConfig.Execute(&controlProvisionBuffer, struct {
-			DataIP        string
+		var vncApiConfigBuffer bytes.Buffer
+		configtemplates.ConfigAPIVNC.Execute(&vncApiConfigBuffer, struct {
 			APIServerList string
-			ASNNumber     string
-			BGPPort       string
 			APIServerPort string
-			Hostname      string
+			CAFilePath    string
+			AuthMode      string
 		}{
-			DataIP:        dataIP,
 			APIServerList: configApiIPListCommaSeparated,
 			APIServerPort: strconv.Itoa(configNodesInformation.APIServerPort),
-			ASNNumber:     strconv.Itoa(*controlConfig.ASNNumber),
-			BGPPort:       strconv.Itoa(*controlConfig.BGPPort),
-			Hostname:      hostname,
+			CAFilePath:    certificates.SignerCAFilepath,
+			AuthMode:      string(configNodesInformation.AuthMode),
 		})
-		data["provision.sh."+podIP] = controlProvisionBuffer.String()
+		data["vnc_api_lib.ini."+podIP] = vncApiConfigBuffer.String()
 
 		var controlDeProvisionBuffer bytes.Buffer
 		// TODO: use auth options from config instead of defaults
@@ -341,12 +335,23 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 		})
 		data["deprovision.py."+podIP] = controlDeProvisionBuffer.String()
 	}
+
 	configMapInstanceDynamicConfig.Data = data
-	err = client.Update(context.TODO(), configMapInstanceDynamicConfig)
+
+	// update with nodemanager runner
+	nmr, err := GetNodemanagerRunner()
 	if err != nil {
 		return err
 	}
-	return nil
+	configMapInstanceDynamicConfig.Data["control-nodemanager-runner.sh"] = nmr
+
+	// update with provisioner configs
+	err = UpdateProvisionerConfigMapData("control-provisioner", configApiIPListCommaSeparated, configMapInstanceDynamicConfig)
+	if err != nil {
+		return err
+	}
+
+	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }
 
 func (c *Control) CreateConfigMap(configMapName string,
@@ -363,17 +368,11 @@ func (c *Control) CreateConfigMap(configMapName string,
 
 // IsActive returns true if instance is active.
 func (c *Control) IsActive(name string, namespace string, client client.Client) bool {
-	instance := &Control{}
-	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, instance)
-	if err != nil {
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, c)
+	if err != nil || c.Status.Active == nil {
 		return false
 	}
-	if instance.Status.Active != nil {
-		if *instance.Status.Active {
-			return true
-		}
-	}
-	return false
+	return *c.Status.Active
 }
 
 // CreateSecret creates a secret.
@@ -405,7 +404,7 @@ func (c *Control) AddSecretVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeC
 }
 
 // SetPodsToReady sets Control PODs to ready.
-func (c *Control) SetPodsToReady(podIPList *corev1.PodList, client client.Client) error {
+func (c *Control) SetPodsToReady(podIPList []corev1.Pod, client client.Client) error {
 	return SetPodsToReady(podIPList, client)
 }
 
@@ -415,13 +414,13 @@ func (c *Control) CreateSTS(sts *appsv1.StatefulSet, instanceType string, reques
 }
 
 // UpdateSTS updates the STS.
-func (c *Control) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client, strategy string) error {
-	return UpdateSTS(sts, instanceType, request, reconcileClient, strategy)
+func (c *Control) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
+	return UpdateSTS(sts, instanceType, request, reconcileClient, "rolling")
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
-func (c *Control) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) (*corev1.PodList, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance(instanceType, &c.Spec.CommonConfiguration, request, reconcileClient, true, false, false, false, false)
+func (c *Control) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
+	return PodIPListAndIPMapFromInstance(instanceType, &c.Spec.CommonConfiguration, request, reconcileClient)
 }
 
 func retrieveDataIPs(pod corev1.Pod) []string {
@@ -433,12 +432,12 @@ func retrieveDataIPs(pod corev1.Pod) []string {
 }
 
 //PodsCertSubjects gets list of Control pods certificate subjects which can be passed to the certificate API
-func (c *Control) PodsCertSubjects(podList *corev1.PodList) []certificates.CertificateSubject {
+func (c *Control) PodsCertSubjects(podList []corev1.Pod) []certificates.CertificateSubject {
 	altIPs := PodAlternativeIPs{Retriever: retrieveDataIPs}
 	return PodsCertSubjects(podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
 }
 
-// SetInstanceActive sets the Cassandra instance to active.
+// SetInstanceActive sets instance to active.
 func (c *Control) SetInstanceActive(client client.Client, activeStatus *bool, sts *appsv1.StatefulSet, request reconcile.Request) error {
 	return SetInstanceActive(client, activeStatus, sts, request, c)
 }
@@ -516,6 +515,10 @@ func (c *Control) ConfigurationParameters() ControlConfiguration {
 	return controlConfiguration
 }
 
+// TODO:
+// It looks like an IP for data network to be used by vhost0
+// but now it is not used.
+// It looks retrieveDataIPs might be used instead.
 func getDataIP(pod *corev1.Pod) string {
 	if dataIP, isSet := pod.Annotations["dataSubnetIP"]; isSet {
 		return dataIP

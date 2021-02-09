@@ -14,29 +14,6 @@ apiServerList:
 apiPort: {{ .ListenPort }}
 `))
 
-var ConfigNodeConfig = template.Must(template.New("").Parse(`{{range .APIServerList}}
-- {{ . }}
-{{ end }}
-`))
-
-var ConfigAPIVNC = template.Must(template.New("").Parse(`[global]
-WEB_SERVER = {{ .ListenAddress }}
-WEB_PORT = {{ .ListenPort }} ; connection to api-server directly
-BASE_URL = /
-use_ssl = True
-cafile = {{ .CAFilePath }}
-; Authentication settings (optional)
-[auth]
-AUTHN_TYPE = {{ .AuthMode }}
-AUTHN_PROTOCOL = {{ .KeystoneAuthProtocol }}
-AUTHN_SERVER = {{ .KeystoneAddress }}
-AUTHN_PORT = {{ .KeystonePort }}
-AUTHN_URL = /v3/auth/tokens
-AUTHN_DOMAIN = {{ .KeystoneUserDomainName }}
-cafile = {{ .CAFilePath }}
-;AUTHN_TOKEN_URL = http://127.0.0.1:35357/v2.0/tokens
-`))
-
 // ConfigAPIConfig is the template of the Config API service configuration.
 var ConfigAPIConfig = template.Must(template.New("").Parse(`[DEFAULTS]
 listen_ip_addr={{ .ListenAddress }}

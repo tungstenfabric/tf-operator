@@ -199,6 +199,8 @@ spec:
                   type: string
                 logLevel:
                   type: string
+                rabbitmqInstance:
+                  type: string
                 rabbitmqPassword:
                   type: string
                 rabbitmqUser:

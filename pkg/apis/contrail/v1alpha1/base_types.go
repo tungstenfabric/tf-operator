@@ -1,10 +1,9 @@
 package v1alpha1
 
 import (
+	"bytes"
 	"context"
 	"errors"
-	"fmt"
-	"net"
 	"sort"
 	"strconv"
 	"strings"
@@ -25,8 +24,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/Juniper/contrail-operator/pkg/apis/contrail/v1alpha1/templates"
 	"github.com/Juniper/contrail-operator/pkg/certificates"
 	"github.com/Juniper/contrail-operator/pkg/k8s"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 var src = mRand.NewSource(time.Now().UnixNano())
@@ -249,8 +251,8 @@ func EnsureServiceAccount(
 }
 
 // SetPodsToReady sets the status label of a POD to ready.
-func SetPodsToReady(podList *corev1.PodList, client client.Client) error {
-	for _, pod := range podList.Items {
+func SetPodsToReady(podList []corev1.Pod, client client.Client) error {
+	for _, pod := range podList {
 		podObject := &corev1.Pod{}
 		if err := client.Get(context.TODO(), types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, podObject); err != nil {
 			return err
@@ -278,13 +280,13 @@ type PodAlternativeIPs struct {
 
 // PodsCertSubjects iterates over passed list of pods and for every pod prepares certificate subject
 // which can be later used for generating certificate for given pod.
-func PodsCertSubjects(podList *corev1.PodList, hostNetwork *bool, podAltIPs PodAlternativeIPs) []certificates.CertificateSubject {
+func PodsCertSubjects(podList []corev1.Pod, hostNetwork *bool, podAltIPs PodAlternativeIPs) []certificates.CertificateSubject {
 	var pods []certificates.CertificateSubject
 	useNodeName := true
 	if hostNetwork != nil {
 		useNodeName = *hostNetwork
 	}
-	for _, pod := range podList.Items {
+	for _, pod := range podList {
 		var hostname string
 		if useNodeName {
 			hostname = pod.Spec.NodeName
@@ -306,38 +308,6 @@ func PodsCertSubjects(podList *corev1.PodList, hostNetwork *bool, podAltIPs PodA
 	return pods
 }
 
-// GetOrCreateConfigMap get configMap. If it doesn't exist creates it and sets boolean return to true.
-func GetOrCreateConfigMap(configMapName string,
-	client client.Client,
-	scheme *runtime.Scheme,
-	request reconcile.Request,
-	instanceType string,
-	object v1.Object) (*corev1.ConfigMap, bool, error) {
-
-	configMap := &corev1.ConfigMap{}
-	err := client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: request.Namespace}, configMap)
-	// TODO: Bug. If config map exists without labels and references, they won't be updated
-	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			configMap.SetName(configMapName)
-			configMap.SetNamespace(request.Namespace)
-			configMap.SetLabels(map[string]string{"contrail_manager": instanceType,
-				instanceType: request.Name})
-			configMap.Data = make(map[string]string)
-			if err = controllerutil.SetControllerReference(object, configMap, scheme); err != nil {
-				return nil, false, err
-			}
-			if err = client.Create(context.TODO(), configMap); err != nil && !k8serrors.IsAlreadyExists(err) {
-				return nil, false, err
-			}
-			return configMap, true, nil
-		}
-		return nil, false, err
-	}
-
-	return configMap, false, nil
-}
-
 // CreateConfigMap creates a config map based on the instance type.
 func CreateConfigMap(configMapName string,
 	client client.Client,
@@ -346,8 +316,30 @@ func CreateConfigMap(configMapName string,
 	instanceType string,
 	object v1.Object) (*corev1.ConfigMap, error) {
 
-	configMap, _, err := GetOrCreateConfigMap(configMapName, client, scheme, request, instanceType, object)
-	return configMap, err
+	configMap := &corev1.ConfigMap{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: request.Namespace}, configMap)
+	if err == nil {
+		if configMap.Data == nil {
+			configMap.Data = make(map[string]string)
+		}
+		return configMap, err
+	}
+	if !k8serrors.IsNotFound(err) {
+		return nil, err
+	}
+	// TODO: Bug. If config map exists without labels and references, they won't be updated
+	configMap.SetName(configMapName)
+	configMap.SetNamespace(request.Namespace)
+	configMap.SetLabels(map[string]string{"contrail_manager": instanceType,
+		instanceType: request.Name})
+	configMap.Data = make(map[string]string)
+	if err = controllerutil.SetControllerReference(object, configMap, scheme); err != nil {
+		return nil, err
+	}
+	if err = client.Create(context.TODO(), configMap); err != nil && !k8serrors.IsAlreadyExists(err) {
+		return nil, err
+	}
+	return configMap, nil
 }
 
 // CreateSecret creates a secret based on the instance type.
@@ -376,21 +368,6 @@ func CreateSecret(secretName string,
 		}
 	}
 	return secret, nil
-}
-
-// CurrentConfigMapExists checks if a current configuration exists and returns it.
-func CurrentConfigMapExists(configMapName string,
-	client client.Client,
-	scheme *runtime.Scheme,
-	request reconcile.Request) (corev1.ConfigMap, bool) {
-	configMapExists := false
-	configMap := &corev1.ConfigMap{}
-	if err := client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: request.Namespace}, configMap); err == nil {
-		if len(configMap.Data) > 0 {
-			configMapExists = true
-		}
-	}
-	return *configMap, configMapExists
 }
 
 // PrepareSTS prepares the intended podList.
@@ -426,7 +403,11 @@ func PrepareSTS(sts *appsv1.StatefulSet,
 // and applies it to the deployment.
 func SetDeploymentCommonConfiguration(deployment *appsv1.Deployment,
 	commonConfiguration *PodConfiguration) *appsv1.Deployment {
-	deployment.Spec.Replicas = commonConfiguration.Replicas
+	var replicas = int32(1)
+	if commonConfiguration.Replicas != nil {
+		replicas = *commonConfiguration.Replicas
+	}
+	deployment.Spec.Replicas = &replicas
 	if len(commonConfiguration.Tolerations) > 0 {
 		deployment.Spec.Template.Spec.Tolerations = commonConfiguration.Tolerations
 	}
@@ -460,7 +441,11 @@ func SetDeploymentCommonConfiguration(deployment *appsv1.Deployment,
 // and applies it to the pod.
 func SetSTSCommonConfiguration(sts *appsv1.StatefulSet,
 	commonConfiguration *PodConfiguration) {
-	sts.Spec.Replicas = commonConfiguration.Replicas
+	var replicas = int32(1)
+	if commonConfiguration.Replicas != nil {
+		replicas = *commonConfiguration.Replicas
+	}
+	sts.Spec.Replicas = &replicas
 	if len(commonConfiguration.Tolerations) > 0 {
 		sts.Spec.Template.Spec.Tolerations = commonConfiguration.Tolerations
 	}
@@ -549,48 +534,69 @@ func QuerySTS(name string, namespace string, reconcileClient client.Client) (*ap
 	if err != nil && k8serrors.IsNotFound(err) {
 		return nil, nil
 	}
-	return sts, err
+	return sts, nil
 }
 
 // CreateSTS creates the STS.
 func CreateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) error {
 	foundSTS, err := QuerySTS(request.Name+"-"+instanceType+"-statefulset", request.Namespace, reconcileClient)
-	if err == nil && foundSTS == nil {
-		sts.Spec.Template.ObjectMeta.Labels["version"] = "1"
-		err = reconcileClient.Create(context.TODO(), sts)
+	if err != nil || foundSTS != nil {
+		return err
 	}
-	return err
+	sts.Spec.Template.ObjectMeta.Labels["version"] = "1"
+	return reconcileClient.Create(context.TODO(), sts)
 }
 
 // UpdateSTS updates the STS.
-func UpdateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client, strategy string) error {
-	currentSTS, err := QuerySTS(request.Name+"-"+instanceType+"-statefulset", request.Namespace, reconcileClient)
+func UpdateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client, strategy string) (bool, error) {
+	stsName := request.Name + "-" + instanceType + "-statefulset"
+	stsLog := log.WithName("UpdateSTS").WithName(stsName)
+	currentSTS, err := QuerySTS(stsName, request.Namespace, reconcileClient)
 	if currentSTS == nil {
-		return err
+		return false, err
 	}
-	replicasChanged := false
+	hasChanges := false
 	replicas := int32(1)
 	if sts.Spec.Replicas != nil {
 		replicas = int32(*sts.Spec.Replicas)
 	}
 	if replicas != *currentSTS.Spec.Replicas {
-		replicasChanged = true
+		stsLog.Info("Replicas changed", "current", *currentSTS.Spec.Replicas, "new", replicas)
+		hasChanges = true
 	}
-	imagesChanged := false
-	for _, intendedContainer := range sts.Spec.Template.Spec.Containers {
-		for _, currentContainer := range currentSTS.Spec.Template.Spec.Containers {
-			if intendedContainer.Name == currentContainer.Name {
-				if intendedContainer.Image != currentContainer.Image {
-					imagesChanged = true
+	if !hasChanges {
+		for _, intendedContainer := range sts.Spec.Template.Spec.Containers {
+			for _, currentContainer := range currentSTS.Spec.Template.Spec.Containers {
+				if intendedContainer.Name == currentContainer.Name {
+					if intendedContainer.Image != currentContainer.Image {
+						hasChanges = true
+						stsLog.Info("Image changed",
+							"container", currentContainer.Name,
+							"currentContainer.Image", currentContainer.Image,
+							"intendedContainer.Image", intendedContainer.Image,
+						)
+						break
+					}
+					if !cmp.Equal(intendedContainer.Env, currentContainer.Env,
+						cmpopts.IgnoreFields(corev1.ObjectFieldSelector{}, "APIVersion"),
+					) {
+						hasChanges = true
+						stsLog.Info("Env changed",
+							"container", currentContainer.Name,
+							"currentContainer.Env", currentContainer.Env,
+							"intendedContainer.Env", intendedContainer.Env,
+						)
+						break
+					}
 				}
 			}
 		}
 	}
-	if !imagesChanged && !replicasChanged {
-		return nil
+	if !hasChanges {
+		return false, nil
 	}
 
-	log.Info("Statefulset changed, update", "strategy", strategy)
+	stsLog.Info("Update", "strategy", strategy)
 
 	if strategy == "deleteFirst" {
 		versionInt, _ := strconv.Atoi(currentSTS.Spec.Template.ObjectMeta.Labels["version"])
@@ -599,7 +605,8 @@ func UpdateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.R
 	} else {
 		sts.Spec.Template.ObjectMeta.Labels["version"] = currentSTS.Spec.Template.ObjectMeta.Labels["version"]
 	}
-	return reconcileClient.Update(context.TODO(), sts)
+
+	return true, reconcileClient.Update(context.TODO(), sts)
 }
 
 // SetInstanceActive sets the instance to active.
@@ -663,316 +670,182 @@ func getPodsHostname(c client.Reader, pod *corev1.Pod) (string, error) {
 	return "", errors.New("couldn't get pods hostname")
 }
 
-func getPodInitStatus(reconcileClient client.Client,
-	podList *corev1.PodList,
-	getInterface bool,
-	getMac bool,
-	getPrefix bool,
-	getGateway bool,
-	waitForInit bool) (map[string]string, error) {
-	var podNameIPMap = make(map[string]string)
-	for idx, pod := range podList.Items {
-		if !waitForInit && pod.Status.Phase != "Running" && pod.Status.Phase != "Pending" {
-			return map[string]string{}, nil
-		}
-		if pod.Status.PodIP == "" {
-			return map[string]string{}, nil
-		}
-		for _, initStatus := range pod.Status.InitContainerStatuses {
-			if initStatus.Name == "init" {
-				if initStatus.State.Terminated == nil {
-					if initStatus.State.Running != nil {
-						annotationMap := pod.GetAnnotations()
-						if annotationMap == nil {
-							annotationMap = make(map[string]string)
-						}
-						hostname, err := getPodsHostname(reconcileClient, &pod)
-						if err != nil {
-							return map[string]string{}, err
-						}
-						annotationMap["hostname"] = hostname
-
-						if getMac {
-							command := []string{"/bin/sh", "-c", "ip addr show | sed -n '/inet " + pod.Status.PodIP + "\\//{g;h;p};h;x' | awk '{print $2}' | head -n 1"}
-							physicalInterfaceMac, _, err := k8s.ExecToPodThroughAPI(command, "init", pod.Name, pod.Namespace, nil)
-							if err != nil {
-								log.Error(err, "Failed to get iface", strings.Join(command, " "), physicalInterfaceMac)
-								return map[string]string{}, fmt.Errorf("failed getting mac")
-							}
-							annotationMap["physicalInterfaceMac"] = strings.Trim(physicalInterfaceMac, "\n")
-							// TODO: it is not possible to detect iface in case if vhost0 already init via this method..
-							// ideally is to remove all of this ip addr hacks
-							if getInterface {
-								command := []string{"/bin/sh", "-c", "ip addr show | sed -n '/ether " + annotationMap["physicalInterfaceMac"] + " /{g;h;p};h;x' | awk '{print $2}' | tr -d ':' | grep -v vhost0"}
-								physicalInterface, _, err := k8s.ExecToPodThroughAPI(command, "init", pod.Name, pod.Namespace, nil)
-								if err != nil {
-									log.Error(err, "Failed to get iface", strings.Join(command, " "), physicalInterface)
-									return map[string]string{}, fmt.Errorf("failed getting interface")
-								}
-								annotationMap["physicalInterface"] = strings.Trim(physicalInterface, "\n")
-							}
-						}
-
-						if getGateway {
-							command := []string{"/bin/sh", "-c", "ip route get 1.1.1.1 | grep -v cache | sed -e 's/.* via \\(.*\\) dev.*/\\1/'"}
-							gateway, _, err := k8s.ExecToPodThroughAPI(command, "init", pod.Name, pod.Namespace, nil)
-							if err != nil {
-								log.Error(err, "Failed to get gateway", strings.Join(command, " "), gateway)
-								return map[string]string{}, fmt.Errorf("failed getting gateway")
-							}
-							annotationMap["gateway"] = strings.Trim(gateway, "\n")
-						}
-
-						if getPrefix {
-							command := []string{"/bin/sh", "-c", "ip addr show | sed -n 's/.*" + pod.Status.PodIP + "\\/\\([^ ]*\\).*/\\1/p' | head -n 1"}
-							prefixLength, _, err := k8s.ExecToPodThroughAPI(command, "init", pod.Name, pod.Namespace, nil)
-							if err != nil {
-								log.Error(err, "Failed to get prefix", strings.Join(command, " "), prefixLength)
-								return map[string]string{}, fmt.Errorf("failed getting prefix")
-							}
-							annotationMap["prefixLength"] = strings.Trim(prefixLength, "\n")
-						}
-
-						if cidr, ok := pod.Annotations["dataSubnet"]; ok {
-							if cidr != "" {
-								command := []string{"/bin/sh", "-c", "ip r | grep " + cidr + " | awk -F' ' '{print $NF}'"}
-								addr, _, err := k8s.ExecToPodThroughAPI(command, "init", pod.Name, pod.Namespace, nil)
-								if err != nil {
-									log.Error(err, "Failed to get data subnet ip", strings.Join(command, " "), addr)
-									return map[string]string{}, fmt.Errorf("failed getting ip address from data subnet")
-								}
-								ip := strings.Trim(addr, "\n")
-								if net.ParseIP(ip) != nil {
-									annotationMap["dataSubnetIP"] = ip
-								} else {
-									return map[string]string{}, fmt.Errorf("no valid ip from data subnet")
-								}
-							}
-						}
-
-						podList.Items[idx].SetAnnotations(annotationMap)
-						(&podList.Items[idx]).SetAnnotations(annotationMap)
-						foundPod := &corev1.Pod{}
-						err = reconcileClient.Get(context.TODO(), types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, foundPod)
-						if err != nil {
-							return map[string]string{}, err
-						}
-						foundPod.SetAnnotations(annotationMap)
-						err = reconcileClient.Update(context.TODO(), foundPod)
-						if err != nil {
-							return map[string]string{}, err
-						}
-						podList.Items[idx] = *foundPod
-					} else {
-						return map[string]string{}, nil
-					}
-				}
-			}
-		}
-		podNameIPMap[pod.Name] = pod.Status.PodIP
+func updateAnnotations(pod *corev1.Pod, client client.Client) error {
+	annotationMap := pod.GetAnnotations()
+	if annotationMap == nil {
+		annotationMap = make(map[string]string)
 	}
-	return podNameIPMap, nil
+	hostname, err := getPodsHostname(client, pod)
+	if err != nil {
+		return err
+	}
+	annotationMap["hostname"] = hostname
+	pod.SetAnnotations(annotationMap)
+	if err = client.Update(context.TODO(), pod); err != nil {
+		return err
+	}
+	return nil
+}
+
+func remove(s []corev1.Pod, i int) []corev1.Pod {
+	s[i] = s[len(s)-1]
+	return s[:len(s)-1]
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func PodIPListAndIPMapFromInstance(instanceType string,
 	commonConfiguration *PodConfiguration,
 	request reconcile.Request,
-	reconcileClient client.Client,
-	waitForInit bool,
-	getInterface bool,
-	getMac bool,
-	getPrefix bool,
-	getGateway bool) (*corev1.PodList, map[string]string, error) {
-	var podNameIPMap = make(map[string]string)
+	clnt client.Client) ([]corev1.Pod, map[string]string, error) {
+
 	labelSelector := labels.SelectorFromSet(map[string]string{"contrail_manager": instanceType,
 		instanceType: request.Name})
 	listOps := &client.ListOptions{Namespace: request.Namespace, LabelSelector: labelSelector}
-	podList := &corev1.PodList{}
-	err := reconcileClient.List(context.TODO(), podList, listOps)
-	if err != nil {
-		return &corev1.PodList{}, map[string]string{}, err
+	allPods := &corev1.PodList{}
+	err := clnt.List(context.TODO(), allPods, listOps)
+	if err != nil || len(allPods.Items) == 0 {
+		return nil, nil, err
 	}
-	if len(podList.Items) > 0 {
-		if waitForInit {
-			if int32(len(podList.Items)) == *commonConfiguration.Replicas {
-				podNameIPMap, err = getPodInitStatus(reconcileClient, podList, getInterface, getMac, getPrefix, getGateway, waitForInit)
-				if err != nil {
-					return podList, podNameIPMap, err
-				}
-			}
-			if int32(len(podNameIPMap)) != *commonConfiguration.Replicas {
-				return &corev1.PodList{}, map[string]string{}, nil
-			}
-		} else if len(podList.Items) > 0 {
-			podNameIPMap, err = getPodInitStatus(reconcileClient, podList, getInterface, getMac, getPrefix, getGateway, waitForInit)
-			if err != nil {
-				return podList, podNameIPMap, err
-			}
+
+	var podNameIPMap = make(map[string]string)
+	var podList = []corev1.Pod{}
+	for idx := range allPods.Items {
+		pod := &allPods.Items[idx]
+		if pod.Status.PodIP == "" || (pod.Status.Phase != "Running" && pod.Status.Phase != "Pending") {
+			continue
 		}
-		return podList, podNameIPMap, nil
+		if err = updateAnnotations(pod, clnt); err != nil {
+			return nil, nil, err
+		}
+		podNameIPMap[pod.Name] = pod.Status.PodIP
+		podList = append(podList, *pod)
 	}
-	return &corev1.PodList{}, map[string]string{}, nil
+	return podList, podNameIPMap, nil
 }
 
 // NewCassandraClusterConfiguration gets a struct containing various representations of Cassandra nodes string.
 func NewCassandraClusterConfiguration(name string, namespace string, client client.Client) (CassandraClusterConfiguration, error) {
-	var cassandraCluster CassandraClusterConfiguration
-	var cassandraNodes []string
-	cassandraInstance := &Cassandra{}
-	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cassandraInstance)
+	instance := &Cassandra{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, instance)
 	if err != nil {
-		return cassandraCluster, err
+		return CassandraClusterConfiguration{}, err
 	}
-	for _, ip := range cassandraInstance.Status.Nodes {
-		cassandraNodes = append(cassandraNodes, ip)
+	nodes := []string{}
+	if instance.Status.Nodes != nil {
+		for _, ip := range instance.Status.Nodes {
+			nodes = append(nodes, ip)
+		}
+		sort.SliceStable(nodes, func(i, j int) bool { return nodes[i] < nodes[j] })
 	}
-	sort.SliceStable(cassandraNodes, func(i, j int) bool { return cassandraNodes[i] < cassandraNodes[j] })
-	cassandraConfig := cassandraInstance.ConfigurationParameters()
-	endpoint := cassandraInstance.Status.ClusterIP + ":" + strconv.Itoa(*cassandraConfig.Port)
-	cassandraCluster = CassandraClusterConfiguration{
-		Port:         *cassandraConfig.Port,
-		CQLPort:      *cassandraConfig.CqlPort,
-		JMXPort:      *cassandraConfig.JmxLocalPort,
-		ServerIPList: cassandraNodes,
+	config := instance.ConfigurationParameters()
+	endpoint := instance.Status.ClusterIP + ":" + strconv.Itoa(*config.Port)
+	clusterConfig := CassandraClusterConfiguration{
+		Port:         *config.Port,
+		CQLPort:      *config.CqlPort,
+		JMXPort:      *config.JmxLocalPort,
+		ServerIPList: nodes,
 		Endpoint:     endpoint,
 	}
-	return cassandraCluster, nil
+	return clusterConfig, nil
 }
 
 // NewControlClusterConfiguration gets a struct containing various representations of Control nodes string.
-func NewControlClusterConfiguration(name string, role string, namespace string, myclient client.Client) (ControlClusterConfiguration, error) {
-	var controlNodes []string
-	var controlCluster ControlClusterConfiguration
-	var controlConfig ControlConfiguration
-	if name != "" {
-		controlInstance := &Control{}
-		err := myclient.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, controlInstance)
-		if err != nil {
-			return controlCluster, err
-		}
-		for _, ip := range controlInstance.Status.Nodes {
-			controlNodes = append(controlNodes, ip)
-		}
-		controlConfig = controlInstance.ConfigurationParameters()
+func NewControlClusterConfiguration(name string, namespace string, myclient client.Client) (ControlClusterConfiguration, error) {
+	instance := &Control{}
+	err := myclient.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, instance)
+	if err != nil {
+		return ControlClusterConfiguration{}, err
 	}
-	if role != "" {
-		labelSelector := labels.SelectorFromSet(map[string]string{"control_role": role})
-		listOps := &client.ListOptions{Namespace: namespace, LabelSelector: labelSelector}
-		controlList := &ControlList{}
-		err := myclient.List(context.TODO(), controlList, listOps)
-		if err != nil {
-			return controlCluster, err
+	nodes := []string{}
+	if instance.Status.Nodes != nil {
+		for _, ip := range instance.Status.Nodes {
+			nodes = append(nodes, ip)
 		}
-		if len(controlList.Items) > 0 {
-			for _, ip := range controlList.Items[0].Status.Nodes {
-				controlNodes = append(controlNodes, ip)
-			}
-		} else {
-			return controlCluster, err
-		}
-		controlConfig = controlList.Items[0].ConfigurationParameters()
+		sort.SliceStable(nodes, func(i, j int) bool { return nodes[i] < nodes[j] })
 	}
-	sort.SliceStable(controlNodes, func(i, j int) bool { return controlNodes[i] < controlNodes[j] })
-	controlCluster = ControlClusterConfiguration{
-		XMPPPort:            *controlConfig.XMPPPort,
-		BGPPort:             *controlConfig.BGPPort,
-		DNSPort:             *controlConfig.DNSPort,
-		DNSIntrospectPort:   *controlConfig.DNSIntrospectPort,
-		ControlServerIPList: controlNodes,
+	config := instance.ConfigurationParameters()
+	clusterConfig := ControlClusterConfiguration{
+		XMPPPort:            *config.XMPPPort,
+		BGPPort:             *config.BGPPort,
+		DNSPort:             *config.DNSPort,
+		DNSIntrospectPort:   *config.DNSIntrospectPort,
+		ControlServerIPList: nodes,
 	}
 
-	return controlCluster, nil
+	return clusterConfig, nil
 }
 
 // NewZookeeperClusterConfiguration gets a struct containing various representations of Zookeeper nodes string.
-func NewZookeeperClusterConfiguration(name string, namespace string, client client.Client) (ZookeeperClusterConfiguration, error) {
-	var zookeeperNodes []string
-	var zookeeperCluster ZookeeperClusterConfiguration
-	zookeeperInstance := &Zookeeper{}
-	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, zookeeperInstance)
+func NewZookeeperClusterConfiguration(name, namespace string, client client.Client) (ZookeeperClusterConfiguration, error) {
+	instance := &Zookeeper{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, instance)
 	if err != nil {
-		return zookeeperCluster, err
+		return ZookeeperClusterConfiguration{}, err
 	}
-	for _, ip := range zookeeperInstance.Status.Nodes {
-		zookeeperNodes = append(zookeeperNodes, ip)
-
+	nodes := []string{}
+	if instance.Status.Nodes != nil {
+		for _, ip := range instance.Status.Nodes {
+			nodes = append(nodes, ip)
+		}
+		sort.SliceStable(nodes, func(i, j int) bool { return nodes[i] < nodes[j] })
 	}
-	zookeeperConfig := zookeeperInstance.ConfigurationParameters()
-	sort.SliceStable(zookeeperNodes, func(i, j int) bool { return zookeeperNodes[i] < zookeeperNodes[j] })
-	zookeeperCluster = ZookeeperClusterConfiguration{
-		ClientPort:   *zookeeperConfig.ClientPort,
-		ServerIPList: zookeeperNodes,
+	config := instance.ConfigurationParameters()
+	clusterConfig := ZookeeperClusterConfiguration{
+		ClientPort:   *config.ClientPort,
+		ServerIPList: nodes,
 	}
-
-	return zookeeperCluster, nil
+	return clusterConfig, nil
 }
 
 // NewRabbitmqClusterConfiguration gets a struct containing various representations of Rabbitmq nodes string.
-func NewRabbitmqClusterConfiguration(name string, namespace string, myclient client.Client) (RabbitmqClusterConfiguration, error) {
-	var rabbitmqNodes []string
-	var rabbitmqCluster RabbitmqClusterConfiguration
-	secret := ""
-	labelSelector := labels.SelectorFromSet(map[string]string{"contrail_cluster": name})
-	listOps := &client.ListOptions{Namespace: namespace, LabelSelector: labelSelector}
-	rabbitmqList := &RabbitmqList{}
-	err := myclient.List(context.TODO(), rabbitmqList, listOps)
+func NewRabbitmqClusterConfiguration(name, namespace string, client client.Client) (RabbitmqClusterConfiguration, error) {
+	instance := &Rabbitmq{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, instance)
 	if err != nil {
-		return rabbitmqCluster, err
+		return RabbitmqClusterConfiguration{}, err
 	}
-	var rabbitmqConfig RabbitmqConfiguration
-	if len(rabbitmqList.Items) > 0 {
-		for _, ip := range rabbitmqList.Items[0].Status.Nodes {
-			rabbitmqNodes = append(rabbitmqNodes, ip)
+	nodes := []string{}
+	if instance.Status.Nodes != nil {
+		for _, ip := range instance.Status.Nodes {
+			nodes = append(nodes, ip)
 		}
-		rabbitmqConfig = rabbitmqList.Items[0].ConfigurationParameters()
-		secret = rabbitmqList.Items[0].Status.Secret
+		sort.SliceStable(nodes, func(i, j int) bool { return nodes[i] < nodes[j] })
 	}
-	sort.SliceStable(rabbitmqNodes, func(i, j int) bool { return rabbitmqNodes[i] < rabbitmqNodes[j] })
-	rabbitmqCluster = RabbitmqClusterConfiguration{
-		Port:         *rabbitmqConfig.Port,
-		ServerIPList: rabbitmqNodes,
-		Secret:       secret,
+	config := instance.ConfigurationParameters()
+	clusterConfig := RabbitmqClusterConfiguration{
+		Port:         *config.Port,
+		ServerIPList: nodes,
+		Secret:       instance.Status.Secret,
 	}
-	return rabbitmqCluster, nil
+	return clusterConfig, nil
 }
 
 // NewConfigClusterConfiguration gets a struct containing various representations of Config nodes string.
-func NewConfigClusterConfiguration(name string, namespace string, myclient client.Client) (ConfigClusterConfiguration, error) {
-	var configNodes []string
-	var configCluster ConfigClusterConfiguration
-	labelSelector := labels.SelectorFromSet(map[string]string{"contrail_cluster": name})
-	listOps := &client.ListOptions{Namespace: namespace, LabelSelector: labelSelector}
-	configList := &ConfigList{}
-	err := myclient.List(context.TODO(), configList, listOps)
+func NewConfigClusterConfiguration(name, namespace string, client client.Client) (ConfigClusterConfiguration, error) {
+	instance := &Config{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, instance)
 	if err != nil {
-		return configCluster, err
+		return ConfigClusterConfiguration{}, err
 	}
-
-	var authMode AuthenticationMode
-	var apiServerPort, analyticsPort, collectorPort int
-
-	if len(configList.Items) > 0 {
-		for _, ip := range configList.Items[0].Status.Nodes {
-			configNodes = append(configNodes, ip)
+	nodes := []string{}
+	if instance.Status.Nodes != nil {
+		for _, ip := range instance.Status.Nodes {
+			nodes = append(nodes, ip)
 		}
-		configConfig := configList.Items[0].ConfigurationParameters()
-		authMode = configConfig.AuthMode
-		apiServerPort = *configConfig.APIPort
-		analyticsPort = *configConfig.AnalyticsPort
-		collectorPort = *configConfig.CollectorPort
+		sort.SliceStable(nodes, func(i, j int) bool { return nodes[i] < nodes[j] })
 	}
-	sort.SliceStable(configNodes, func(i, j int) bool { return configNodes[i] < configNodes[j] })
-	configCluster = ConfigClusterConfiguration{
-		APIServerPort:         apiServerPort,
-		APIServerIPList:       configNodes,
-		AnalyticsServerPort:   analyticsPort,
-		AnalyticsServerIPList: configNodes,
-		CollectorPort:         collectorPort,
-		CollectorServerIPList: configNodes,
-		AuthMode:              authMode,
+	config := instance.ConfigurationParameters()
+	clusterConfig := ConfigClusterConfiguration{
+		AuthMode:        config.AuthMode,
+		APIServerPort:   *config.APIPort,
+		APIServerIPList: nodes,
+		// TODO: till not splited
+		AnalyticsServerIPList: nodes,
+		AnalyticsServerPort:   *config.AnalyticsPort,
+		CollectorServerIPList: nodes,
+		CollectorPort:         *config.CollectorPort,
 	}
-	return configCluster, nil
+	return clusterConfig, nil
 }
 
 // ConfigAuthParameters is Keystone auth options
@@ -1123,9 +996,54 @@ func (c *CassandraClusterConfiguration) FillWithDefaultValues() {
 	}
 }
 
-// VrouterClusterConfiguration defines all configuration knobs used to write the config file.
-type VrouterClusterConfiguration struct {
-	PhysicalInterface string
-	Gateway           string
-	MetaDataSecret    string
+// ProvisionerEnvData returns provisioner env data
+func ProvisionerEnvData(configAPINodes string) (string, error) {
+	var bufEnv bytes.Buffer
+	err := templates.ProvisionerConfig.Execute(&bufEnv, struct {
+		ConfigAPINodes   string
+		SignerCAFilepath string
+		Retries          string
+		Delay            string
+	}{
+		ConfigAPINodes:   configAPINodes,
+		SignerCAFilepath: certificates.SignerCAFilepath,
+	})
+	return bufEnv.String(), err
+}
+
+// UpdateProvisionerRunner adds provisioner runner data
+func UpdateProvisionerRunner(configMapName string, configMap *corev1.ConfigMap) error {
+	var bufRun bytes.Buffer
+	err := templates.ProvisionerRunner.Execute(&bufRun, struct {
+		ConfigName string
+	}{
+		ConfigName: configMapName + ".env",
+	})
+	if err != nil {
+		return err
+	}
+	configMap.Data[configMapName+".sh"] = bufRun.String()
+	return nil
+}
+
+// UpdateProvisionerConfigMapData update provisioner data in config map
+func UpdateProvisionerConfigMapData(configMapName string, configAPINodes string, configMap *corev1.ConfigMap) error {
+	if err := UpdateProvisionerRunner(configMapName, configMap); err != nil {
+		return err
+	}
+	envData, err := ProvisionerEnvData(configAPINodes)
+	if err != nil {
+		return err
+	}
+	configMap.Data[configMapName+".env"] = envData
+	return nil
+}
+
+// GetNodemanagerRunner returns nodemanagaer runner script
+func GetNodemanagerRunner() (string, error) {
+	var bufRun bytes.Buffer
+	if err := templates.NodemanagerRunner.Execute(&bufRun, struct{}{}); err != nil {
+		return "", err
+	}
+	return bufRun.String(), nil
 }

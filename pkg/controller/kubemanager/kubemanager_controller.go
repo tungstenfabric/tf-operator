@@ -3,6 +3,7 @@ package kubemanager
 import (
 	"context"
 	"reflect"
+	"time"
 
 	"github.com/Juniper/contrail-operator/pkg/apis/contrail/v1alpha1"
 	"github.com/Juniper/contrail-operator/pkg/certificates"
@@ -30,6 +31,8 @@ import (
 )
 
 var log = logf.Log.WithName("controller_kubemanager")
+var restartTime, _ = time.ParseDuration("1s")
+var requeueReconcile = reconcile.Result{Requeue: true, RequeueAfter: restartTime}
 
 func resourceHandler(myclient client.Client) handler.Funcs {
 	appHandler := handler.Funcs{
@@ -147,13 +150,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	srcConfig := &source.Kind{Type: &v1alpha1.Config{}}
-	configHandler := resourceHandler(mgr.GetClient())
-	predConfigSizeChange := utils.ConfigActiveChange()
-	if err = c.Watch(srcConfig, configHandler, predConfigSizeChange); err != nil {
-		return err
-	}
-
 	srcRabbitmq := &source.Kind{Type: &v1alpha1.Rabbitmq{}}
 	rabbitmqHandler := resourceHandler(mgr.GetClient())
 	predRabbitmqSizeChange := utils.RabbitmqActiveChange()
@@ -164,8 +160,14 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	srcZookeeper := &source.Kind{Type: &v1alpha1.Zookeeper{}}
 	zookeeperHandler := resourceHandler(mgr.GetClient())
 	predZookeeperSizeChange := utils.ZookeeperActiveChange()
-	err = c.Watch(srcZookeeper, zookeeperHandler, predZookeeperSizeChange)
-	if err != nil {
+	if err = c.Watch(srcZookeeper, zookeeperHandler, predZookeeperSizeChange); err != nil {
+		return err
+	}
+
+	srcConfig := &source.Kind{Type: &v1alpha1.Config{}}
+	configHandler := resourceHandler(mgr.GetClient())
+	predConfigSizeChange := utils.ConfigActiveChange()
+	if err = c.Watch(srcConfig, configHandler, predConfigSizeChange); err != nil {
 		return err
 	}
 
@@ -203,10 +205,14 @@ type ReconcileKubemanager struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Reconciling Kubemanager")
 	instanceType := "kubemanager"
 	instance := &v1alpha1.Kubemanager{}
+	cassandraInstance := v1alpha1.Cassandra{}
+	zookeeperInstance := v1alpha1.Zookeeper{}
+	rabbitmqInstance := v1alpha1.Rabbitmq{}
+	configInstance := v1alpha1.Config{}
 	var err error
 
 	if err = r.Client.Get(context.TODO(), request.NamespacedName, instance); err != nil && errors.IsNotFound(err) {
@@ -217,29 +223,37 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 		return reconcile.Result{}, nil
 	}
 
-	currentConfigMap, currentConfigExists := instance.CurrentConfigMapExists(request.Name+"-"+instanceType+"-configmap", r.Client, r.Scheme, request)
+	cassandraActive := cassandraInstance.IsActive(instance.Spec.ServiceConfiguration.CassandraInstance, request.Namespace, r.Client)
+	zookeeperActive := zookeeperInstance.IsActive(instance.Spec.ServiceConfiguration.ZookeeperInstance, request.Namespace, r.Client)
+	rabbitmqActive := rabbitmqInstance.IsActive(instance.Spec.ServiceConfiguration.RabbitmqInstance, request.Namespace, r.Client)
+	configActive := configInstance.IsActive(instance.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, r.Client)
+	if !cassandraActive || !zookeeperActive || !rabbitmqActive || !configActive {
+		reqLogger.Info("Dependencies not ready", "db", cassandraActive, "zk", zookeeperActive, "rmq", rabbitmqActive, "api", configActive)
+		return reconcile.Result{}, nil
+	}
 
-	configMap, err := instance.CreateConfigMap(request.Name+"-"+instanceType+"-configmap", r.Client, r.Scheme, request)
+	configMapName := request.Name + "-" + instanceType + "-configmap"
+	configMap, err := instance.CreateConfigMap(configMapName, r.Client, r.Scheme, request)
 	if err != nil {
-		log.Error(err, "CreateConfigMap failed")
+		reqLogger.Error(err, "CreateConfigMap failed")
 		return reconcile.Result{}, err
 	}
 
 	secretCertificates, err := instance.CreateSecret(request.Name+"-secret-certificates", r.Client, r.Scheme, request)
 	if err != nil {
-		log.Error(err, "CreateSecret failed")
+		reqLogger.Error(err, "CreateSecret failed")
 		return reconcile.Result{}, err
 	}
 
 	statefulSet := GetSTS()
 	if err = instance.PrepareSTS(statefulSet, &instance.Spec.CommonConfiguration, request, r.Scheme); err != nil {
-		log.Error(err, "PrepareSTS failed")
+		reqLogger.Error(err, "PrepareSTS failed")
 		return reconcile.Result{}, err
 	}
 
 	csrSignerCaVolumeName := request.Name + "-csr-signer-ca"
 	instance.AddVolumesToIntendedSTS(statefulSet, map[string]string{
-		configMap.Name:                     request.Name + "-" + instanceType + "-volume",
+		configMapName:                      request.Name + "-" + instanceType + "-volume",
 		certificates.SignerCAConfigMapName: csrSignerCaVolumeName,
 	})
 	instance.AddSecretVolumesToIntendedSTS(statefulSet, map[string]string{secretCertificates.Name: request.Name + "-secret-certificates"})
@@ -273,7 +287,7 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 	}
 
 	if err = instance.EnsureServiceAccount(serviceAccountName, clusterRoleName, clusterRoleBindingName, secretName, r.Client, r.Scheme); err != nil {
-		log.Error(err, "EnsureServiceAccount failed")
+		reqLogger.Error(err, "EnsureServiceAccount failed")
 		return reconcile.Result{}, err
 	}
 
@@ -297,7 +311,7 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 			instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
 			if instanceContainer.Command == nil {
 				command := []string{"bash", "-c",
-					"ln -sf /etc/contrailconfigmaps/vnc.${POD_IP} /etc/contrail/vnc_api_lib.ini; " +
+					"ln -sf /etc/contrailconfigmaps/vnc_api_lib.ini.${POD_IP} /etc/contrail/vnc_api_lib.ini; " +
 						"exec /usr/bin/contrail-kube-manager -c /etc/contrailconfigmaps/kubemanager.${POD_IP}"}
 				(&statefulSet.Spec.Template.Spec.Containers[idx]).Command = command
 			} else {
@@ -336,78 +350,83 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 		}
 	}
 
-	configChanged := false
-	if instance.Status.ConfigChanged != nil {
-		configChanged = *instance.Status.ConfigChanged
-	}
-
 	if err = instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil {
 		return reconcile.Result{}, err
 	}
 
-	strategy := "rolling"
-	if err = instance.UpdateSTS(statefulSet, instanceType, request, r.Client, strategy); err != nil {
-		log.Error(err, "UpdateSTS failed")
+	if updated, err := instance.UpdateSTS(statefulSet, instanceType, request, r.Client); err != nil || updated {
 		return reconcile.Result{}, err
 	}
 
 	podIPList, podIPMap, err := instance.PodIPListAndIPMapFromInstance(instanceType, request, r.Client)
 	if err != nil {
-		log.Error(err, "PodIPListAndIPMapFromInstance failed")
+		reqLogger.Error(err, "PodIPListAndIPMapFromInstance failed")
 		return reconcile.Result{}, err
 	}
-	if len(podIPList.Items) > 0 {
+	if len(podIPList) > 0 {
 
 		if err = instance.InstanceConfiguration(request, podIPList, r.Client, r.clusterInfo); err != nil {
-			log.Error(err, "InstanceConfiguration failed")
+			reqLogger.Error(err, "InstanceConfiguration failed")
 			return reconcile.Result{}, err
 		}
 
 		if err := r.ensureCertificatesExist(instance, podIPList, instanceType); err != nil {
-			log.Error(err, "ensureCertificatesExist failed")
+			reqLogger.Error(err, "ensureCertificatesExist failed")
 			return reconcile.Result{}, err
 		}
 
 		if err = instance.SetPodsToReady(podIPList, r.Client); err != nil {
-			log.Error(err, "SetPodsToReady failed")
+			reqLogger.Error(err, "SetPodsToReady failed")
 			return reconcile.Result{}, err
 		}
 
 		if err = instance.ManageNodeStatus(podIPMap, r.Client); err != nil {
-			log.Error(err, "ManageNodeStatus failed")
+			reqLogger.Error(err, "ManageNodeStatus failed")
 			return reconcile.Result{}, err
 		}
 	}
 
-	if currentConfigExists {
-		newConfigMap := &corev1.ConfigMap{}
-		_ = r.Client.Get(context.TODO(), types.NamespacedName{Name: request.Name + "-" + instanceType + "-configmap", Namespace: request.Namespace}, newConfigMap)
-		if !reflect.DeepEqual(currentConfigMap.Data, newConfigMap.Data) {
-			configChanged = true
-		} else {
-			configChanged = false
-		}
-		instance.Status.ConfigChanged = &configChanged
+	falseVal := false
+	if instance.Status.ConfigChanged == nil {
+		instance.Status.ConfigChanged = &falseVal
 	}
-
-	if instance.Status.Active == nil {
-		active := false
-		instance.Status.Active = &active
-	}
-	if err = instance.SetInstanceActive(r.Client, instance.Status.Active, statefulSet, request); err != nil {
-		log.Error(err, "SetInstanceActive failed")
+	beforeCheck := *instance.Status.ConfigChanged
+	newConfigMap := &corev1.ConfigMap{}
+	if err = r.Client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: request.Namespace}, newConfigMap); err != nil {
 		return reconcile.Result{}, err
 	}
-	if instance.Status.ConfigChanged != nil {
-		if *instance.Status.ConfigChanged {
-			return reconcile.Result{Requeue: true}, nil
+	*instance.Status.ConfigChanged = !reflect.DeepEqual(configMap.Data, newConfigMap.Data)
+
+	if *instance.Status.ConfigChanged {
+		reqLogger.Info("Update StatefulSet: ConfigChanged")
+		if err := r.Client.Update(context.TODO(), statefulSet); err != nil {
+			reqLogger.Error(err, "Update StatefulSet failed")
+			return reconcile.Result{}, err
 		}
+		return requeueReconcile, nil
 	}
+
+	if beforeCheck != *instance.Status.ConfigChanged {
+		reqLogger.Info("Update Status: ConfigChanged")
+		if err := r.Client.Status().Update(context.TODO(), instance); err != nil {
+			reqLogger.Error(err, "Update Status failed")
+			return reconcile.Result{}, err
+		}
+		return requeueReconcile, nil
+	}
+
+	instance.Status.Active = &falseVal
+	if err = instance.SetInstanceActive(r.Client, instance.Status.Active, statefulSet, request); err != nil {
+		reqLogger.Error(err, "SetInstanceActive failed")
+		return reconcile.Result{}, err
+	}
+
+	reqLogger.Info("Done")
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileKubemanager) ensureCertificatesExist(config *v1alpha1.Kubemanager, pods *corev1.PodList, instanceType string) error {
-	subjects := config.PodsCertSubjects(pods)
-	crt := certificates.NewCertificate(r.Client, r.Scheme, config, subjects, instanceType)
+func (r *ReconcileKubemanager) ensureCertificatesExist(instance *v1alpha1.Kubemanager, pods []corev1.Pod, instanceType string) error {
+	subjects := instance.PodsCertSubjects(pods)
+	crt := certificates.NewCertificate(r.Client, r.Scheme, instance, subjects, instanceType)
 	return crt.EnsureExistsAndIsSigned()
 }

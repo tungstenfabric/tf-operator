@@ -65,16 +65,8 @@ type KubemanagerService struct {
 // KubemanagerServiceSpec defines desired spec configuration of vRouter
 // +k8s:openapi-gen=true
 type KubemanagerServiceSpec struct {
-	CommonConfiguration  PodConfiguration                       `json:"commonConfiguration,omitempty"`
-	ServiceConfiguration KubemanagerManagerServiceConfiguration `json:"serviceConfiguration"`
-}
-
-// KubemanagerManagerServiceConfiguration defines service configuration of Kubemanager
-// +k8s:openapi-gen=true
-type KubemanagerManagerServiceConfiguration struct {
-	CassandraInstance        string `json:"cassandraInstance,omitempty"`
-	ZookeeperInstance        string `json:"zookeeperInstance,omitempty"`
-	KubemanagerConfiguration `json:",inline"`
+	CommonConfiguration  PodConfiguration                `json:"commonConfiguration,omitempty"`
+	ServiceConfiguration KubemanagerServiceConfiguration `json:"serviceConfiguration"`
 }
 
 // ManagerConfiguration is the common services struct.
@@ -269,26 +261,20 @@ func (m Manager) IsClusterReady() bool {
 	return true
 }
 
+// IsVrouterActiveOnControllers checks if vrouters are active on master nodes
 func (m *Manager) IsVrouterActiveOnControllers(clnt client.Client) bool {
 	if len(m.Spec.Services.Vrouters) == 0 {
 		return true
 	}
-
-	vrouterFromSpec := m.Spec.Services.Vrouters[0]
+	spec := m.Spec.Services.Vrouters[0]
 	vrouter := &Vrouter{}
-	//vrouter.ObjectMeta = v1.ObjectMeta{
-	//	Namespace: m.Namespace,
-	//	Name:      vrouterFromSpec.Name,
-	//}
-	if err := clnt.Get(context.TODO(), types.NamespacedName{Name: vrouterFromSpec.Name, Namespace: m.Namespace}, vrouter); err != nil {
+	if err := clnt.Get(context.TODO(), types.NamespacedName{Name: spec.Name, Namespace: m.Namespace}, vrouter); err != nil {
 		return false
 	}
-
-	if vrouter.Status.ActiveOnControllers != nil && *vrouter.Status.ActiveOnControllers {
-		return true
-	} else {
-		return false
+	if f, err := vrouter.IsActiveOnControllers(clnt); err == nil {
+		return f
 	}
+	return false
 }
 
 func init() {

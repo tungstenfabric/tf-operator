@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strconv"
 	"text/template"
+	"time"
 
 	"github.com/Juniper/contrail-operator/pkg/apis/contrail/v1alpha1"
 	configtemplates "github.com/Juniper/contrail-operator/pkg/apis/contrail/v1alpha1/templates"
@@ -39,6 +40,8 @@ import (
 )
 
 var log = logf.Log.WithName("controller_cassandra")
+var restartTime, _ = time.ParseDuration("1s")
+var requeueReconcile = reconcile.Result{Requeue: true, RequeueAfter: restartTime}
 
 func resourceHandler(myclient client.Client) handler.Funcs {
 	appHandler := handler.Funcs{
@@ -188,27 +191,25 @@ type cassandraInitKeystoreCommandData struct {
 
 // Reconcile reconciles cassandra.
 func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	// reqLogger := log.WithName("Reconcile").WithName(request.Name)
+	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Reconciling Cassandra")
 	instanceType := "cassandra"
 	instance := &v1alpha1.Cassandra{}
 	err := r.Client.Get(context.TODO(), request.NamespacedName, instance)
-	// if not found we expect it a change in replicaset
-	// and get the cassandra instance via label.
-	if err != nil && errors.IsNotFound(err) {
-		return reconcile.Result{}, nil
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return reconcile.Result{}, nil
+		}
+		return reconcile.Result{}, err
 	}
 
 	if !instance.GetDeletionTimestamp().IsZero() {
 		return reconcile.Result{}, nil
 	}
 
-	configMap, err := instance.CreateConfigMap(request.Name+"-"+instanceType+"-configmap", r.Client, r.Scheme, request)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	envProvisionerConfigMap, err := instance.CreateConfigMap(request.Name+"-"+instanceType+"-provisioner-env", r.Client, r.Scheme, request)
+	configMapName := request.Name + "-" + instanceType + "-configmap"
+	configMap, err := instance.CreateConfigMap(configMapName, r.Client, r.Scheme, request)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -238,12 +239,14 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
+	configmapsVolumeName := request.Name + "-" + instanceType + "-volume"
+	secretVolumeName := request.Name + "-secret-certificates"
 	csrSignerCaVolumeName := request.Name + "-csr-signer-ca"
 	instance.AddVolumesToIntendedSTS(statefulSet, map[string]string{
-		configMap.Name:                     request.Name + "-" + instanceType + "-volume",
+		configMapName:                      configmapsVolumeName,
 		certificates.SignerCAConfigMapName: csrSignerCaVolumeName,
 	})
-	instance.AddSecretVolumesToIntendedSTS(statefulSet, map[string]string{secretCertificates.Name: request.Name + "-secret-certificates"})
+	instance.AddSecretVolumesToIntendedSTS(statefulSet, map[string]string{secretCertificates.Name: secretVolumeName})
 
 	cassandraDefaultConfiguration := instance.ConfigurationParameters()
 
@@ -281,7 +284,39 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	}
 	statefulSet.Spec.Template.Spec.Volumes = append(statefulSet.Spec.Template.Spec.Volumes, emptyVolume)
 
-	for idx, container := range statefulSet.Spec.Template.Spec.Containers {
+	for idx := range statefulSet.Spec.Template.Spec.Containers {
+
+		container := &statefulSet.Spec.Template.Spec.Containers[idx]
+
+		instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
+		if instanceContainer.Command != nil {
+			container.Command = instanceContainer.Command
+		}
+
+		container.VolumeMounts = append(container.VolumeMounts,
+			corev1.VolumeMount{
+				Name:      configmapsVolumeName,
+				MountPath: "/etc/contrailconfigmaps",
+			},
+			corev1.VolumeMount{
+				Name:      "pvc",
+				MountPath: "/var/lib/cassandra",
+			},
+			corev1.VolumeMount{
+				Name:      secretVolumeName,
+				MountPath: "/etc/certificates",
+			},
+			corev1.VolumeMount{
+				Name:      request.Name + "-keystore",
+				MountPath: "/etc/keystore",
+			},
+			corev1.VolumeMount{
+				Name:      csrSignerCaVolumeName,
+				MountPath: certificates.SignerCAMountPath,
+			},
+		)
+
+		container.Image = instanceContainer.Image
 
 		if container.Name == "cassandra" {
 			secret, err := instance.CreateSecret(request.Name+"-secret", r.Client, r.Scheme, request)
@@ -301,10 +336,6 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 			}
 			cassandraKeystorePassword := string(secret.Data["keystorePassword"])
 			cassandraTruststorePassword := string(secret.Data["truststorePassword"])
-			instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
-			if instanceContainer == nil {
-				instanceContainer = utils.GetContainerFromList(container.Name, v1alpha1.DefaultCassandra.Containers)
-			}
 			var cassandraInitKeystoreCommandBuffer bytes.Buffer
 			err = cassandraInitKeystoreCommandTemplate.Execute(&cassandraInitKeystoreCommandBuffer, cassandraInitKeystoreCommandData{
 				KeystorePassword:   cassandraKeystorePassword,
@@ -315,7 +346,7 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 				return reconcile.Result{}, err
 			}
 
-			if instanceContainer.Command == nil {
+			if container.Command == nil {
 				command := []string{"bash", "-c",
 					"set -x; " +
 						cassandraInitKeystoreCommandBuffer.String() +
@@ -327,44 +358,9 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 						"cp /etc/contrailconfigmaps/cassandra.${POD_IP}.yaml /etc/cassandra/cassandra.yaml ; " +
 						fmt.Sprintf("exec /docker-entrypoint.sh -f  -Dcassandra.jmx.local.port=%d -Dcassandra.config=file:///etc/contrailconfigmaps/cassandra.${POD_IP}.yaml", *cassandraConfig.JmxLocalPort),
 				}
-				(&statefulSet.Spec.Template.Spec.Containers[idx]).Command = command
-			} else {
-				(&statefulSet.Spec.Template.Spec.Containers[idx]).Command = instanceContainer.Command
+				container.Command = command
 			}
 
-			volumeMountList := []corev1.VolumeMount{}
-			if len((&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts) > 0 {
-				volumeMountList = (&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts
-			}
-
-			volumeMount := corev1.VolumeMount{
-				Name:      request.Name + "-" + instanceType + "-volume",
-				MountPath: "/etc/contrailconfigmaps",
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-
-			volumeMount = corev1.VolumeMount{
-				Name:      "pvc",
-				MountPath: "/var/lib/cassandra",
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			volumeMount = corev1.VolumeMount{
-				Name:      request.Name + "-secret-certificates",
-				MountPath: "/etc/certificates",
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			volumeMount = corev1.VolumeMount{
-				Name:      request.Name + "-keystore",
-				MountPath: "/etc/keystore",
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			volumeMount = corev1.VolumeMount{
-				Name:      csrSignerCaVolumeName,
-				MountPath: certificates.SignerCAMountPath,
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			(&statefulSet.Spec.Template.Spec.Containers[idx]).Image = instanceContainer.Image
-			(&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts = volumeMountList
 			var jvmOpts string
 			if instance.Spec.ServiceConfiguration.MinHeapSize != "" {
 				jvmOpts = "-Xms" + instance.Spec.ServiceConfiguration.MinHeapSize
@@ -373,50 +369,18 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 				jvmOpts = jvmOpts + " -Xmx" + instance.Spec.ServiceConfiguration.MaxHeapSize
 			}
 			if jvmOpts != "" {
-				jvmOptEnvVar := corev1.EnvVar{
+				container.Env = append(container.Env, corev1.EnvVar{
 					Name:  "JVM_OPTS",
 					Value: jvmOpts,
-				}
-				envVars := statefulSet.Spec.Template.Spec.Containers[idx].Env
-				envVars = append(envVars, jvmOptEnvVar)
-				(&statefulSet.Spec.Template.Spec.Containers[idx]).Env = envVars
+				})
 			}
-
 		}
+
 		if container.Name == "nodemanager" {
-			command := []string{"bash", "-c",
-				"ln -sf /etc/contrailconfigmaps/nodemanager.${POD_IP} /etc/contrail/contrail-database-nodemgr.conf; " +
-					"exec /usr/bin/contrail-nodemgr --nodetype=contrail-database",
+			if container.Command == nil {
+				command := []string{"bash", "/etc/contrailconfigmaps/database-nodemanager-runner.sh"}
+				container.Command = command
 			}
-			instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
-			if instanceContainer.Command == nil {
-				(&statefulSet.Spec.Template.Spec.Containers[idx]).Command = command
-			} else {
-				(&statefulSet.Spec.Template.Spec.Containers[idx]).Command = instanceContainer.Command
-			}
-
-			volumeMountList := []corev1.VolumeMount{}
-			if len((&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts) > 0 {
-				volumeMountList = (&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts
-			}
-			volumeMount := corev1.VolumeMount{
-				Name:      request.Name + "-" + instanceType + "-volume",
-				MountPath: "/etc/contrailconfigmaps",
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			volumeMount = corev1.VolumeMount{
-				Name:      request.Name + "-secret-certificates",
-				MountPath: "/etc/certificates",
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			volumeMount = corev1.VolumeMount{
-				Name:      csrSignerCaVolumeName,
-				MountPath: certificates.SignerCAMountPath,
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			(&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts = volumeMountList
-
-			(&statefulSet.Spec.Template.Spec.Containers[idx]).Image = instanceContainer.Image
 
 			// TODO: till 2 DBs are not supported
 			configNodes, err := instance.GetConfigNodes(request, r.Client)
@@ -434,45 +398,17 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 					Value: dbServers,
 				},
 			}
-			statefulSet.Spec.Template.Spec.Containers[idx].Env = append(
-				statefulSet.Spec.Template.Spec.Containers[idx].Env, envVars...)
+			container.Env = append(container.Env, envVars...)
 		}
 
 		if container.Name == "provisioner" {
-			instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
-			if instanceContainer.Command != nil {
-				(&statefulSet.Spec.Template.Spec.Containers[idx]).Command = instanceContainer.Command
+			if container.Command == nil {
+				command := []string{"bash", "/etc/contrailconfigmaps/database-provisioner.sh"}
+				container.Command = command
 			}
-
-			volumeMountList := []corev1.VolumeMount{}
-			if len((&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts) > 0 {
-				volumeMountList = (&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts
-			}
-			volumeMountList = append(volumeMountList, corev1.VolumeMount{
-				Name:      request.Name + "-secret-certificates",
-				MountPath: "/etc/certificates",
-			})
-			volumeMountList = append(volumeMountList, corev1.VolumeMount{
-				Name:      csrSignerCaVolumeName,
-				MountPath: certificates.SignerCAMountPath,
-			})
-			(&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts = volumeMountList
-
-			envFromSource := []corev1.EnvFromSource{}
-			if len((&statefulSet.Spec.Template.Spec.Containers[idx]).EnvFrom) > 0 {
-				envFromSource = (&statefulSet.Spec.Template.Spec.Containers[idx]).EnvFrom
-			}
-			envFromSource = append(envFromSource,
-				corev1.EnvFromSource{
-					ConfigMapRef: &corev1.ConfigMapEnvSource{
-						LocalObjectReference: corev1.LocalObjectReference{Name: envProvisionerConfigMap.Name},
-					},
-				})
-			(&statefulSet.Spec.Template.Spec.Containers[idx]).EnvFrom = envFromSource
-
-			(&statefulSet.Spec.Template.Spec.Containers[idx]).Image = instanceContainer.Image
 		}
 	}
+
 	initHostPathType := corev1.HostPathType("DirectoryOrCreate")
 	initHostPathSource := &corev1.HostPathVolumeSource{
 		Path: cassandraDefaultConfiguration.Storage.Path,
@@ -500,25 +436,28 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 			}},
 		},
 	}
-	for idx, container := range statefulSet.Spec.Template.Spec.InitContainers {
-		if container.Name == "init" {
-			instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
-			if instanceContainer == nil {
-				instanceContainer = utils.GetContainerFromList(container.Name, v1alpha1.DefaultCassandra.Containers)
-			}
-			if instanceContainer.Command == nil {
-				command := []string{"sh", "-c", "until grep ready /tmp/podinfo/pod_labels > /dev/null 2>&1; do sleep 1; done"}
-				(&statefulSet.Spec.Template.Spec.InitContainers[idx]).Command = command
-			} else {
-				(&statefulSet.Spec.Template.Spec.InitContainers[idx]).Command = instanceContainer.Command
-			}
-			(&statefulSet.Spec.Template.Spec.InitContainers[idx]).Image = instanceContainer.Image
 
-			volumeMount := corev1.VolumeMount{
+	for idx := range statefulSet.Spec.Template.Spec.InitContainers {
+
+		container := &statefulSet.Spec.Template.Spec.InitContainers[idx]
+		instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
+		if instanceContainer.Command != nil {
+			container.Command = instanceContainer.Command
+		}
+
+		container.VolumeMounts = append(container.VolumeMounts,
+			corev1.VolumeMount{
 				Name:      request.Name + "-" + instanceType + "-init",
 				MountPath: cassandraDefaultConfiguration.Storage.Path,
+			})
+
+		container.Image = instanceContainer.Image
+
+		if container.Name == "init" {
+			if container.Command == nil {
+				command := []string{"sh", "-c", "until grep ready /tmp/podinfo/pod_labels > /dev/null 2>&1; do sleep 1; done"}
+				container.Command = command
 			}
-			(&statefulSet.Spec.Template.Spec.InitContainers[idx]).VolumeMounts = append((&statefulSet.Spec.Template.Spec.InitContainers[idx]).VolumeMounts, volumeMount)
 		}
 	}
 
@@ -597,51 +536,22 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		}
 	}
 
-	// Set environment configmaps
-	newProvisionerConfigMapData, err := instance.EnvProvisionerConfigMapData(request, r.Client)
-	if err != nil {
-		reqLogger.Error(err, "EnvProvisionerConfigMapData failed")
-		return reconcile.Result{}, err
-	}
-
-	configMapChanged := false
-	if !reflect.DeepEqual(envProvisionerConfigMap.Data, newProvisionerConfigMapData) {
-		envProvisionerConfigMap.Data = newProvisionerConfigMapData
-
-		if err = r.Client.Update(context.TODO(), envProvisionerConfigMap); err != nil {
-			reqLogger.Error(err, "Update of envProvisionerConfigMap failed")
-			return reconcile.Result{Requeue: true}, err
-		}
-		configMapChanged = true
-	}
-
 	// Create statefulset if it doesn't exist
 	if err = instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil {
-		reqLogger.Error(err, "Cannot create statefulset.")
 		return reconcile.Result{}, err
 	}
 
-	// TODO: have universal update that checks related configmaps
-	if configMapChanged {
-		reqLogger.Info("configMapChanged changed", "current", envProvisionerConfigMap.Data, "new", newProvisionerConfigMapData)
-		if err = r.Client.Update(context.TODO(), statefulSet); err != nil {
-			reqLogger.Error(err, "Update statefulset failed")
-			return reconcile.Result{}, err
-		}
-	} else {
-		reqLogger.Info("configMapChanged is not changed", "current", envProvisionerConfigMap.Data, "new", newProvisionerConfigMapData)
-		// Update statefulset if replicas or images changed
-		if err = instance.UpdateSTS(statefulSet, instanceType, request, r.Client, "rolling"); err != nil {
-			reqLogger.Error(err, "Update statefulset failed")
-			return reconcile.Result{}, err
-		}
+	// Update StatefulSet if replicas or images changed
+	if updated, err := instance.UpdateSTS(statefulSet, instanceType, request, r.Client); err != nil || updated {
+		return reconcile.Result{}, err
 	}
 
+	// Preapare / udpate configmaps if pods are created
 	podIPList, podIPMap, err := instance.PodIPListAndIPMapFromInstance(instanceType, request, r.Client)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	if len(podIPList.Items) > 0 {
+	if len(podIPList) > 0 {
 		if err = instance.InstanceConfiguration(request, podIPList, r.Client); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -649,12 +559,6 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 			return reconcile.Result{}, err
 		}
 
-		if err = instance.SetPodsToReady(podIPList, r.Client); err != nil {
-			return reconcile.Result{}, err
-		}
-		if err = instance.ManageNodeStatus(podIPMap, r.Client); err != nil {
-			return reconcile.Result{}, err
-		}
 		labelSelector := labels.SelectorFromSet(label.New(instanceType, request.Name))
 		listOps := &client.ListOptions{Namespace: request.Namespace, LabelSelector: labelSelector}
 		pvcList := &corev1.PersistentVolumeClaimList{}
@@ -670,39 +574,60 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 				return reconcile.Result{}, err
 			}
 		}
+
+		if err = instance.SetPodsToReady(podIPList, r.Client); err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
-	if err = instance.SetInstanceActive(statefulSet, request, r.Client); err != nil {
+	falseVal := false
+	if instance.Status.ConfigChanged == nil {
+		instance.Status.ConfigChanged = &falseVal
+	}
+	beforeCheck := *instance.Status.ConfigChanged
+	newConfigMap := &corev1.ConfigMap{}
+	if err = r.Client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: request.Namespace}, newConfigMap); err != nil {
 		return reconcile.Result{}, err
 	}
+	*instance.Status.ConfigChanged = !reflect.DeepEqual(configMap.Data, newConfigMap.Data)
 
+	if *instance.Status.ConfigChanged {
+		reqLogger.Info("Update StatefulSet: ConfigChanged")
+		if err := r.Client.Update(context.TODO(), statefulSet); err != nil {
+			reqLogger.Error(err, "Update StatefulSet failed")
+			return reconcile.Result{}, err
+		}
+		return requeueReconcile, nil
+	}
+
+	if beforeCheck != *instance.Status.ConfigChanged {
+		reqLogger.Info("Update Status: ConfigChanged")
+		if err := r.Client.Status().Update(context.TODO(), instance); err != nil {
+			reqLogger.Error(err, "Update Status failed")
+			return reconcile.Result{}, err
+		}
+		return requeueReconcile, nil
+	}
+
+	currentSTS, err := instance.QuerySTS(statefulSet.Name, statefulSet.Namespace, r.Client)
+	if err != nil {
+		reqLogger.Error(err, "QuerySTS failed")
+		return reconcile.Result{}, err
+	}
+	if instance.UpdateStatus(cassandraConfig, podIPMap, currentSTS) {
+		reqLogger.Info("Update Status")
+		if err = r.Client.Status().Update(context.TODO(), instance); err != nil {
+			reqLogger.Error(err, "Update Status")
+			return reconcile.Result{}, err
+		}
+	}
+
+	reqLogger.Info("Done")
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileCassandra) ensureCertificatesExist(cassandra *v1alpha1.Cassandra, pods *corev1.PodList, serviceIP string, instanceType string) error {
+func (r *ReconcileCassandra) ensureCertificatesExist(cassandra *v1alpha1.Cassandra, pods []corev1.Pod, serviceIP string, instanceType string) error {
 	subjects := cassandra.PodsCertSubjects(pods, serviceIP)
 	crt := certificates.NewCertificate(r.Client, r.Scheme, cassandra, subjects, instanceType)
 	return crt.EnsureExistsAndIsSigned()
 }
-
-// func MapToString(m map[string]string) string {
-// 	list := make([]string, 0, len(m))
-// 	for key, value := range m {
-// 		list = append(list, fmt.Sprintf("%s=%s", key, value))
-// 	}
-// 	sort.Strings(list)
-
-// 	return strings.Join(list, " ")
-// }
-
-// func EncryptString(str string) string {
-// 	h := sha1.New()
-// 	io.WriteString(h, str)
-// 	key := hex.EncodeToString(h.Sum(nil))
-
-// 	return string(key)
-// }
-
-// func EncryptMap(m map[string]string) string {
-// 	return EncryptString(MapToString(m))
-// }

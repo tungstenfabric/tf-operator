@@ -28,6 +28,8 @@ import (
 )
 
 var log = logf.Log.WithName("controller_vrouter")
+var restartTime, _ = time.ParseDuration("1s")
+var reconcileRequeue = reconcile.Result{Requeue: true, RequeueAfter: restartTime}
 
 func resourceHandler(myclient client.Client) handler.Funcs {
 	appHandler := handler.Funcs{
@@ -186,13 +188,17 @@ type ReconcileVrouter struct {
 // Reconcile reads that state of the cluster for a Vrouter object and makes changes based on the state read
 // and what is in the Vrouter.Spec.
 func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Reconciling Vrouter")
 	instanceType := "vrouter"
 	instance := &v1alpha1.Vrouter{}
 
-	if err := r.Client.Get(context.TODO(), request.NamespacedName, instance); err != nil && errors.IsNotFound(err) {
-		return reconcile.Result{}, nil
+	err := r.Client.Get(context.TODO(), request.NamespacedName, instance)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return reconcile.Result{}, nil
+		}
+		return reconcile.Result{}, err
 	}
 
 	if !instance.GetDeletionTimestamp().IsZero() {
@@ -209,222 +215,149 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	configMapName := request.Name + "-vrouter-agent-config"
-	configMapAgent, err := instance.CreateConfigMap(configMapName, r.Client, r.Scheme, request)
+	configMapAgent, err := instance.CreateConfigMap(request.Name+"-vrouter-agent-config", r.Client, r.Scheme, request)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	if err = instance.DefaultAgentConfigMapData(configMapAgent, r.Client); err != nil {
+		reqLogger.Error(err, "DefaultAgentConfigMapData failed")
+		return reconcile.Result{}, err
+	}
+
+	secretCertificates, err := instance.CreateSecret(request.Name+"-secret-certificates", r.Client, r.Scheme, request)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 
-	configMapName = request.Name + "-secret-certificates"
-	secretCertificates, err := instance.CreateSecret(configMapName, r.Client, r.Scheme, request)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
+	cloudOrchestrator := instance.VrouterConfigurationParameters().CloudOrchestrator
+	configNodes := instance.GetConfigNodes(r.Client)
+	controlNodes := instance.GetControlNodes(r.Client)
+	reqLogger.Info("Controller nodes", "configNodes", configNodes, "controlNodes", controlNodes)
 
-	daemonSet := GetDaemonset()
+	daemonSet := GetDaemonset(cloudOrchestrator)
 	if err = instance.PrepareDaemonSet(daemonSet, &instance.Spec.CommonConfiguration, request, r.Scheme, r.Client); err != nil {
 		return reconcile.Result{}, err
 	}
 
+	configMapVolumeName := request.Name + "-agent-volume"
+	secretVolumeName := secretCertificates.Name
 	csrSignerCaVolumeName := request.Name + "-csr-signer-ca"
+	cniVolumeName := cniConfigMap.Name + "-cni-volume"
 	instance.AddVolumesToIntendedDS(daemonSet, map[string]string{
-		configMapAgent.Name:                request.Name + "-agent-volume",
-		cniConfigMap.Name:                  cniConfigMap.Name + "-cni-volume",
+		configMapAgent.Name:                configMapVolumeName,
+		cniConfigMap.Name:                  cniVolumeName,
 		certificates.SignerCAConfigMapName: csrSignerCaVolumeName,
 	})
-	instance.AddSecretVolumesToIntendedDS(daemonSet, map[string]string{secretCertificates.Name: request.Name + "-secret-certificates"})
+	instance.AddSecretVolumesToIntendedDS(daemonSet, map[string]string{secretCertificates.Name: secretVolumeName})
 
-	for idx, container := range daemonSet.Spec.Template.Spec.Containers {
-		if container.Name == "vrouteragent" {
-			command := []string{"bash", "-c", `mkdir -p /var/log/contrail/vrouter-agent;
-				ln -sf /etc/agentconfigmaps/contrail-vrouter-agent.conf.${POD_IP} /etc/contrail/contrail-vrouter-agent.conf;
-				ln -sf /etc/agentconfigmaps/contrail-lbaas.auth.conf.${POD_IP} /etc/contrail/contrail-lbaas.auth.conf;
-				ln -sf /etc/agentconfigmaps/vnc_api_lib.ini.${POD_IP} /etc/contrail/vnc_api_lib.ini;
-				source /etc/agentconfigmaps/params.env;
-				source /actions.sh;
-				prepare_agent;
-				start_agent;
-				wait $(cat /var/run/vrouter-agent.pid)`}
-			instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
-			if instanceContainer == nil {
-				instanceContainer = utils.GetContainerFromList(container.Name, v1alpha1.DefaultVrouter.Containers)
-			}
-			if instanceContainer.Command == nil {
-				(&daemonSet.Spec.Template.Spec.Containers[idx]).Command = command
-			} else {
-				(&daemonSet.Spec.Template.Spec.Containers[idx]).Command = instanceContainer.Command
-			}
-			volumeMountList := []corev1.VolumeMount{}
-			if len((&daemonSet.Spec.Template.Spec.Containers[idx]).VolumeMounts) > 0 {
-				volumeMountList = (&daemonSet.Spec.Template.Spec.Containers[idx]).VolumeMounts
-			}
-			volumeMount := corev1.VolumeMount{
-				Name:      request.Name + "-secret-certificates",
+	for idx := range daemonSet.Spec.Template.Spec.Containers {
+
+		container := &daemonSet.Spec.Template.Spec.Containers[idx]
+		instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
+		if instanceContainer.Command != nil {
+			container.Command = instanceContainer.Command
+		}
+
+		container.VolumeMounts = append(container.VolumeMounts,
+			corev1.VolumeMount{
+				Name:      configMapVolumeName,
+				MountPath: "/etc/contrailconfigmaps",
+			},
+			corev1.VolumeMount{
+				Name:      secretVolumeName,
 				MountPath: "/etc/certificates",
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			volumeMount = corev1.VolumeMount{
-				Name:      request.Name + "-agent-volume",
-				MountPath: v1alpha1.VrouterAgentConfigMountPath,
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			volumeMount = corev1.VolumeMount{
+			},
+			corev1.VolumeMount{
 				Name:      csrSignerCaVolumeName,
 				MountPath: certificates.SignerCAMountPath,
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			(&daemonSet.Spec.Template.Spec.Containers[idx]).VolumeMounts = volumeMountList
-
-			(&daemonSet.Spec.Template.Spec.Containers[idx]).Image = instanceContainer.Image
-
-			envFromList := []corev1.EnvFromSource{}
-			if len((&daemonSet.Spec.Template.Spec.Containers[idx]).EnvFrom) > 0 {
-				envFromList = (&daemonSet.Spec.Template.Spec.Containers[idx]).EnvFrom
-			}
-			envFromList = append(envFromList, corev1.EnvFromSource{
-				ConfigMapRef: &corev1.ConfigMapEnvSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: configMapEnv.Name,
-					},
-				},
 			})
-			(&daemonSet.Spec.Template.Spec.Containers[idx]).EnvFrom = envFromList
+
+		container.EnvFrom = append(container.EnvFrom, corev1.EnvFromSource{
+			ConfigMapRef: &corev1.ConfigMapEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: configMapEnv.Name,
+				},
+			},
+		})
+
+		container.Image = instanceContainer.Image
+
+		if container.Name == "vrouteragent" {
+			if container.Command == nil {
+				command := []string{"bash", "-c",
+					"set -x; mkdir -p /var/log/contrail/vrouter-agent; cfg_folder=/etc/contrailconfigmaps ; " +
+						`ln -sf $cfg_folder/contrail-vrouter-agent.conf.${POD_IP} /etc/contrail/contrail-vrouter-agent.conf;
+						ln -sf $cfg_folder/contrail-lbaas.auth.conf.${POD_IP} /etc/contrail/contrail-lbaas.auth.conf;
+						ln -sf $cfg_folder/vnc_api_lib.ini.${POD_IP} /etc/contrail/vnc_api_lib.ini;
+						source $cfg_folder/params.env.${POD_IP};
+						source /actions.sh;
+						prepare_agent;
+						start_agent;
+						wait $(cat /var/run/vrouter-agent.pid)`}
+
+				container.Command = command
+			}
 		}
 
 		if container.Name == "nodemanager" {
-			instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
-			if instanceContainer.Command == nil {
-				command := []string{"bash", "-c",
-					"ln -sf /etc/agentconfigmaps/nodemanager.conf.${POD_IP} /etc/contrail/contrail-vrouter-nodemgr.conf ;" +
-						"ln -sf /etc/agentconfigmaps/vnc_api_lib.ini.${POD_IP} /etc/contrail/vnc_api_lib.ini ; " +
-						"exec /usr/bin/contrail-nodemgr --nodetype=contrail-vrouter",
-				}
-				(&daemonSet.Spec.Template.Spec.Containers[idx]).Command = command
-			} else {
-				(&daemonSet.Spec.Template.Spec.Containers[idx]).Command = instanceContainer.Command
+			if container.Command == nil {
+				command := []string{"bash", "/etc/contrailconfigmaps/vrouter-nodemanager-runner.sh"}
+				container.Command = command
 			}
-			volumeMountList := []corev1.VolumeMount{}
-			if len((&daemonSet.Spec.Template.Spec.Containers[idx]).VolumeMounts) > 0 {
-				volumeMountList = (&daemonSet.Spec.Template.Spec.Containers[idx]).VolumeMounts
-			}
-			volumeMount := corev1.VolumeMount{
-				Name:      request.Name + "-secret-certificates",
-				MountPath: "/etc/certificates",
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			volumeMount = corev1.VolumeMount{
-				Name:      request.Name + "-agent-volume",
-				MountPath: v1alpha1.VrouterAgentConfigMountPath,
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			volumeMount = corev1.VolumeMount{
-				Name:      csrSignerCaVolumeName,
-				MountPath: certificates.SignerCAMountPath,
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			(&daemonSet.Spec.Template.Spec.Containers[idx]).VolumeMounts = volumeMountList
-
-			(&daemonSet.Spec.Template.Spec.Containers[idx]).Image = instanceContainer.Image
-
-			(&daemonSet.Spec.Template.Spec.Containers[idx]).EnvFrom = []corev1.EnvFromSource{{
-				ConfigMapRef: &corev1.ConfigMapEnvSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: configMapEnv.Name,
-					},
-				},
-			}}
 		}
 
 		if container.Name == "provisioner" {
-			instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
-			if instanceContainer.Command != nil {
-				(&daemonSet.Spec.Template.Spec.Containers[idx]).Command = instanceContainer.Command
+			if container.Command == nil {
+				command := []string{"bash", "/etc/contrailconfigmaps/vrouter-provisioner.sh"}
+				container.Command = command
 			}
-
-			volumeMountList := []corev1.VolumeMount{}
-			if len((&daemonSet.Spec.Template.Spec.Containers[idx]).VolumeMounts) > 0 {
-				volumeMountList = (&daemonSet.Spec.Template.Spec.Containers[idx]).VolumeMounts
-			}
-			volumeMountList = append(volumeMountList, corev1.VolumeMount{
-				Name:      request.Name + "-secret-certificates",
-				MountPath: "/etc/certificates",
-			})
-			volumeMountList = append(volumeMountList, corev1.VolumeMount{
-				Name:      csrSignerCaVolumeName,
-				MountPath: certificates.SignerCAMountPath,
-			})
-			(&daemonSet.Spec.Template.Spec.Containers[idx]).VolumeMounts = volumeMountList
-
-			(&daemonSet.Spec.Template.Spec.Containers[idx]).Image = instanceContainer.Image
-
-			(&daemonSet.Spec.Template.Spec.Containers[idx]).EnvFrom = []corev1.EnvFromSource{{
-				ConfigMapRef: &corev1.ConfigMapEnvSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: configMapEnv.Name,
-					},
-				},
-			}}
-
-			envList := []corev1.EnvVar{
-				{
-					Name:  "SSL_ENABLE",
-					Value: "True",
-				},
-				{
-					Name:  "SERVER_CA_CERTFILE",
-					Value: certificates.SignerCAFilepath,
-				},
-				{
-					Name:  "SERVER_CERTFILE",
-					Value: "/etc/certificates/server-$(POD_IP).crt",
-				},
-				{
-					Name:  "SERVER_KEYFILE",
-					Value: "/etc/certificates/server-key-$(POD_IP).pem",
-				},
-				{
-					Name:  "CONFIG_NODES",
-					Value: instance.GetConfigNodes(r.Client),
-				},
-				{
-					Name:  "CLOUD_ORCHESTRATOR",
-					Value: instance.VrouterConfigurationParameters().CloudOrchestrator,
-				},
-			}
-			(&daemonSet.Spec.Template.Spec.Containers[idx]).Env = append(
-				(&daemonSet.Spec.Template.Spec.Containers[idx]).Env, envList...)
 		}
 	}
 
 	ubuntu := v1alpha1.UBUNTU
-	for idx, container := range daemonSet.Spec.Template.Spec.InitContainers {
+	for idx := range daemonSet.Spec.Template.Spec.InitContainers {
+
+		container := &daemonSet.Spec.Template.Spec.InitContainers[idx]
 		instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
-		if instanceContainer == nil {
-			instanceContainer = utils.GetContainerFromList(container.Name, v1alpha1.DefaultVrouter.Containers)
-		}
-		(&daemonSet.Spec.Template.Spec.InitContainers[idx]).Image = instanceContainer.Image
+
 		if instanceContainer.Command != nil {
-			(&daemonSet.Spec.Template.Spec.InitContainers[idx]).Command = instanceContainer.Command
+			container.Command = instanceContainer.Command
 		}
-		if container.Name == "vrouterkernelinit" {
-			(&daemonSet.Spec.Template.Spec.InitContainers[idx]).EnvFrom = []corev1.EnvFromSource{{
-				ConfigMapRef: &corev1.ConfigMapEnvSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: configMapEnv.Name,
-					},
+
+		container.VolumeMounts = append(container.VolumeMounts,
+			corev1.VolumeMount{
+				Name:      configMapVolumeName,
+				MountPath: "/etc/contrailconfigmaps",
+			},
+			corev1.VolumeMount{
+				Name:      secretVolumeName,
+				MountPath: "/etc/certificates",
+			},
+			corev1.VolumeMount{
+				Name:      csrSignerCaVolumeName,
+				MountPath: certificates.SignerCAMountPath,
+			})
+
+		container.Image = instanceContainer.Image
+
+		container.EnvFrom = append(container.EnvFrom, corev1.EnvFromSource{
+			ConfigMapRef: &corev1.ConfigMapEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: configMapEnv.Name,
 				},
-			}}
+			},
+		})
+
+		if container.Name == "vrouterkernelinit" {
 			if instance.Spec.ServiceConfiguration.Distribution != nil || instance.Spec.ServiceConfiguration.Distribution == &ubuntu {
-				(&daemonSet.Spec.Template.Spec.InitContainers[idx]).Image = instanceContainer.Image
+				if ic := utils.GetContainerFromList("vrouterkernelbuildinit", instance.Spec.ServiceConfiguration.Containers); ic != nil {
+					container.Image = ic.Image
+				}
 			}
 		}
 
 		if container.Name == "vroutercni" {
-			instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
-			if instanceContainer == nil {
-				instanceContainer = utils.GetContainerFromList(container.Name, v1alpha1.DefaultVrouter.Containers)
-			}
-			if instanceContainer.Command == nil {
+			if container.Command == nil {
 				// vroutercni container command is based on the entrypoint.sh script in the contrail-kubernetes-cni-init container
 				command := []string{"sh", "-c",
 					"mkdir -p /host/etc_cni/net.d && " +
@@ -433,59 +366,22 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 						"chmod 0755 /host/opt_cni_bin/contrail-k8s-cni && " +
 						"cp -f /etc/cniconfigmaps/10-tf-cni.conf /host/etc_cni/net.d/10-tf-cni.conf && " +
 						"tar -C /host/opt_cni_bin -xzf /opt/cni-v0.3.0.tgz"}
-				(&daemonSet.Spec.Template.Spec.InitContainers[idx]).Command = command
-			} else {
-				(&daemonSet.Spec.Template.Spec.InitContainers[idx]).Command = instanceContainer.Command
+				container.Command = command
 			}
 
-			volumeMountList := []corev1.VolumeMount{}
-			if len((&daemonSet.Spec.Template.Spec.InitContainers[idx]).VolumeMounts) > 0 {
-				volumeMountList = (&daemonSet.Spec.Template.Spec.InitContainers[idx]).VolumeMounts
-			}
-			volumeMount := corev1.VolumeMount{
-				Name:      request.Name + "-secret-certificates",
-				MountPath: "/etc/certificates",
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			volumeMount = corev1.VolumeMount{
-				Name:      cniConfigMap.Name + "-cni-volume",
-				MountPath: "/etc/cniconfigmaps",
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			(&daemonSet.Spec.Template.Spec.InitContainers[idx]).VolumeMounts = volumeMountList
-
-			(&daemonSet.Spec.Template.Spec.InitContainers[idx]).Image = instanceContainer.Image
-
-			(&daemonSet.Spec.Template.Spec.InitContainers[idx]).EnvFrom = []corev1.EnvFromSource{{
-				ConfigMapRef: &corev1.ConfigMapEnvSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: configMapEnv.Name,
-					},
-				},
-			}}
+			container.VolumeMounts = append(container.VolumeMounts,
+				corev1.VolumeMount{
+					Name:      cniVolumeName,
+					MountPath: "/etc/cniconfigmaps",
+				})
 		}
 
 		if container.Name == "multusconfig" {
-			instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
-			if instanceContainer == nil {
-				instanceContainer = utils.GetContainerFromList(container.Name, v1alpha1.DefaultVrouter.Containers)
-			}
-			volumeMountList := []corev1.VolumeMount{}
-			if len((&daemonSet.Spec.Template.Spec.InitContainers[idx]).VolumeMounts) > 0 {
-				volumeMountList = (&daemonSet.Spec.Template.Spec.InitContainers[idx]).VolumeMounts
-			}
-			volumeMount := corev1.VolumeMount{
-				Name:      request.Name + "-agent-volume",
-				MountPath: v1alpha1.VrouterAgentConfigMountPath,
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			(&daemonSet.Spec.Template.Spec.InitContainers[idx]).VolumeMounts = volumeMountList
-
-			(&daemonSet.Spec.Template.Spec.InitContainers[idx]).Image = instanceContainer.Image
+			// nothing todo
 		}
 
 		if container.Name == "nodeinit" && instance.Spec.ServiceConfiguration.ContrailStatusImage != "" {
-			(&daemonSet.Spec.Template.Spec.InitContainers[idx]).Env = append((&daemonSet.Spec.Template.Spec.InitContainers[idx]).Env,
+			container.Env = append(container.Env,
 				core.EnvVar{
 					Name:  "CONTRAIL_STATUS_IMAGE",
 					Value: instance.Spec.ServiceConfiguration.ContrailStatusImage,
@@ -493,8 +389,6 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 			)
 		}
 	}
-
-	instance.SetParamsToAgents(request, r.Client)
 
 	if err = instance.CreateDS(daemonSet, &instance.Spec.CommonConfiguration, instanceType, request,
 		r.Scheme, r.Client); err != nil {
@@ -504,15 +398,8 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 	if err = instance.UpdateDS(daemonSet, &instance.Spec.CommonConfiguration, instanceType, request, r.Scheme, r.Client); err != nil {
 		return reconcile.Result{}, err
 	}
-	getPhysicalInterface := false
-	if instance.Spec.ServiceConfiguration.PhysicalInterface == "" {
-		getPhysicalInterface = true
-	}
-	getGateway := false
-	if instance.Spec.ServiceConfiguration.Gateway == "" {
-		getGateway = true
-	}
-	podIPList, podIPMap, err := instance.PodIPListAndIPMapFromInstance(instanceType, request, r.Client, getPhysicalInterface, true, true, getGateway)
+
+	podIPList, podIPMap, err := instance.PodIPListAndIPMapFromInstance(instanceType, request, r.Client)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -534,85 +421,45 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 	reconcileAgain := false
 	for _, node := range nodes.Items {
 		pod := instance.GetNodeDSPod(node.Name, daemonSet, r.Client)
-		if pod == nil {
-			continue
-		}
-
-		vrouterPod := &v1alpha1.VrouterPod{pod}
-
-		agentStatus := instance.LookupAgentStatus(node.Name)
-		if agentStatus == nil {
-			agentStatus := &v1alpha1.AgentStatus{
-				Name:            node.Name,
-				Status:          "Starting",
-				EncryptedParams: v1alpha1.EncryptString(instance.GetParamsEnv(r.Client)),
-			}
-			instance.Status.Agents = append(instance.Status.Agents, agentStatus)
-			if err := instance.SaveClusterStatus(node.Name, r.Client); err != nil {
-				return reconcile.Result{}, err
-			}
-		}
-
-		agentContainerStatus, err := vrouterPod.GetAgentContainerStatus()
-		if err != nil || agentContainerStatus.State.Running == nil {
-			resetStatus(instance, node.Name)
-			continue
-		}
-
-		if pod.Status.Phase != "Running" || !vrouterPod.IsAgentRunning() {
-			resetStatus(instance, node.Name)
-		}
-
-		hostVars := make(map[string]string)
-		if err := vrouterPod.GetAgentParameters(&hostVars); err != nil {
+		if pod == nil || pod.Status.PodIP == "" || pod.Status.Phase != "Running" {
+			reqLogger.Info("pod is not run yet", "node.Name", node.Name)
 			reconcileAgain = true
 			continue
 		}
-
-		if agentStatus.Status != "Updating" {
-			if err := instance.UpdateAgentConfigMapForPod(vrouterPod, &hostVars, r.Client); err != nil {
-				reconcileAgain = true
-				continue
+		vrouterPod := &v1alpha1.VrouterPod{Pod: pod}
+		agentStatus := instance.LookupAgentStatus(node.Name)
+		if agentStatus == nil {
+			agentStatus = &v1alpha1.AgentStatus{
+				Name:            node.Name,
+				Status:          "Starting",
+				EncryptedParams: "",
 			}
+			instance.Status.Agents = append(instance.Status.Agents, agentStatus)
+			reqLogger.Info("newAgentStatus", "node.Name", node.Name)
 		}
 
-		if agentStatus.Status == "Starting" {
-			if vrouterPod.IsAgentRunning() {
-				agentStatus.Status = "Ready"
-			} else {
-				reconcileAgain = true
-				continue
-			}
-		}
-
-		if agentStatus.Status == "Ready" {
-			if agentStatus.EncryptedParams != v1alpha1.EncryptString(instance.GetParamsEnv(r.Client)) ||
-				instance.IsClusterChanged(node.Name, r.Client) {
-				agentStatus.Status = "Updating"
-			}
-		}
-
-		if agentStatus.Status == "Updating" {
-			instance.UpdateAgent(node.Name, vrouterPod, r.Client, &reconcileAgain)
-		}
+		again, _ := instance.UpdateAgent(node.Name, agentStatus, vrouterPod, configMapAgent, r.Client)
+		reconcileAgain = reconcileAgain || again
 	}
 
 	if reconcileAgain == true {
-		restartTime, _ := time.ParseDuration("3s")
-		return reconcile.Result{Requeue: true, RequeueAfter: restartTime}, nil
+		reqLogger.Info("Update Status")
+		if err := r.Client.Status().Update(context.TODO(), instance); err != nil {
+			reqLogger.Error(err, "Update Status")
+			return reconcile.Result{}, err
+		}
+		return reconcileRequeue, nil
 	}
 
-	if instance.Status.Active == nil {
-		active := false
-		instance.Status.Active = &active
-	}
-
+	falseVal := false
+	instance.Status.ActiveOnControllers = &falseVal
 	isControllerActive, err := instance.IsActiveOnControllers(r.Client)
-	instance.Status.ActiveOnControllers = &isControllerActive
 	if err != nil {
 		return reconcile.Result{}, err
 	}
+	instance.Status.ActiveOnControllers = &isControllerActive
 
+	instance.Status.Active = &falseVal
 	if err = instance.SetInstanceActive(r.Client, instance.Status.Active, daemonSet, request, instance); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -620,15 +467,8 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileVrouter) ensureCertificatesExist(vrouter *v1alpha1.Vrouter, pods *corev1.PodList, instanceType string) error {
+func (r *ReconcileVrouter) ensureCertificatesExist(vrouter *v1alpha1.Vrouter, pods []corev1.Pod, instanceType string) error {
 	subjects := vrouter.PodsCertSubjects(pods)
 	crt := certificates.NewCertificate(r.Client, r.Scheme, vrouter, subjects, instanceType)
 	return crt.EnsureExistsAndIsSigned()
-}
-
-func resetStatus(instance *v1alpha1.Vrouter, nodeName string) {
-	agentStatus := instance.LookupAgentStatus(nodeName)
-	if agentStatus.Status == "Ready" || agentStatus.Status == "Updating" {
-		agentStatus.Status = "Starting"
-	}
 }

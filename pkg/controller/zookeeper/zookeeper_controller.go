@@ -160,12 +160,16 @@ type ReconcileZookeeper struct {
 
 // Reconcile reconciles zookeeper.
 func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Reconciling Zookeeper")
 	instanceType := "zookeeper"
 	instance := &v1alpha1.Zookeeper{}
-	if err := r.Client.Get(context.TODO(), request.NamespacedName, instance); err != nil && errors.IsNotFound(err) {
-		return reconcile.Result{}, nil
+	err := r.Client.Get(context.TODO(), request.NamespacedName, instance)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return reconcile.Result{}, nil
+		}
+		return reconcile.Result{}, err
 	}
 
 	if !instance.GetDeletionTimestamp().IsZero() {
@@ -365,24 +369,24 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 	if err = instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil {
 		return reconcile.Result{}, err
 	}
-	strategy := "rolling"
-	if err = instance.UpdateSTS(statefulSet, instanceType, request, r.Client, strategy); err != nil {
+
+	if _, err = instance.UpdateSTS(statefulSet, instanceType, request, r.Client); err != nil {
 		return reconcile.Result{}, err
 	}
+
 	podIPList, podIPMap, err := instance.PodIPListAndIPMapFromInstance(instanceType, request, r.Client)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	if len(podIPList.Items) > 0 {
+	if len(podIPList) > 0 {
 		if err = instance.InstanceConfiguration(request, configMapName, podIPList, r.Client); err != nil {
 			return reconcile.Result{}, err
 		}
 		if err = instance.SetPodsToReady(podIPList, r.Client); err != nil {
-			//return reconcile.Result{}, err
-			return reconcile.Result{Requeue: true}, nil
+			return reconcile.Result{}, err
 		}
 
-		for _, pod := range podIPList.Items {
+		for _, pod := range podIPList {
 			for _, c := range pod.Status.Conditions {
 				if c.Type == corev1.PodReady && c.Status == corev1.ConditionFalse {
 					delete(podIPMap, pod.Name)
@@ -390,8 +394,8 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 			}
 		}
 
-		pods := make([]corev1.Pod, len(podIPList.Items))
-		copy(pods, podIPList.Items)
+		pods := make([]corev1.Pod, len(podIPList))
+		copy(pods, podIPList)
 		sort.SliceStable(pods, func(i, j int) bool { return pods[i].Name < pods[j].Name })
 
 		var found *corev1.Pod
@@ -477,6 +481,7 @@ func (r *ReconcileZookeeper) ensurePodDisruptionBudgetExists(zookeeper *v1alpha1
 }
 
 const configurationInitCommand = `#!/bin/sh
+set -x
 if ! [[ -f /mnt/zookeeper/zoo.cfg && -f /mnt/zookeeper/zoo.cfg.dynamic ]]; then
 	cp /zookeeper-conf/log4j.properties /mnt/zookeeper/
 	cp /zookeeper-conf/configuration.xsl /mnt/zookeeper/

@@ -10,7 +10,6 @@ import (
 	"sort"
 	"strconv"
 
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -83,7 +82,7 @@ func init() {
 }
 
 func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
-	podList *corev1.PodList,
+	podList []corev1.Pod,
 	client client.Client) error {
 	instanceConfigMapName := request.Name + "-" + "rabbitmq" + "-configmap"
 	configMapInstanceDynamicConfig := &corev1.ConfigMap{}
@@ -100,12 +99,12 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 	if err != nil {
 		return err
 	}
-	sort.SliceStable(podList.Items, func(i, j int) bool { return podList.Items[i].Status.PodIP < podList.Items[j].Status.PodIP })
+	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
 
 	rabbitmqConfig := c.ConfigurationParameters()
 
 	var data = make(map[string]string)
-	for _, pod := range podList.Items {
+	for _, pod := range podList {
 		rabbitmqConfigString := fmt.Sprintf("listeners.tcp = none\n")
 		rabbitmqConfigString = rabbitmqConfigString + fmt.Sprintf("listeners.ssl.default = %d\n", *rabbitmqConfig.Port)
 		rabbitmqConfigString = rabbitmqConfigString + fmt.Sprintf("loopback_users = none\n")
@@ -118,9 +117,9 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 		rabbitmqConfigString = rabbitmqConfigString + fmt.Sprintf("ssl_options.fail_if_no_peer_cert = true\n")
 		rabbitmqConfigString = rabbitmqConfigString + fmt.Sprintf("cluster_partition_handling = autoheal\n")
 		//rabbitmqConfigString = rabbitmqConfigString + fmt.Sprintf("ssl_options.versions.1 = tlsv1.2\n")
-		if len(podList.Items) > 1 {
+		if len(podList) > 1 {
 			rabbitmqConfigString = rabbitmqConfigString + fmt.Sprintf("cluster_formation.peer_discovery_backend = classic_config\n")
-			for podIndex, pod := range podList.Items {
+			for podIndex, pod := range podList {
 				rabbitmqConfigString = rabbitmqConfigString + fmt.Sprintf("cluster_formation.classic_config.nodes."+strconv.Itoa(podIndex+1)+" = rabbit@"+pod.Status.PodIP+"\n")
 			}
 		}
@@ -141,7 +140,7 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 
 	configMapInstanceDynamicConfig.Data = data
 	var rabbitmqNodes string
-	for _, pod := range podList.Items {
+	for _, pod := range podList {
 		myidString := pod.Name[len(pod.Name)-1:]
 		configMapInstanceDynamicConfig.Data[myidString] = pod.Status.PodIP
 		rabbitmqNodes = rabbitmqNodes + fmt.Sprintf("%s\n", pod.Status.PodIP)
@@ -240,22 +239,12 @@ func (c *Rabbitmq) CreateSecret(secretName string,
 }
 
 // IsActive returns true if instance is active.
-func (c *Rabbitmq) IsActive(name string, namespace string, myclient client.Client) bool {
-	labelSelector := labels.SelectorFromSet(map[string]string{"contrail_cluster": name})
-	listOps := &client.ListOptions{Namespace: namespace, LabelSelector: labelSelector}
-	rabbitmqList := &RabbitmqList{}
-	err := myclient.List(context.TODO(), rabbitmqList, listOps)
-	if err != nil {
+func (c *Rabbitmq) IsActive(name string, namespace string, client client.Client) bool {
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, c)
+	if err != nil || c.Status.Active == nil {
 		return false
 	}
-	if len(rabbitmqList.Items) > 0 {
-		if rabbitmqList.Items[0].Status.Active != nil {
-			if *rabbitmqList.Items[0].Status.Active {
-				return true
-			}
-		}
-	}
-	return false
+	return *c.Status.Active
 }
 
 // IsUpgrading returns true if instance is upgrading.
@@ -292,7 +281,7 @@ func (c *Rabbitmq) AddSecretVolumesToIntendedSTS(sts *appsv1.StatefulSet, volume
 }
 
 // SetPodsToReady sets Rabbitmq PODs to ready.
-func (c *Rabbitmq) SetPodsToReady(podIPList *corev1.PodList, client client.Client) error {
+func (c *Rabbitmq) SetPodsToReady(podIPList []corev1.Pod, client client.Client) error {
 	return SetPodsToReady(podIPList, client)
 }
 
@@ -302,17 +291,17 @@ func (c *Rabbitmq) CreateSTS(sts *appsv1.StatefulSet, instanceType string, reque
 }
 
 // UpdateSTS updates the STS.
-func (c *Rabbitmq) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client, strategy string) error {
-	return UpdateSTS(sts, instanceType, request, reconcileClient, strategy)
+func (c *Rabbitmq) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
+	return UpdateSTS(sts, instanceType, request, reconcileClient, "rolling")
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
-func (c *Rabbitmq) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) (*corev1.PodList, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance(instanceType, &c.Spec.CommonConfiguration, request, reconcileClient, true, false, false, false, false)
+func (c *Rabbitmq) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
+	return PodIPListAndIPMapFromInstance(instanceType, &c.Spec.CommonConfiguration, request, reconcileClient)
 }
 
 //PodsCertSubjects gets list of Rabbitmq pods certificate subjets which can be passed to the certificate API
-func (c *Rabbitmq) PodsCertSubjects(podList *corev1.PodList) []certificates.CertificateSubject {
+func (c *Rabbitmq) PodsCertSubjects(podList []corev1.Pod) []certificates.CertificateSubject {
 	var altIPs PodAlternativeIPs
 	return PodsCertSubjects(podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
 }

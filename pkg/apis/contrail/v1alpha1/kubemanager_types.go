@@ -54,15 +54,18 @@ type KubemanagerStatus struct {
 // KubemanagerServiceConfiguration is the Spec for the kubemanagers API.
 // +k8s:openapi-gen=true
 type KubemanagerServiceConfiguration struct {
-	KubemanagerConfiguration      `json:",inline"`
-	KubemanagerNodesConfiguration `json:",inline"`
+	KubemanagerConfiguration `json:",inline"`
+	CassandraInstance        string `json:"cassandraInstance,omitempty"`
+	ZookeeperInstance        string `json:"zookeeperInstance,omitempty"`
+	RabbitmqInstance         string `json:"rabbitmqInstance,omitempty"`
+	ConfigInstance           string `json:"configInstance,omitempty"`
 }
 
 // KubemanagerConfiguration is the configuration for the kubemanagers API.
 // +k8s:openapi-gen=true
 type KubemanagerConfiguration struct {
-	Containers            []*Container `json:"containers,omitempty"`
 	UseKubeadmConfig      *bool        `json:"useKubeadmConfig,omitempty"`
+	Containers            []*Container `json:"containers,omitempty"`
 	ServiceAccount        string       `json:"serviceAccount,omitempty"`
 	ClusterRole           string       `json:"clusterRole,omitempty"`
 	ClusterRoleBinding    string       `json:"clusterRoleBinding,omitempty"`
@@ -86,15 +89,6 @@ type KubemanagerConfiguration struct {
 	PublicFIPPool         string       `json:"publicFIPPool,omitempty"`
 }
 
-// KubemanagerNodesConfiguration is the configuration for third party dependencies
-// +k8s:openapi-gen=true
-type KubemanagerNodesConfiguration struct {
-	ConfigNodesConfiguration    *ConfigClusterConfiguration    `json:"configNodesConfiguration,omitempty"`
-	RabbbitmqNodesConfiguration *RabbitmqClusterConfiguration  `json:"rabbitmqNodesConfiguration,omitempty"`
-	CassandraNodesConfiguration *CassandraClusterConfiguration `json:"cassandraNodesConfiguration,omitempty"`
-	ZookeeperNodesConfiguration *ZookeeperClusterConfiguration `json:"zookeeperNodesConfiguration,omitempty"`
-}
-
 // KubemanagerList contains a list of Kubemanager.
 // +k8s:openapi-gen=true
 type KubemanagerList struct {
@@ -109,7 +103,7 @@ func init() {
 
 // InstanceConfiguration creates kubemanager's instance sonfiguration
 func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
-	podList *corev1.PodList,
+	podList []corev1.Pod,
 	client client.Client,
 	ci *k8s.ClusterInfo) error {
 	instanceConfigMapName := request.Name + "-" + "kubemanager" + "-configmap"
@@ -121,14 +115,33 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 		return err
 	}
 
-	cassandraNodesInformation := c.Spec.ServiceConfiguration.CassandraNodesConfiguration
+	cassandraNodesInformation, err := NewCassandraClusterConfiguration(
+		c.Spec.ServiceConfiguration.CassandraInstance, request.Namespace, client)
+	if err != nil {
+		return err
+	}
 	cassandraNodesInformation.FillWithDefaultValues()
-	configNodesInformation := c.Spec.ServiceConfiguration.ConfigNodesConfiguration
-	configNodesInformation.FillWithDefaultValues()
-	rabbitmqNodesInformation := c.Spec.ServiceConfiguration.RabbbitmqNodesConfiguration
-	rabbitmqNodesInformation.FillWithDefaultValues()
-	zookeeperNodesInformation := c.Spec.ServiceConfiguration.ZookeeperNodesConfiguration
+
+	zookeeperNodesInformation, err := NewZookeeperClusterConfiguration(
+		c.Spec.ServiceConfiguration.ZookeeperInstance, request.Namespace, client)
+	if err != nil {
+		return err
+	}
 	zookeeperNodesInformation.FillWithDefaultValues()
+
+	rabbitmqNodesInformation, err := NewRabbitmqClusterConfiguration(
+		c.Spec.ServiceConfiguration.RabbitmqInstance, request.Namespace, client)
+	if err != nil {
+		return err
+	}
+	rabbitmqNodesInformation.FillWithDefaultValues()
+
+	configNodesInformation, err := NewConfigClusterConfiguration(
+		c.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, client)
+	if err != nil {
+		return err
+	}
+	configNodesInformation.FillWithDefaultValues()
 
 	var rabbitmqSecretUser string
 	var rabbitmqSecretPassword string
@@ -142,11 +155,6 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 		rabbitmqSecretUser = string(rabbitmqSecret.Data["user"])
 		rabbitmqSecretPassword = string(rabbitmqSecret.Data["password"])
 		rabbitmqSecretVhost = string(rabbitmqSecret.Data["vhost"])
-	}
-
-	var podIPList []string
-	for _, pod := range podList.Items {
-		podIPList = append(podIPList, pod.Status.PodIP)
 	}
 
 	kubemanagerConfig, err := c.ConfigurationParameters(ci)
@@ -163,9 +171,10 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 		rabbitmqSecretVhost = kubemanagerConfig.RabbitmqVhost
 	}
 
-	sort.SliceStable(podList.Items, func(i, j int) bool { return podList.Items[i].Status.PodIP < podList.Items[j].Status.PodIP })
+	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
 	var data = map[string]string{}
-	for idx := range podList.Items {
+	for _, pod := range podList {
+
 		configApiIPListCommaSeparated := configtemplates.JoinListWithSeparator(configNodesInformation.APIServerIPList, ",")
 		configCollectorEndpointList := configtemplates.EndpointList(configNodesInformation.CollectorServerIPList, configNodesInformation.CollectorPort)
 		configCollectorEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(configCollectorEndpointList, " ")
@@ -216,8 +225,8 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 			PublicFIPPool            string
 		}{
 			Token:                    token,
-			ListenAddress:            podList.Items[idx].Status.PodIP,
-			InstrospectListenAddress: c.Spec.CommonConfiguration.IntrospectionListenAddress(podList.Items[idx].Status.PodIP),
+			ListenAddress:            pod.Status.PodIP,
+			InstrospectListenAddress: c.Spec.CommonConfiguration.IntrospectionListenAddress(pod.Status.PodIP),
 			CloudOrchestrator:        kubemanagerConfig.CloudOrchestrator,
 			KubernetesAPIServer:      kubemanagerConfig.KubernetesAPIServer,
 			KubernetesAPIPort:        strconv.Itoa(*kubemanagerConfig.KubernetesAPIPort),
@@ -243,45 +252,39 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 			LogLevel:                 kubemanagerConfig.LogLevel,
 			PublicFIPPool:            kubemanagerConfig.PublicFIPPool,
 		})
-		data["kubemanager."+podList.Items[idx].Status.PodIP] = kubemanagerConfigBuffer.String()
+		data["kubemanager."+pod.Status.PodIP] = kubemanagerConfigBuffer.String()
 
 		var vncApiConfigBuffer bytes.Buffer
-		configtemplates.KubemanagerAPIVNC.Execute(&vncApiConfigBuffer, struct {
-			ListenAddress string
-			ListenPort    string
+		configtemplates.ConfigAPIVNC.Execute(&vncApiConfigBuffer, struct {
+			APIServerList string
+			APIServerPort string
 			CAFilePath    string
+			AuthMode      string
 		}{
-			ListenAddress: podList.Items[idx].Status.PodIP,
-			ListenPort:    strconv.Itoa(configNodesInformation.APIServerPort),
+			APIServerList: configApiIPListCommaSeparated,
+			APIServerPort: strconv.Itoa(configNodesInformation.APIServerPort),
 			CAFilePath:    certificates.SignerCAFilepath,
+			AuthMode:      string(configNodesInformation.AuthMode),
 		})
-		data["vnc."+podList.Items[idx].Status.PodIP] = vncApiConfigBuffer.String()
+		data["vnc_api_lib.ini."+pod.Status.PodIP] = vncApiConfigBuffer.String()
 	}
+
 	configMapInstanceDynamicConfig.Data = data
-	if err := client.Update(context.TODO(), configMapInstanceDynamicConfig); err != nil {
-		return err
-	}
-	return nil
+	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }
 
+// CreateConfigMap creates empty configmap
 func (c *Kubemanager) CreateConfigMap(configMapName string, client client.Client, scheme *runtime.Scheme, request reconcile.Request) (*corev1.ConfigMap, error) {
 	return CreateConfigMap(configMapName, client, scheme, request, "kubemanager", c)
 }
 
-// CurrentConfigMapExists checks if a current configuration exists and returns it.
-func (c *Kubemanager) CurrentConfigMapExists(configMapName string, client client.Client, scheme *runtime.Scheme, request reconcile.Request) (corev1.ConfigMap, bool) {
-	return CurrentConfigMapExists(configMapName, client, scheme, request)
-}
-
 // IsActive returns true if instance is active.
 func (c *Kubemanager) IsActive(name string, namespace string, client client.Client) bool {
-	if err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, c); err != nil {
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, c)
+	if err != nil || c.Status.Active == nil {
 		return false
 	}
-	if c.Status.Active != nil && *c.Status.Active {
-		return true
-	}
-	return false
+	return *c.Status.Active
 }
 
 // CreateSecret creates a secret.
@@ -313,7 +316,7 @@ func (c *Kubemanager) AddSecretVolumesToIntendedSTS(sts *appsv1.StatefulSet, vol
 }
 
 // SetPodsToReady sets Kubemanager PODs to ready.
-func (c *Kubemanager) SetPodsToReady(podIPList *corev1.PodList, client client.Client) error {
+func (c *Kubemanager) SetPodsToReady(podIPList []corev1.Pod, client client.Client) error {
 	return SetPodsToReady(podIPList, client)
 }
 
@@ -323,17 +326,17 @@ func (c *Kubemanager) CreateSTS(sts *appsv1.StatefulSet, instanceType string, re
 }
 
 // UpdateSTS updates the STS.
-func (c *Kubemanager) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client, strategy string) error {
-	return UpdateSTS(sts, instanceType, request, reconcileClient, strategy)
+func (c *Kubemanager) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
+	return UpdateSTS(sts, instanceType, request, reconcileClient, "rolling")
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
-func (c *Kubemanager) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) (*corev1.PodList, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance(instanceType, &c.Spec.CommonConfiguration, request, reconcileClient, true, false, false, false, false)
+func (c *Kubemanager) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
+	return PodIPListAndIPMapFromInstance(instanceType, &c.Spec.CommonConfiguration, request, reconcileClient)
 }
 
 //PodsCertSubjects gets list of Kubemanager pods certificate subjets which can be passed to the certificate API
-func (c *Kubemanager) PodsCertSubjects(podList *corev1.PodList) []certificates.CertificateSubject {
+func (c *Kubemanager) PodsCertSubjects(podList []corev1.Pod) []certificates.CertificateSubject {
 	var altIPs PodAlternativeIPs
 	return PodsCertSubjects(podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
 }

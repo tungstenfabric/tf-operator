@@ -189,14 +189,19 @@ type ReconcileWebui struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Reconciling Webui")
 	instanceType := "webui"
 	instance := &v1alpha1.Webui{}
 	configInstance := v1alpha1.Config{}
+	cassandraInstance := v1alpha1.Cassandra{}
 
-	if err := r.Client.Get(context.TODO(), request.NamespacedName, instance); err != nil && errors.IsNotFound(err) {
-		return reconcile.Result{}, nil
+	err := r.Client.Get(context.TODO(), request.NamespacedName, instance)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return reconcile.Result{}, nil
+		}
+		return reconcile.Result{}, err
 	}
 
 	if !instance.GetDeletionTimestamp().IsZero() {
@@ -208,8 +213,10 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 		return reconcile.Result{}, err
 	}
 
-	configActive := configInstance.IsActive(instance.Labels["contrail_cluster"], request.Namespace, r.Client)
-	if !configActive {
+	configActive := configInstance.IsActive(instance.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, r.Client)
+	cassandraActive := cassandraInstance.IsActive(instance.Spec.ServiceConfiguration.CassandraInstance, request.Namespace, r.Client)
+	if !configActive || !cassandraActive {
+		reqLogger.Info("Dependencies not ready", "db", cassandraActive, "api", configActive)
 		return reconcile.Result{}, nil
 	}
 
@@ -400,7 +407,7 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 		return reconcile.Result{}, err
 	}
 
-	if err = instance.UpdateSTS(statefulSet, instanceType, request, r.Client, "rolling"); err != nil {
+	if _, err = instance.UpdateSTS(statefulSet, instanceType, request, r.Client); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -409,7 +416,7 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 		log.Error(err, "PodIPListAndIPMapFromInstance failed")
 		return reconcile.Result{}, err
 	}
-	if len(podIPList.Items) > 0 {
+	if len(podIPList) > 0 {
 		if err = instance.InstanceConfiguration(request, podIPList, r.Client); err != nil {
 			log.Error(err, "InstanceConfiguration failed")
 			return reconcile.Result{}, err
@@ -464,7 +471,7 @@ func (r *ReconcileWebui) updateServiceStatus(cr *v1alpha1.Webui) error {
 		return err
 	}
 	serviceStatuses := map[string]v1alpha1.WebUIServiceStatusMap{}
-	for _, pod := range pods.Items {
+	for _, pod := range pods {
 		podStatus := v1alpha1.WebUIServiceStatusMap{}
 		for _, containerStatus := range pod.Status.ContainerStatuses {
 			status := "Non-Functional"
@@ -479,18 +486,25 @@ func (r *ReconcileWebui) updateServiceStatus(cr *v1alpha1.Webui) error {
 	return nil
 }
 
-func (r *ReconcileWebui) listWebUIPods(webUIName string) (*corev1.PodList, error) {
+func (r *ReconcileWebui) listWebUIPods(webUIName string) ([]corev1.Pod, error) {
 	pods := &corev1.PodList{}
 	labelSelector := labels.SelectorFromSet(map[string]string{"contrail_manager": "webui", "webui": webUIName})
 	listOpts := client.ListOptions{LabelSelector: labelSelector}
 	if err := r.Client.List(context.TODO(), pods, &listOpts); err != nil {
 		log.Error(err, "listWebUIPods failed")
-		return &corev1.PodList{}, err
+		return nil, err
 	}
-	return pods, nil
+	res := []corev1.Pod{}
+	for _, pod := range pods.Items {
+		if pod.Status.PodIP == "" || pod.Status.Phase != "Running" {
+			continue
+		}
+		res = append(res, pod)
+	}
+	return res, nil
 }
 
-func (r *ReconcileWebui) ensureCertificatesExist(webUI *v1alpha1.Webui, pods *corev1.PodList, instanceType string) error {
+func (r *ReconcileWebui) ensureCertificatesExist(webUI *v1alpha1.Webui, pods []corev1.Pod, instanceType string) error {
 	subjects := webUI.PodsCertSubjects(pods)
 	crt := certificates.NewCertificate(r.Client, r.Scheme, webUI, subjects, instanceType)
 	return crt.EnsureExistsAndIsSigned()

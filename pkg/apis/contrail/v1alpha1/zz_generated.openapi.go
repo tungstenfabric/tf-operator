@@ -223,12 +223,6 @@ func schema_pkg_apis_contrail_v1alpha1_AnalyticsSnmpConfiguration(ref common.Ref
 							Format: "",
 						},
 					},
-					"nodemanagerLogFileName": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
 				},
 			},
 		},
@@ -701,6 +695,12 @@ func schema_pkg_apis_contrail_v1alpha1_ConfigConfiguration(ref common.ReferenceC
 						},
 					},
 					"zookeeperInstance": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"rabbitmqInstance": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
 							Format: "",
@@ -1357,6 +1357,12 @@ func schema_pkg_apis_contrail_v1alpha1_KubemanagerConfiguration(ref common.Refer
 						},
 					},
 					"zookeeperInstance": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"rabbitmqInstance": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
 							Format: "",
@@ -2369,6 +2375,18 @@ func schema_pkg_apis_contrail_v1alpha1_WebuiConfiguration(ref common.ReferenceCa
 									},
 								},
 							},
+						},
+					},
+					"configInstance": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"controlInstance": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
 						},
 					},
 					"cassandraInstance": {

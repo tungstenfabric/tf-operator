@@ -20,8 +20,10 @@ spec:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
           logLevel: SYS_DEBUG
-          cassandraInstance: cassandra1
           zookeeperInstance: zookeeper1
+          cassandraInstance: cassandra1
+          rabbitmqInstance: rabbitmq1
+          configInstance: config1
           containers:
           - name: init
             image: python
@@ -43,6 +45,7 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
+          configInstance: config1
           containers:
           - name: init
             image: python
@@ -67,6 +70,7 @@ spec:
           logLevel: SYS_DEBUG
           zookeeperInstance: zookeeper1
           cassandraInstance: cassandra1
+          rabbitmqInstance: rabbitmq1
           containers:
           - name: init
             image: python
@@ -110,6 +114,8 @@ spec:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
           cassandraInstance: cassandra1
+          rabbitmqInstance: rabbitmq1
+          configInstance: config1
           logLevel: SYS_DEBUG
           containers:
           - name: init
@@ -137,6 +143,8 @@ spec:
           logLevel: SYS_DEBUG
           zookeeperInstance: zookeeper1
           cassandraInstance: cassandra1
+          rabbitmqInstance: rabbitmq1
+          configInstance: config1
           ipFabricForwarding: false
           ipFabricSnat: true
           kubernetesTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
@@ -166,42 +174,8 @@ spec:
     - metadata:
         labels:
           contrail_cluster: cluster1
-        name: vroutermaster
+        name: vrouter1
       spec:
-        commonConfiguration:
-          nodeSelector:
-            node-role.kubernetes.io/master: ""
-        serviceConfiguration:
-          logLevel: SYS_DEBUG
-          cassandraInstance: cassandra1
-          controlInstance: control1
-          contrailStatusImage: contrail-status
-          useKubeadmConfig: true
-          containers:
-          - name: init
-            image: python:alpine
-          - name: nodeinit
-            image: contrail-node-init
-          - name: vrouterkernelinit
-            image: contrail-vrouter-kernel-init
-          - name: vrouterkernelbuildinit
-            image: contrail-vrouter-kernel-build-init
-          - name: provisioner
-            image: contrail-provisioner
-          - name: nodemanager
-            image: contrail-nodemgr
-          - name: vrouteragent
-            image: contrail-vrouter-agent
-          - name: vroutercni
-            image: contrail-kubernetes-cni-init
-    - metadata:
-        labels:
-          contrail_cluster: cluster1
-        name: vrouternodes
-      spec:
-        commonConfiguration:
-          nodeSelector:
-            node-role.opencontrail.org: vrouter
         serviceConfiguration:
           logLevel: SYS_DEBUG
           cassandraInstance: cassandra1
@@ -235,6 +209,8 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
+          configInstance: config1
+          controlInstance: control1
           cassandraInstance: cassandra1
           logLevel: SYS_DEBUG
           containers:

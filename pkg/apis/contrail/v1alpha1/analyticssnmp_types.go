@@ -8,12 +8,12 @@ import (
 
 	configtemplates "github.com/Juniper/contrail-operator/pkg/apis/contrail/v1alpha1/templates"
 	"github.com/Juniper/contrail-operator/pkg/certificates"
-	"github.com/go-logr/logr"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -49,65 +49,78 @@ type AnalyticsSnmpSpec struct {
 // AnalyticsSnmpConfiguration is the Spec for the Analytics SNMP API.
 // +k8s:openapi-gen=true
 type AnalyticsSnmpConfiguration struct {
-	Containers []*Container `json:"containers,omitempty"`
-	// Dependeces
-	CassandraInstance string `json:"cassandraInstance,omitempty"`
-	ZookeeperInstance string `json:"zookeeperInstance,omitempty"`
-	// Service parameters: common
-	LogFilePath string `json:"logFilePath,omitempty"`
-	LogLevel    string `json:"logLevel,omitempty"`
-	LogLocal    string `json:"logLocal,omitempty"`
-	// Service parameters: snmp-collector
-	SnmpCollectorScanFrequency        *int   `json:"snmpCollectorScanFrequency,omitempty"`
-	SnmpCollectorFastScanFrequency    *int   `json:"snmpCollectorFastScanFrequency,omitempty"`
-	SnmpCollectorIntrospectListenPort *int   `json:"snmpCollectorIntrospectListenPort,omitempty"`
-	SnmpCollectorLogFileName          string `json:"snmpCollectorLogFileName,omitempty"`
-	// Service parameters: topology
-	TopologyScanFrequency        *int   `json:"topologySnmpFrequency,omitempty"`
-	TopologyIntrospectListenPort *int   `json:"topologyIntrospectListenPort,omitempty"`
-	TopologyLogFileName          string `json:"topologyLogFileName,omitempty"`
-	// Service parameters: nodemanager
-	NodemanagerLogFileName string `json:"nodemanagerLogFileName,omitempty"`
+	CassandraInstance                 string       `json:"cassandraInstance,omitempty"`
+	ZookeeperInstance                 string       `json:"zookeeperInstance,omitempty"`
+	RabbitmqInstance                  string       `json:"rabbitmqInstance,omitempty"`
+	ConfigInstance                    string       `json:"configInstance,omitempty"`
+	LogFilePath                       string       `json:"logFilePath,omitempty"`
+	LogLevel                          string       `json:"logLevel,omitempty"`
+	LogLocal                          string       `json:"logLocal,omitempty"`
+	SnmpCollectorScanFrequency        *int         `json:"snmpCollectorScanFrequency,omitempty"`
+	SnmpCollectorFastScanFrequency    *int         `json:"snmpCollectorFastScanFrequency,omitempty"`
+	SnmpCollectorIntrospectListenPort *int         `json:"snmpCollectorIntrospectListenPort,omitempty"`
+	SnmpCollectorLogFileName          string       `json:"snmpCollectorLogFileName,omitempty"`
+	TopologyScanFrequency             *int         `json:"topologySnmpFrequency,omitempty"`
+	TopologyIntrospectListenPort      *int         `json:"topologyIntrospectListenPort,omitempty"`
+	TopologyLogFileName               string       `json:"topologyLogFileName,omitempty"`
+	Containers                        []*Container `json:"containers,omitempty"`
 }
 
 // AnalyticsSnmpStatus is the Status for the Analytics SNMP API.
 // +k8s:openapi-gen=true
 type AnalyticsSnmpStatus struct {
-	Active *bool `json:"active,omitempty"`
+	Active        *bool             `json:"active,omitempty"`
+	ConfigChanged *bool             `json:"configChanged,omitempty"`
+	Nodes         map[string]string `json:"nodes,omitempty"`
 }
 
 func init() {
 	SchemeBuilder.Register(&AnalyticsSnmp{}, &AnalyticsSnmpList{})
 }
 
-// GetDataForConfigMap
-func (c *AnalyticsSnmp) GetDataForConfigMap(podIpList *corev1.PodList, request reconcile.Request, client client.Client, logger logr.Logger) (map[string]string, error) {
-	if logger == nil {
-		logger = logf.Log.WithName("snmp_configmap")
+// CreateConfigMap creates analytics snmp config map
+func (c *AnalyticsSnmp) CreateConfigMap(configMapName string,
+	client client.Client,
+	scheme *runtime.Scheme,
+	request reconcile.Request) (*corev1.ConfigMap, error) {
+
+	return CreateConfigMap(configMapName,
+		client,
+		scheme,
+		request,
+		"analyticssnmp",
+		c)
+}
+
+// InstanceConfiguration create config data
+func (c *AnalyticsSnmp) InstanceConfiguration(configMapName string,
+	podList []corev1.Pod,
+	request reconcile.Request,
+	client client.Client) error {
+
+	configMapInstanceDynamicConfig := &corev1.ConfigMap{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: request.Namespace}, configMapInstanceDynamicConfig)
+	if err != nil {
+		return err
 	}
 
-	// Get Cassandra information
 	cassandraNodesInformation, err := NewCassandraClusterConfiguration(c.Spec.ServiceConfiguration.CassandraInstance,
 		request.Namespace, client)
 	if err != nil {
-		logger.Error(err, "Cassandra information not found.")
-		return nil, err
+		return err
 	}
-
-	// Get ZooKeeper information
 	zookeeperNodesInformation, err := NewZookeeperClusterConfiguration(c.Spec.ServiceConfiguration.ZookeeperInstance,
 		request.Namespace, client)
 	if err != nil {
-		logger.Error(err, "Zookeeper information not found.")
-		return nil, err
+		return err
 	}
-
-	// Get RabbitMQ information
-	rabbitmqNodesInformation, err := NewRabbitmqClusterConfiguration(c.Labels["contrail_cluster"],
-		request.Namespace, client)
+	rabbitmqNodesInformation, err := NewRabbitmqClusterConfiguration(c.Spec.ServiceConfiguration.RabbitmqInstance, request.Namespace, client)
 	if err != nil {
-		logger.Error(err, "RabbitMQ information not found.")
-		return nil, err
+		return err
+	}
+	configNodesInformation, err := NewConfigClusterConfiguration(c.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, client)
+	if err != nil {
+		return err
 	}
 
 	var rabbitmqSecretUser string
@@ -117,20 +130,11 @@ func (c *AnalyticsSnmp) GetDataForConfigMap(podIpList *corev1.PodList, request r
 		rabbitmqSecret := &corev1.Secret{}
 		err = client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqNodesInformation.Secret, Namespace: request.Namespace}, rabbitmqSecret)
 		if err != nil {
-			logger.Error(err, "RabbitMQ Secret not found.")
-			return nil, err
+			return err
 		}
 		rabbitmqSecretUser = string(rabbitmqSecret.Data["user"])
 		rabbitmqSecretPassword = string(rabbitmqSecret.Data["password"])
 		rabbitmqSecretVhost = string(rabbitmqSecret.Data["vhost"])
-	}
-
-	// Get Config information
-	configNodesInformation, err := NewConfigClusterConfiguration(c.Labels["contrail_cluster"],
-		request.Namespace, client)
-	if err != nil {
-		logger.Error(err, "Config information not found.")
-		return nil, err
 	}
 
 	// Create main common values
@@ -157,10 +161,10 @@ func (c *AnalyticsSnmp) GetDataForConfigMap(podIpList *corev1.PodList, request r
 
 	zookeeperEndpointList := configtemplates.EndpointList(zookeeperNodesInformation.ServerIPList, zookeeperNodesInformation.ClientPort)
 	sort.Strings(zookeeperEndpointList)
-	zookeeperEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(zookeeperEndpointList, " ")
+	zookeeperEndpointListCommaSeparated := configtemplates.JoinListWithSeparator(zookeeperEndpointList, ",")
 
 	var data = make(map[string]string)
-	for _, pod := range podIpList.Items {
+	for _, pod := range podList {
 		hostname := pod.Annotations["hostname"]
 		podIP := pod.Status.PodIP
 		instrospectListenAddress := c.Spec.CommonConfiguration.IntrospectionListenAddress(podIP)
@@ -173,7 +177,6 @@ func (c *AnalyticsSnmp) GetDataForConfigMap(podIpList *corev1.PodList, request r
 			InstrospectListenAddress          string
 			SnmpCollectorScanFrequency        string
 			SnmpCollectorFastScanFrequency    string
-			HttpServerList                    string
 			SnmpCollectorIntrospectListenPort string
 			LogFile                           string
 			LogLevel                          string
@@ -194,7 +197,7 @@ func (c *AnalyticsSnmp) GetDataForConfigMap(podIpList *corev1.PodList, request r
 			ListenAddress:            podIP,
 			InstrospectListenAddress: instrospectListenAddress,
 			CollectorServers:         configCollectorEndpointListSpaceSeparated,
-			ZookeeperServers:         zookeeperEndpointListSpaceSeparated,
+			ZookeeperServers:         zookeeperEndpointListCommaSeparated,
 			ConfigServers:            configApiIPEndpointListSpaceSeparated,
 			ConfigDbServerList:       configDbEndpointListSpaceSeparated,
 			CassandraSslCaCertfile:   certificates.SignerCAFilepath,
@@ -204,7 +207,7 @@ func (c *AnalyticsSnmp) GetDataForConfigMap(podIpList *corev1.PodList, request r
 			RabbitmqPassword:         rabbitmqSecretPassword,
 			CAFilePath:               certificates.SignerCAFilepath,
 			// TODO: move to params
-			LogLevel:                 "SYS_DEBUG",
+			LogLevel: "SYS_DEBUG",
 		})
 		data["tf-snmp-collector."+podIP] = collectorBuffer.String()
 
@@ -215,7 +218,6 @@ func (c *AnalyticsSnmp) GetDataForConfigMap(podIpList *corev1.PodList, request r
 			ListenAddress                    string
 			InstrospectListenAddress         string
 			SnmpTopologyScanFrequency        string
-			HttpServerList                   string
 			SnmpTopologyIntrospectListenPort string
 			LogFile                          string
 			LogLevel                         string
@@ -237,7 +239,7 @@ func (c *AnalyticsSnmp) GetDataForConfigMap(podIpList *corev1.PodList, request r
 			ListenAddress:            podIP,
 			InstrospectListenAddress: instrospectListenAddress,
 			CollectorServers:         configCollectorEndpointListSpaceSeparated,
-			ZookeeperServers:         zookeeperEndpointListSpaceSeparated,
+			ZookeeperServers:         zookeeperEndpointListCommaSeparated,
 			AnalyticsServers:         configApiIPEndpointListSpaceSeparated,
 			ConfigServers:            configApiIPEndpointListSpaceSeparated,
 			ConfigDbServerList:       configDbEndpointListSpaceSeparated,
@@ -248,10 +250,11 @@ func (c *AnalyticsSnmp) GetDataForConfigMap(podIpList *corev1.PodList, request r
 			RabbitmqPassword:         rabbitmqSecretPassword,
 			CAFilePath:               certificates.SignerCAFilepath,
 			// TODO: move to params
-			LogLevel:                 "SYS_DEBUG",
+			LogLevel: "SYS_DEBUG",
 		})
 		data["tf-topology."+podIP] = topologyBuffer.String()
 
+		// TODO: commonize for all services
 		var nodemanagerBuffer bytes.Buffer
 		configtemplates.AnalyticsSnmpNodemanagerConfig.Execute(&nodemanagerBuffer, struct {
 			PodIP                    string
@@ -275,10 +278,11 @@ func (c *AnalyticsSnmp) GetDataForConfigMap(podIpList *corev1.PodList, request r
 			CAFilePath:               certificates.SignerCAFilepath,
 			CollectorServerList:      configCollectorEndpointListSpaceSeparated,
 			// TODO: move to params
-			LogLevel:                 "SYS_DEBUG",
+			LogLevel: "SYS_DEBUG",
 		})
-		data["nodemanager."+podIP] = nodemanagerBuffer.String()
+		data["analytics-snmp-nodemanager.conf."+podIP] = nodemanagerBuffer.String()
 
+		// TODO: commonize for all services
 		var vnciniBuffer bytes.Buffer
 		configtemplates.AnalyticsSnmpVncConfig.Execute(&vnciniBuffer, struct {
 			ConfigNodes   string
@@ -289,8 +293,63 @@ func (c *AnalyticsSnmp) GetDataForConfigMap(podIpList *corev1.PodList, request r
 			ConfigApiPort: strconv.Itoa(configNodesInformation.APIServerPort),
 			CAFilePath:    certificates.SignerCAFilepath,
 		})
-		data["vnc."+podIP] = vnciniBuffer.String()
+		data["vnc_api_lib.ini."+podIP] = vnciniBuffer.String()
 	}
 
-	return data, nil
+	configMapInstanceDynamicConfig.Data = data
+
+	// TODO: commonize for all services
+	// update with nodemanager runner
+	nmr, err := GetNodemanagerRunner()
+	if err != nil {
+		return err
+	}
+	// TODO: till not splitted to different entities
+	configMapInstanceDynamicConfig.Data["analytics-snmp-nodemanager-runner.sh"] = nmr
+
+	// update with provisioner configs
+	err = UpdateProvisionerConfigMapData("analytics-snmp-provisioner", configApiIPCommaSeparated, configMapInstanceDynamicConfig)
+	if err != nil {
+		return err
+	}
+
+	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
+}
+
+// CreateSTS creates the STS.
+func (c *AnalyticsSnmp) CreateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) error {
+	return CreateSTS(sts, instanceType, request, reconcileClient)
+}
+
+// UpdateSTS updates the STS.
+func (c *AnalyticsSnmp) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
+	return UpdateSTS(sts, instanceType, request, reconcileClient, "rolling")
+}
+
+//PodsCertSubjects gets list of Vrouter pods certificate subjets which can be passed to the certificate API
+func (c *AnalyticsSnmp) PodsCertSubjects(podList []corev1.Pod) []certificates.CertificateSubject {
+	var altIPs PodAlternativeIPs
+	return PodsCertSubjects(podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
+}
+
+// PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
+func (c *AnalyticsSnmp) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
+	return PodIPListAndIPMapFromInstance(instanceType, &c.Spec.CommonConfiguration, request, reconcileClient)
+}
+
+// SetInstanceActive sets instance to active.
+func (c *AnalyticsSnmp) SetInstanceActive(client client.Client, activeStatus *bool, sts *appsv1.StatefulSet, request reconcile.Request) error {
+	return SetInstanceActive(client, activeStatus, sts, request, c)
+}
+
+// ManageNodeStatus add nodes to status
+func (c *AnalyticsSnmp) ManageNodeStatus(podNameIPMap map[string]string,
+	client client.Client) error {
+
+	c.Status.Nodes = podNameIPMap
+	err := client.Status().Update(context.TODO(), c)
+	if err != nil {
+		return err
+	}
+	return nil
 }

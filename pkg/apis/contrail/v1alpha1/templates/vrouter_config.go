@@ -35,7 +35,7 @@ func isEnabled(param string) bool {
 }
 
 // VRouterAgentParams using to pass Manifest params into vrouter-agent container for prepare config file
-var VRouterAgentParams = template.Must(template.New("").Parse(`#!/bin/bash
+var VRouterAgentParams = htemplate.Must(htemplate.New("").Funcs(sprig.FuncMap()).Funcs(vrouterTemplateFuncs).Parse(`#!/bin/bash
 set -o allexport
 #TODO uncomment parameters to export after debug
 CONTROL_NODES="{{ .ClusterParams.ControlNodes }}"
@@ -152,8 +152,8 @@ XMPP_SERVER_KEYFILE="{{ .ServiceConfig.XmppServerKeyfile }}"
 XMPP_SSL_ENABLE="{{ .ServiceConfig.XmppSslEnable }}"
 
 # HugePages
-HUGE_PAGES_2MB="{{ .ServiceConfig.HugePages2M }}"
-HUGE_PAGES_1GB="{{ .ServiceConfig.HugePages1G }}"
+HUGE_PAGES_2MB="{{ default 0 .ServiceConfig.HugePages2M }}"
+HUGE_PAGES_1GB="{{ default 0 .ServiceConfig.HugePages1G }}"
 
 set +o allexport
 `))

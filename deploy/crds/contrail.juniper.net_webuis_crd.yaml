@@ -140,6 +140,8 @@ spec:
               properties:
                 cassandraInstance:
                   type: string
+                configInstance:
+                  type: string
                 containers:
                   items:
                     description: Container defines name, image and command.
@@ -154,6 +156,8 @@ spec:
                         type: string
                     type: object
                   type: array
+                controlInstance:
+                  type: string
                 keystoneSecretName:
                   type: string
               type: object

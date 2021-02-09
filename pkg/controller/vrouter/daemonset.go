@@ -1,82 +1,88 @@
 package vrouter
 
 import (
+	"github.com/Juniper/contrail-operator/pkg/certificates"
 	apps "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 //GetDaemonset returns DaemonSet object for vRouter
-func GetDaemonset() *apps.DaemonSet {
+func GetDaemonset(cloudOrchestrator string) *apps.DaemonSet {
 	var labelsMountPermission int32 = 0644
 	var trueVal = true
 
-	var contrailStatusImageEnv = core.EnvVar{
-		Name:  "CONTRAIL_STATUS_IMAGE",
-		Value: "tungstenfabric/contrail-status:latest",
-	}
-
-	var vendorDomainEnv = core.EnvVar{
-		Name:  "VENDOR_DOMAIN",
-		Value: "io.tungsten",
-	}
-
-	var introspectSslEnableEnv = core.EnvVar{
-		Name:  "INTROSPECT_SSL_ENABLE",
-		Value: "True",
-	}
-
-	var nodeTypeEnv = core.EnvVar{
-		Name:  "NODE_TYPE",
-		Value: "vrouter",
-	}
-
-	var podIPEnv = core.EnvVar{
-		Name: "POD_IP",
-		ValueFrom: &core.EnvVarSource{
-			FieldRef: &core.ObjectFieldSelector{
-				FieldPath: "status.podIP",
+	envList := []corev1.EnvVar{
+		{
+			Name:  "VENDOR_DOMAIN",
+			Value: "io.tungsten",
+		},
+		{
+			Name:  "NODE_TYPE",
+			Value: "vrouter",
+		},
+		{
+			Name: "POD_IP",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					FieldPath: "status.podIP",
+				},
 			},
+		},
+		{
+			// TODO: remove after tf-container-builder support PROVISION_HOSTNAME
+			Name: "VROUTER_HOSTNAME",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					FieldPath: "metadata.annotations['hostname']",
+				},
+			},
+		},
+		{
+			Name: "PROVISION_HOSTNAME",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					FieldPath: "metadata.annotations['hostname']",
+				},
+			},
+		},
+		{
+			Name:  "CLOUD_ORCHESTRATOR",
+			Value: cloudOrchestrator,
+		},
+		{
+			Name: "PHYSICAL_INTERFACE",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					FieldPath: "metadata.annotations['physicalInterface']",
+				},
+			},
+		},
+		{
+			Name:  "INTROSPECT_SSL_ENABLE",
+			Value: "True",
+		},
+		{
+			Name:  "SSL_ENABLE",
+			Value: "True",
 		},
 	}
 
-	// TODO: remove after tf-container-builder support PROVISION_HOSTNAME
-	var vrouterHostnameEnv = core.EnvVar{
-		Name: "VROUTER_HOSTNAME",
-		ValueFrom: &core.EnvVarSource{
-			FieldRef: &core.ObjectFieldSelector{
-				FieldPath: "metadata.annotations['hostname']",
-			},
+	envListNodeInit := append(envList,
+		corev1.EnvVar{
+			Name:  "SERVER_CA_CERTFILE",
+			Value: certificates.SignerCAFilepath,
 		},
-	}
-
-	var provisionHostnameEnv = core.EnvVar{
-		Name: "PROVISION_HOSTNAME",
-		ValueFrom: &core.EnvVarSource{
-			FieldRef: &core.ObjectFieldSelector{
-				FieldPath: "metadata.annotations['hostname']",
-			},
+		corev1.EnvVar{
+			Name:  "SERVER_CERTFILE",
+			Value: "/etc/certificates/server-${POD_IP}.crt",
 		},
-	}
-
-	var provRetriesEnv = core.EnvVar{
-		Name:  "PROVISION_RETRIES",
-		Value: "1000",
-	}
-
-	var provDelayEnv = core.EnvVar{
-		Name:  "PROVISION_DELAY",
-		Value: "5",
-	}
-
-	var physicalInterfaceEnv = core.EnvVar{
-		Name: "PHYSICAL_INTERFACE",
-		ValueFrom: &core.EnvVarSource{
-			FieldRef: &core.ObjectFieldSelector{
-				FieldPath: "metadata.annotations['physicalInterface']",
-			},
+		corev1.EnvVar{
+			Name:  "SERVER_KEYFILE",
+			Value: "/etc/certificates/server-key-${POD_IP}.pem",
 		},
-	}
+	)
 
 	var podInitContainers = []core.Container{
 		{
@@ -87,9 +93,7 @@ func GetDaemonset() *apps.DaemonSet {
 				"-c",
 				"until grep ready /tmp/podinfo/pod_labels > /dev/null 2>&1; do sleep 1; done",
 			},
-			Env: []core.EnvVar{
-				podIPEnv,
-			},
+			Env: envList,
 			VolumeMounts: []core.VolumeMount{
 				{
 					Name:      "status",
@@ -100,12 +104,7 @@ func GetDaemonset() *apps.DaemonSet {
 		{
 			Name:  "nodeinit",
 			Image: "tungstenfabric/contrail-node-init:latest",
-			Env: []core.EnvVar{
-				vendorDomainEnv,
-				contrailStatusImageEnv,
-				podIPEnv,
-				introspectSslEnableEnv,
-			},
+			Env:   envListNodeInit,
 			VolumeMounts: []core.VolumeMount{
 				{
 					Name:      "host-usr-bin",
@@ -119,9 +118,7 @@ func GetDaemonset() *apps.DaemonSet {
 		{
 			Name:  "vrouterkernelinit",
 			Image: "tungstenfabric/contrail-vrouter-kernel-init:latest",
-			Env: []core.EnvVar{
-				podIPEnv,
-			},
+			Env:   envList,
 			VolumeMounts: []core.VolumeMount{
 				{
 					Name:      "network-scripts",
@@ -180,14 +177,7 @@ func GetDaemonset() *apps.DaemonSet {
 		{
 			Name:  "provisioner",
 			Image: "tungstenfabric/contrail-provisioner:latest",
-			Env: []core.EnvVar{
-				podIPEnv,
-				vrouterHostnameEnv,
-				provisionHostnameEnv,
-				nodeTypeEnv,
-				provDelayEnv,
-				provRetriesEnv,
-			},
+			Env:   envList,
 			VolumeMounts: []core.VolumeMount{
 				{
 					Name:      "vrouter-logs",
@@ -198,13 +188,7 @@ func GetDaemonset() *apps.DaemonSet {
 		{
 			Name:  "nodemanager",
 			Image: "tungstenfabric/contrail-nodemgr:latest",
-			Env: []core.EnvVar{
-				vendorDomainEnv,
-				podIPEnv,
-				vrouterHostnameEnv,
-				provisionHostnameEnv,
-				nodeTypeEnv,
-			},
+			Env:   envList,
 			VolumeMounts: []core.VolumeMount{
 				{
 					Name:      "vrouter-logs",
@@ -223,12 +207,7 @@ func GetDaemonset() *apps.DaemonSet {
 		{
 			Name:  "vrouteragent",
 			Image: "tungstenfabric/contrail-vrouter-agent:latest",
-			Env: []core.EnvVar{
-				physicalInterfaceEnv,
-				podIPEnv,
-				vrouterHostnameEnv,
-				provisionHostnameEnv,
-			},
+			Env:   envList,
 			VolumeMounts: []core.VolumeMount{
 				{
 					Name:      "vrouter-agent-logs",

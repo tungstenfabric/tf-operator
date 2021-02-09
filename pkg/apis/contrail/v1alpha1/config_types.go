@@ -84,6 +84,7 @@ type ConfigConfiguration struct {
 	CollectorIntrospectPort     *int               `json:"collectorIntrospectPort,omitempty"`
 	CassandraInstance           string             `json:"cassandraInstance,omitempty"`
 	ZookeeperInstance           string             `json:"zookeeperInstance,omitempty"`
+	RabbitmqInstance            string             `json:"rabbitmqInstance,omitempty"`
 	RabbitmqUser                string             `json:"rabbitmqUser,omitempty"`
 	RabbitmqPassword            string             `json:"rabbitmqPassword,omitempty"`
 	RabbitmqVhost               string             `json:"rabbitmqVhost,omitempty"`
@@ -110,9 +111,9 @@ type ConfigStatus struct {
 	Active        *bool                             `json:"active,omitempty"`
 	Nodes         map[string]string                 `json:"nodes,omitempty"`
 	Ports         ConfigStatusPorts                 `json:"ports,omitempty"`
-	ConfigChanged *bool                             `json:"configChanged,omitempty"`
 	ServiceStatus map[string]ConfigServiceStatusMap `json:"serviceStatus,omitempty"`
 	Endpoint      string                            `json:"endpoint,omitempty"`
+	ConfigChanged *bool                             `json:"configChanged,omitempty"`
 }
 
 type ConfigServiceStatusMap map[string]ConfigServiceStatus
@@ -148,33 +149,36 @@ func init() {
 	SchemeBuilder.Register(&Config{}, &ConfigList{})
 }
 
-func (c *Config) InstanceConfiguration(request reconcile.Request,
-	podList *corev1.PodList,
+// InstanceConfiguration configures and updates configmaps
+func (c *Config) InstanceConfiguration(configMapName string,
+	request reconcile.Request,
+	podList []corev1.Pod,
 	client client.Client) error {
-	instanceConfigMapName := request.Name + "-" + "config" + "-configmap"
+
 	configMapInstanceDynamicConfig := &corev1.ConfigMap{}
-	err := client.Get(context.TODO(), types.NamespacedName{Name: instanceConfigMapName, Namespace: request.Namespace}, configMapInstanceDynamicConfig)
+	err := client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: request.Namespace}, configMapInstanceDynamicConfig)
 	if err != nil {
 		return err
 	}
 
-	cassandraNodesInformation, err := NewCassandraClusterConfiguration(c.Spec.ServiceConfiguration.CassandraInstance,
-		request.Namespace, client)
+	cassandraNodesInformation, err := NewCassandraClusterConfiguration(
+		c.Spec.ServiceConfiguration.CassandraInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}
 
-	zookeeperNodesInformation, err := NewZookeeperClusterConfiguration(c.Spec.ServiceConfiguration.ZookeeperInstance,
-		request.Namespace, client)
+	zookeeperNodesInformation, err := NewZookeeperClusterConfiguration(
+		c.Spec.ServiceConfiguration.ZookeeperInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}
 
-	rabbitmqNodesInformation, err := NewRabbitmqClusterConfiguration(c.Labels["contrail_cluster"],
-		request.Namespace, client)
+	rabbitmqNodesInformation, err := NewRabbitmqClusterConfiguration(
+		c.Spec.ServiceConfiguration.RabbitmqInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}
+
 	var rabbitmqSecretUser string
 	var rabbitmqSecretPassword string
 	var rabbitmqSecretVhost string
@@ -202,10 +206,10 @@ func (c *Config) InstanceConfiguration(request reconcile.Request,
 	var collectorServerList, analyticsServerList, apiServerList, analyticsServerSpaceSeparatedList,
 		apiServerSpaceSeparatedList, redisServerSpaceSeparatedList string
 	var podIPList []string
-	for _, pod := range podList.Items {
+	for _, pod := range podList {
 		podIPList = append(podIPList, pod.Status.PodIP)
 	}
-	sort.SliceStable(podList.Items, func(i, j int) bool { return podList.Items[i].Status.PodIP < podList.Items[j].Status.PodIP })
+	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
 	sort.SliceStable(podIPList, func(i, j int) bool { return podIPList[i] < podIPList[j] })
 
 	collectorServerList = strings.Join(podIPList, ":"+strconv.Itoa(*configConfig.CollectorPort)+" ")
@@ -229,26 +233,13 @@ func (c *Config) InstanceConfiguration(request reconcile.Request,
 	zookeeperEndpointListSpaceSpearated := configtemplates.JoinListWithSeparator(zookeeperEndpointList, " ")
 
 	var data = make(map[string]string)
-	for idx, pod := range podList.Items {
+	for _, pod := range podList {
 		configAuth, err := c.AuthParameters(client)
 		if err != nil {
 			return err
 		}
-		configIntrospectNodes := make([]string, 0)
-		introspectPorts := map[string]int{
-			"contrail-api":            *configConfig.ApiIntrospectPort,
-			"contrail-schema":         *configConfig.SchemaIntrospectPort,
-			"contrail-device-manager": *configConfig.DeviceManagerIntrospectPort,
-			"contrail-svc-monitor":    *configConfig.SvcMonitorIntrospectPort,
-			"contrail-analytics-api":  *configConfig.AnalyticsApiIntrospectPort,
-			"contrail-collector":      *configConfig.CollectorIntrospectPort,
-		}
-		for service, port := range introspectPorts {
-			nodesPortStr := pod.Status.PodIP + ":" + strconv.Itoa(port) + "::" + service
-			configIntrospectNodes = append(configIntrospectNodes, nodesPortStr)
-		}
-		hostname := podList.Items[idx].Annotations["hostname"]
-		podIP := podList.Items[idx].Status.PodIP
+		hostname := pod.Annotations["hostname"]
+		podIP := pod.Status.PodIP
 		instrospectListenAddress := c.Spec.CommonConfiguration.IntrospectionListenAddress(podIP)
 		var configApiConfigBuffer bytes.Buffer
 		configtemplates.ConfigAPIConfig.Execute(&configApiConfigBuffer, struct {
@@ -291,8 +282,8 @@ func (c *Config) InstanceConfiguration(request reconcile.Request,
 		var vncApiConfigBuffer bytes.Buffer
 		configtemplates.ConfigAPIVNC.Execute(&vncApiConfigBuffer, struct {
 			PodIP                  string
-			ListenAddress          string
-			ListenPort             string
+			APIServerList          string
+			APIServerPort          string
 			AuthMode               AuthenticationMode
 			CAFilePath             string
 			KeystoneAddress        string
@@ -301,8 +292,8 @@ func (c *Config) InstanceConfiguration(request reconcile.Request,
 			KeystoneAuthProtocol   string
 		}{
 			PodIP:                  podIP,
-			ListenAddress:          podIP,
-			ListenPort:             strconv.Itoa(*configConfig.APIPort),
+			APIServerList:          apiServerList,
+			APIServerPort:          strconv.Itoa(*configConfig.APIPort),
 			AuthMode:               configConfig.AuthMode,
 			CAFilePath:             certificates.SignerCAFilepath,
 			KeystoneAddress:        configAuth.Address,
@@ -310,7 +301,7 @@ func (c *Config) InstanceConfiguration(request reconcile.Request,
 			KeystoneUserDomainName: configAuth.UserDomainName,
 			KeystoneAuthProtocol:   configAuth.AuthProtocol,
 		})
-		data["vnc."+podIP] = vncApiConfigBuffer.String()
+		data["vnc_api_lib.ini."+podIP] = vncApiConfigBuffer.String()
 
 		fabricMgmtIP := podIP
 		if c.Spec.ServiceConfiguration.FabricMgmtIP != "" {
@@ -600,7 +591,7 @@ func (c *Config) InstanceConfiguration(request reconcile.Request,
 			CAFilePath:               certificates.SignerCAFilepath,
 			LogLevel:                 configConfig.LogLevel,
 		})
-		data["nodemanagerconfig."+podIP] = configNodemanagerconfigConfigBuffer.String()
+		data["config-nodemanager.conf."+podIP] = configNodemanagerconfigConfigBuffer.String()
 
 		var configNodemanageranalyticsConfigBuffer bytes.Buffer
 		configtemplates.ConfigNodemanagerAnalyticsConfig.Execute(&configNodemanageranalyticsConfigBuffer, struct {
@@ -624,15 +615,27 @@ func (c *Config) InstanceConfiguration(request reconcile.Request,
 			CAFilePath:               certificates.SignerCAFilepath,
 			LogLevel:                 configConfig.LogLevel,
 		})
-		data["nodemanageranalytics."+podIP] = configNodemanageranalyticsConfigBuffer.String()
+		data["analytics-nodemanager.conf."+podIP] = configNodemanageranalyticsConfigBuffer.String()
 	}
+
 	configMapInstanceDynamicConfig.Data = data
-	err = client.Update(context.TODO(), configMapInstanceDynamicConfig)
+
+	// update with nodemanager runner
+	nmr, err := GetNodemanagerRunner()
+	if err != nil {
+		return err
+	}
+	configMapInstanceDynamicConfig.Data["config-nodemanager-runner.sh"] = nmr
+	// TODO: till not splitted to different entities
+	configMapInstanceDynamicConfig.Data["analytics-nodemanager-runner.sh"] = nmr
+
+	// update with provisioner configs
+	err = UpdateProvisionerConfigMapData("config-provisioner", apiServerList, configMapInstanceDynamicConfig)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }
 
 // AuthParameters makes default empty ConfigAuthParameters
@@ -653,17 +656,6 @@ func (c *Config) CreateConfigMap(configMapName string,
 		request,
 		"config",
 		c)
-}
-
-// CurrentConfigMapExists checks if a current configuration exists and returns it.
-func (c *Config) CurrentConfigMapExists(configMapName string,
-	client client.Client,
-	scheme *runtime.Scheme,
-	request reconcile.Request) (corev1.ConfigMap, bool) {
-	return CurrentConfigMapExists(configMapName,
-		client,
-		scheme,
-		request)
 }
 
 // CreateSecret creates a secret.
@@ -700,27 +692,16 @@ func (c *Config) CreateSTS(sts *appsv1.StatefulSet, instanceType string, request
 }
 
 //UpdateSTS updates the STS
-func (c *Config) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client, strategy string) error {
-	return UpdateSTS(sts, instanceType, request, reconcileClient, strategy)
+func (c *Config) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
+	return UpdateSTS(sts, instanceType, request, reconcileClient, "deleteFirst")
 }
 
-// SetInstanceActive sets the Cassandra instance to active
+// SetInstanceActive sets the Config instance to active
 func (c *Config) SetInstanceActive(client client.Client, activeStatus *bool, sts *appsv1.StatefulSet, request reconcile.Request) error {
-	if err := client.Get(context.TODO(), types.NamespacedName{Name: sts.Name, Namespace: request.Namespace},
-		sts); err != nil {
+	if err := client.Get(context.TODO(), types.NamespacedName{Name: sts.Name, Namespace: request.Namespace}, sts); err != nil {
 		return err
 	}
-
-	*activeStatus = false
-	acceptableReadyReplicaCnt := int32(1)
-	if sts.Spec.Replicas != nil {
-		acceptableReadyReplicaCnt = *sts.Spec.Replicas/2 + 1
-	}
-
-	if sts.Status.ReadyReplicas >= acceptableReadyReplicaCnt {
-		*activeStatus = true
-	}
-
+	*activeStatus = sts.Status.ReadyReplicas >= *sts.Spec.Replicas/2+1
 	if err := client.Status().Update(context.TODO(), c); err != nil {
 		return err
 	}
@@ -728,17 +709,17 @@ func (c *Config) SetInstanceActive(client client.Client, activeStatus *bool, sts
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
-func (c *Config) PodIPListAndIPMapFromInstance(request reconcile.Request, reconcileClient client.Client) (*corev1.PodList, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance("config", &c.Spec.CommonConfiguration, request, reconcileClient, true, false, false, false, false)
+func (c *Config) PodIPListAndIPMapFromInstance(request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
+	return PodIPListAndIPMapFromInstance("config", &c.Spec.CommonConfiguration, request, reconcileClient)
 }
 
 //PodsCertSubjects gets list of Config pods certificate subjets which can be passed to the certificate API
-func (c *Config) PodsCertSubjects(podList *corev1.PodList) []certificates.CertificateSubject {
+func (c *Config) PodsCertSubjects(podList []corev1.Pod) []certificates.CertificateSubject {
 	var altIPs PodAlternativeIPs
 	return PodsCertSubjects(podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
 }
 
-func (c *Config) SetPodsToReady(podIPList *corev1.PodList, client client.Client) error {
+func (c *Config) SetPodsToReady(podIPList []corev1.Pod, client client.Client) error {
 	return SetPodsToReady(podIPList, client)
 }
 
@@ -790,22 +771,12 @@ func (c *Config) ManageNodeStatus(podNameIPMap map[string]string, client client.
 }
 
 // IsActive returns true if instance is active
-func (c *Config) IsActive(name string, namespace string, myclient client.Client) bool {
-	labelSelector := labels.SelectorFromSet(map[string]string{"contrail_cluster": name})
-	listOps := &client.ListOptions{Namespace: namespace, LabelSelector: labelSelector}
-	list := &ConfigList{}
-	err := myclient.List(context.TODO(), list, listOps)
-	if err != nil {
+func (c *Config) IsActive(name string, namespace string, client client.Client) bool {
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, c)
+	if err != nil || c.Status.Active == nil {
 		return false
 	}
-	if len(list.Items) > 0 {
-		if list.Items[0].Status.Active != nil {
-			if *list.Items[0].Status.Active {
-				return true
-			}
-		}
-	}
-	return false
+	return *c.Status.Active
 }
 
 func (c *Config) ConfigurationParameters() ConfigConfiguration {

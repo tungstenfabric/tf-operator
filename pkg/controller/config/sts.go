@@ -215,10 +215,6 @@ spec:
           env:
             - name: NODE_TYPE
               value: analytics
-            - name: PROVISION_RETRIES
-              value: 1000
-            - name: PROVISION_DELAY
-              value: 5
             - name: POD_IP
               valueFrom:
                 fieldRef:
@@ -237,10 +233,6 @@ spec:
           env:
             - name: NODE_TYPE
               value: config
-            - name: PROVISION_RETRIES
-              value: 1000
-            - name: PROVISION_DELAY
-              value: 5
             - name: POD_IP
               valueFrom:
                 fieldRef:
