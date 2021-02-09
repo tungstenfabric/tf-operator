@@ -1,5 +1,0 @@
-bases:
-- ../../base/contrail
-
-patchesStrategicMerge:
-- replicas.yaml

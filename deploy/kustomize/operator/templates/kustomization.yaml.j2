@@ -1,3 +1,16 @@
+
+{%- if CONTRAIL_CONTAINER_TAG is not defined or CONTRAIL_CONTAINER_TAG == "" -%}
+{%- set CONTRAIL_CONTAINER_TAG = "latest" -%}
+{%- endif -%}
+{%- if CONTAINER_REGISTRY is not defined or CONTAINER_REGISTRY == "" -%}
+{%- set CONTAINER_REGISTRY = "tungstenfabric" -%}
+{%- endif -%}
+{%- if CONTRAIL_DEPLOYER_CONTAINER_TAG is not defined or CONTRAIL_DEPLOYER_CONTAINER_TAG == "" -%}
+{%- set CONTRAIL_DEPLOYER_CONTAINER_TAG = CONTRAIL_CONTAINER_TAG -%}
+{%- endif -%}
+{%- if DEPLOYER_CONTAINER_REGISTRY is not defined or DEPLOYER_CONTAINER_REGISTRY == "" -%}
+{%- set DEPLOYER_CONTAINER_REGISTRY = CONTAINER_REGISTRY -%}
+{%- endif -%}
 bases:
 - ../../base/operator
 
