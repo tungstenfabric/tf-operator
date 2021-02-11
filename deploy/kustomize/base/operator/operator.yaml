@@ -174,9 +174,10 @@ spec:
       serviceAccountName: contrail-operator
       hostNetwork: true
       tolerations:
-        - key: node.kubernetes.io/not-ready
-          operator: "Exists"
-          effect: "NoSchedule"
+        - effect: NoExecute
+          operator: Exists
+        - effect: NoSchedule
+          operator: Exists
       containers:
         - name: tf-operator
           image: tf-operator
