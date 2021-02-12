@@ -902,10 +902,6 @@ func (c *Vrouter) GetCNIConfig(client client.Client, request reconcile.Request) 
 	if err != nil {
 		return "", err
 	}
-	cfg, err := cinfo.ClusterParameters()
-	if err != nil {
-		return "", err
-	}
 
 	var useKubeadmConfig bool = KubernetesUseKubeadm
 	if c.Spec.ServiceConfiguration.UseKubeadmConfig != nil {
@@ -916,6 +912,10 @@ func (c *Vrouter) GetCNIConfig(client client.Client, request reconcile.Request) 
 		kubernetesClusterName = c.Spec.ServiceConfiguration.KubernetesClusterName
 	} else {
 		if useKubeadmConfig {
+			cfg, err := cinfo.ClusterParameters()
+			if err != nil {
+				return "", err
+			}
 			kubernetesClusterName = cfg.ClusterName
 		}
 	}
