@@ -341,12 +341,18 @@ func (r *ReconcileControl) Reconcile(request reconcile.Request) (reconcile.Resul
 		}
 	}
 
-	if err = instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil {
-		return reconcile.Result{}, err
+	if created, err := instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil || created {
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		return requeueReconcile, err
 	}
 
-	if _, err = instance.UpdateSTS(statefulSet, instanceType, request, r.Client); err != nil {
-		return reconcile.Result{}, err
+	if updated, err := instance.UpdateSTS(statefulSet, instanceType, request, r.Client); err != nil || updated {
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		return requeueReconcile, nil
 	}
 
 	podIPList, podIPMap, err := instance.PodIPListAndIPMapFromInstance(instanceType, request, r.Client)

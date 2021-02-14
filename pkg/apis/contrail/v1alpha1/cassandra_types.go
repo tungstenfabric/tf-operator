@@ -298,7 +298,7 @@ func (c *Cassandra) SetPodsToReady(podIPList []corev1.Pod, client client.Client)
 }
 
 // CreateSTS creates the STS.
-func (c *Cassandra) CreateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) error {
+func (c *Cassandra) CreateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
 	return CreateSTS(sts, instanceType, request, reconcileClient)
 }
 
@@ -420,24 +420,14 @@ func (c *Cassandra) seeds(podList []corev1.Pod) []string {
 	pods := make([]corev1.Pod, len(podList))
 	copy(pods, podList)
 	sort.SliceStable(pods, func(i, j int) bool { return pods[i].Name < pods[j].Name })
-
 	var seeds []string
 	for _, pod := range pods {
-		for _, c := range pod.Status.Conditions {
-			if c.Type == corev1.PodReady && c.Status == corev1.ConditionTrue && pod.Status.PodIP != "" {
-				seeds = append(seeds, pod.Status.PodIP)
-				break
-			}
-		}
+		seeds = append(seeds, pod.Status.PodIP)
 	}
-
-	if len(seeds) != 0 {
+	if len(seeds) >= 2 {
 		numberOfSeeds := (len(seeds) - 1) / 2
 		seeds = seeds[:numberOfSeeds+1]
-	} else if len(pods) > 0 {
-		seeds = []string{pods[0].Status.PodIP}
 	}
-
 	return seeds
 }
 
@@ -487,7 +477,7 @@ func (c *Cassandra) UpdateStatus(cassandraConfig *CassandraConfiguration, podNam
 		changed = true
 	}
 
-	return changed
+	return changed || (c.Status.ConfigChanged != nil && *c.Status.ConfigChanged)
 }
 
 // GetConfigNodes requests config api nodes
@@ -497,4 +487,49 @@ func (c *Cassandra) GetConfigNodes(request reconcile.Request, clnt client.Client
 		return nil, err
 	}
 	return cfg.APIServerIPList, nil
+}
+
+// ConfigDataDiff compare configmaps and retursn list of services to be reloaded
+func (c *Cassandra) ConfigDataDiff(pod *corev1.Pod, v1 *corev1.ConfigMap, v2 *corev1.ConfigMap) []string {
+	podIP := pod.Status.PodIP
+	srvMap := map[string][]string{
+		"cassandra":   {"cassandra." + podIP + ".yaml", "cqlshrc." + podIP},
+		"nodemanager": {"database-nodemanager.conf." + podIP, "vnc_api_lib.ini." + podIP},
+	}
+	var res []string
+	for srv, maps := range srvMap {
+		for _, d := range maps {
+			if v1.Data[d] != v2.Data[d] {
+				res = append(res, srv)
+				break
+			}
+		}
+	}
+
+	return res
+}
+
+// ReloadServices reload servics for pods after changed configs
+func (c *Cassandra) ReloadServices(srvList map[*corev1.Pod][]string, clnt client.Client) error {
+	restartList := make(map[*corev1.Pod][]string)
+	reloadList := make(map[*corev1.Pod][]string)
+	for pod := range srvList {
+		for idx := range srvList[pod] {
+			// cassandra needs restart
+			if srvList[pod][idx] == "cassandra" {
+				restartList[pod] = append(restartList[pod], srvList[pod][idx])
+			} else {
+				reloadList[pod] = append(reloadList[pod], srvList[pod][idx])
+			}
+		}
+	}
+	err1 := RestartServices(restartList, clnt, cassandraLog)
+	err2 := ReloadServices(reloadList, clnt, cassandraLog)
+	if err1 != nil && err2 != nil {
+		return &CombinedError{[]error{err1, err2}}
+	}
+	if err1 != nil {
+		return err1
+	}
+	return err2
 }

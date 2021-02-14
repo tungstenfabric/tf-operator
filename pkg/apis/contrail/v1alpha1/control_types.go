@@ -409,7 +409,7 @@ func (c *Control) SetPodsToReady(podIPList []corev1.Pod, client client.Client) e
 }
 
 // CreateSTS creates the STS.
-func (c *Control) CreateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) error {
+func (c *Control) CreateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
 	return CreateSTS(sts, instanceType, request, reconcileClient)
 }
 

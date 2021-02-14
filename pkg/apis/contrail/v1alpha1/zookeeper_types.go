@@ -184,7 +184,7 @@ func (c *Zookeeper) SetPodsToReady(podIPList []corev1.Pod, client client.Client)
 }
 
 // CreateSTS creates the STS.
-func (c *Zookeeper) CreateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) error {
+func (c *Zookeeper) CreateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
 	return CreateSTS(sts, instanceType, request, reconcileClient)
 }
 

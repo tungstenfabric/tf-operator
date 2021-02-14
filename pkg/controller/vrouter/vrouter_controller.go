@@ -285,13 +285,24 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 		if container.Name == "vrouteragent" {
 			if container.Command == nil {
 				command := []string{"bash", "-c",
-					"set -x; mkdir -p /var/log/contrail/vrouter-agent; cfg_folder=/etc/contrailconfigmaps ; " +
-						`ln -sf $cfg_folder/contrail-vrouter-agent.conf.${POD_IP} /etc/contrail/contrail-vrouter-agent.conf;
-						ln -sf $cfg_folder/contrail-lbaas.auth.conf.${POD_IP} /etc/contrail/contrail-lbaas.auth.conf;
-						ln -sf $cfg_folder/vnc_api_lib.ini.${POD_IP} /etc/contrail/vnc_api_lib.ini;
+					`set -x;
+						function wait_file_ready() {
+							echo "INFO: $(date): wait for $1";
+							while [ ! -e $1 ] ; do sleep 1 ; done;
+							echo "INFO: $(date): done"
+						}
+						mkdir -p /var/log/contrail/vrouter-agent;
+						cfg_folder=/etc/contrailconfigmaps ;
+						wait_file_ready $cfg_folder/params.env.${POD_IP} ;
 						source $cfg_folder/params.env.${POD_IP};
 						source /actions.sh;
 						prepare_agent;
+						wait_file_ready $cfg_folder/contrail-vrouter-agent.conf.${POD_IP} ;
+						wait_file_ready $cfg_folder/contrail-lbaas.auth.conf.${POD_IP} ;
+						wait_file_ready $cfg_folder/vnc_api_lib.ini.${POD_IP} ;
+						ln -sf $cfg_folder/contrail-vrouter-agent.conf.${POD_IP} /etc/contrail/contrail-vrouter-agent.conf;
+						ln -sf $cfg_folder/contrail-lbaas.auth.conf.${POD_IP} /etc/contrail/contrail-lbaas.auth.conf;
+						ln -sf $cfg_folder/vnc_api_lib.ini.${POD_IP} /etc/contrail/vnc_api_lib.ini;
 						start_agent;
 						wait $(cat /var/run/vrouter-agent.pid)`}
 

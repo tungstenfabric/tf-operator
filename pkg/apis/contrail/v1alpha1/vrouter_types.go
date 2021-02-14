@@ -4,18 +4,14 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"crypto/sha1"
-	"encoding/hex"
-	"fmt"
-	"io"
 	"sort"
 	"strings"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1/templates"
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -618,7 +614,7 @@ func (c *Vrouter) GetNodeDSPod(nodeName string, daemonset *appsv1.DaemonSet, cln
 	return nil
 }
 
-// GetAgentNodes
+// GetAgentNodes list of agent nodes
 func (c *Vrouter) GetAgentNodes(daemonset *appsv1.DaemonSet, clnt client.Client) *corev1.NodeList {
 
 	// TODO get nodes based on node selector
@@ -634,7 +630,7 @@ func (c *Vrouter) GetAgentNodes(daemonset *appsv1.DaemonSet, clnt client.Client)
 	return nodeList
 }
 
-// GetNodesByLabels
+// GetNodesByLabels requests nodes by labels
 func (c *Vrouter) GetNodesByLabels(clnt client.Client, labels client.MatchingLabels) (string, error) {
 	pods := &corev1.PodList{}
 	if err := clnt.List(context.Background(), pods, labels); err != nil {
@@ -654,24 +650,25 @@ func (c *Vrouter) GetNodesByLabels(clnt client.Client, labels client.MatchingLab
 	return ips, nil
 }
 
+// ClusterParams Agent cluster params
 type ClusterParams struct {
 	ConfigNodes  string
 	ControlNodes string
 }
 
-// GetControlNodes
+// GetControlNodes returns control nodes list (str comma separated)
 func (c *Vrouter) GetControlNodes(clnt client.Client) string {
 	ips, _ := c.GetNodesByLabels(clnt, client.MatchingLabels{"contrail_manager": "control"})
 	return ips
 }
 
-// GetConfigNodes
+// GetConfigNodes returns config nodes list (str comma separated)
 func (c *Vrouter) GetConfigNodes(clnt client.Client) string {
 	ips, _ := c.GetNodesByLabels(clnt, client.MatchingLabels{"contrail_manager": "config"})
 	return ips
 }
 
-// GetParamsEnv
+// GetParamsEnv returns agent params (str comma separated)
 func (c *Vrouter) GetParamsEnv(clusterParams *ClusterParams) string {
 	vrouterConfig := c.VrouterConfigurationParameters()
 
@@ -686,97 +683,45 @@ func (c *Vrouter) GetParamsEnv(clusterParams *ClusterParams) string {
 	return vrouterManifestParamsEnv.String()
 }
 
-// EncryptString
-func EncryptString(str string) string {
-	h := sha1.New()
-	io.WriteString(h, str)
-	key := hex.EncodeToString(h.Sum(nil))
-
-	return string(key)
-}
-
 // VrouterPod is a pod, created by vrouter.
 type VrouterPod struct {
 	Pod *corev1.Pod
 }
 
-// GetAgentContainerStatus gets the vrouteragent container status.
-func (vrouterPod *VrouterPod) GetAgentContainerStatus() (*corev1.ContainerStatus, error) {
-	// Iterate over all pod's containers
-	for _, containerStatus := range vrouterPod.Pod.Status.ContainerStatuses {
-		if containerStatus.Name == "vrouteragent" {
-			return &containerStatus, nil
-		}
-	}
-	return nil, fmt.Errorf("ERROR: Container vrouteragent not found for pod %v", vrouterPod.Pod)
-}
-
 // ExecToAgentContainer uninterractively exec to the vrouteragent container.
-func (vrouterPod *VrouterPod) ExecToAgentContainer(command []string, stdin io.Reader) (string, string, error) {
-	stdout, stderr, err := k8s.ExecToPodThroughAPI(command,
-		"vrouteragent",
-		vrouterPod.Pod.ObjectMeta.Name,
-		vrouterPod.Pod.ObjectMeta.Namespace,
-		stdin,
-	)
-	return stdout, stderr, err
+func (vrouterPod *VrouterPod) ExecToAgentContainer(command []string) (string, string, error) {
+	return ExecToContainer(vrouterPod.Pod, "vrouteragent", command, nil)
 }
 
 // ExecToNodemanagerContainer uninterractively exec to the vrouteragent container.
-func (vrouterPod *VrouterPod) ExecToNodemanagerContainer(command []string, stdin io.Reader) (string, string, error) {
-	stdout, stderr, err := k8s.ExecToPodThroughAPI(command,
-		"nodemanager",
-		vrouterPod.Pod.ObjectMeta.Name,
-		vrouterPod.Pod.ObjectMeta.Namespace,
-		stdin,
-	)
-	return stdout, stderr, err
+func (vrouterPod *VrouterPod) ExecToNodemanagerContainer(command []string) (string, string, error) {
+	return ExecToContainer(vrouterPod.Pod, "nodemanager", command, nil)
 }
 
-// IsAgentRunning checks if agent running on the vrouteragent container.
+// IsAgentContainerRunning checks if agent running on the vrouteragent container.
 func (vrouterPod *VrouterPod) IsAgentContainerRunning() bool {
-	if _, _, err := vrouterPod.ExecToAgentContainer([]string{"true"}, nil); err != nil {
-		return false
-	}
-	return true
+	_, _, err := vrouterPod.ExecToAgentContainer([]string{"true"})
+	return err == nil
 }
 
-// GetEncryptedFileFromAgentContainer gets encrypted file from vrouteragent container
-func (vrouterPod *VrouterPod) GetEncryptedFileFromAgentContainer(path string) (string, error) {
-	command := []string{"bash", "-c", fmt.Sprintf("[ ! -e %s ] || /usr/bin/sha1sum %s", path, path)}
-	stdout, _, err := vrouterPod.ExecToAgentContainer(command, nil)
-	shakey := strings.Split(stdout, " ")[0]
-	return shakey, err
-}
-
-// IsFileInAgentConainerEqualTo
+// IsFileInAgentContainerEqualTo checks file content
 func (vrouterPod *VrouterPod) IsFileInAgentContainerEqualTo(path string, content string) (bool, error) {
-	shakey1, err := vrouterPod.GetEncryptedFileFromAgentContainer(path)
-	if err != nil {
-		return false, err
-	}
-	shakey2 := EncryptString(content)
-
-	if shakey1 == shakey2 {
-		return true, nil
-	}
-	return false, nil
+	return ContainerFileChanged(vrouterPod.Pod, "vrouteragent", path, content)
 }
 
-// RecalculateAgentParametrs recalculates parameters for agent from `/etc/contrail/params.env` to `/parametrs.sh`
+// RecalculateAgentParameters recalculates parameters for agent from `/etc/contrail/params.env` to `/parameters.sh`
 func (vrouterPod *VrouterPod) RecalculateAgentParameters() (string, string, error) {
 	command := "source /etc/contrailconfigmaps/params.env.${POD_IP}; source /actions.sh; source /common.sh; source /agent-functions.sh; prepare_agent_config_vars"
-	return vrouterPod.ExecToAgentContainer([]string{"/usr/bin/bash", "-c", command}, nil)
+	return vrouterPod.ExecToAgentContainer([]string{"/usr/bin/bash", "-c", command})
 }
 
-// GetAgentParaments gets parametrs from `/parametrs.sh`
+// GetAgentParameters gets parametrs from `/parametrs.sh`
 func (vrouterPod *VrouterPod) GetAgentParameters(hostParams *map[string]string) (string, string, error) {
 	command := []string{"/usr/bin/bash", "-c", "source /actions.sh; get_parameters"}
-	stdout, stderr, err := vrouterPod.ExecToAgentContainer(command, nil)
+	stdout, stderr, err := vrouterPod.ExecToAgentContainer(command)
 	if err != nil {
 		return stdout, stderr, err
 	}
-
 	scanner := bufio.NewScanner(strings.NewReader(stdout))
 	for scanner.Scan() {
 		keyValue := strings.SplitAfterN(scanner.Text(), "=", 2)
@@ -791,7 +736,7 @@ func (vrouterPod *VrouterPod) GetAgentParameters(hostParams *map[string]string) 
 func (vrouterPod *VrouterPod) ReloadAgentConfigs() error {
 	vrouter_log.Info("ReloadAgentConfigs", "pod", vrouterPod.Pod.Name)
 	command := []string{"/usr/bin/bash", "-c", "source /contrail-functions.sh; reload_config"}
-	_, _, err := vrouterPod.ExecToAgentContainer(command, nil)
+	_, _, err := vrouterPod.ExecToAgentContainer(command)
 	return err
 }
 
@@ -799,7 +744,7 @@ func (vrouterPod *VrouterPod) ReloadAgentConfigs() error {
 func (vrouterPod *VrouterPod) ReloadNodemanager() error {
 	vrouter_log.Info("ReloadNodemanager", "pod", vrouterPod.Pod.Name)
 	command := []string{"/usr/bin/bash", "-c", "kill -HUP 1"}
-	_, _, err := vrouterPod.ExecToNodemanagerContainer(command, nil)
+	_, _, err := vrouterPod.ExecToNodemanagerContainer(command)
 	return err
 }
 

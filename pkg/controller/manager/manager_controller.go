@@ -146,7 +146,7 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 	nodesHostAliases := r.getNodesHostAliases(nodes)
 
 	if err := r.processVRouters(instance, replicas); err != nil {
-		log.Error(err, "processRabbitMQ")
+		log.Error(err, "processVRouters")
 	}
 
 	if err := r.processRabbitMQ(instance, replicas); err != nil {
@@ -162,7 +162,7 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	if err := r.processControls(instance, replicas); err != nil {
-		log.Error(err, "processConfig")
+		log.Error(err, "processControls")
 	}
 
 	if err := r.processConfig(instance, replicas, nodesHostAliases); err != nil {

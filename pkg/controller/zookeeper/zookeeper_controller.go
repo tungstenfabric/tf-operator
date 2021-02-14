@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"time"
 
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -37,6 +38,8 @@ import (
 )
 
 var log = logf.Log.WithName("controller_zookeeper")
+var restartTime, _ = time.ParseDuration("1s")
+var requeueReconcile = reconcile.Result{Requeue: true, RequeueAfter: restartTime}
 
 func resourceHandler(myclient client.Client) handler.Funcs {
 	appHandler := handler.Funcs{
@@ -366,12 +369,18 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 		}
 	}
 
-	if err = instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil {
-		return reconcile.Result{}, err
+	if created, err := instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil || created {
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		return requeueReconcile, err
 	}
 
-	if _, err = instance.UpdateSTS(statefulSet, instanceType, request, r.Client); err != nil {
-		return reconcile.Result{}, err
+	if updated, err := instance.UpdateSTS(statefulSet, instanceType, request, r.Client); err != nil || updated {
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		return requeueReconcile, nil
 	}
 
 	podIPList, podIPMap, err := instance.PodIPListAndIPMapFromInstance(instanceType, request, r.Client)

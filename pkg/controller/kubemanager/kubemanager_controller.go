@@ -350,12 +350,18 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 		}
 	}
 
-	if err = instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil {
-		return reconcile.Result{}, err
+	if created, err := instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil || created {
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		return requeueReconcile, err
 	}
 
 	if updated, err := instance.UpdateSTS(statefulSet, instanceType, request, r.Client); err != nil || updated {
-		return reconcile.Result{}, err
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		return requeueReconcile, nil
 	}
 
 	podIPList, podIPMap, err := instance.PodIPListAndIPMapFromInstance(instanceType, request, r.Client)

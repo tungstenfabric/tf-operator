@@ -3,7 +3,11 @@ package v1alpha1
 import (
 	"bytes"
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
 	"errors"
+	"fmt"
+	"io"
 	"sort"
 	"strconv"
 	"strings"
@@ -24,11 +28,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/go-logr/logr"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1/templates"
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 var src = mRand.NewSource(time.Now().UnixNano())
@@ -253,11 +258,9 @@ func EnsureServiceAccount(
 // SetPodsToReady sets the status label of a POD to ready.
 func SetPodsToReady(podList []corev1.Pod, client client.Client) error {
 	for _, pod := range podList {
-		podObject := &corev1.Pod{}
-		if err := client.Get(context.TODO(), types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, podObject); err != nil {
-			return err
-		}
-		pod.ObjectMeta.Labels["status"] = "ready"
+		labels := pod.GetLabels()
+		labels["status"] = "ready"
+		pod.SetLabels(labels)
 		if err := client.Update(context.TODO(), &pod); err != nil {
 			return err
 		}
@@ -531,20 +534,23 @@ func AddSecretVolumesToIntendedDS(ds *appsv1.DaemonSet, volumeSecretMap map[stri
 func QuerySTS(name string, namespace string, reconcileClient client.Client) (*appsv1.StatefulSet, error) {
 	sts := &appsv1.StatefulSet{}
 	err := reconcileClient.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, sts)
-	if err != nil && k8serrors.IsNotFound(err) {
-		return nil, nil
+	if err != nil {
+		return nil, err
 	}
 	return sts, nil
 }
 
 // CreateSTS creates the STS.
-func CreateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) error {
-	foundSTS, err := QuerySTS(request.Name+"-"+instanceType+"-statefulset", request.Namespace, reconcileClient)
-	if err != nil || foundSTS != nil {
-		return err
+func CreateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
+	_, err := QuerySTS(request.Name+"-"+instanceType+"-statefulset", request.Namespace, reconcileClient)
+	if err == nil {
+		return false, nil
+	}
+	if !k8serrors.IsNotFound(err) {
+		return false, err
 	}
 	sts.Spec.Template.ObjectMeta.Labels["version"] = "1"
-	return reconcileClient.Create(context.TODO(), sts)
+	return true, reconcileClient.Create(context.TODO(), sts)
 }
 
 // UpdateSTS updates the STS.
@@ -685,11 +691,6 @@ func updateAnnotations(pod *corev1.Pod, client client.Client) error {
 		return err
 	}
 	return nil
-}
-
-func remove(s []corev1.Pod, i int) []corev1.Pod {
-	s[i] = s[len(s)-1]
-	return s[:len(s)-1]
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
@@ -1046,4 +1047,140 @@ func GetNodemanagerRunner() (string, error) {
 		return "", err
 	}
 	return bufRun.String(), nil
+}
+
+// ExecCmdInContainer runs command inside a container
+func ExecCmdInContainer(pod *corev1.Pod, containerName string, command []string) (stdout, stderr string, err error) {
+	stdout, stderr, err = k8s.ExecToPodThroughAPI(command,
+		containerName,
+		pod.ObjectMeta.Name,
+		pod.ObjectMeta.Namespace,
+		nil,
+	)
+	return
+}
+
+// SendSignal signal to main container process with pid 1
+func SendSignal(pod *corev1.Pod, containerName, signal string) (stdout, stderr string, err error) {
+	return ExecCmdInContainer(
+		pod,
+		containerName,
+		[]string{"/usr/bin/bash", "-c", "kill -" + signal + " 1"},
+	)
+}
+
+// CombinedError provides a combined errors object for comfort logging
+type CombinedError struct {
+	errors []error
+}
+
+func (e *CombinedError) Error() string {
+	var res string
+	if e != nil {
+		res = "CombinedError:\n"
+		for _, s := range e.errors {
+			res = res + fmt.Sprintf("%s\n", s)
+		}
+	}
+	return res
+}
+
+func contains(arr []string, v *corev1.ContainerStatus) bool {
+	for _, i := range arr {
+		if i == v.Name {
+			return true
+		}
+	}
+	return false
+}
+
+// ReloadContainers sends sighup to all runnig conainers in a pod
+func ReloadContainers(pod *corev1.Pod, containers []string, signal string, clnt client.Client, log logr.Logger) error {
+	l := log.WithName(pod.Name).WithName("ReloadContainers(" + signal + ")")
+	var errors []error
+	for _, cs := range pod.Status.ContainerStatuses {
+		if !contains(containers, &cs) {
+			continue
+		}
+		ll := l.WithName(cs.Name)
+		if cs.State.Terminated != nil && cs.State.Waiting != nil {
+			ll.Info("Skip", "state", cs.State)
+			continue
+		}
+		if stdout, stderr, err := SendSignal(pod, cs.Name, signal); err != nil {
+			ll.Error(err, "Failed", "stdout", stdout, "stderr", stderr)
+			errors = append(errors, err)
+			continue
+		}
+		ll.Info("Reloaded")
+	}
+	if len(errors) > 0 {
+		return &CombinedError{errors: errors}
+	}
+	return nil
+}
+
+// ReloadServices sends sighup to given runnig conainers in a pod
+func ReloadServices(srvList map[*corev1.Pod][]string, clnt client.Client, log logr.Logger) error {
+	var errors []error
+	for pod, containers := range srvList {
+		if err := ReloadContainers(pod, containers, "HUP", clnt, log); err != nil {
+			errors = append(errors, err)
+		}
+	}
+	if len(errors) > 0 {
+		return &CombinedError{errors: errors}
+	}
+	return nil
+}
+
+// RestartServices sends sigterm to given runnig conainers in a pod
+func RestartServices(srvList map[*corev1.Pod][]string, clnt client.Client, log logr.Logger) error {
+	var errors []error
+	for pod, containers := range srvList {
+		if err := ReloadContainers(pod, containers, "TERM", clnt, log); err != nil {
+			errors = append(errors, err)
+		}
+	}
+	if len(errors) > 0 {
+		return &CombinedError{errors: errors}
+	}
+	return nil
+}
+
+// EncryptString returns sha
+func EncryptString(str string) string {
+	h := sha1.New()
+	io.WriteString(h, str)
+	key := hex.EncodeToString(h.Sum(nil))
+	return string(key)
+}
+
+// ExecToContainer uninterractively exec to the vrouteragent container.
+func ExecToContainer(pod *corev1.Pod, container string, command []string, stdin io.Reader) (string, string, error) {
+	stdout, stderr, err := k8s.ExecToPodThroughAPI(command,
+		container,
+		pod.ObjectMeta.Name,
+		pod.ObjectMeta.Namespace,
+		stdin,
+	)
+	return stdout, stderr, err
+}
+
+// ContainerFileSha gets sha of file from a container
+func ContainerFileSha(pod *corev1.Pod, container string, path string) (string, error) {
+	command := []string{"bash", "-c", fmt.Sprintf("[ ! -e %s ] || /usr/bin/sha1sum %s", path, path)}
+	stdout, _, err := ExecToContainer(pod, container, command, nil)
+	shakey := strings.Split(stdout, " ")[0]
+	return shakey, err
+}
+
+// ContainerFileChanged checks file content
+func ContainerFileChanged(pod *corev1.Pod, container string, path string, content string) (bool, error) {
+	shakey1, err := ContainerFileSha(pod, container, path)
+	if err != nil {
+		return false, err
+	}
+	shakey2 := EncryptString(content)
+	return shakey1 == shakey2, nil
 }

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"reflect"
 	"strconv"
 	"text/template"
 	"time"
@@ -348,12 +347,18 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 
 			if container.Command == nil {
 				command := []string{"bash", "-c",
-					"set -x; " +
-						cassandraInitKeystoreCommandBuffer.String() +
+					`	set -x ; 
+						echo "INFO: $(date): wait cqlshrc.${POD_IP}" ; 
+						while [ ! -e /etc/contrailconfigmaps/cqlshrc.${POD_IP} ] ; do sleep 1; done ; 
+						echo "INFO: $(date): wait cassandra.${POD_IP}.yaml" ; 
+						while [ ! -e /etc/contrailconfigmaps/cassandra.${POD_IP}.yaml ] ; do sleep 1; done ; 
+						echo "INFO: $(date): configs ready" ; 
+					` + cassandraInitKeystoreCommandBuffer.String() +
 						// for cqlsh cmd tool
 						"ln -sf /etc/contrailconfigmaps/cqlshrc.${POD_IP} /root/.cqlshrc ; " +
 						// cassandra docker-entrypoint tries patch the config, and nodemanager uses hardcoded path to
-						// detect cassandra data path for size checks
+						// detect cassandra data path for size checks, this file will contains wrong seeds as entrypoint
+						// sets it from env vsariable
 						"rm -f /etc/cassandra/cassandra.yaml ; " +
 						"cp /etc/contrailconfigmaps/cassandra.${POD_IP}.yaml /etc/cassandra/cassandra.yaml ; " +
 						fmt.Sprintf("exec /docker-entrypoint.sh -f  -Dcassandra.jmx.local.port=%d -Dcassandra.config=file:///etc/contrailconfigmaps/cassandra.${POD_IP}.yaml", *cassandraConfig.JmxLocalPort),
@@ -537,25 +542,31 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	}
 
 	// Create statefulset if it doesn't exist
-	if err = instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil {
-		return reconcile.Result{}, err
+	if created, err := instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil || created {
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		return requeueReconcile, err
 	}
 
 	// Update StatefulSet if replicas or images changed
 	if updated, err := instance.UpdateSTS(statefulSet, instanceType, request, r.Client); err != nil || updated {
-		return reconcile.Result{}, err
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		return requeueReconcile, nil
 	}
 
 	// Preapare / udpate configmaps if pods are created
-	podIPList, podIPMap, err := instance.PodIPListAndIPMapFromInstance(instanceType, request, r.Client)
+	podList, podIPMap, err := instance.PodIPListAndIPMapFromInstance(instanceType, request, r.Client)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	if len(podIPList) > 0 {
-		if err = instance.InstanceConfiguration(request, podIPList, r.Client); err != nil {
+	if len(podList) > 0 {
+		if err = instance.InstanceConfiguration(request, podList, r.Client); err != nil {
 			return reconcile.Result{}, err
 		}
-		if err := r.ensureCertificatesExist(instance, podIPList, clusterIP, instanceType); err != nil {
+		if err := r.ensureCertificatesExist(instance, podList, clusterIP, instanceType); err != nil {
 			return reconcile.Result{}, err
 		}
 
@@ -574,8 +585,7 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 				return reconcile.Result{}, err
 			}
 		}
-
-		if err = instance.SetPodsToReady(podIPList, r.Client); err != nil {
+		if err = instance.SetPodsToReady(podList, r.Client); err != nil {
 			return reconcile.Result{}, err
 		}
 	}
@@ -589,24 +599,23 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	if err = r.Client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: request.Namespace}, newConfigMap); err != nil {
 		return reconcile.Result{}, err
 	}
-	*instance.Status.ConfigChanged = !reflect.DeepEqual(configMap.Data, newConfigMap.Data)
-
-	if *instance.Status.ConfigChanged {
-		reqLogger.Info("Update StatefulSet: ConfigChanged")
-		if err := r.Client.Update(context.TODO(), statefulSet); err != nil {
-			reqLogger.Error(err, "Update StatefulSet failed")
-			return reconcile.Result{}, err
+	changedServices := make(map[*corev1.Pod][]string)
+	for _, pod := range podList {
+		if diff := instance.ConfigDataDiff(&pod, configMap, newConfigMap); len(diff) > 0 {
+			changedServices[&pod] = diff
 		}
-		return requeueReconcile, nil
 	}
+	*instance.Status.ConfigChanged = len(changedServices) > 0
+	reqLogger.Info("ConfigChanged", "beforeConfigChanged", beforeCheck, "configChanged", *instance.Status.ConfigChanged)
 
-	if beforeCheck != *instance.Status.ConfigChanged {
-		reqLogger.Info("Update Status: ConfigChanged")
-		if err := r.Client.Status().Update(context.TODO(), instance); err != nil {
-			reqLogger.Error(err, "Update Status failed")
+	requeu := false
+	if *instance.Status.ConfigChanged {
+		reqLogger.Info("Reload services")
+		if err = instance.ReloadServices(changedServices, r.Client); err != nil {
+			reqLogger.Error(err, "Reload services failed")
 			return reconcile.Result{}, err
 		}
-		return requeueReconcile, nil
+		requeu = true
 	}
 
 	currentSTS, err := instance.QuerySTS(statefulSet.Name, statefulSet.Namespace, r.Client)
@@ -614,15 +623,19 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		reqLogger.Error(err, "QuerySTS failed")
 		return reconcile.Result{}, err
 	}
-	if instance.UpdateStatus(cassandraConfig, podIPMap, currentSTS) {
+	if instance.UpdateStatus(cassandraConfig, podIPMap, currentSTS) || beforeCheck {
 		reqLogger.Info("Update Status")
 		if err = r.Client.Status().Update(context.TODO(), instance); err != nil {
-			reqLogger.Error(err, "Update Status")
+			reqLogger.Error(err, "Update Status failed")
 			return reconcile.Result{}, err
 		}
+		requeu = true
 	}
 
-	reqLogger.Info("Done")
+	reqLogger.Info("Done", "requeu", requeu)
+	if requeu {
+		return requeueReconcile, nil
+	}
 	return reconcile.Result{}, nil
 }
 
