@@ -185,8 +185,6 @@ spec:
                   type: string
                 serviceSubnets:
                   type: string
-                useKubeadmConfig:
-                  type: boolean
                 zookeeperInstance:
                   type: string
               type: object

@@ -1,7 +1,7 @@
 package randomstring
 
 import (
-	mRand "math/rand"
+	"math/rand"
 	"time"
 )
 
@@ -12,7 +12,7 @@ const (
 	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
 )
 
-var src = mRand.NewSource(time.Now().UnixNano())
+var src = rand.NewSource(time.Now().UnixNano())
 
 type RandString struct{ Size int }
 

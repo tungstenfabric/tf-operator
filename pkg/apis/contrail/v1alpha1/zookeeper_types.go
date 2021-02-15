@@ -22,6 +22,8 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // ZookeeperSpec is the Spec for the zookeepers API.
 // +k8s:openapi-gen=true
 type ZookeeperSpec struct {
@@ -50,6 +52,7 @@ type ZookeeperStatus struct {
 }
 
 // ZookeeperStatusPorts defines the status of the ports of the zookeeper object.
+// +k8s:openapi-gen=true
 type ZookeeperStatusPorts struct {
 	ClientPort string `json:"clientPort,omitempty"`
 }
@@ -67,9 +70,8 @@ type Zookeeper struct {
 	Status ZookeeperStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 // ZookeeperList contains a list of Zookeeper.
+// +k8s:openapi-gen=true
 type ZookeeperList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

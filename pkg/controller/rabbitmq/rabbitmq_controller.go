@@ -237,7 +237,7 @@ func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Resu
 			}
 			volumeMount := corev1.VolumeMount{
 				Name:      request.Name + "-" + instanceType + "-volume",
-				MountPath: "/etc/rabbitmq",
+				MountPath: "/etc/rabbitmqconfigmaps",
 			}
 			volumeMountList = append(volumeMountList, volumeMount)
 			volumeMount = corev1.VolumeMount{
@@ -255,13 +255,7 @@ func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Resu
 				MountPath: certificates.SignerCAMountPath,
 			}
 			volumeMountList = append(volumeMountList, volumeMount)
-			(&statefulSet.Spec.Template.Spec.Containers[idx]).EnvFrom = []corev1.EnvFromSource{{
-				ConfigMapRef: &corev1.ConfigMapEnvSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: request.Name + "-" + instanceType + "-configmap",
-					},
-				},
-			}}
+
 			(&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts = volumeMountList
 			(&statefulSet.Spec.Template.Spec.Containers[idx]).Image = instanceContainer.Image
 		}
@@ -361,7 +355,11 @@ func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Resu
 }
 
 func (r *ReconcileRabbitmq) ensureCertificatesExist(rabbitmq *v1alpha1.Rabbitmq, pods []corev1.Pod, instanceType string) error {
-	subjects := rabbitmq.PodsCertSubjects(pods)
+	domain, err := v1alpha1.ClusterDNSDomain(r.Client)
+	if err != nil {
+		return err
+	}
+	subjects := rabbitmq.PodsCertSubjects(domain, pods)
 	crt := certificates.NewCertificate(r.Client, r.Scheme, rabbitmq, subjects, instanceType)
 	return crt.EnsureExistsAndIsSigned()
 }

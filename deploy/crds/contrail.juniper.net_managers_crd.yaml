@@ -37,6 +37,33 @@ spec:
                 modifying this file Add custom validation using kubebuilder tags:
                 https://book.kubebuilder.io/beyond_basics/generating_crd.html'
               properties:
+                clusterConfig:
+                  description: Kubernetes Cluster Configuration
+                  properties:
+                    clusterName:
+                      type: string
+                    controlPlaneEndpoint:
+                      type: string
+                    networking:
+                      description: KubernetesClusterNetworking k8s cluster networking
+                        parameters
+                      properties:
+                        cniConfig:
+                          description: CNIConfig k8s cluster cni parameters
+                          properties:
+                            binaryPath:
+                              type: string
+                            configPath:
+                              type: string
+                          type: object
+                        dnsDomain:
+                          type: string
+                        podSubnet:
+                          type: string
+                        serviceSubnet:
+                          type: string
+                      type: object
+                  type: object
                 hostNetwork:
                   description: Host networking requested for this pod. Use the host's
                     network namespace. If this option is set, the ports that will
@@ -99,6 +126,9 @@ spec:
                         type: string
                     type: object
                   type: array
+                useKubeadmConfig:
+                  description: Use 0.0.0.0 for isntrospection ports
+                  type: boolean
               type: object
             keystoneSecretName:
               type: string
@@ -614,6 +644,7 @@ spec:
                             API.
                           properties:
                             aaaMode:
+                              description: AAAMode aaa mode
                               enum:
                               - noauth
                               - rbac
@@ -645,6 +676,7 @@ spec:
                             apiPort:
                               type: integer
                             authMode:
+                              description: AuthenticationMode auth mode
                               enum:
                               - noauth
                               - keystone
@@ -702,12 +734,9 @@ spec:
                       - serviceConfiguration
                       type: object
                     status:
+                      description: ConfigStatus status of Config
                       properties:
                         active:
-                          description: 'INSERT ADDITIONAL STATUS FIELD - define observed
-                            state of cluster Important: Run "operator-sdk generate
-                            k8s" to regenerate code after modifying this file Add
-                            custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html'
                           type: boolean
                         configChanged:
                           type: boolean
@@ -716,32 +745,6 @@ spec:
                         nodes:
                           additionalProperties:
                             type: string
-                          type: object
-                        ports:
-                          properties:
-                            analyticsPort:
-                              type: string
-                            apiPort:
-                              type: string
-                            collectorPort:
-                              type: string
-                          type: object
-                        serviceStatus:
-                          additionalProperties:
-                            additionalProperties:
-                              properties:
-                                description:
-                                  type: string
-                                moduleName:
-                                  type: string
-                                nodeName:
-                                  type: string
-                                state:
-                                  type: string
-                              required:
-                              - state
-                              type: object
-                            type: object
                           type: object
                       type: object
                   type: object
@@ -921,6 +924,7 @@ spec:
                         - serviceConfiguration
                         type: object
                       status:
+                        description: ControlStatus defines the observed state of Control.
                         properties:
                           active:
                             type: boolean
@@ -1163,8 +1167,6 @@ spec:
                                 type: string
                               serviceSubnets:
                                 type: string
-                              useKubeadmConfig:
-                                type: boolean
                               zookeeperInstance:
                                 type: string
                             type: object
@@ -1564,8 +1566,6 @@ spec:
                                 type: string
                               kubernetesApiSecurePort:
                                 type: string
-                              kubernetesClusterName:
-                                type: string
                               kubernetesPodSubnets:
                                 type: string
                               logDir:
@@ -1649,8 +1649,6 @@ spec:
                               tsnAgentMode:
                                 description: TSN
                                 type: string
-                              useKubeadmConfig:
-                                type: boolean
                               vrouterCryptInterface:
                                 type: string
                               vrouterDecryptInterface:

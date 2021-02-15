@@ -514,7 +514,11 @@ func (r *ReconcileWebui) listWebUIPods(webUIName string) ([]corev1.Pod, error) {
 }
 
 func (r *ReconcileWebui) ensureCertificatesExist(webUI *v1alpha1.Webui, pods []corev1.Pod, instanceType string) error {
-	subjects := webUI.PodsCertSubjects(pods)
+	domain, err := v1alpha1.ClusterDNSDomain(r.Client)
+	if err != nil {
+		return err
+	}
+	subjects := webUI.PodsCertSubjects(domain, pods)
 	crt := certificates.NewCertificate(r.Client, r.Scheme, webUI, subjects, instanceType)
 	return crt.EnsureExistsAndIsSigned()
 }

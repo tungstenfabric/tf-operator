@@ -832,43 +832,16 @@ func schema_pkg_apis_contrail_v1alpha1_ConfigStatus(ref common.ReferenceCallback
 							},
 						},
 					},
-					"ports": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ConfigStatusPorts"),
-						},
-					},
 					"configChanged": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"boolean"},
 							Format: "",
 						},
 					},
-					"serviceStatus": {
-						SchemaProps: spec.SchemaProps{
-							Type: []string{"object"},
-							AdditionalProperties: &spec.SchemaOrBool{
-								Allows: true,
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Type: []string{"object"},
-										AdditionalProperties: &spec.SchemaOrBool{
-											Allows: true,
-											Schema: &spec.Schema{
-												SchemaProps: spec.SchemaProps{
-													Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ConfigServiceStatus"),
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
 				},
 			},
 		},
-		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ConfigServiceStatus", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ConfigStatusPorts"},
+		Dependencies: []string{},
 	}
 }
 
@@ -2274,12 +2247,6 @@ func schema_pkg_apis_contrail_v1alpha1_VrouterStatus(ref common.ReferenceCallbac
 			SchemaProps: spec.SchemaProps{
 				Type: []string{"object"},
 				Properties: map[string]spec.Schema{
-					"ports": {
-						SchemaProps: spec.SchemaProps{
-							Description: "INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run \"operator-sdk generate k8s\" to regenerate code after modifying this file Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html",
-							Ref:         ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ConfigStatusPorts"),
-						},
-					},
 					"nodes": {
 						SchemaProps: spec.SchemaProps{
 							Type: []string{"object"},
@@ -2309,8 +2276,7 @@ func schema_pkg_apis_contrail_v1alpha1_VrouterStatus(ref common.ReferenceCallbac
 				},
 			},
 		},
-		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ConfigStatusPorts"},
+		Dependencies: []string{},
 	}
 }
 

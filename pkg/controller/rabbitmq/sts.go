@@ -79,7 +79,11 @@ func GetSTS() *apps.StatefulSet {
 						Command: []string{
 							"/bin/bash",
 							"-c",
-							"cluster_status=$(rabbitmqctl cluster_status);nodes=$(echo $cluster_status | sed -e 's/.*disc,\\[\\(.*\\)]}]}, {.*/\\1/' | grep -oP \"(?<=rabbit@).*?(?=')\"); for node in $(cat /etc/rabbitmq/rabbitmq.nodes); do echo ${nodes} |grep ${node}; if [[ $? -ne 0 ]]; then exit -1; fi; done",
+							"source /etc/rabbitmq/rabbitmq-common.env; " +
+								"cluster_status=$(rabbitmqctl cluster_status);" +
+								"nodes=$(echo $cluster_status | sed -e 's/.*disc,\\[\\(.*\\)]}]}, {.*/\\1/' | grep -oP \"(?<=rabbit@).*?(?=')\"); " +
+								"for node in $(cat /etc/rabbitmq/rabbitmq.nodes); do " +
+								"echo ${nodes} | grep ${node}; if [[ $? -ne 0 ]]; then exit -1; fi; done",
 						},
 					},
 				},
@@ -92,7 +96,11 @@ func GetSTS() *apps.StatefulSet {
 						Command: []string{
 							"/bin/bash",
 							"-c",
-							"cluster_status=$(rabbitmqctl cluster_status);nodes=$(echo $cluster_status | sed -e 's/.*disc,\\[\\(.*\\)]}]}, {.*/\\1/' | grep -oP \"(?<=rabbit@).*?(?=')\"); for node in $(cat /etc/rabbitmq/rabbitmq.nodes); do echo ${nodes} |grep ${node}; if [[ $? -ne 0 ]]; then exit -1; fi; done",
+							"source /etc/rabbitmq/rabbitmq-common.env; " +
+								"cluster_status=$(rabbitmqctl cluster_status); " +
+								"nodes=$(echo $cluster_status | sed -e 's/.*disc,\\[\\(.*\\)]}]}, {.*/\\1/' | grep -oP \"(?<=rabbit@).*?(?=')\"); " +
+								"for node in $(cat /etc/rabbitmq/rabbitmq.nodes); do " +
+								"echo ${nodes} |grep ${node}; if [[ $? -ne 0 ]]; then exit -1; fi; done",
 						},
 					},
 				},

@@ -229,12 +229,20 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	cloudOrchestrator := instance.VrouterConfigurationParameters().CloudOrchestrator
+	vcp, err := instance.VrouterConfigurationParameters(r.Client)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
 	configNodes := instance.GetConfigNodes(r.Client)
 	controlNodes := instance.GetControlNodes(r.Client)
 	reqLogger.Info("Controller nodes", "configNodes", configNodes, "controlNodes", controlNodes)
 
-	daemonSet := GetDaemonset(cloudOrchestrator)
+	kcc, err := v1alpha1.ClusterParameters(r.Client)
+	if err != nil {
+		reqLogger.Error(err, "ClusterParameters failed")
+		return reconcile.Result{}, err
+	}
+	daemonSet := GetDaemonset(&kcc.Networking.CNIConfig, vcp.CloudOrchestrator)
 	if err = instance.PrepareDaemonSet(daemonSet, &instance.Spec.CommonConfiguration, request, r.Scheme, r.Client); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -376,19 +384,18 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 						"cp -f /usr/bin/contrail-k8s-cni /host/opt_cni_bin && " +
 						"chmod 0755 /host/opt_cni_bin/contrail-k8s-cni && " +
 						"cp -f /etc/cniconfigmaps/10-tf-cni.conf /host/etc_cni/net.d/10-tf-cni.conf && " +
-						"tar -C /host/opt_cni_bin -xzf /opt/cni-v0.3.0.tgz"}
+						"tar -C /host/opt_cni_bin -xzf /opt/cni-v0.3.0.tgz && " +
+						"mkdir -p /var/run/multus/cni/net.d && " +
+						"cp -f /etc/cniconfigmaps/10-tf-cni.conf /var/run/multus/cni/net.d/80-openshift-network.conf",
+				}
+
 				container.Command = command
 			}
-
 			container.VolumeMounts = append(container.VolumeMounts,
 				corev1.VolumeMount{
 					Name:      cniVolumeName,
 					MountPath: "/etc/cniconfigmaps",
 				})
-		}
-
-		if container.Name == "multusconfig" {
-			// nothing todo
 		}
 
 		if container.Name == "nodeinit" && instance.Spec.ServiceConfiguration.ContrailStatusImage != "" {
@@ -479,7 +486,11 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 }
 
 func (r *ReconcileVrouter) ensureCertificatesExist(vrouter *v1alpha1.Vrouter, pods []corev1.Pod, instanceType string) error {
-	subjects := vrouter.PodsCertSubjects(pods)
+	domain, err := v1alpha1.ClusterDNSDomain(r.Client)
+	if err != nil {
+		return err
+	}
+	subjects := vrouter.PodsCertSubjects(domain, pods)
 	crt := certificates.NewCertificate(r.Client, r.Scheme, vrouter, subjects, instanceType)
 	return crt.EnsureExistsAndIsSigned()
 }

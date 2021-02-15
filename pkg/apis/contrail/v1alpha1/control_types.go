@@ -19,8 +19,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ControlStatus defines the observed state of Control.
-
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Control is the Schema for the controls API.
@@ -65,6 +63,7 @@ type ControlConfiguration struct {
 	LogLevel   string `json:"logLevel,omitempty"`
 }
 
+// ControlStatus defines the observed state of Control.
 // +k8s:openapi-gen=true
 type ControlStatus struct {
 	Active        *bool                           `json:"active,omitempty"`
@@ -104,6 +103,7 @@ type Connection struct {
 	Nodes  []string `json:"nodes,omitempty"`
 }
 
+// +k8s:openapi-gen=true
 type ControlStatusPorts struct {
 	BGPPort           string `json:"bgpPort,omitempty"`
 	ASNNumber         string `json:"asnNumber,omitempty"`
@@ -113,7 +113,7 @@ type ControlStatusPorts struct {
 }
 
 // ControlList contains a list of Control.
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:openapi-gen=true
 type ControlList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -432,9 +432,9 @@ func retrieveDataIPs(pod corev1.Pod) []string {
 }
 
 //PodsCertSubjects gets list of Control pods certificate subjects which can be passed to the certificate API
-func (c *Control) PodsCertSubjects(podList []corev1.Pod) []certificates.CertificateSubject {
+func (c *Control) PodsCertSubjects(domain string, podList []corev1.Pod) []certificates.CertificateSubject {
 	altIPs := PodAlternativeIPs{Retriever: retrieveDataIPs}
-	return PodsCertSubjects(podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
+	return PodsCertSubjects(domain, podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
 }
 
 // SetInstanceActive sets instance to active.

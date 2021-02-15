@@ -313,9 +313,9 @@ func (c *Cassandra) PodIPListAndIPMapFromInstance(instanceType string, request r
 }
 
 //PodsCertSubjects gets list of Cassandra pods certificate subjets which can be passed to the certificate API
-func (c *Cassandra) PodsCertSubjects(podList []corev1.Pod, serviceIP string) []certificates.CertificateSubject {
+func (c *Cassandra) PodsCertSubjects(domain string, podList []corev1.Pod, serviceIP string) []certificates.CertificateSubject {
 	altIPs := PodAlternativeIPs{ServiceIP: serviceIP}
-	return PodsCertSubjects(podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
+	return PodsCertSubjects(domain, podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
 }
 
 // QuerySTS queries the Cassandra STS

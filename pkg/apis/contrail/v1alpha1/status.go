@@ -2,6 +2,8 @@ package v1alpha1
 
 import appsv1 "k8s.io/api/apps/v1"
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // Status is the status of the service.
 // +k8s:openapi-gen=true
 type Status struct {

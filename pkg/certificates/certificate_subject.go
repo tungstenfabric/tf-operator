@@ -9,21 +9,24 @@ import (
 	"net"
 	"time"
 
-	"github.com/tungstenfabric/tf-operator/pkg/k8s"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// CertificateSubject certificate subject
 type CertificateSubject struct {
 	name           string
+	domain         string
 	hostname       string
 	ip             string
 	alternativeIPs []string
 }
 
-func NewSubject(name string, hostname string, ip string, alternativeIPs []string) CertificateSubject {
-	return CertificateSubject{name: name, hostname: hostname, ip: ip, alternativeIPs: alternativeIPs}
+// NewSubject creates new certificate subject
+func NewSubject(name, domain, hostname, ip string, alternativeIPs []string) CertificateSubject {
+	return CertificateSubject{name: name, domain: domain, hostname: hostname, ip: ip, alternativeIPs: alternativeIPs}
 }
 
-func (c CertificateSubject) generateCertificateTemplate() (x509.Certificate, *rsa.PrivateKey, error) {
+func (c CertificateSubject) generateCertificateTemplate(client client.Client) (x509.Certificate, *rsa.PrivateKey, error) {
 	certPrivKey, err := rsa.GenerateKey(rand.Reader, certKeyLength)
 
 	if err != nil {
@@ -44,12 +47,6 @@ func (c CertificateSubject) generateCertificateTemplate() (x509.Certificate, *rs
 		ips = append(ips, net.ParseIP(ip))
 	}
 
-	// TODO: it might be not good to have here this code
-	dnsDomain, err := k8s.ClusterDNSDomain()
-	if err != nil {
-		return x509.Certificate{}, nil, err
-	}
-
 	certificateTemplate := x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
@@ -60,7 +57,7 @@ func (c CertificateSubject) generateCertificateTemplate() (x509.Certificate, *rs
 			Organization:       []string{"Linux Foundation"},
 			OrganizationalUnit: []string{"Tungsten Fabric"},
 		},
-		DNSNames:    []string{c.hostname, c.hostname + "." + dnsDomain},
+		DNSNames:    []string{c.hostname, c.hostname + "." + c.domain},
 		IPAddresses: ips,
 		NotBefore:   notBefore,
 		NotAfter:    notAfter,

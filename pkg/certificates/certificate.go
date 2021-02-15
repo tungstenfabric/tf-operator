@@ -13,6 +13,7 @@ import (
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
 )
 
+// Certificate object
 type Certificate struct {
 	client              client.Client
 	scheme              *runtime.Scheme
@@ -22,6 +23,7 @@ type Certificate struct {
 	certificateSubjects []CertificateSubject
 }
 
+// NewCertificate creates new cert
 func NewCertificate(cl client.Client, scheme *runtime.Scheme, owner v1.Object, subjects []CertificateSubject, ownerType string) *Certificate {
 	secretName := owner.GetName() + "-secret-certificates"
 	kubernetes := k8s.New(cl, scheme)
@@ -38,6 +40,7 @@ func NewCertificate(cl client.Client, scheme *runtime.Scheme, owner v1.Object, s
 	}
 }
 
+// EnsureExistsAndIsSigned ensures cert is signed
 func (r *Certificate) EnsureExistsAndIsSigned() error {
 	return r.sc.EnsureExists(r)
 }
@@ -46,6 +49,7 @@ type certificateSigner interface {
 	SignCertificate(certTemplate x509.Certificate, privateKey rsa.PrivateKey) ([]byte, error)
 }
 
+// FillSecret fill secret with data
 func (r *Certificate) FillSecret(secret *core.Secret) error {
 	if secret.Data == nil {
 		secret.Data = make(map[string][]byte)
@@ -73,7 +77,7 @@ func (r *Certificate) createCertificateForPod(subject CertificateSubject, secret
 	if certInSecret(secret, subject.ip) {
 		return nil
 	}
-	certificateTemplate, privateKey, err := subject.generateCertificateTemplate()
+	certificateTemplate, privateKey, err := subject.generateCertificateTemplate(r.client)
 	if err != nil {
 		return fmt.Errorf("failed to generate certificate template for %s, %s: %w", subject.hostname, subject.name, err)
 	}

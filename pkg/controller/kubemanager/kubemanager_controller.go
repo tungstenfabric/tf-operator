@@ -7,7 +7,6 @@ import (
 
 	"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1"
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
-	"github.com/tungstenfabric/tf-operator/pkg/k8s"
 
 	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
 
@@ -95,21 +94,17 @@ func resourceHandler(myclient client.Client) handler.Funcs {
 // Add creates a new Kubemanager Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	ci, err := k8s.ClusterInfoInstance()
-	if err != nil {
-		return err
-	}
-	return add(mgr, newReconciler(mgr, ci))
+	return add(mgr, newReconciler(mgr))
 }
 
-func newReconciler(mgr manager.Manager, ci *k8s.ClusterInfo) reconcile.Reconciler {
-	return NewReconciler(mgr.GetClient(), mgr.GetScheme(), mgr.GetConfig(), ci)
+func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+	return NewReconciler(mgr.GetClient(), mgr.GetScheme(), mgr.GetConfig())
 }
 
 // NewReconciler returns a new reconcile.Reconciler.
-func NewReconciler(client client.Client, scheme *runtime.Scheme, cfg *rest.Config, ci *k8s.ClusterInfo) reconcile.Reconciler {
+func NewReconciler(client client.Client, scheme *runtime.Scheme, cfg *rest.Config) reconcile.Reconciler {
 	return &ReconcileKubemanager{Client: client, Scheme: scheme,
-		Config: cfg, clusterInfo: ci}
+		Config: cfg}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler.
@@ -191,10 +186,9 @@ var _ reconcile.Reconciler = &ReconcileKubemanager{}
 type ReconcileKubemanager struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver.
-	Client      client.Client
-	Scheme      *runtime.Scheme
-	Config      *rest.Config
-	clusterInfo *k8s.ClusterInfo
+	Client client.Client
+	Scheme *runtime.Scheme
+	Config *rest.Config
 }
 
 // Reconcile reads that state of the cluster for a Kubemanager object and makes changes based on the state read
@@ -371,7 +365,7 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 	}
 	if len(podIPList) > 0 {
 
-		if err = instance.InstanceConfiguration(request, podIPList, r.Client, r.clusterInfo); err != nil {
+		if err = instance.InstanceConfiguration(request, podIPList, r.Client); err != nil {
 			reqLogger.Error(err, "InstanceConfiguration failed")
 			return reconcile.Result{}, err
 		}
@@ -432,7 +426,11 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 }
 
 func (r *ReconcileKubemanager) ensureCertificatesExist(instance *v1alpha1.Kubemanager, pods []corev1.Pod, instanceType string) error {
-	subjects := instance.PodsCertSubjects(pods)
+	domain, err := v1alpha1.ClusterDNSDomain(r.Client)
+	if err != nil {
+		return err
+	}
+	subjects := instance.PodsCertSubjects(domain, pods)
 	crt := certificates.NewCertificate(r.Client, r.Scheme, instance, subjects, instanceType)
 	return crt.EnsureExistsAndIsSigned()
 }

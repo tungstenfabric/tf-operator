@@ -231,8 +231,6 @@ spec:
                   type: string
                 kubernetesApiSecurePort:
                   type: string
-                kubernetesClusterName:
-                  type: string
                 kubernetesPodSubnets:
                   type: string
                 logDir:
@@ -316,8 +314,6 @@ spec:
                 tsnAgentMode:
                   description: TSN
                   type: string
-                useKubeadmConfig:
-                  type: boolean
                 vrouterCryptInterface:
                   type: string
                 vrouterDecryptInterface:
@@ -373,19 +369,10 @@ spec:
             nodes:
               additionalProperties:
                 type: string
-              type: object
-            ports:
               description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
                 of cluster Important: Run "operator-sdk generate k8s" to regenerate
                 code after modifying this file Add custom validation using kubebuilder
                 tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html'
-              properties:
-                analyticsPort:
-                  type: string
-                apiPort:
-                  type: string
-                collectorPort:
-                  type: string
               type: object
           type: object
       type: object

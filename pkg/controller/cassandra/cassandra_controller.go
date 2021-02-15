@@ -10,6 +10,7 @@ import (
 
 	"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1"
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1/templates"
+	"github.com/tungstenfabric/tf-operator/pkg/randomstring"
 
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
@@ -326,8 +327,8 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 			_, TPok := secret.Data["truststorePassword"]
 			if !KPok || !TPok {
 				secret.Data = map[string][]byte{
-					"keystorePassword":   []byte(v1alpha1.RandomString(10)),
-					"truststorePassword": []byte(v1alpha1.RandomString(10)),
+					"keystorePassword":   []byte(randomstring.RandString{10}.Generate()),
+					"truststorePassword": []byte(randomstring.RandString{10}.Generate()),
 				}
 				if err = r.Client.Update(context.TODO(), secret); err != nil {
 					return reconcile.Result{}, err
@@ -640,7 +641,11 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 }
 
 func (r *ReconcileCassandra) ensureCertificatesExist(cassandra *v1alpha1.Cassandra, pods []corev1.Pod, serviceIP string, instanceType string) error {
-	subjects := cassandra.PodsCertSubjects(pods, serviceIP)
+	domain, err := v1alpha1.ClusterDNSDomain(r.Client)
+	if err != nil {
+		return err
+	}
+	subjects := cassandra.PodsCertSubjects(domain, pods, serviceIP)
 	crt := certificates.NewCertificate(r.Client, r.Scheme, cassandra, subjects, instanceType)
 	return crt.EnsureExistsAndIsSigned()
 }

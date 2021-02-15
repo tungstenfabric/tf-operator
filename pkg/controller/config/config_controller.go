@@ -560,7 +560,11 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 }
 
 func (r *ReconcileConfig) ensureCertificatesExist(instance *v1alpha1.Config, pods []corev1.Pod, instanceType string) error {
-	subjects := instance.PodsCertSubjects(pods)
+	domain, err := v1alpha1.ClusterDNSDomain(r.Client)
+	if err != nil {
+		return err
+	}
+	subjects := instance.PodsCertSubjects(domain, pods)
 	crt := certificates.NewCertificate(r.Client, r.Scheme, instance, subjects, instanceType)
 	return crt.EnsureExistsAndIsSigned()
 }

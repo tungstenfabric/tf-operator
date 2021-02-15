@@ -13,7 +13,6 @@ import (
 
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1/templates"
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
-	"github.com/tungstenfabric/tf-operator/pkg/k8s"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -64,7 +63,6 @@ type KubemanagerServiceConfiguration struct {
 // KubemanagerConfiguration is the configuration for the kubemanagers API.
 // +k8s:openapi-gen=true
 type KubemanagerConfiguration struct {
-	UseKubeadmConfig      *bool        `json:"useKubeadmConfig,omitempty"`
 	Containers            []*Container `json:"containers,omitempty"`
 	ServiceAccount        string       `json:"serviceAccount,omitempty"`
 	ClusterRole           string       `json:"clusterRole,omitempty"`
@@ -104,8 +102,7 @@ func init() {
 // InstanceConfiguration creates kubemanager's instance sonfiguration
 func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 	podList []corev1.Pod,
-	client client.Client,
-	ci *k8s.ClusterInfo) error {
+	client client.Client) error {
 	instanceConfigMapName := request.Name + "-" + "kubemanager" + "-configmap"
 	configMapInstanceDynamicConfig := &corev1.ConfigMap{}
 	if err := client.Get(
@@ -157,7 +154,7 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 		rabbitmqSecretVhost = string(rabbitmqSecret.Data["vhost"])
 	}
 
-	kubemanagerConfig, err := c.ConfigurationParameters(ci)
+	kubemanagerConfig, err := c.ConfigurationParameters(client)
 	if err != nil {
 		return err
 	}
@@ -336,9 +333,9 @@ func (c *Kubemanager) PodIPListAndIPMapFromInstance(instanceType string, request
 }
 
 //PodsCertSubjects gets list of Kubemanager pods certificate subjets which can be passed to the certificate API
-func (c *Kubemanager) PodsCertSubjects(podList []corev1.Pod) []certificates.CertificateSubject {
+func (c *Kubemanager) PodsCertSubjects(domain string, podList []corev1.Pod) []certificates.CertificateSubject {
 	var altIPs PodAlternativeIPs
-	return PodsCertSubjects(podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
+	return PodsCertSubjects(domain, podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
 }
 
 // SetInstanceActive sets the Kubemanager instance to active.
@@ -367,9 +364,8 @@ func (c *Kubemanager) EnsureServiceAccount(
 }
 
 // ConfigurationParameters creates KubemanagerConfiguration
-func (c *Kubemanager) ConfigurationParameters(ci *k8s.ClusterInfo) (*KubemanagerConfiguration, error) {
+func (c *Kubemanager) ConfigurationParameters(client client.Client) (*KubemanagerConfiguration, error) {
 
-	var useKubeadmConfig bool = KubernetesUseKubeadm
 	var logLevel string = LogLevel
 	var cloudOrchestrator string = CloudOrchestrator
 	var kubernetesClusterName string = KubernetesClusterName
@@ -384,13 +380,9 @@ func (c *Kubemanager) ConfigurationParameters(ci *k8s.ClusterInfo) (*Kubemanager
 	var publicFIPPool string = KubernetesPublicFIPPool
 	var hostNetworkService bool = KubernetesHostNetworkService
 
-	cinfo, err := ci.ClusterParameters()
+	cinfo, err := ClusterParameters(client)
 	if err != nil {
 		return nil, err
-	}
-
-	if c.Spec.ServiceConfiguration.UseKubeadmConfig != nil {
-		useKubeadmConfig = *c.Spec.ServiceConfiguration.UseKubeadmConfig
 	}
 
 	if c.Spec.ServiceConfiguration.LogLevel != "" {
@@ -404,31 +396,19 @@ func (c *Kubemanager) ConfigurationParameters(ci *k8s.ClusterInfo) (*Kubemanager
 	if c.Spec.ServiceConfiguration.KubernetesClusterName != "" {
 		kubernetesClusterName = c.Spec.ServiceConfiguration.KubernetesClusterName
 	} else {
-		if useKubeadmConfig {
-			kubernetesClusterName = cinfo.ClusterName
-		}
+		kubernetesClusterName = cinfo.ClusterName
 	}
 
 	if c.Spec.ServiceConfiguration.KubernetesAPIServer != "" {
 		kubernetesApiServer = c.Spec.ServiceConfiguration.KubernetesAPIServer
 	} else {
-		if useKubeadmConfig {
-			kubernetesApiServer, err = cinfo.KubernetesAPIServer()
-			if err != nil {
-				return nil, err
-			}
-		}
+		kubernetesApiServer, err = cinfo.KubernetesAPIServer()
 	}
 
 	if c.Spec.ServiceConfiguration.KubernetesAPISSLPort != nil {
 		kubernetesApiSSLPort = *c.Spec.ServiceConfiguration.KubernetesAPISSLPort
 	} else {
-		if useKubeadmConfig {
-			kubernetesApiSSLPort, err = cinfo.KubernetesAPISSLPort()
-			if err != nil {
-				return nil, err
-			}
-		}
+		kubernetesApiSSLPort, err = cinfo.KubernetesAPISSLPort()
 	}
 
 	if c.Spec.ServiceConfiguration.KubernetesAPIPort != nil {
@@ -438,17 +418,13 @@ func (c *Kubemanager) ConfigurationParameters(ci *k8s.ClusterInfo) (*Kubemanager
 	if c.Spec.ServiceConfiguration.PodSubnets != "" {
 		podSubnets = c.Spec.ServiceConfiguration.PodSubnets
 	} else {
-		if useKubeadmConfig {
-			podSubnets = cinfo.Networking.PodSubnet
-		}
+		podSubnets = cinfo.Networking.PodSubnet
 	}
 
 	if c.Spec.ServiceConfiguration.ServiceSubnets != "" {
 		serviceSubnets = c.Spec.ServiceConfiguration.ServiceSubnets
 	} else {
-		if useKubeadmConfig {
-			serviceSubnets = cinfo.Networking.ServiceSubnet
-		}
+		serviceSubnets = cinfo.Networking.ServiceSubnet
 	}
 
 	if c.Spec.ServiceConfiguration.IPFabricSubnets != "" {
@@ -483,7 +459,6 @@ func (c *Kubemanager) ConfigurationParameters(ci *k8s.ClusterInfo) (*Kubemanager
 	kubemanagerConfiguration.IPFabricSubnets = ipFabricSubnets
 	kubemanagerConfiguration.IPFabricForwarding = &ipFabricForwarding
 	kubemanagerConfiguration.HostNetworkService = &hostNetworkService
-	kubemanagerConfiguration.UseKubeadmConfig = &useKubeadmConfig
 	kubemanagerConfiguration.IPFabricSnat = &ipFabricSnat
 	kubemanagerConfiguration.PublicFIPPool = publicFIPPool
 

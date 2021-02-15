@@ -18,6 +18,11 @@ import (
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 )
 
+// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
+// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // AnalyticsSnmp is the Schema for the Analytics SNMP API.
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
@@ -32,7 +37,7 @@ type AnalyticsSnmp struct {
 }
 
 // AnalyticsSnmpList contains a list of AnalyticsSnmp.
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:openapi-gen=true
 type AnalyticsSnmpList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -328,9 +333,9 @@ func (c *AnalyticsSnmp) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, 
 }
 
 //PodsCertSubjects gets list of Vrouter pods certificate subjets which can be passed to the certificate API
-func (c *AnalyticsSnmp) PodsCertSubjects(podList []corev1.Pod) []certificates.CertificateSubject {
+func (c *AnalyticsSnmp) PodsCertSubjects(domain string, podList []corev1.Pod) []certificates.CertificateSubject {
 	var altIPs PodAlternativeIPs
-	return PodsCertSubjects(podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
+	return PodsCertSubjects(domain, podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.

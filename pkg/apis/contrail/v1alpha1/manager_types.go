@@ -10,6 +10,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // ManagerSpec defines the desired state of Manager.
 // +k8s:openapi-gen=true
 type ManagerSpec struct {
@@ -91,6 +93,12 @@ type ManagerConfiguration struct {
 	// Use 0.0.0.0 for isntrospection ports
 	// +optional
 	IntrospectListenAll *bool `json:"introspectListenAll,omitempty"`
+	// Read cluster parameters from kubeadm config map
+	// +optional
+	UseKubeadmConfig *bool `json:"useKubeadmConfig,omitempty"`
+	// Kubernetes Cluster Configuration
+	// +optional
+	ClusterConfig *KubernetesClusterConfig `json:"clusterConfig,omitempty"`
 }
 
 // ManagerStatus defines the observed state of Manager.

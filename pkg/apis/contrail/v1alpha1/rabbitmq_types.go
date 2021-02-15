@@ -84,21 +84,7 @@ func init() {
 func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 	podList []corev1.Pod,
 	client client.Client) error {
-	instanceConfigMapName := request.Name + "-" + "rabbitmq" + "-configmap"
-	configMapInstanceDynamicConfig := &corev1.ConfigMap{}
-	err := client.Get(context.TODO(),
-		types.NamespacedName{Name: instanceConfigMapName, Namespace: request.Namespace},
-		configMapInstanceDynamicConfig)
-	if err != nil {
-		return err
-	}
-	configMapInstancConfig := &corev1.ConfigMap{}
-	err = client.Get(context.TODO(),
-		types.NamespacedName{Name: request.Name + "-" + "rabbitmq" + "-configmap-runner", Namespace: request.Namespace},
-		configMapInstancConfig)
-	if err != nil {
-		return err
-	}
+
 	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
 
 	rabbitmqConfig := c.ConfigurationParameters()
@@ -123,31 +109,32 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 				rabbitmqConfigString = rabbitmqConfigString + fmt.Sprintf("cluster_formation.classic_config.nodes."+strconv.Itoa(podIndex+1)+" = rabbit@"+pod.Status.PodIP+"\n")
 			}
 		}
-		data["rabbitmq.conf"] = rabbitmqConfigString
+		data["rabbitmq.conf."+pod.Status.PodIP] = rabbitmqConfigString
 		rabbitmqEnvConfigString := fmt.Sprintf("HOME=/var/lib/rabbitmq\n")
 		// TODO: tmp disable, because inet_dist_listen_min must be set correctly
 		// rabbitmqEnvConfigString = rabbitmqEnvConfigString + fmt.Sprintf("CTL_ERL_ARGS=\"-proto_dist inet_tls\"\n")
 		rabbitmqEnvConfigString = rabbitmqEnvConfigString + fmt.Sprintf("NODENAME=rabbit@%s\n", pod.Status.PodIP)
-		data["rabbitmq-env.conf"] = rabbitmqEnvConfigString
+		data["rabbitmq-env.conf."+pod.Status.PodIP] = rabbitmqEnvConfigString
 	}
 
-	data["RABBITMQ_ERLANG_COOKIE"] = rabbitmqConfig.ErlangCookie
-	data["RABBITMQ_CONFIG_FILE"] = "/etc/rabbitmq/rabbitmq.conf"
-	data["RABBITMQ_CONF_ENV_FILE"] = "/etc/rabbitmq/rabbitmq-env.conf"
-	data["RABBITMQ_ENABLED_PLUGINS_FILE"] = "/etc/rabbitmq/plugins.conf"
-	data["RABBITMQ_USE_LONGNAME"] = "true"
-	data["RABBITMQ_PID_FILE"] = "/var/run/rabbitmq.pid"
-
-	configMapInstanceDynamicConfig.Data = data
 	var rabbitmqNodes string
 	for _, pod := range podList {
 		myidString := pod.Name[len(pod.Name)-1:]
-		configMapInstanceDynamicConfig.Data[myidString] = pod.Status.PodIP
+		data[myidString] = pod.Status.PodIP
 		rabbitmqNodes = rabbitmqNodes + fmt.Sprintf("%s\n", pod.Status.PodIP)
 	}
 
-	configMapInstanceDynamicConfig.Data["rabbitmq.nodes"] = rabbitmqNodes
-	configMapInstanceDynamicConfig.Data["plugins.conf"] = "[rabbitmq_management,rabbitmq_management_agent,rabbitmq_peer_discovery_k8s]."
+	data["rabbitmq.nodes"] = rabbitmqNodes
+	data["plugins.conf"] = "[rabbitmq_management,rabbitmq_management_agent,rabbitmq_peer_discovery_k8s]."
+
+	// common env vars
+	rabbitmqCommonEnvString := fmt.Sprintf("export RABBITMQ_ERLANG_COOKIE=%s\n", rabbitmqConfig.ErlangCookie)
+	rabbitmqCommonEnvString = rabbitmqCommonEnvString + fmt.Sprintf("export RABBITMQ_CONFIG_FILE=/etc/rabbitmq/rabbitmq.conf\n")
+	rabbitmqCommonEnvString = rabbitmqCommonEnvString + fmt.Sprintf("export RABBITMQ_CONF_ENV_FILE=/etc/rabbitmq/rabbitmq-env.conf\n")
+	rabbitmqCommonEnvString = rabbitmqCommonEnvString + fmt.Sprintf("export RABBITMQ_ENABLED_PLUGINS_FILE=/etc/rabbitmq/plugins.conf\n")
+	rabbitmqCommonEnvString = rabbitmqCommonEnvString + fmt.Sprintf("export RABBITMQ_USE_LONGNAME=true\n")
+	rabbitmqCommonEnvString = rabbitmqCommonEnvString + fmt.Sprintf("export RABBITMQ_PID_FILE=/var/run/rabbitmq.pid\n")
+	data["rabbitmq-common.env"] = rabbitmqCommonEnvString
 
 	var secretName string
 	secret := &corev1.Secret{}
@@ -156,7 +143,7 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 	} else {
 		secretName = request.Name + "-secret"
 	}
-	err = client.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: request.Namespace}, secret)
+	err := client.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: request.Namespace}, secret)
 	if err != nil {
 		return err
 	}
@@ -168,20 +155,12 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 	}
 
 	saltedP := append(salt[:], secret.Data["password"]...)
-
 	hash := sha256.New()
-
-	_, err = hash.Write(saltedP)
-
-	if err != nil {
+	if _, err := hash.Write(saltedP); err != nil {
 		return err
 	}
-
 	hashPass := hash.Sum(nil)
-
 	saltedP = append(salt[:], hashPass...)
-
-	//rabbitmqPasswordString := string(secret.Data["password"])
 
 	var rabbitmqDefinitionBuffer bytes.Buffer
 	configtemplates.RabbitmqDefinition.Execute(&rabbitmqDefinitionBuffer, struct {
@@ -189,23 +168,35 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 		RabbitmqPassword string
 		RabbitmqVhost    string
 	}{
-		RabbitmqUser: string(secret.Data["user"]),
-		//RabbitmqPassword: base64.StdEncoding.EncodeToString([]byte(rabbitmqConfig.Password)),
-		//RabbitmqPassword: rabbitmqPasswordString,
+		RabbitmqUser:     string(secret.Data["user"]),
 		RabbitmqPassword: base64.StdEncoding.EncodeToString(saltedP),
 		RabbitmqVhost:    string(secret.Data["vhost"]),
 	})
-	configMapInstanceDynamicConfig.Data["definitions.json"] = rabbitmqDefinitionBuffer.String()
+	data["definitions.json"] = rabbitmqDefinitionBuffer.String()
 
+	configMapInstanceDynamicConfig := &corev1.ConfigMap{}
+	err = client.Get(context.TODO(),
+		types.NamespacedName{Name: request.Name + "-" + "rabbitmq" + "-configmap", Namespace: request.Namespace},
+		configMapInstanceDynamicConfig)
+	if err != nil {
+		return err
+	}
+	configMapInstanceDynamicConfig.Data = data
 	err = client.Update(context.TODO(), configMapInstanceDynamicConfig)
 	if err != nil {
 		return err
 	}
 
+	configMapInstancConfig := &corev1.ConfigMap{}
+	err = client.Get(context.TODO(),
+		types.NamespacedName{Name: request.Name + "-" + "rabbitmq" + "-configmap-runner", Namespace: request.Namespace},
+		configMapInstancConfig)
+	if err != nil {
+		return err
+	}
 	var rabbitmqConfigBuffer bytes.Buffer
 	configtemplates.RabbitmqConfig.Execute(&rabbitmqConfigBuffer, struct{}{})
 	configMapInstancConfig.Data = map[string]string{"run.sh": rabbitmqConfigBuffer.String()}
-
 	err = client.Update(context.TODO(), configMapInstancConfig)
 	if err != nil {
 		return err
@@ -301,9 +292,9 @@ func (c *Rabbitmq) PodIPListAndIPMapFromInstance(instanceType string, request re
 }
 
 //PodsCertSubjects gets list of Rabbitmq pods certificate subjets which can be passed to the certificate API
-func (c *Rabbitmq) PodsCertSubjects(podList []corev1.Pod) []certificates.CertificateSubject {
+func (c *Rabbitmq) PodsCertSubjects(domain string, podList []corev1.Pod) []certificates.CertificateSubject {
 	var altIPs PodAlternativeIPs
-	return PodsCertSubjects(podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
+	return PodsCertSubjects(domain, podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
 }
 
 // SetInstanceActive sets the Cassandra instance to active.

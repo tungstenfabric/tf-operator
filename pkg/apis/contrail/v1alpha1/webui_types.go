@@ -57,11 +57,13 @@ type WebuiConfiguration struct {
 	KeystoneSecretName string       `json:"keystoneSecretName,omitempty"`
 }
 
+// +k8s:openapi-gen=true
 type WebUIStatusPorts struct {
 	WebUIHttpPort  int `json:"webUIHttpPort,omitempty"`
 	WebUIHttpsPort int `json:"webUIHttpsPort,omitempty"`
 }
 
+// +k8s:openapi-gen=true
 type WebUIServiceStatus struct {
 	ModuleName  string `json:"moduleName,omitempty"`
 	ModuleState string `json:"state"`
@@ -76,17 +78,18 @@ type WebuiStatus struct {
 	Endpoint      string                           `json:"endpoint,omitempty"`
 }
 
+// +k8s:openapi-gen=true
 type WebUIServiceStatusMap map[string]WebUIServiceStatus
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 // WebuiList contains a list of Webui.
+// +k8s:openapi-gen=true
 type WebuiList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Webui `json:"items"`
 }
 
+// +k8s:openapi-gen=true
 type keystoneEndpoint struct {
 	address           string
 	port              int
@@ -286,9 +289,9 @@ func (c *Webui) PodIPListAndIPMapFromInstance(instanceType string, request recon
 }
 
 //PodsCertSubjects gets list of Config pods certificate subjets which can be passed to the certificate API
-func (c *Webui) PodsCertSubjects(podList []corev1.Pod) []certificates.CertificateSubject {
+func (c *Webui) PodsCertSubjects(domain string, podList []corev1.Pod) []certificates.CertificateSubject {
 	var altIPs PodAlternativeIPs
-	return PodsCertSubjects(podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
+	return PodsCertSubjects(domain, podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
 }
 
 // SetInstanceActive sets the Webui instance to active.

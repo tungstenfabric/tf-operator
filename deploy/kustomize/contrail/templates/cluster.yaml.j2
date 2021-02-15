@@ -1,0 +1,18 @@
+---
+apiVersion: contrail.juniper.net/v1alpha1
+kind: Manager
+metadata:
+  name: cluster1
+  namespace: contrail
+spec:
+  commonConfiguration:
+{%- if DEPLOYER is defined and DEPLOYER == "openshift" -%}
+    useKubeadmConfig: false
+    podSubnets: {{ K8S_PODE_SUBNETS | default("10.128.0.0/14") }}
+    serviceSubnets: {{ K8S_SERVICE_SUBNETS | default("172.30.0.0/16") }}
+    kubernetesClusterName: {{ K8S_CLUSTER_NAME | default("test") }}
+    dnsDomain: {{ K8S_CLUSTER_DOMAIN | default("cluster.local") }}
+    cniConfig
+      configPath: "/etc/kubernetes/cni"
+      binratyPath: "/var/lib/cni/bin"
+{%- endif -%}

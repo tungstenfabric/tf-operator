@@ -11,9 +11,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
-
-	mRand "math/rand"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -36,14 +33,9 @@ import (
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
 )
 
-var src = mRand.NewSource(time.Now().UnixNano())
+// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-const (
-	letterBytes   = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	letterIdxBits = 6                    // 6 bits to represent a letter index
-	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
-	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
-)
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Container defines name, image and command.
 // +k8s:openapi-gen=true
@@ -283,7 +275,7 @@ type PodAlternativeIPs struct {
 
 // PodsCertSubjects iterates over passed list of pods and for every pod prepares certificate subject
 // which can be later used for generating certificate for given pod.
-func PodsCertSubjects(podList []corev1.Pod, hostNetwork *bool, podAltIPs PodAlternativeIPs) []certificates.CertificateSubject {
+func PodsCertSubjects(domain string, podList []corev1.Pod, hostNetwork *bool, podAltIPs PodAlternativeIPs) []certificates.CertificateSubject {
 	var pods []certificates.CertificateSubject
 	useNodeName := true
 	if hostNetwork != nil {
@@ -305,7 +297,7 @@ func PodsCertSubjects(podList []corev1.Pod, hostNetwork *bool, podAltIPs PodAlte
 				alternativeIPs = append(alternativeIPs, altIPs...)
 			}
 		}
-		podInfo := certificates.NewSubject(pod.Name, hostname, pod.Status.PodIP, alternativeIPs)
+		podInfo := certificates.NewSubject(pod.Name, domain, hostname, pod.Status.PodIP, alternativeIPs)
 		pods = append(pods, podInfo)
 	}
 	return pods
@@ -633,25 +625,7 @@ func SetInstanceActive(client client.Client, activeStatus *bool, sts *appsv1.Sta
 	return nil
 }
 
-// RandomString creates a random string of size
-func RandomString(size int) string {
-	b := make([]byte, size)
-	// A src.Int63() generates 63 random bits, enough for letterIdxMax letters!
-	for i, cache, remain := size-1, src.Int63(), letterIdxMax; i >= 0; {
-		if remain == 0 {
-			cache, remain = src.Int63(), letterIdxMax
-		}
-		if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
-			b[i] = letterBytes[idx]
-			i--
-		}
-		cache >>= letterIdxBits
-		remain--
-	}
-	return string(b)
-}
-
-func getPodsHostname(c client.Reader, pod *corev1.Pod) (string, error) {
+func getPodsHostname(c client.Client, pod *corev1.Pod) (string, error) {
 	if !pod.Spec.HostNetwork {
 		return pod.Spec.Hostname, nil
 	}
@@ -665,7 +639,7 @@ func getPodsHostname(c client.Reader, pod *corev1.Pod) (string, error) {
 			// TODO: until moved to latest operator framework FQDN for pod is not available
 			// so, artificially use FQDN based on host domain
 			// TODO: commonize things between pods
-			dnsDomain, err := k8s.ClusterDNSDomain()
+			dnsDomain, err := ClusterDNSDomain(c)
 			if err != nil || dnsDomain == "" || strings.HasSuffix(a.Address, dnsDomain) {
 				return a.Address, nil
 			}

@@ -172,6 +172,7 @@ spec:
           - serviceConfiguration
           type: object
         status:
+          description: ControlStatus defines the observed state of Control.
           properties:
             active:
               type: boolean

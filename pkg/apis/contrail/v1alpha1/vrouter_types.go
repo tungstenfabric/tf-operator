@@ -5,13 +5,13 @@ import (
 	"bytes"
 	"context"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1/templates"
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
-	"github.com/tungstenfabric/tf-operator/pkg/k8s"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -25,8 +25,6 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
-
-var vrouter_log = logf.Log.WithName("controller_vrouter")
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -54,7 +52,6 @@ type VrouterStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html
-	Ports               ConfigStatusPorts `json:"ports,omitempty"`
 	Nodes               map[string]string `json:"nodes,omitempty"`
 	Active              *bool             `json:"active,omitempty"`
 	ActiveOnControllers *bool             `json:"activeOnControllers,omitempty"`
@@ -147,8 +144,6 @@ type VrouterConfiguration struct {
 	KubernetesApiPort       string `json:"kubernetesApiPort,omitempty"`
 	KubernetesApiSecurePort string `json:"kubernetesApiSecurePort,omitempty"`
 	KubernetesPodSubnets    string `json:"kubernetesPodSubnets,omitempty"`
-	KubernetesClusterName   string `json:"kubernetesClusterName,omitempty"`
-	UseKubeadmConfig        *bool  `json:"useKubeadmConfig,omitempty"`
 
 	// Logging
 	LogDir   string `json:"logDir,omitempty"`
@@ -223,15 +218,15 @@ type VrouterNodesConfiguration struct {
 	ConfigNodesConfiguration  *ConfigClusterConfiguration  `json:"configNodesConfiguration,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 // VrouterList contains a list of Vrouter.
+// +k8s:openapi-gen=true
 type VrouterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Vrouter `json:"items"`
 }
 
+// +k8s:openapi-gen=true
 type Distribution string
 
 const (
@@ -239,6 +234,8 @@ const (
 	CENTOS Distribution = "centos"
 	UBUNTU Distribution = "ubuntu"
 )
+
+var vrouter_log = logf.Log.WithName("controller_vrouter")
 
 func init() {
 	SchemeBuilder.Register(&Vrouter{}, &VrouterList{})
@@ -460,9 +457,9 @@ func (c *Vrouter) PodIPListAndIPMapFromInstance(instanceType string, request rec
 }
 
 //PodsCertSubjects gets list of Vrouter pods certificate subjets which can be passed to the certificate API
-func (c *Vrouter) PodsCertSubjects(podList []corev1.Pod) []certificates.CertificateSubject {
+func (c *Vrouter) PodsCertSubjects(domain string, podList []corev1.Pod) []certificates.CertificateSubject {
 	var altIPs PodAlternativeIPs
-	return PodsCertSubjects(podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
+	return PodsCertSubjects(domain, podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
 }
 
 // CreateEnvConfigMap creates vRouter configMaps with rendered values
@@ -472,7 +469,10 @@ func (c *Vrouter) CreateEnvConfigMap(instanceType string, client client.Client, 
 	if err != nil {
 		return nil, err
 	}
-	envVariablesConfigMap.Data = c.getVrouterEnvironmentData()
+	envVariablesConfigMap.Data, err = c.getVrouterEnvironmentData(client)
+	if err != nil {
+		return nil, err
+	}
 	return envVariablesConfigMap, client.Update(context.TODO(), envVariablesConfigMap)
 }
 
@@ -507,7 +507,12 @@ func (c *Vrouter) ManageNodeStatus(podNameIPMap map[string]string,
 }
 
 // VrouterConfigurationParameters is a method for gathering data used in rendering vRouter configuration
-func (c *Vrouter) VrouterConfigurationParameters() *VrouterConfiguration {
+func (c *Vrouter) VrouterConfigurationParameters(client client.Client) (*VrouterConfiguration, error) {
+	cinfo, err := ClusterParameters(client)
+	if err != nil {
+		return nil, err
+	}
+
 	vrouterConfiguration := c.Spec.ServiceConfiguration.DeepCopy()
 
 	trueVal := true
@@ -585,16 +590,28 @@ func (c *Vrouter) VrouterConfigurationParameters() *VrouterConfiguration {
 		vrouterConfiguration.IntrospectSslEnable = vrouterConfiguration.SslEnable
 	}
 
-	return vrouterConfiguration
+	if vrouterConfiguration.KubernetesApiSecurePort == "" {
+		p, err := cinfo.KubernetesAPISSLPort()
+		if err != nil {
+			return nil, err
+		}
+		vrouterConfiguration.KubernetesApiSecurePort = strconv.Itoa(p)
+	}
+	if vrouterConfiguration.KubernetesPodSubnets == "" {
+		vrouterConfiguration.KubernetesPodSubnets = cinfo.Networking.PodSubnet
+	}
+
+	return vrouterConfiguration, nil
 }
 
-func (c *Vrouter) getVrouterEnvironmentData() map[string]string {
-	vrouterConfig := c.VrouterConfigurationParameters()
+func (c *Vrouter) getVrouterEnvironmentData(clnt client.Client) (map[string]string, error) {
 	envVariables := make(map[string]string)
-	for key, value := range vrouterConfig.EnvVariablesConfig {
-		envVariables[key] = value
+	if vrouterConfig, err := c.VrouterConfigurationParameters(clnt); err == nil {
+		for key, value := range vrouterConfig.EnvVariablesConfig {
+			envVariables[key] = value
+		}
 	}
-	return envVariables
+	return envVariables, nil
 }
 
 // GetNodeDSPod returns daemonset pod by name
@@ -669,9 +686,11 @@ func (c *Vrouter) GetConfigNodes(clnt client.Client) string {
 }
 
 // GetParamsEnv returns agent params (str comma separated)
-func (c *Vrouter) GetParamsEnv(clusterParams *ClusterParams) string {
-	vrouterConfig := c.VrouterConfigurationParameters()
-
+func (c *Vrouter) GetParamsEnv(clnt client.Client, clusterParams *ClusterParams) (string, error) {
+	vrouterConfig, err := c.VrouterConfigurationParameters(clnt)
+	if err != nil {
+		return "", err
+	}
 	var vrouterManifestParamsEnv bytes.Buffer
 	configtemplates.VRouterAgentParams.Execute(&vrouterManifestParamsEnv, struct {
 		ServiceConfig VrouterConfiguration
@@ -680,7 +699,7 @@ func (c *Vrouter) GetParamsEnv(clusterParams *ClusterParams) string {
 		ServiceConfig: *vrouterConfig,
 		ClusterParams: *clusterParams,
 	})
-	return vrouterManifestParamsEnv.String()
+	return vrouterManifestParamsEnv.String(), nil
 }
 
 // VrouterPod is a pod, created by vrouter.
@@ -787,34 +806,15 @@ func (c *Vrouter) GetAgentConfigsForPod(vrouterPod *VrouterPod, hostVars *map[st
 
 // GetCNIConfig creates CNI plugin config
 func (c *Vrouter) GetCNIConfig(client client.Client, request reconcile.Request) (string, error) {
-	// TODO: it might be not good to have here this code
-	cinfo, err := k8s.ClusterInfoInstance()
+	cfg, err := ClusterParameters(client)
 	if err != nil {
 		return "", err
 	}
-
-	var useKubeadmConfig bool = KubernetesUseKubeadm
-	if c.Spec.ServiceConfiguration.UseKubeadmConfig != nil {
-		useKubeadmConfig = *c.Spec.ServiceConfiguration.UseKubeadmConfig
-	}
-	kubernetesClusterName := KubernetesClusterName
-	if c.Spec.ServiceConfiguration.KubernetesClusterName != "" {
-		kubernetesClusterName = c.Spec.ServiceConfiguration.KubernetesClusterName
-	} else {
-		if useKubeadmConfig {
-			cfg, err := cinfo.ClusterParameters()
-			if err != nil {
-				return "", err
-			}
-			kubernetesClusterName = cfg.ClusterName
-		}
-	}
-
 	var contrailCNIBuffer bytes.Buffer
 	configtemplates.ContrailCNIConfig.Execute(&contrailCNIBuffer, struct {
 		KubernetesClusterName string
 	}{
-		KubernetesClusterName: kubernetesClusterName,
+		KubernetesClusterName: cfg.ClusterName,
 	})
 	return contrailCNIBuffer.String(), nil
 }
@@ -878,7 +878,10 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 	log := vrouter_log.WithName("UpdateAgent").WithValues("nodeName", nodeName)
 	clusterParams := ClusterParams{ConfigNodes: c.GetConfigNodes(clnt), ControlNodes: c.GetControlNodes(clnt)}
 	log.Info("UpdateAgent start", "clusterParams", clusterParams)
-	params := c.GetParamsEnv(&clusterParams)
+	params, err := c.GetParamsEnv(clnt, &clusterParams)
+	if err != nil {
+		return true, err
+	}
 	paramsSha256 := EncryptString(params)
 
 	if agentStatus.EncryptedParams != paramsSha256 {

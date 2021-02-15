@@ -1,6 +1,7 @@
 package vrouter
 
 import (
+	"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1"
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	apps "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
@@ -9,7 +10,7 @@ import (
 )
 
 //GetDaemonset returns DaemonSet object for vRouter
-func GetDaemonset(cloudOrchestrator string) *apps.DaemonSet {
+func GetDaemonset(cniCfg *v1alpha1.CNIConfig, cloudOrchestrator string) *apps.DaemonSet {
 	var labelsMountPermission int32 = 0644
 	var trueVal = true
 
@@ -156,10 +157,6 @@ func GetDaemonset(cloudOrchestrator string) *apps.DaemonSet {
 				{
 					Name:      "cni-config-files",
 					MountPath: "/host/etc_cni",
-				},
-				{
-					Name:      "etc-kubernetes-cni",
-					MountPath: "/etc/kubernetes/cni",
 				},
 				{
 					Name:      "cni-bin",
@@ -346,7 +343,7 @@ func GetDaemonset(cloudOrchestrator string) *apps.DaemonSet {
 			Name: "cni-config-files",
 			VolumeSource: core.VolumeSource{
 				HostPath: &core.HostPathVolumeSource{
-					Path: "/etc/cni",
+					Path: cniCfg.ConfigPath,
 				},
 			},
 		},
@@ -354,16 +351,7 @@ func GetDaemonset(cloudOrchestrator string) *apps.DaemonSet {
 			Name: "cni-bin",
 			VolumeSource: core.VolumeSource{
 				HostPath: &core.HostPathVolumeSource{
-					// TODO: allow to overwrite via params
-					Path: "/opt/cni/bin",
-				},
-			},
-		},
-		{
-			Name: "etc-kubernetes-cni",
-			VolumeSource: core.VolumeSource{
-				HostPath: &core.HostPathVolumeSource{
-					Path: "/etc/kubernetes/cni",
+					Path: cniCfg.BinaryPath,
 				},
 			},
 		},

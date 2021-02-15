@@ -139,6 +139,7 @@ spec:
               description: ConfigConfiguration is the Spec for the Config API.
               properties:
                 aaaMode:
+                  description: AAAMode aaa mode
                   enum:
                   - noauth
                   - rbac
@@ -169,6 +170,7 @@ spec:
                 apiPort:
                   type: integer
                 authMode:
+                  description: AuthenticationMode auth mode
                   enum:
                   - noauth
                   - keystone
@@ -226,12 +228,9 @@ spec:
           - serviceConfiguration
           type: object
         status:
+          description: ConfigStatus status of Config
           properties:
             active:
-              description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
-                of cluster Important: Run "operator-sdk generate k8s" to regenerate
-                code after modifying this file Add custom validation using kubebuilder
-                tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html'
               type: boolean
             configChanged:
               type: boolean
@@ -240,32 +239,6 @@ spec:
             nodes:
               additionalProperties:
                 type: string
-              type: object
-            ports:
-              properties:
-                analyticsPort:
-                  type: string
-                apiPort:
-                  type: string
-                collectorPort:
-                  type: string
-              type: object
-            serviceStatus:
-              additionalProperties:
-                additionalProperties:
-                  properties:
-                    description:
-                      type: string
-                    moduleName:
-                      type: string
-                    nodeName:
-                      type: string
-                    state:
-                      type: string
-                  required:
-                  - state
-                  type: object
-                type: object
               type: object
           type: object
       type: object

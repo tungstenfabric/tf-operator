@@ -97,6 +97,8 @@ const (
 	CassandraConfigConcurrectReads              int    = 64
 	CassandraConfigConcurrectWrites             int    = 64
 	CassandraConfigMemtableAllocationType       string = "offheap_objects"
+	CNIConfigPath                               string = "/etc/cni"
+	CNIBinaryPath                               string = "/opt/cni/bin"
 	ControlNodes                                string = ""
 	ControlIntrospectPort                       int    = 8083
 	DnsNodes                                    string = ""
@@ -170,7 +172,7 @@ const (
 	KubernetesIPFabricSnat                      bool   = true
 	KubernetesPublicFIPPool                     string = "{'project' : 'k8s-default', 'domain': 'default-domain', 'name': '__fip_pool_public__' , 'network' : '__public__'}"
 	KubernetesHostNetworkService                bool   = false
-	KubernetesUseKubeadm                        bool   = false
+	KubernetesUseKubeadm                        bool   = true
 	KubernetesServiceAccount                    string = ""
 	VcenterFabricManagerNodes                   string = ""
 	MetadataProxySecret                         string = "contrail"

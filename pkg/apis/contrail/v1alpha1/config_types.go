@@ -13,36 +13,43 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1/templates"
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-)
-
-var log = logf.Log.WithName("controller_config")
-
-// +kubebuilder:validation:Enum=noauth;keystone
-type AuthenticationMode string
-
-const (
-	AuthenticationModeNoAuth   AuthenticationMode = "noauth"
-	AuthenticationModeKeystone AuthenticationMode = "keystone"
-)
-
-// +kubebuilder:validation:Enum=noauth;rbac
-type AAAMode string
-
-const (
-	AAAModeNoAuth     AAAMode = "no-auth"
-	AAAModeRBAC       AAAMode = "rbac"
-	AAAModeCloudAdmin AAAMode = "cloud-admin"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// AuthenticationMode auth mode
+// +k8s:openapi-gen=true
+// +kubebuilder:validation:Enum=noauth;keystone
+type AuthenticationMode string
+
+const (
+	// AuthenticationModeNoAuth No auth mode
+	AuthenticationModeNoAuth AuthenticationMode = "noauth"
+	// AuthenticationModeKeystone Keytsone aith mode
+	AuthenticationModeKeystone AuthenticationMode = "keystone"
+)
+
+// AAAMode aaa mode
+// +k8s:openapi-gen=true
+// +kubebuilder:validation:Enum=noauth;rbac
+type AAAMode string
+
+const (
+	// AAAModeNoAuth no auth
+	AAAModeNoAuth AAAMode = "no-auth"
+	// AAAModeRBAC auth mode rbac
+	AAAModeRBAC AAAMode = "rbac"
+	// AAAModeCloudAdmin auth mode cloud-admin
+	AAAModeCloudAdmin AAAMode = "cloud-admin"
+)
 
 // Config is the Schema for the configs API.
 // +k8s:openapi-gen=true
@@ -102,47 +109,24 @@ type ConfigConfiguration struct {
 	AnalyticsFlowTTL *int `json:"analyticsFlowTTL,omitempty"`
 }
 
+// ConfigStatus status of Config
 // +k8s:openapi-gen=true
 type ConfigStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
-	// Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html
-	Active        *bool                             `json:"active,omitempty"`
-	Nodes         map[string]string                 `json:"nodes,omitempty"`
-	Ports         ConfigStatusPorts                 `json:"ports,omitempty"`
-	ServiceStatus map[string]ConfigServiceStatusMap `json:"serviceStatus,omitempty"`
-	Endpoint      string                            `json:"endpoint,omitempty"`
-	ConfigChanged *bool                             `json:"configChanged,omitempty"`
+	Active        *bool             `json:"active,omitempty"`
+	Nodes         map[string]string `json:"nodes,omitempty"`
+	Endpoint      string            `json:"endpoint,omitempty"`
+	ConfigChanged *bool             `json:"configChanged,omitempty"`
 }
 
-type ConfigServiceStatusMap map[string]ConfigServiceStatus
-
-type ConfigConnectionInfo struct {
-	Name          string   `json:"name,omitempty"`
-	Status        string   `json:"status,omitempty"`
-	ServerAddress []string `json:"serverAddress,omitempty"`
-}
-
-type ConfigServiceStatus struct {
-	NodeName    string `json:"nodeName,omitempty"`
-	ModuleName  string `json:"moduleName,omitempty"`
-	ModuleState string `json:"state"`
-	Description string `json:"description,omitempty"`
-}
-
-type ConfigStatusPorts struct {
-	APIPort       string `json:"apiPort,omitempty"`
-	AnalyticsPort string `json:"analyticsPort,omitempty"`
-	CollectorPort string `json:"collectorPort,omitempty"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // ConfigList contains a list of Config.
+// +k8s:openapi-gen=true
 type ConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Config `json:"items"`
 }
+
+var log = logf.Log.WithName("controller_config")
 
 func init() {
 	SchemeBuilder.Register(&Config{}, &ConfigList{})
@@ -713,9 +697,9 @@ func (c *Config) PodIPListAndIPMapFromInstance(request reconcile.Request, reconc
 }
 
 //PodsCertSubjects gets list of Config pods certificate subjets which can be passed to the certificate API
-func (c *Config) PodsCertSubjects(podList []corev1.Pod) []certificates.CertificateSubject {
+func (c *Config) PodsCertSubjects(domain string, podList []corev1.Pod) []certificates.CertificateSubject {
 	var altIPs PodAlternativeIPs
-	return PodsCertSubjects(podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
+	return PodsCertSubjects(domain, podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
 }
 
 func (c *Config) SetPodsToReady(podIPList []corev1.Pod, client client.Client) error {
@@ -725,10 +709,6 @@ func (c *Config) SetPodsToReady(podIPList []corev1.Pod, client client.Client) er
 // ManageNodeStatus updates nodes in status
 func (c *Config) ManageNodeStatus(podNameIPMap map[string]string, client client.Client) error {
 	c.Status.Nodes = podNameIPMap
-	configConfig := c.ConfigurationParameters()
-	c.Status.Ports.APIPort = strconv.Itoa(*configConfig.APIPort)
-	c.Status.Ports.AnalyticsPort = strconv.Itoa(*configConfig.AnalyticsPort)
-	c.Status.Ports.CollectorPort = strconv.Itoa(*configConfig.CollectorPort)
 	err := client.Status().Update(context.TODO(), c)
 	if err != nil {
 		return err
