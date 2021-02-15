@@ -419,7 +419,7 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 		case "redis":
 			if container.Command == nil {
 				command := []string{"bash", "-c",
-					"exec redis-server --lua-time-limit 15000 --dbfilename '' --bind 127.0.0.1 ${POD_IP} --port 6379",
+					"exec redis-server --lua-time-limit 15000 --dbfilename '' --bind 127.0.0.1 --port 6379",
 				}
 				container.Command = command
 			}
@@ -429,7 +429,7 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 				PeriodSeconds:    3,
 				Handler: corev1.Handler{
 					Exec: &corev1.ExecAction{
-						Command: []string{"sh", "-c", "redis-cli -h ${POD_IP} -p 6379 ping"},
+						Command: []string{"sh", "-c", "redis-cli -h 127.0.0.1 -p 6379 ping"},
 					},
 				},
 			}
@@ -438,12 +438,26 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 				PeriodSeconds:    3,
 				Handler: corev1.Handler{
 					Exec: &corev1.ExecAction{
-						Command: []string{"sh", "-c", "redis-cli -h ${POD_IP} -p 6379 ping"},
+						Command: []string{"sh", "-c", "redis-cli -h 127.0.0.1 -p 6379 ping"},
 					},
 				},
 			}
 			container.ReadinessProbe = &readinessProbe
 			container.StartupProbe = &startupProbe
+
+		case "stunnel":
+			if container.Command == nil {
+				command := []string{"bash", "-c",
+					"mkdir -p /etc/stunnel /var/run/stunnel; " +
+						"while [ ! -e /etc/certificates/server-key-${POD_IP}.pem ] ; do sleep 1; done ; " +
+						"while [ ! -e /etc/certificates/server-${POD_IP}.crt ] ; do sleep 1; done ; " +
+						"while [ ! -e /etc/contrailconfigmaps/stunnel.${POD_IP} ] ; do sleep 1; done ; " +
+						"cat /etc/certificates/server-key-${POD_IP}.pem /etc/certificates/server-${POD_IP}.crt > /etc/stunnel/private.pem; " +
+						"chmod 600 /etc/stunnel/private.pem; " +
+						"exec stunnel /etc/contrailconfigmaps/stunnel.${POD_IP}",
+				}
+				container.Command = command
+			}
 
 		case "nodemanagerconfig":
 			if container.Command == nil {
