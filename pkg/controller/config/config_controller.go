@@ -505,11 +505,6 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 			return reconcile.Result{}, err
 		}
 
-		if err = instance.WaitForPeerPods(request, r.Client); err != nil {
-			reqLogger.Error(err, "Failed to wait peer pods")
-			return reconcile.Result{}, err
-		}
-
 		if err = instance.ManageNodeStatus(podIPMap, r.Client); err != nil {
 			reqLogger.Error(err, "Failed manager node status")
 			return reconcile.Result{}, err

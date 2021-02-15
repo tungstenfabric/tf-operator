@@ -42,15 +42,6 @@ spec:
           volumeMounts:
             - mountPath: /tmp/podinfo
               name: status
-        - name: init2
-          image: busybox:latest
-          command:
-            - sh
-            - -c
-            - until grep true /tmp/podinfo/peers_ready > /dev/null 2>&1; do sleep 1; done
-          volumeMounts:
-            - mountPath: /tmp/podinfo
-              name: status
       containers:
         - name: api
           image: tungstenfabric/contrail-controller-config-api:latest
@@ -282,10 +273,6 @@ spec:
                 apiVersion: v1
                 fieldPath: metadata.labels
               path: pod_labels
-            - fieldRef:
-                apiVersion: v1
-                fieldPath: metadata.labels
-              path: peers_ready
             - fieldRef:
                 apiVersion: v1
                 fieldPath: metadata.labels

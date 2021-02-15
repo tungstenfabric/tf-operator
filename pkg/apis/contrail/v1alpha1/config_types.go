@@ -10,7 +10,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -723,40 +722,7 @@ func (c *Config) SetPodsToReady(podIPList []corev1.Pod, client client.Client) er
 	return SetPodsToReady(podIPList, client)
 }
 
-func (c *Config) WaitForPeerPods(request reconcile.Request, reconcileClient client.Client) error {
-	labelSelector := labels.SelectorFromSet(map[string]string{"config": request.Name})
-	listOps := &client.ListOptions{Namespace: request.Namespace, LabelSelector: labelSelector}
-	list := &corev1.PodList{}
-	err := reconcileClient.List(context.TODO(), list, listOps)
-	if err != nil {
-		return err
-	}
-	sort.SliceStable(list.Items, func(i, j int) bool { return list.Items[i].Name < list.Items[j].Name })
-	for idx, pod := range list.Items {
-		ready := true
-		for i := 0; i < idx; i++ {
-			for _, containerStatus := range list.Items[i].Status.ContainerStatuses {
-				if !containerStatus.Ready {
-					ready = false
-				}
-			}
-		}
-		if ready {
-			podTOUpdate := &corev1.Pod{}
-			err := reconcileClient.Get(context.TODO(), types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, podTOUpdate)
-			if err != nil {
-				return err
-			}
-			podTOUpdate.ObjectMeta.Labels["peers_ready"] = "true"
-			err = reconcileClient.Update(context.TODO(), podTOUpdate)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
+// ManageNodeStatus updates nodes in status
 func (c *Config) ManageNodeStatus(podNameIPMap map[string]string, client client.Client) error {
 	c.Status.Nodes = podNameIPMap
 	configConfig := c.ConfigurationParameters()
@@ -779,6 +745,7 @@ func (c *Config) IsActive(name string, namespace string, client client.Client) b
 	return *c.Status.Active
 }
 
+// ConfigurationParameters create config struct
 func (c *Config) ConfigurationParameters() ConfigConfiguration {
 	configConfiguration := ConfigConfiguration{}
 	var apiPort int
