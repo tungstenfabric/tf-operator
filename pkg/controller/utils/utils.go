@@ -8,7 +8,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	"github.com/Juniper/contrail-operator/pkg/apis/contrail/v1alpha1"
+	"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1"
 )
 
 var log = logf.Log.WithName("utils")

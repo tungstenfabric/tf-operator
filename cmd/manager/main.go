@@ -17,9 +17,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 
-	"github.com/Juniper/contrail-operator/pkg/apis"
-	"github.com/Juniper/contrail-operator/pkg/controller"
-	"github.com/Juniper/contrail-operator/pkg/controller/kubemanager"
+	"github.com/tungstenfabric/tf-operator/pkg/apis"
+	"github.com/tungstenfabric/tf-operator/pkg/controller"
+	"github.com/tungstenfabric/tf-operator/pkg/controller/kubemanager"
 )
 
 var log = logf.Log.WithName("cmd")

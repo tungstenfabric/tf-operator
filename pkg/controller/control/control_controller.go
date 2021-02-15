@@ -5,10 +5,10 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/Juniper/contrail-operator/pkg/apis/contrail/v1alpha1"
-	"github.com/Juniper/contrail-operator/pkg/certificates"
+	"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1"
+	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 
-	"github.com/Juniper/contrail-operator/pkg/controller/utils"
+	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"

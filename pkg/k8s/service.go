@@ -10,7 +10,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/Juniper/contrail-operator/pkg/label"
+	"github.com/tungstenfabric/tf-operator/pkg/label"
 )
 
 // Service is used to create and manage kubernetes services

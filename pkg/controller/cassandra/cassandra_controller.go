@@ -9,13 +9,13 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/Juniper/contrail-operator/pkg/apis/contrail/v1alpha1"
-	configtemplates "github.com/Juniper/contrail-operator/pkg/apis/contrail/v1alpha1/templates"
+	"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1"
+	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1/templates"
 
-	"github.com/Juniper/contrail-operator/pkg/certificates"
-	"github.com/Juniper/contrail-operator/pkg/controller/utils"
-	"github.com/Juniper/contrail-operator/pkg/k8s"
-	"github.com/Juniper/contrail-operator/pkg/label"
+	"github.com/tungstenfabric/tf-operator/pkg/certificates"
+	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
+	"github.com/tungstenfabric/tf-operator/pkg/k8s"
+	"github.com/tungstenfabric/tf-operator/pkg/label"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"

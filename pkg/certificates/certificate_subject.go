@@ -9,7 +9,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/Juniper/contrail-operator/pkg/k8s"
+	"github.com/tungstenfabric/tf-operator/pkg/k8s"
 )
 
 type CertificateSubject struct {

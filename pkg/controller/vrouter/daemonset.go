@@ -1,7 +1,7 @@
 package vrouter
 
 import (
-	"github.com/Juniper/contrail-operator/pkg/certificates"
+	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	apps "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"

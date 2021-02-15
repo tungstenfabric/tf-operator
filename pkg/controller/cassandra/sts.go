@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"text/template"
 
-	"github.com/Juniper/contrail-operator/pkg/apis/contrail/v1alpha1"
 	"github.com/ghodss/yaml"
+	"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 )
 

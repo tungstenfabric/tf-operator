@@ -11,9 +11,9 @@ import (
 	"sort"
 	"strings"
 
-	configtemplates "github.com/Juniper/contrail-operator/pkg/apis/contrail/v1alpha1/templates"
-	"github.com/Juniper/contrail-operator/pkg/certificates"
-	"github.com/Juniper/contrail-operator/pkg/k8s"
+	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1/templates"
+	"github.com/tungstenfabric/tf-operator/pkg/certificates"
+	"github.com/tungstenfabric/tf-operator/pkg/k8s"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 

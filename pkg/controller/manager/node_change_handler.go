@@ -10,7 +10,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/Juniper/contrail-operator/pkg/apis/contrail/v1alpha1"
+	"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1"
 )
 
 func nodeChangeHandler(cl client.Client) handler.Funcs {

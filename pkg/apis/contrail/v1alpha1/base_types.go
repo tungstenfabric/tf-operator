@@ -24,9 +24,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/Juniper/contrail-operator/pkg/apis/contrail/v1alpha1/templates"
-	"github.com/Juniper/contrail-operator/pkg/certificates"
-	"github.com/Juniper/contrail-operator/pkg/k8s"
+	"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1/templates"
+	"github.com/tungstenfabric/tf-operator/pkg/certificates"
+	"github.com/tungstenfabric/tf-operator/pkg/k8s"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 )

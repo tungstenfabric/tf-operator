@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"github.com/Juniper/contrail-operator/pkg/controller/rabbitmq"
+	"github.com/tungstenfabric/tf-operator/pkg/controller/rabbitmq"
 )
 
 func init() {

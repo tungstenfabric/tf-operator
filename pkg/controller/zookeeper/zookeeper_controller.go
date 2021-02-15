@@ -11,10 +11,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/Juniper/contrail-operator/pkg/apis/contrail/v1alpha1"
-	"github.com/Juniper/contrail-operator/pkg/controller/utils"
-	"github.com/Juniper/contrail-operator/pkg/k8s"
-	"github.com/Juniper/contrail-operator/pkg/label"
+	"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1"
+	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
+	"github.com/tungstenfabric/tf-operator/pkg/k8s"
+	"github.com/tungstenfabric/tf-operator/pkg/label"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"

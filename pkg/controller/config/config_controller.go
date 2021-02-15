@@ -21,10 +21,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	"github.com/Juniper/contrail-operator/pkg/apis/contrail/v1alpha1"
-	"github.com/Juniper/contrail-operator/pkg/certificates"
-	"github.com/Juniper/contrail-operator/pkg/controller/utils"
-	"github.com/Juniper/contrail-operator/pkg/k8s"
+	"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1"
+	"github.com/tungstenfabric/tf-operator/pkg/certificates"
+	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
+	"github.com/tungstenfabric/tf-operator/pkg/k8s"
 )
 
 var log = logf.Log.WithName("controller_config")

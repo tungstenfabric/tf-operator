@@ -1,7 +1,7 @@
 package apis
 
 import (
-	"github.com/Juniper/contrail-operator/pkg/apis/contrail/v1alpha1"
+	"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1"
 )
 
 func init() {
