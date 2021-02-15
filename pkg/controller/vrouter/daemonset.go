@@ -298,7 +298,7 @@ func GetDaemonset(cloudOrchestrator string) *apps.DaemonSet {
 			Name: "var-crashes",
 			VolumeSource: core.VolumeSource{
 				HostPath: &core.HostPathVolumeSource{
-					Path: "/var/crashes/contrail",
+					Path: "/var/crashes",
 				},
 			},
 		},
