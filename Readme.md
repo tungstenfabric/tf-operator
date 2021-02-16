@@ -58,3 +58,6 @@ target=localhost:5000/tf-operator:latest
 operator-sdk build $target
 docker push $target
 ```
+
+# Documentation
+[Tungsten Fabric Operator official documentation](https://docs.tungsten.io/en/latest/tungsten-fabric-operator/index.html)
