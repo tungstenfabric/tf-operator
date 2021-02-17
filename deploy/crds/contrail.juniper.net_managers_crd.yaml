@@ -127,7 +127,7 @@ spec:
                     type: object
                   type: array
                 useKubeadmConfig:
-                  description: Use 0.0.0.0 for isntrospection ports
+                  description: Read cluster parameters from kubeadm config map
                   type: boolean
               type: object
             keystoneSecretName:
@@ -1149,7 +1149,7 @@ spec:
                                 type: string
                               logLevel:
                                 type: string
-                              podSubnets:
+                              podSubnet:
                                 type: string
                               publicFIPPool:
                                 type: string
@@ -1165,7 +1165,7 @@ spec:
                                 type: string
                               serviceAccount:
                                 type: string
-                              serviceSubnets:
+                              serviceSubnet:
                                 type: string
                               zookeeperInstance:
                                 type: string
@@ -1566,7 +1566,7 @@ spec:
                                 type: string
                               kubernetesApiSecurePort:
                                 type: string
-                              kubernetesPodSubnets:
+                              kubernetesPodSubnet:
                                 type: string
                               logDir:
                                 description: Logging

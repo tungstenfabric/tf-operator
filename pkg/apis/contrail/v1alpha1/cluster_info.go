@@ -157,10 +157,10 @@ func ClusterParameters(client client.Client) (*KubernetesClusterConfig, error) {
 		clusterConfigMap.Networking.DNSDomain = KubernetesClusterName
 	}
 	if clusterConfigMap.Networking.PodSubnet == "" {
-		clusterConfigMap.Networking.PodSubnet = KubernetesPodSubnets
+		clusterConfigMap.Networking.PodSubnet = KubernetesPodSubnet
 	}
 	if clusterConfigMap.Networking.ServiceSubnet == "" {
-		clusterConfigMap.Networking.ServiceSubnet = KubernetesServiceSubnets
+		clusterConfigMap.Networking.ServiceSubnet = KubernetesServiceSubnet
 	}
 	if clusterConfigMap.Networking.CNIConfig.ConfigPath == "" {
 		clusterConfigMap.Networking.CNIConfig.ConfigPath = CNIConfigPath

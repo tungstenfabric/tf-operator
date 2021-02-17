@@ -88,7 +88,7 @@ INTROSPECT_SSL_ENABLE="{{ .ServiceConfig.IntrospectSslEnable }}"
 #K8S_TOKEN_FILE="{{ .ServiceConfig.K8sTokenFile }}"
 #KUBERNETES_API_PORT="{{ .ServiceConfig.KubernetesApiPort }}"
 #KUBERNETES_API_SECURE_PORT="{{ .ServiceConfig.KubernetesApiSecurePort }}"
-#KUBERNETES_POD_SUBNETS="{{ .ServiceConfig.KubernetesPodSubnets }}"
+#KUBERNETES_POD_SUBNETS="{{ .ServiceConfig.KubernetesPodSubnet }}"
 
 # Logging
 #LOG_DIR="{{ .ServiceConfig.LogDir }}"

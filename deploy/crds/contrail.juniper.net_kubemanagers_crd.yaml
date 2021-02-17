@@ -167,7 +167,7 @@ spec:
                   type: string
                 logLevel:
                   type: string
-                podSubnets:
+                podSubnet:
                   type: string
                 publicFIPPool:
                   type: string
@@ -183,7 +183,7 @@ spec:
                   type: string
                 serviceAccount:
                   type: string
-                serviceSubnets:
+                serviceSubnet:
                   type: string
                 zookeeperInstance:
                   type: string

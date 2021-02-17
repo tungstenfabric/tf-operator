@@ -1389,13 +1389,13 @@ func schema_pkg_apis_contrail_v1alpha1_KubemanagerConfiguration(ref common.Refer
 							Format: "int32",
 						},
 					},
-					"podSubnets": {
+					"podSubnet": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
 							Format: "",
 						},
 					},
-					"serviceSubnets": {
+					"serviceSubnet": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
 							Format: "",

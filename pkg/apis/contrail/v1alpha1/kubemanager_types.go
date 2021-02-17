@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"sort"
 	"strconv"
 
@@ -72,8 +73,8 @@ type KubemanagerConfiguration struct {
 	KubernetesAPIServer   string       `json:"kubernetesAPIServer,omitempty"`
 	KubernetesAPIPort     *int         `json:"kubernetesAPIPort,omitempty"`
 	KubernetesAPISSLPort  *int         `json:"kubernetesAPISSLPort,omitempty"`
-	PodSubnets            string       `json:"podSubnets,omitempty"`
-	ServiceSubnets        string       `json:"serviceSubnets,omitempty"`
+	PodSubnet             string       `json:"podSubnet,omitempty"`
+	ServiceSubnet         string       `json:"serviceSubnet,omitempty"`
 	KubernetesClusterName string       `json:"kubernetesClusterName,omitempty"`
 	IPFabricSubnets       string       `json:"ipFabricSubnets,omitempty"`
 	IPFabricForwarding    *bool        `json:"ipFabricForwarding,omitempty"`
@@ -229,9 +230,9 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 			KubernetesAPIPort:        strconv.Itoa(*kubemanagerConfig.KubernetesAPIPort),
 			KubernetesAPISSLPort:     strconv.Itoa(*kubemanagerConfig.KubernetesAPISSLPort),
 			KubernetesClusterName:    kubemanagerConfig.KubernetesClusterName,
-			PodSubnet:                kubemanagerConfig.PodSubnets,
+			PodSubnet:                kubemanagerConfig.PodSubnet,
 			IPFabricSubnet:           kubemanagerConfig.IPFabricSubnets,
-			ServiceSubnet:            kubemanagerConfig.ServiceSubnets,
+			ServiceSubnet:            kubemanagerConfig.ServiceSubnet,
 			IPFabricForwarding:       strconv.FormatBool(*kubemanagerConfig.IPFabricForwarding),
 			IPFabricSnat:             strconv.FormatBool(*kubemanagerConfig.IPFabricSnat),
 			APIServerList:            configApiIPListCommaSeparated,
@@ -372,12 +373,11 @@ func (c *Kubemanager) ConfigurationParameters(client client.Client) (*Kubemanage
 	var kubernetesApiServer string = KubernetesApiServer
 	var kubernetesApiSSLPort int = KubernetesApiSSLPort
 	var kubernetesApiPort int = KubernetesApiPort
-	var podSubnets string = KubernetesPodSubnets
-	var serviceSubnets string = KubernetesServiceSubnets
+	var podSubnet string = KubernetesPodSubnet
+	var serviceSubnet string = KubernetesServiceSubnet
 	var ipFabricSubnets string = KubernetesIpFabricSubnets
 	var ipFabricForwarding bool = KubernetesIPFabricForwarding
 	var ipFabricSnat bool = KubernetesIPFabricSnat
-	var publicFIPPool string = KubernetesPublicFIPPool
 	var hostNetworkService bool = KubernetesHostNetworkService
 
 	cinfo, err := ClusterParameters(client)
@@ -415,16 +415,16 @@ func (c *Kubemanager) ConfigurationParameters(client client.Client) (*Kubemanage
 		kubernetesApiPort = *c.Spec.ServiceConfiguration.KubernetesAPIPort
 	}
 
-	if c.Spec.ServiceConfiguration.PodSubnets != "" {
-		podSubnets = c.Spec.ServiceConfiguration.PodSubnets
+	if c.Spec.ServiceConfiguration.PodSubnet != "" {
+		podSubnet = c.Spec.ServiceConfiguration.PodSubnet
 	} else {
-		podSubnets = cinfo.Networking.PodSubnet
+		podSubnet = cinfo.Networking.PodSubnet
 	}
 
-	if c.Spec.ServiceConfiguration.ServiceSubnets != "" {
-		serviceSubnets = c.Spec.ServiceConfiguration.ServiceSubnets
+	if c.Spec.ServiceConfiguration.ServiceSubnet != "" {
+		serviceSubnet = c.Spec.ServiceConfiguration.ServiceSubnet
 	} else {
-		serviceSubnets = cinfo.Networking.ServiceSubnet
+		serviceSubnet = cinfo.Networking.ServiceSubnet
 	}
 
 	if c.Spec.ServiceConfiguration.IPFabricSubnets != "" {
@@ -443,6 +443,7 @@ func (c *Kubemanager) ConfigurationParameters(client client.Client) (*Kubemanage
 		ipFabricSnat = *c.Spec.ServiceConfiguration.IPFabricSnat
 	}
 
+	var publicFIPPool string = fmt.Sprintf(KubernetesPublicFIPPoolTemplate, kubernetesClusterName)
 	if c.Spec.ServiceConfiguration.PublicFIPPool != "" {
 		publicFIPPool = c.Spec.ServiceConfiguration.PublicFIPPool
 	}
@@ -454,8 +455,8 @@ func (c *Kubemanager) ConfigurationParameters(client client.Client) (*Kubemanage
 	kubemanagerConfiguration.KubernetesAPIServer = kubernetesApiServer
 	kubemanagerConfiguration.KubernetesAPISSLPort = &kubernetesApiSSLPort
 	kubemanagerConfiguration.KubernetesAPIPort = &kubernetesApiPort
-	kubemanagerConfiguration.PodSubnets = podSubnets
-	kubemanagerConfiguration.ServiceSubnets = serviceSubnets
+	kubemanagerConfiguration.PodSubnet = podSubnet
+	kubemanagerConfiguration.ServiceSubnet = serviceSubnet
 	kubemanagerConfiguration.IPFabricSubnets = ipFabricSubnets
 	kubemanagerConfiguration.IPFabricForwarding = &ipFabricForwarding
 	kubemanagerConfiguration.HostNetworkService = &hostNetworkService

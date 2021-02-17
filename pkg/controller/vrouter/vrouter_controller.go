@@ -258,6 +258,17 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 	})
 	instance.AddSecretVolumesToIntendedDS(daemonSet, map[string]string{secretCertificates.Name: secretVolumeName})
 
+	serviceAccountName := "contrail-vrouter-service-account"
+	clusterRoleName := "contrail-vrouter-cluster-role"
+	clusterRoleBindingName := "contrail-vrouter-cluster-role-binding"
+	secretName := "contrail-vrouter-secret"
+	err = v1alpha1.EnsureServiceAccount(serviceAccountName, clusterRoleName, clusterRoleBindingName, secretName, r.Client, r.Scheme, instance)
+	if err != nil {
+		reqLogger.Error(err, "EnsureServiceAccount failed")
+		return reconcile.Result{}, err
+	}
+	daemonSet.Spec.Template.Spec.ServiceAccountName = serviceAccountName
+
 	for idx := range daemonSet.Spec.Template.Spec.Containers {
 
 		container := &daemonSet.Spec.Template.Spec.Containers[idx]

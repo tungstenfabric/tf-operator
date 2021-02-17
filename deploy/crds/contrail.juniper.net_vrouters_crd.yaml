@@ -231,7 +231,7 @@ spec:
                   type: string
                 kubernetesApiSecurePort:
                   type: string
-                kubernetesPodSubnets:
+                kubernetesPodSubnet:
                   type: string
                 logDir:
                   description: Logging

@@ -143,7 +143,7 @@ type VrouterConfiguration struct {
 	K8sTokenFile            string `json:"k8sTokenFile,omitempty"`
 	KubernetesApiPort       string `json:"kubernetesApiPort,omitempty"`
 	KubernetesApiSecurePort string `json:"kubernetesApiSecurePort,omitempty"`
-	KubernetesPodSubnets    string `json:"kubernetesPodSubnets,omitempty"`
+	KubernetesPodSubnet     string `json:"kubernetesPodSubnet,omitempty"`
 
 	// Logging
 	LogDir   string `json:"logDir,omitempty"`
@@ -597,8 +597,8 @@ func (c *Vrouter) VrouterConfigurationParameters(client client.Client) (*Vrouter
 		}
 		vrouterConfiguration.KubernetesApiSecurePort = strconv.Itoa(p)
 	}
-	if vrouterConfiguration.KubernetesPodSubnets == "" {
-		vrouterConfiguration.KubernetesPodSubnets = cinfo.Networking.PodSubnet
+	if vrouterConfiguration.KubernetesPodSubnet == "" {
+		vrouterConfiguration.KubernetesPodSubnet = cinfo.Networking.PodSubnet
 	}
 
 	return vrouterConfiguration, nil

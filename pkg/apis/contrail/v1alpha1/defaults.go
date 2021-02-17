@@ -165,12 +165,12 @@ const (
 	KubernetesApiPort                           int    = 8080
 	KubernetesApiSSLPort                        int    = 6443
 	KubernetesClusterName                       string = "k8s"
-	KubernetesPodSubnets                        string = "10.32.0.0/12"
+	KubernetesPodSubnet                         string = "10.32.0.0/12"
 	KubernetesIpFabricSubnets                   string = "10.64.0.0/12"
-	KubernetesServiceSubnets                    string = "10.96.0.0/12"
+	KubernetesServiceSubnet                     string = "10.96.0.0/12"
 	KubernetesIPFabricForwarding                bool   = false
 	KubernetesIPFabricSnat                      bool   = true
-	KubernetesPublicFIPPool                     string = "{'project' : 'k8s-default', 'domain': 'default-domain', 'name': '__fip_pool_public__' , 'network' : '__public__'}"
+	KubernetesPublicFIPPoolTemplate             string = "{'project' : '%s-default', 'domain': 'default-domain', 'name': '__fip_pool_public__' , 'network' : '__public__'}"
 	KubernetesHostNetworkService                bool   = false
 	KubernetesUseKubeadm                        bool   = true
 	KubernetesServiceAccount                    string = ""

@@ -7,9 +7,9 @@
 bases:
 - ../../base/contrail
 
-# set replicas=1
 patchesStrategicMerge:
   - replicas.yaml
+  - cluster.yaml
 
 # set contrail-status image
 patchesJson6902:
