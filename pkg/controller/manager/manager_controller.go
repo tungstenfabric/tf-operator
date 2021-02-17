@@ -29,6 +29,7 @@ var log = logf.Log.WithName("controller_manager")
 
 var resourcesList = []runtime.Object{
 	&v1alpha1.AnalyticsSnmp{},
+	&v1alpha1.AnalyticsAlarm{},
 	&v1alpha1.Cassandra{},
 	&v1alpha1.Zookeeper{},
 	&v1alpha1.Webui{},
@@ -176,6 +177,10 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 		log.Error(err, "processAnalyticsSnmp")
 	}
 
+	if err := r.processAnalyticsAlarm(instance, replicas); err != nil {
+		log.Error(err, "processAnalyticsAlarm")
+	}
+
 	if err := r.processKubemanagers(instance, replicas); err != nil {
 		log.Error(err, "processKubemanagers")
 	}
@@ -285,6 +290,47 @@ func (r *ReconcileManager) processAnalyticsSnmp(manager *v1alpha1.Manager, repli
 	status.Name = &analyticsSnmp.Name
 	status.Active = analyticsSnmp.Status.Active
 	manager.Status.AnalyticsSnmp = status
+	return err
+}
+
+func (r *ReconcileManager) processAnalyticsAlarm(manager *v1alpha1.Manager, replicas int32) error {
+	if manager.Spec.Services.AnalyticsAlarm == nil {
+		if manager.Status.AnalyticsAlarm != nil {
+			oldAnalyticsAlarm := &v1alpha1.AnalyticsAlarm{}
+			oldAnalyticsAlarm.ObjectMeta = v1.ObjectMeta{
+				Namespace: manager.Namespace,
+				Name:      *manager.Status.AnalyticsAlarm.Name,
+				Labels: map[string]string{
+					"contrail_cluster": manager.Name,
+				},
+			}
+			err := r.client.Delete(context.TODO(), oldAnalyticsAlarm)
+			if err != nil && !errors.IsNotFound(err) {
+				return err
+			}
+			manager.Status.AnalyticsAlarm = nil
+		}
+		return nil
+	}
+
+	analyticsAlarm := &v1alpha1.AnalyticsAlarm{}
+	analyticsAlarm.ObjectMeta = manager.Spec.Services.AnalyticsAlarm.ObjectMeta
+	analyticsAlarm.ObjectMeta.Namespace = manager.Namespace
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, analyticsAlarm, func() error {
+		analyticsAlarm.Spec = manager.Spec.Services.AnalyticsAlarm.Spec
+		analyticsAlarm.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, analyticsAlarm.Spec.CommonConfiguration)
+		if analyticsAlarm.Spec.CommonConfiguration.Replicas == nil {
+			analyticsAlarm.Spec.CommonConfiguration.Replicas = &replicas
+		}
+		return controllerutil.SetControllerReference(manager, analyticsAlarm, r.scheme)
+	})
+	if err != nil {
+		return err
+	}
+	status := &v1alpha1.ServiceStatus{}
+	status.Name = &analyticsAlarm.Name
+	status.Active = analyticsAlarm.Status.Active
+	manager.Status.AnalyticsAlarm = status
 	return err
 }
 
