@@ -2,6 +2,12 @@ package templates
 
 import "text/template"
 
+var addFunc = template.FuncMap{
+	"add": func(i, j int) int {
+		return i + j
+	},
+}
+
 // RabbitmqConfig is the template of the Rabbitmq service configuration.
 var RabbitmqConfig = template.Must(template.New("").Parse(`#!/bin/bash
 function link_file() {
@@ -47,11 +53,10 @@ else
   done  
   rabbitmq-server
 fi
-
 `))
 
 // RabbitmqDefinition is the template for Rabbitmq user/vhost configuration
-var RabbitmqDefinition = template.Must(template.New("").Parse(`{
+var RabbitmqDefinition = template.Must(template.New("").Funcs(addFunc).Parse(`{
   "users": [
     {
       "name": "{{ .RabbitmqUser }}",
@@ -72,6 +77,41 @@ var RabbitmqDefinition = template.Must(template.New("").Parse(`{
       "write": ".*",
       "read": ".*"
     }
-  ],
+  ]{{ if .ClusterPartitionHandling }},
+  "policies": [
+    {
+      "vhost": "/",
+      "name": "ha",
+      "pattern": "^(?!amq\.).*",
+      "definition": {
+          "ha-mode": "{{ .ClusterPartitionHandling }}",
+          "ha-sync-mode": "automatic",
+          "ha-sync-batch-size": 5
+      }
+    }
+  ]{{ end }}
 }
+`))
+
+// RabbitmqPodConfig is the template for Rabbitmq pod configuration
+var RabbitmqPodConfig = template.Must(template.New("").Funcs(addFunc).Parse(`listeners.tcp = none
+listeners.ssl.default = {{ .RabbitmqPort }}
+loopback_users = none
+management.tcp.port = {{ add .RabbitmqPort 10000}}
+management.load_definitions = /etc/rabbitmq/definitions.json
+ssl_options.cacertfile = {{ .SignerCAFilepath }}
+ssl_options.keyfile = /etc/certificates/server-key-{{ .PodIP }}.pem
+ssl_options.certfile = /etc/certificates/server-{{ .PodIP }}.crt
+ssl_options.verify = verify_peer
+ssl_options.fail_if_no_peer_cert = true
+{{ if .MirroredQueueMode }}mirrored_queue_mode = {{ .MirroredQueueMode }}{{ end }}
+{{ if .TCPListenOptions.Backlog }}tcp_listen_options.backlog = {{ .TCPListenOptions.Backlog }}{{ end }}
+{{ if .TCPListenOptions.Nodelay }}tcp_listen_options.nodelay = {{ .TCPListenOptions.Nodelay }}{{ end }}
+{{ if .TCPListenOptions.LingerOn }}tcp_listen_options.linger.on = {{ .TCPListenOptions.LingerOn }}{{ end }}
+{{ if .TCPListenOptions.LingerTimeout }}tcp_listen_options.linger.timeout = {{ .TCPListenOptions.LingerTimeout }}{{ end }}
+{{ if .TCPListenOptions.ExitOnClose }}tcp_listen_options.exit_on_close = {{ .TCPListenOptions.ExitOnClose }}{{ end }}
+{{ $podsCount := len .PodsList }}{{ if gt $podsCount 1 }}cluster_formation.peer_discovery_backend = classic_config
+{{ range $idx, $pod := .PodsList }}cluster_formation.classic_config.nodes.{{ add $idx 1 }} = rabbit@{{ $pod.Status.PodIP }}
+{{ end }}
+{{end}}
 `))

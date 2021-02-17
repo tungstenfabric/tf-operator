@@ -193,7 +193,7 @@ func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
-	statefulSet := GetSTS()
+	statefulSet := GetSTS(instance)
 	if err = instance.PrepareSTS(statefulSet, &instance.Spec.CommonConfiguration, request, r.Scheme); err != nil {
 		return reconcile.Result{}, err
 	}

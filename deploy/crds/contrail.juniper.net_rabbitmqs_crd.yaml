@@ -122,6 +122,12 @@ spec:
             serviceConfiguration:
               description: RabbitmqConfiguration is the Spec for the cassandras API.
               properties:
+                clusterPartitionHandling:
+                  enum:
+                  - autoheal
+                  - pause_minority
+                  - pause_if_all_down
+                  type: string
                 containers:
                   items:
                     description: Container defines name, image and command.
@@ -136,7 +142,22 @@ spec:
                         type: string
                     type: object
                   type: array
+                ctlDistPorts:
+                  description: CTLDistPortsConfig is confgiuration for RabbitMQ ports
+                    (previously inet_dist_listen range)
+                  properties:
+                    max:
+                      type: integer
+                    min:
+                      type: integer
+                  type: object
                 erlangCookie:
+                  type: string
+                mirroredQueueMode:
+                  enum:
+                  - exactly
+                  - all
+                  - nodes
                   type: string
                 password:
                   type: string
@@ -144,6 +165,21 @@ spec:
                   type: integer
                 secret:
                   type: string
+                tcpListenOptions:
+                  description: TCPListenOptionsConfig is configuration for RabbitMQ
+                    TCP listen
+                  properties:
+                    backlog:
+                      type: integer
+                    exitOnClose:
+                      type: boolean
+                    lingerOn:
+                      type: boolean
+                    lingerTimeout:
+                      type: integer
+                    nodelay:
+                      type: boolean
+                  type: object
                 user:
                   type: string
                 vhost:
@@ -156,10 +192,6 @@ spec:
           description: RabbitmqStatus +k8s:openapi-gen=true
           properties:
             active:
-              description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
-                of cluster Important: Run "operator-sdk generate k8s" to regenerate
-                code after modifying this file Add custom validation using kubebuilder
-                tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html'
               type: boolean
             nodes:
               additionalProperties:

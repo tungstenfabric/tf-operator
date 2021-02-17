@@ -27,6 +27,7 @@ require (
 	golang.org/x/tools v0.0.0-20200913032122-97363e29fc9b // indirect
 	google.golang.org/appengine v1.6.6 // indirect
 	google.golang.org/protobuf v1.24.0 // indirect
+	gopkg.in/ini.v1 v1.62.0
 	gopkg.in/yaml.v2 v2.2.8
 	k8s.io/api v0.17.4
 	k8s.io/apiextensions-apiserver v0.17.4

@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"sort"
-	"strconv"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -56,16 +55,36 @@ type RabbitmqConfiguration struct {
 	User         string       `json:"user,omitempty"`
 	Password     string       `json:"password,omitempty"`
 	Secret       string       `json:"secret,omitempty"`
+	// +kubebuilder:validation:Enum=exactly;all;nodes
+	MirroredQueueMode string `json:"mirroredQueueMode,omitempty"`
+	// +kubebuilder:validation:Enum=autoheal;pause_minority;pause_if_all_down
+	ClusterPartitionHandling *string                `json:"clusterPartitionHandling,omitempty"`
+	TCPListenOptions         TCPListenOptionsConfig `json:"tcpListenOptions,omitempty"`
+	CTLDistPorts             *CTLDistPortsConfig    `json:"ctlDistPorts,omitempty"`
 }
 
 // RabbitmqStatus +k8s:openapi-gen=true
 type RabbitmqStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
-	// Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html
 	Active *bool             `json:"active,omitempty"`
 	Nodes  map[string]string `json:"nodes,omitempty"`
 	Secret string            `json:"secret,omitempty"`
+}
+
+// TCPListenOptionsConfig is configuration for RabbitMQ TCP listen
+// +k8s:openapi-gen=true
+type TCPListenOptionsConfig struct {
+	Backlog       *int  `json:"backlog,omitempty"`
+	Nodelay       *bool `json:"nodelay,omitempty"`
+	LingerOn      *bool `json:"lingerOn,omitempty"`
+	LingerTimeout *int  `json:"lingerTimeout,omitempty"`
+	ExitOnClose   *bool `json:"exitOnClose,omitempty"`
+}
+
+// CTLDistPortsConfig is confgiuration for RabbitMQ ports (previously inet_dist_listen range)
+// +k8s:openapi-gen=true
+type CTLDistPortsConfig struct {
+	Min *int `json:"min,omitempty"`
+	Max *int `json:"max,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -91,25 +110,26 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 
 	var data = make(map[string]string)
 	for _, pod := range podList {
-		rabbitmqConfigString := fmt.Sprintf("listeners.tcp = none\n")
-		rabbitmqConfigString = rabbitmqConfigString + fmt.Sprintf("listeners.ssl.default = %d\n", *rabbitmqConfig.Port)
-		rabbitmqConfigString = rabbitmqConfigString + fmt.Sprintf("loopback_users = none\n")
-		rabbitmqConfigString = rabbitmqConfigString + fmt.Sprintf("management.tcp.port = %d\n", *rabbitmqConfig.Port+10000)
-		rabbitmqConfigString = rabbitmqConfigString + fmt.Sprintf("management.load_definitions = /etc/rabbitmq/definitions.json\n")
-		rabbitmqConfigString = rabbitmqConfigString + fmt.Sprintf("ssl_options.cacertfile = %s\n", certificates.SignerCAFilepath)
-		rabbitmqConfigString = rabbitmqConfigString + fmt.Sprintf("ssl_options.keyfile = /etc/certificates/server-key-"+pod.Status.PodIP+".pem\n")
-		rabbitmqConfigString = rabbitmqConfigString + fmt.Sprintf("ssl_options.certfile = /etc/certificates/server-"+pod.Status.PodIP+".crt\n")
-		rabbitmqConfigString = rabbitmqConfigString + fmt.Sprintf("ssl_options.verify = verify_peer\n")
-		rabbitmqConfigString = rabbitmqConfigString + fmt.Sprintf("ssl_options.fail_if_no_peer_cert = true\n")
-		rabbitmqConfigString = rabbitmqConfigString + fmt.Sprintf("cluster_partition_handling = autoheal\n")
-		//rabbitmqConfigString = rabbitmqConfigString + fmt.Sprintf("ssl_options.versions.1 = tlsv1.2\n")
-		if len(podList) > 1 {
-			rabbitmqConfigString = rabbitmqConfigString + fmt.Sprintf("cluster_formation.peer_discovery_backend = classic_config\n")
-			for podIndex, pod := range podList {
-				rabbitmqConfigString = rabbitmqConfigString + fmt.Sprintf("cluster_formation.classic_config.nodes."+strconv.Itoa(podIndex+1)+" = rabbit@"+pod.Status.PodIP+"\n")
-			}
+		var rabbitmqPodConfig bytes.Buffer
+		err := configtemplates.RabbitmqPodConfig.Execute(&rabbitmqPodConfig, struct {
+			RabbitmqPort      int
+			SignerCAFilepath  string
+			MirroredQueueMode string
+			PodIP             string
+			PodsList          []corev1.Pod
+			TCPListenOptions  TCPListenOptionsConfig
+		}{
+			RabbitmqPort:      *rabbitmqConfig.Port,
+			SignerCAFilepath:  certificates.SignerCAFilepath,
+			MirroredQueueMode: c.Spec.ServiceConfiguration.MirroredQueueMode,
+			PodIP:             pod.Status.PodIP,
+			PodsList:          podList,
+			TCPListenOptions:  c.Spec.ServiceConfiguration.TCPListenOptions,
+		})
+		if err != nil {
+			return err
 		}
-		data["rabbitmq.conf."+pod.Status.PodIP] = rabbitmqConfigString
+		data["rabbitmq.conf."+pod.Status.PodIP] = rabbitmqPodConfig.String()
 		rabbitmqEnvConfigString := fmt.Sprintf("HOME=/var/lib/rabbitmq\n")
 		// TODO: tmp disable, because inet_dist_listen_min must be set correctly
 		// rabbitmqEnvConfigString = rabbitmqEnvConfigString + fmt.Sprintf("CTL_ERL_ARGS=\"-proto_dist inet_tls\"\n")
@@ -164,13 +184,17 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 
 	var rabbitmqDefinitionBuffer bytes.Buffer
 	err = configtemplates.RabbitmqDefinition.Execute(&rabbitmqDefinitionBuffer, struct {
-		RabbitmqUser     string
-		RabbitmqPassword string
-		RabbitmqVhost    string
+		RabbitmqUser             string
+		RabbitmqPassword         string
+		RabbitmqVhost            string
+		ClusterPartitionHandling *string
+		RabbitmqPort             int
 	}{
-		RabbitmqUser:     string(secret.Data["user"]),
-		RabbitmqPassword: base64.StdEncoding.EncodeToString(saltedP),
-		RabbitmqVhost:    string(secret.Data["vhost"]),
+		RabbitmqUser:             string(secret.Data["user"]),
+		RabbitmqPassword:         base64.StdEncoding.EncodeToString(saltedP),
+		RabbitmqVhost:            string(secret.Data["vhost"]),
+		ClusterPartitionHandling: c.Spec.ServiceConfiguration.ClusterPartitionHandling,
+		RabbitmqPort:             *rabbitmqConfig.Port,
 	})
 	if err != nil {
 		panic(err)

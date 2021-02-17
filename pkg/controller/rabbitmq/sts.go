@@ -1,13 +1,17 @@
 package rabbitmq
 
 import (
+	"strconv"
+
 	apps "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1"
 )
 
 // GetSTS create default StatefulSet Rabbitmq object
-func GetSTS() *apps.StatefulSet {
+func GetSTS(instance *v1alpha1.Rabbitmq) *apps.StatefulSet {
 	var replicas = int32(1)
 	var labelsMountPermission int32 = 0644
 
@@ -33,6 +37,17 @@ func GetSTS() *apps.StatefulSet {
 		// 	Name:  "NODE_TYPE",
 		// 	Value: "config-database",
 		// },
+	}
+
+	if instance.Spec.ServiceConfiguration.CTLDistPorts != nil {
+		nodeEnv = append(nodeEnv, core.EnvVar{
+			Name:  "RABBITMQ_CTL_DIST_PORT_MIN",
+			Value: strconv.Itoa(*instance.Spec.ServiceConfiguration.CTLDistPorts.Min),
+		})
+		nodeEnv = append(nodeEnv, core.EnvVar{
+			Name:  "RABBITMQ_CTL_DIST_PORT_MAX",
+			Value: strconv.Itoa(*instance.Spec.ServiceConfiguration.CTLDistPorts.Max),
+		})
 	}
 
 	var podInitContainers = []core.Container{
