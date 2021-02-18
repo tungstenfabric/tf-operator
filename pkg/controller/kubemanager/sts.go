@@ -20,11 +20,6 @@ func GetSTS() *apps.StatefulSet {
 		},
 	}
 
-	var kubemanagerLogsMount = core.VolumeMount{
-		Name:      "kubemanager-logs",
-		MountPath: "/var/log/contrail",
-	}
-
 	var podInitContainers = []core.Container{
 		{
 			Name:  "init",
@@ -50,9 +45,6 @@ func GetSTS() *apps.StatefulSet {
 		{
 			Name:  "kubemanager",
 			Image: "tungstenfabric/contrail-kubernetes-kube-manager:latest",
-			VolumeMounts: []core.VolumeMount{
-				kubemanagerLogsMount,
-			},
 			Env: []core.EnvVar{
 				podIPEnv,
 			},
@@ -61,7 +53,7 @@ func GetSTS() *apps.StatefulSet {
 
 	var podVolumes = []core.Volume{
 		{
-			Name: "kubemanager-logs",
+			Name: "contrail-logs",
 			VolumeSource: core.VolumeSource{
 				HostPath: &core.HostPathVolumeSource{
 					Path: "/var/log/contrail/kubemanager",

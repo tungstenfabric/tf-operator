@@ -341,6 +341,8 @@ func (r *ReconcileControl) Reconcile(request reconcile.Request) (reconcile.Resul
 		}
 	}
 
+	v1alpha1.AddCommonVolumes(&statefulSet.Spec.Template.Spec)
+
 	if created, err := instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil || created {
 		if err != nil {
 			return reconcile.Result{}, err

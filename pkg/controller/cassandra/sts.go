@@ -85,11 +85,9 @@ spec:
           procMount: Default
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
-        #volumeMounts:
-        #- mountPath: /var/log/cassandra
-        #  name: cassandra-logs
-        #- mountPath: /var/lib/cassandra
-        #  name: cassandra-data
+        volumeMounts:
+        - mountPath: /var/log/cassandra
+          name: cassandra-logs
       - name: nodemanager
         image: tungstenfabric/contrail-nodemgr:latest
         env:
@@ -108,10 +106,6 @@ spec:
         securityContext:
           privileged: true
         volumeMounts:
-        - mountPath: /var/log/contrail
-          name: cassandra-logs
-        - mountPath: /var/crashes
-          name: crashes
         - mountPath: /var/run
           name: var-run
       - name: provisioner
@@ -127,11 +121,6 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.annotations['hostname']
-        volumeMounts:
-        - mountPath: /var/log/contrail
-          name: cassandra-logs
-        - mountPath: /var/crashes
-          name: crashes
       initContainers:
       - command:
         - sh
@@ -162,10 +151,6 @@ spec:
           path: /var/run
           type: ""
         name: var-run
-      - hostPath:
-          path: /var/crashes/
-          type: ""
-        name: crashes
       - downwardAPI:
           defaultMode: 420
           items:
@@ -181,13 +166,6 @@ spec:
   volumeClaimTemplates:
   - metadata:
       name: cassandra-data
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      resources:
-        requests:
-          storage: 5G
-  - metadata:
-      name: cassandra-logs
     spec:
       accessModes: [ "ReadWriteOnce" ]
       resources:

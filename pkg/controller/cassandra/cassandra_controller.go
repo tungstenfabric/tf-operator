@@ -542,6 +542,8 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		}
 	}
 
+	v1alpha1.AddCommonVolumes(&statefulSet.Spec.Template.Spec)
+
 	// Create statefulset if it doesn't exist
 	if created, err := instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil || created {
 		if err != nil {

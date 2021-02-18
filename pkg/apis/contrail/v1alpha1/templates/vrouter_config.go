@@ -37,6 +37,10 @@ func isEnabled(param string) bool {
 // VRouterAgentParams using to pass Manifest params into vrouter-agent container for prepare config file
 var VRouterAgentParams = htemplate.Must(htemplate.New("").Funcs(sprig.FuncMap()).Funcs(vrouterTemplateFuncs).Parse(`#!/bin/bash
 set -o allexport
+
+# log dir be mount onto host /var/log/contrail/vrouter-agent
+CONTAINER_LOG_DIR=/var/log/contrail
+
 #TODO uncomment parameters to export after debug
 CONTROL_NODES="{{ .ClusterParams.ControlNodes }}"
 CONFIG_NODES="{{ .ClusterParams.ConfigNodes }}"

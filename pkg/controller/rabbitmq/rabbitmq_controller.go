@@ -270,19 +270,21 @@ func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Resu
 		}
 	}
 
+	v1alpha1.AddCommonVolumes(&statefulSet.Spec.Template.Spec)
+
 	var password string
 	var user string
 	var vhost string
 	if instance.Spec.ServiceConfiguration.Password != "" {
 		password = instance.Spec.ServiceConfiguration.Password
 	} else {
-		password = randomstring.RandString{32}.Generate()
+		password = randomstring.RandString{Size: 32}.Generate()
 	}
 
 	if instance.Spec.ServiceConfiguration.User != "" {
 		user = instance.Spec.ServiceConfiguration.User
 	} else {
-		user = randomstring.RandString{8}.Generate()
+		user = randomstring.RandString{Size: 8}.Generate()
 	}
 	if instance.Spec.ServiceConfiguration.Vhost != "" {
 		vhost = instance.Spec.ServiceConfiguration.Vhost

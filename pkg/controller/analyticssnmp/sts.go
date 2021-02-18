@@ -42,9 +42,6 @@ spec:
           image: "tangstenfabric/contrail-analytics-snmp-collector:latest"
           securityContext:
             privileged: true
-          volumeMounts:
-            - mountPath: /var/log/contrail
-              name: contrail-logs
           env:
             - name: NODE_TYPE
               value: analytics-snmp
@@ -58,9 +55,6 @@ spec:
           image: "tangstenfabric/contrail-analytics-snmp-topology:latest"
           securityContext:
             privileged: true
-          volumeMounts:
-            - mountPath: /var/log/contrail
-              name: contrail-logs
           env:
             - name: NODE_TYPE
               value: analytics-snmp
@@ -88,8 +82,6 @@ spec:
                 fieldRef:
                   fieldPath: metadata.annotations['hostname']
           volumeMounts:
-            - mountPath: /var/log/contrail
-              name: contrail-logs
             - mountPath: /var/run
               name: docker-unix-socket
         - name: provisioner
@@ -109,9 +101,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.annotations['hostname']
-          volumeMounts:
-            - mountPath: /var/log/contrail
-              name: contrail-logs
       dnsPolicy: ClusterFirstWithHostNet
       hostNetwork: true
       nodeSelector:

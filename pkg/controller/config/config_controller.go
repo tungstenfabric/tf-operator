@@ -475,6 +475,8 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 		container.Image = instanceContainer.Image
 	}
 
+	v1alpha1.AddCommonVolumes(&statefulSet.Spec.Template.Spec)
+
 	if created, err := instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil || created {
 		if err != nil {
 			return reconcile.Result{}, err

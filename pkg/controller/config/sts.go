@@ -64,9 +64,6 @@ spec:
           #    scheme: HTTPS
           #    path: /
           #    port: 8082
-          volumeMounts:
-            - mountPath: /var/log/contrail
-              name: config-logs
         - name: devicemanager
           image: tungstenfabric/contrail-controller-config-devicemgr:latest
           env:
@@ -76,9 +73,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-          volumeMounts:
-            - mountPath: /var/log/contrail
-              name: config-logs
         - name: dnsmasq
           image: tungstenfabric/contrail-external-dnsmasq:latest
           env:
@@ -88,9 +82,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-          volumeMounts:
-            - mountPath: /var/log/contrail
-              name: config-logs
         - name: schematransformer
           image: tungstenfabric/contrail-controller-config-schema:latest
           env:
@@ -98,9 +89,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-          volumeMounts:
-            - mountPath: /var/log/contrail
-              name: config-logs
         - name: servicemonitor
           image: tungstenfabric/contrail-controller-config-svcmonitor:latest
           env:
@@ -108,9 +96,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-          volumeMounts:
-            - mountPath: /var/log/contrail
-              name: config-logs
         - name: analyticsapi
           image: tungstenfabric/contrail-analytics-api:latest
           env:
@@ -122,9 +107,6 @@ spec:
               value: "true"
             - name: ANALYTICS_ALARM_ENABLE
               value: "true"
-          volumeMounts:
-            - mountPath: /var/log/contrail
-              name: config-logs
         - name: queryengine
           image: tungstenfabric/contrail-analytics-query-engine:latest
           env:
@@ -132,9 +114,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-          volumeMounts:
-            - mountPath: /var/log/contrail
-              name: config-logs
         - name: collector
           image: tungstenfabric/contrail-analytics-collector:latest
           env:
@@ -142,9 +121,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-          volumeMounts:
-            - mountPath: /var/log/contrail
-              name: config-logs
         - name: redis
           image: redis:4.0.14
           env:
@@ -153,8 +129,6 @@ spec:
                 fieldRef:
                   fieldPath: status.podIP
           volumeMounts:
-            - mountPath: /var/log/contrail
-              name: config-logs
             - mountPath: /var/lib/redis
               name: config-data
         - name: nodemanagerconfig
@@ -173,12 +147,8 @@ spec:
                 fieldRef:
                   fieldPath: metadata.annotations['hostname']
           volumeMounts:
-            - mountPath: /var/log/contrail
-              name: config-logs
             - mountPath: /var/run
               name: var-run
-            - mountPath: /var/crashes
-              name: crashes
         - name: nodemanageranalytics
           image: tungstenfabric/contrail-nodemgr:latest
           env:
@@ -195,12 +165,8 @@ spec:
                 fieldRef:
                   fieldPath: metadata.annotations['hostname']
           volumeMounts:
-            - mountPath: /var/log/contrail
-              name: config-logs
             - mountPath: /var/run
               name: var-run
-            - mountPath: /var/crashes
-              name: crashes
         - name: provisioneranalytics
           image: tungstenfabric/contrail-provisioner:latest
           env:
@@ -215,10 +181,6 @@ spec:
                 fieldRef:
                   fieldPath: metadata.annotations['hostname']
           volumeMounts:
-            - mountPath: /var/log/contrail
-              name: config-logs
-            - mountPath: /var/crashes
-              name: crashes
         - name: provisionerconfig
           image: tungstenfabric/contrail-provisioner:latest
           env:
@@ -232,11 +194,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.annotations['hostname']
-          volumeMounts:
-            - mountPath: /var/log/contrail
-              name: config-logs
-            - mountPath: /var/crashes
-              name: crashes
       volumes:
         - hostPath:
             path: /var/lib/tftp
@@ -249,11 +206,7 @@ spec:
         - hostPath:
             path: /var/log/contrail/config
             type: ""
-          name: config-logs
-        - hostPath:
-            path: /var/crashes
-            type: ""
-          name: crashes
+          name: contrail-logs
         - hostPath:
             path: /var/lib/contrail/config
             type: ""

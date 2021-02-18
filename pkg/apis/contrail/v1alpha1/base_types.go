@@ -1158,3 +1158,101 @@ func ContainerFileChanged(pod *corev1.Pod, container string, path string, conten
 	shakey2 := EncryptString(content)
 	return shakey1 == shakey2, nil
 }
+
+// AddCommonVolumes append common volumes and mounts
+func AddCommonVolumes(podSpec *corev1.PodSpec) {
+	commonVolumes := []corev1.Volume{
+		{
+			Name: "etc-hosts",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/etc/hosts",
+				},
+			},
+		},
+		{
+			Name: "etc-resolv",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/etc/resolv.conf",
+				},
+			},
+		},
+		{
+			Name: "etc-timezone",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/etc/timezone",
+				},
+			},
+		},
+		{
+			Name: "etc-localtime",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/etc/localtime",
+				},
+			},
+		},
+		// each sts / ds needs to provide such volume with own specific path
+		// as they use own entrypoint instead of contrail-entrypoint.sh from containers
+		// {
+		// 	Name: "contrail-logs",
+		// 	VolumeSource: core.VolumeSource{
+		// 		HostPath: &core.HostPathVolumeSource{
+		// 			Path: "/var/log/contrail",
+		// 		},
+		// 	},
+		// },
+		{
+			Name: "var-crashes",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/var/crashes",
+				},
+			},
+		},
+	}
+	commonMounts := []corev1.VolumeMount{
+		{
+			Name:      "etc-hosts",
+			MountPath: "/etc/hosts",
+		},
+		{
+			Name:      "etc-resolv",
+			MountPath: "/etc/resolv.conf",
+		},
+		{
+			Name:      "etc-timezone",
+			MountPath: "/etc/timezone",
+		},
+		{
+			Name:      "etc-localtime",
+			MountPath: "/etc/localtime",
+		},
+		{
+			Name:      "var-crashes",
+			MountPath: "/var/crashes",
+		},
+	}
+
+	podSpec.Volumes = append(podSpec.Volumes, commonVolumes...)
+	for _, v := range podSpec.Volumes {
+		if v.Name == "contrail-logs" {
+			commonMounts = append(commonMounts,
+				corev1.VolumeMount{
+					Name:      "contrail-logs",
+					MountPath: "/var/log/contrail",
+				})
+		}
+	}
+
+	for idx := range podSpec.Containers {
+		c := &podSpec.Containers[idx]
+		c.VolumeMounts = append(c.VolumeMounts, commonMounts...)
+	}
+	for idx := range podSpec.InitContainers {
+		c := &podSpec.InitContainers[idx]
+		c.VolumeMounts = append(c.VolumeMounts, commonMounts...)
+	}
+}

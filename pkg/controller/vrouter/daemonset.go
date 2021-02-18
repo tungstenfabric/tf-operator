@@ -151,10 +151,6 @@ func GetDaemonset(cniCfg *v1alpha1.CNIConfig, cloudOrchestrator string) *apps.Da
 					MountPath: "/var/lib/contrail",
 				},
 				{
-					Name:      "vrouter-logs",
-					MountPath: "/var/log/contrail",
-				},
-				{
 					Name:      "cni-config-files",
 					MountPath: "/host/etc_cni",
 				},
@@ -175,12 +171,6 @@ func GetDaemonset(cniCfg *v1alpha1.CNIConfig, cloudOrchestrator string) *apps.Da
 			Name:  "provisioner",
 			Image: "tungstenfabric/contrail-provisioner:latest",
 			Env:   envList,
-			VolumeMounts: []core.VolumeMount{
-				{
-					Name:      "vrouter-logs",
-					MountPath: "/var/log/contrail",
-				},
-			},
 		},
 		{
 			Name:  "nodemanager",
@@ -188,16 +178,8 @@ func GetDaemonset(cniCfg *v1alpha1.CNIConfig, cloudOrchestrator string) *apps.Da
 			Env:   envList,
 			VolumeMounts: []core.VolumeMount{
 				{
-					Name:      "vrouter-logs",
-					MountPath: "/var/log/contrail",
-				},
-				{
 					Name:      "var-run",
 					MountPath: "/var/run",
-				},
-				{
-					Name:      "var-crashes",
-					MountPath: "/var/crashes",
 				},
 			},
 		},
@@ -206,10 +188,6 @@ func GetDaemonset(cniCfg *v1alpha1.CNIConfig, cloudOrchestrator string) *apps.Da
 			Image: "tungstenfabric/contrail-vrouter-agent:latest",
 			Env:   envList,
 			VolumeMounts: []core.VolumeMount{
-				{
-					Name:      "vrouter-agent-logs",
-					MountPath: "/var/log/contrail",
-				},
 				{
 					Name:      "dev",
 					MountPath: "/dev",
@@ -238,10 +216,6 @@ func GetDaemonset(cniCfg *v1alpha1.CNIConfig, cloudOrchestrator string) *apps.Da
 					Name:      "var-lib-contrail",
 					MountPath: "/var/lib/contrail",
 				},
-				{
-					Name:      "var-crashes",
-					MountPath: "/var/crashes",
-				},
 			},
 			SecurityContext: &core.SecurityContext{
 				Privileged: &trueVal,
@@ -258,17 +232,7 @@ func GetDaemonset(cniCfg *v1alpha1.CNIConfig, cloudOrchestrator string) *apps.Da
 
 	var podVolumes = []core.Volume{
 		{
-			// for agent as it use tf-container-builder logic
-			Name: "vrouter-agent-logs",
-			VolumeSource: core.VolumeSource{
-				HostPath: &core.HostPathVolumeSource{
-					Path: "/var/log/contrail",
-				},
-			},
-		},
-		{
-			// for nodemgr and provisioner
-			Name: "vrouter-logs",
+			Name: "contrail-logs",
 			VolumeSource: core.VolumeSource{
 				HostPath: &core.HostPathVolumeSource{
 					Path: "/var/log/contrail/vrouter-agent",
@@ -288,14 +252,6 @@ func GetDaemonset(cniCfg *v1alpha1.CNIConfig, cloudOrchestrator string) *apps.Da
 			VolumeSource: core.VolumeSource{
 				HostPath: &core.HostPathVolumeSource{
 					Path: "/usr/bin",
-				},
-			},
-		},
-		{
-			Name: "var-crashes",
-			VolumeSource: core.VolumeSource{
-				HostPath: &core.HostPathVolumeSource{
-					Path: "/var/crashes",
 				},
 			},
 		},
@@ -409,6 +365,8 @@ func GetDaemonset(cniCfg *v1alpha1.CNIConfig, cloudOrchestrator string) *apps.Da
 		HostNetwork:    true,
 		Tolerations:    podTolerations,
 	}
+
+	v1alpha1.AddCommonVolumes(&podSpec)
 
 	var daemonSetSelector = meta.LabelSelector{
 		MatchLabels: map[string]string{"app": "vrouter"},

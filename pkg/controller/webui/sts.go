@@ -66,9 +66,6 @@ spec:
               value: false
             - name: ANALYTICS_ALARM_ENABLE
               value: false
-          volumeMounts:
-            - mountPath: /var/log/contrail
-              name: webui-logs
         - name: webuijob
           image: tungstenfabric/contrail-controller-webui-job:latest
           env:
@@ -80,9 +77,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-          volumeMounts:
-            - mountPath: /var/log/contrail
-              name: webui-logs
         - name: redis
           image: redis:4.0.14
           env:
@@ -91,8 +85,6 @@ spec:
                 fieldRef:
                   fieldPath: status.podIP
           volumeMounts:
-            - mountPath: /var/log/contrail
-              name: webui-logs
             - mountPath: /var/lib/redis
               name: webui-data
       volumes:
@@ -103,7 +95,7 @@ spec:
         - hostPath:
             path: /var/log/contrail/webui
             type: ""
-          name: webui-logs
+          name: contrail-logs
         - hostPath:
             path: /usr/bin
             type: ""
