@@ -128,7 +128,7 @@ var CassandraCqlShrc = template.Must(template.New("").Parse(`
 certfile = {{ .CAFilePath }}
 `))
 
-// CassandraNodemanagerConfig is a template for nodemanager.{$POD_IP} file
+// CassandraNodemanagerConfig is a template for nodemgr.{$POD_IP} file
 var CassandraNodemanagerConfig = template.Must(template.New("").Parse(`[DEFAULTS]
 http_server_ip={{ .InstrospectListenAddress }}
 log_file=/var/log/contrail/cassandra-nodemgr.log

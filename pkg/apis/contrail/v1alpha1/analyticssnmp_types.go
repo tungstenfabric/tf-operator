@@ -286,7 +286,9 @@ func (c *AnalyticsSnmp) InstanceConfiguration(configMapName string,
 			// TODO: move to params
 			LogLevel: "SYS_DEBUG",
 		})
-		data["analytics-snmp-nodemanager.conf."+podIP] = nodemanagerBuffer.String()
+		data["analytics-snmp-nodemgr.conf."+podIP] = nodemanagerBuffer.String()
+		// empty env as no db tracking
+		data["analytics-snmp-nodemgr.env."+podIP] = ""
 
 		// TODO: commonize for all services
 		var vnciniBuffer bytes.Buffer

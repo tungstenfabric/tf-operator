@@ -574,7 +574,9 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			CAFilePath:               certificates.SignerCAFilepath,
 			LogLevel:                 configConfig.LogLevel,
 		})
-		data["config-nodemanager.conf."+podIP] = configNodemanagerconfigConfigBuffer.String()
+		data["config-nodemgr.conf."+podIP] = configNodemanagerconfigConfigBuffer.String()
+		// empty env as no db tracking
+		data["config-nodemgr.env."+podIP] = ""
 
 		var configNodemanageranalyticsConfigBuffer bytes.Buffer
 		configtemplates.ConfigNodemanagerAnalyticsConfig.Execute(&configNodemanageranalyticsConfigBuffer, struct {
@@ -598,7 +600,9 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			CAFilePath:               certificates.SignerCAFilepath,
 			LogLevel:                 configConfig.LogLevel,
 		})
-		data["analytics-nodemanager.conf."+podIP] = configNodemanageranalyticsConfigBuffer.String()
+		data["analytics-nodemgr.conf."+podIP] = configNodemanageranalyticsConfigBuffer.String()
+		// empty env as no db tracking
+		data["analytics-nodemgr.env."+podIP] = ""
 	}
 
 	configMapInstanceDynamicConfig.Data = data

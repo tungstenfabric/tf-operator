@@ -205,13 +205,25 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 		})
 		vncAPIConfigBufferString := vncAPIConfigBuffer.String()
 
+		// TODO: till analytics db is not separated use api as DBs lists
+		var nodemanagerEnvBuffer bytes.Buffer
+		configtemplates.NodemanagerEnv.Execute(&nodemanagerEnvBuffer, struct {
+			ConfigDBNodes    string
+			AnalyticsDBNodes string
+		}{
+			ConfigDBNodes:    apiServerIPListCommaSeparated,
+			AnalyticsDBNodes: apiServerIPListCommaSeparated,
+		})
+		nodemanagerEnvString := nodemanagerEnvBuffer.String()
+
 		if configMapInstanceDynamicConfig.Data == nil {
 			configMapInstanceDynamicConfig.Data = map[string]string{}
 		}
 		configMapInstanceDynamicConfig.Data["cassandra."+pod.Status.PodIP+".yaml"] = cassandraConfigString
 		configMapInstanceDynamicConfig.Data["cqlshrc."+pod.Status.PodIP] = cassandraCqlShrcConfigString
-		configMapInstanceDynamicConfig.Data["database-nodemanager.conf."+pod.Status.PodIP] = nodemanagerConfigString
 		configMapInstanceDynamicConfig.Data["vnc_api_lib.ini."+pod.Status.PodIP] = vncAPIConfigBufferString
+		configMapInstanceDynamicConfig.Data["database-nodemgr.conf."+pod.Status.PodIP] = nodemanagerConfigString
+		configMapInstanceDynamicConfig.Data["database-nodemgr.env."+pod.Status.PodIP] = nodemanagerEnvString
 	}
 
 	configNodes, err := c.GetConfigNodes(request, client)
@@ -494,7 +506,7 @@ func (c *Cassandra) ConfigDataDiff(pod *corev1.Pod, v1 *corev1.ConfigMap, v2 *co
 	podIP := pod.Status.PodIP
 	srvMap := map[string][]string{
 		"cassandra":   {"cassandra." + podIP + ".yaml", "cqlshrc." + podIP},
-		"nodemanager": {"database-nodemanager.conf." + podIP, "vnc_api_lib.ini." + podIP},
+		"nodemanager": {"database-nodemgr.conf." + podIP, "database-nodemgr.env." + podIP, "vnc_api_lib.ini." + podIP},
 	}
 	var res []string
 	for srv, maps := range srvMap {

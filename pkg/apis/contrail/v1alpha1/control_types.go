@@ -300,7 +300,9 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 			CAFilePath:               certificates.SignerCAFilepath,
 			LogLevel:                 controlConfig.LogLevel,
 		})
-		data["control-nodemanager.conf."+podIP] = controlNodemanagerBuffer.String()
+		data["control-nodemgr.conf."+podIP] = controlNodemanagerBuffer.String()
+		// empty env as no db tracking
+		data["control-nodemgr.env."+podIP] = ""
 
 		var vncApiConfigBuffer bytes.Buffer
 		configtemplates.ConfigAPIVNC.Execute(&vncApiConfigBuffer, struct {

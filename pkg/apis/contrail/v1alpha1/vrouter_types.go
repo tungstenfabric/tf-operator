@@ -862,7 +862,8 @@ func (c *Vrouter) UpdateAgentConfigMapForPod(vrouterPod *VrouterPod,
 	configMap.Data["contrail-vrouter-agent.conf."+podIP] = agentConfig
 	configMap.Data["contrail-lbaas.auth.conf."+podIP] = lbaasAuthConfig
 	configMap.Data["vnc_api_lib.ini."+podIP] = vncAPILibIniConfig
-	configMap.Data["vrouter-nodemanager.conf."+podIP] = nodemgrConfig
+	configMap.Data["vrouter-nodemgr.conf."+podIP] = nodemgrConfig
+	configMap.Data["vrouter-nodemgr.env."+podIP] = ""
 
 	// update with provisioner configs
 	if err := UpdateProvisionerConfigMapData("vrouter-provisioner", clusterParams.ConfigNodes, configMap); err != nil {
@@ -997,10 +998,10 @@ func (vrouterPod *VrouterPod) IsAgentConfigsAvaliable(vrouter *Vrouter, provisio
 		return eq, nil
 	}
 
-	path = "/etc/contrailconfigmaps/vrouter-nodemanager.conf." + podIP
-	eq, err = vrouterPod.IsFileInAgentContainerEqualTo(path, configMap.Data["vrouter-nodemanager.conf."+podIP])
+	path = "/etc/contrailconfigmaps/vrouter-nodemgr.conf." + podIP
+	eq, err = vrouterPod.IsFileInAgentContainerEqualTo(path, configMap.Data["vrouter-nodemgr.conf."+podIP])
 	if err != nil || !eq {
-		log.Info("vrouter-nodemanager.conf not ready", "err", err)
+		log.Info("vrouter-nodemgr.conf not ready", "err", err)
 		return eq, nil
 	}
 
