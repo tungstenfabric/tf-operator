@@ -240,8 +240,6 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 	statefulSet := GetSTS()
 	// DeviceManager pushes configuration to dnsmasq service and then needs to restart it by sending a signal.
 	// Therefore those services needs to share a one process namespace
-	// TODO: Move device manager and dnsmasq to a separate pod. They are separate services which requires
-	// persistent volumes and capabilities
 	trueVal := true
 	statefulSet.Spec.Template.Spec.ShareProcessNamespace = &trueVal
 

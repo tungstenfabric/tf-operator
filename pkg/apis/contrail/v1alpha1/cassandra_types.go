@@ -373,7 +373,7 @@ func (c *Cassandra) ConfigurationParameters() *CassandraConfiguration {
 	var minimumDiskGB int
 
 	if c.Spec.ServiceConfiguration.Storage.Path == "" {
-		cassandraConfiguration.Storage.Path = "/mnt/cassandra"
+		cassandraConfiguration.Storage.Path = "/var/lib/cassandra"
 	} else {
 		cassandraConfiguration.Storage.Path = c.Spec.ServiceConfiguration.Storage.Path
 	}

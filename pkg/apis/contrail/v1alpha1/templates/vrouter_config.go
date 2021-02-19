@@ -41,6 +41,9 @@ set -o allexport
 # log dir be mount onto host /var/log/contrail/vrouter-agent
 CONTAINER_LOG_DIR=/var/log/contrail
 
+# TODO: not clear if it is needed in operator
+VROUTER_ENCRYPTION=false
+
 #TODO uncomment parameters to export after debug
 CONTROL_NODES="{{ .ClusterParams.ControlNodes }}"
 CONFIG_NODES="{{ .ClusterParams.ConfigNodes }}"

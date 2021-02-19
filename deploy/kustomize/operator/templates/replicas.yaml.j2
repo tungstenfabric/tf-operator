@@ -1,0 +1,13 @@
+{%- if CONTRAIL_REPLICAS is not defined -%}
+{%- if CONTROLLER_NODES is defined and CONTROLLER_NODES|length -%}
+{%- set CONTRAIL_REPLICAS = " ".join(CONTROLLER_NODES.split(",")).split()|length -%}
+{%- endif -%}
+{%- endif -%}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tf-operator
+  namespace: contrail
+spec:
+  replicas: {{ CONTRAIL_REPLICAS | default(1) }}

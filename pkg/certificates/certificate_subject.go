@@ -7,6 +7,7 @@ import (
 	"crypto/x509/pkix"
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -47,6 +48,20 @@ func (c CertificateSubject) generateCertificateTemplate(client client.Client) (x
 		ips = append(ips, net.ParseIP(ip))
 	}
 
+	fullName := c.hostname
+	if !strings.HasSuffix(c.hostname, c.domain) {
+		fullName = fullName + "." + c.domain
+	}
+	altDNSNames := []string{}
+	pn := ""
+	for _, i := range strings.Split(fullName, ".") {
+		if pn != "" {
+			pn = pn + "."
+		}
+		pn = pn + i
+		altDNSNames = append(altDNSNames, pn)
+	}
+
 	certificateTemplate := x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
@@ -57,7 +72,7 @@ func (c CertificateSubject) generateCertificateTemplate(client client.Client) (x
 			Organization:       []string{"Linux Foundation"},
 			OrganizationalUnit: []string{"Tungsten Fabric"},
 		},
-		DNSNames:    []string{c.hostname, c.hostname + "." + c.domain},
+		DNSNames:    altDNSNames,
 		IPAddresses: ips,
 		NotBefore:   notBefore,
 		NotAfter:    notAfter,

@@ -34,38 +34,35 @@ spec:
       - operator: Exists
         effect: NoExecute
       initContainers:
-      - command:
+      - name: init
+        command:
         - sh
         - -c
         - until grep ready /tmp/podinfo/pod_labels > /dev/null 2>&1; do sleep 1; done
         image: busybox
-        name: init
         resources: {}
-        securityContext:
-          privileged: false
-          procMount: Default
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
         volumeMounts:
         - mountPath: /tmp/podinfo
           name: status
-      - image: busybox
+      - name: conf-init
+        image: busybox
         command:
           - sh
           - -c
-          - cp /zookeeper-conf/* /mnt/zookeeper/ && cp /mnt/zookeeper/zoo.cfg.$POD_IP /mnt/zookeeper/zoo.cfg && sleep 120
+          - cp /zookeeper-conf/* /var/lib/zookeeper/ && cp /var/lib/zookeeper/zoo.cfg.$POD_IP /var/lib/zookeeper/zoo.cfg && sleep 120
         env:
         - name: POD_IP
           valueFrom:
             fieldRef:
               fieldPath: status.podIP
-        name: conf-init
         resources: {}
-        securityContext:
-          privileged: false
-          procMount: Default
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /var/lib/zookeeper
+          name: zookeeper-data
       containers:
       - name: zookeeper
         env:

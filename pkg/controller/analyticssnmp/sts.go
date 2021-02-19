@@ -40,8 +40,6 @@ spec:
       containers:
         - name: analytics-snmp-collector
           image: "tangstenfabric/contrail-analytics-snmp-collector:latest"
-          securityContext:
-            privileged: true
           env:
             - name: NODE_TYPE
               value: analytics-snmp
@@ -53,8 +51,6 @@ spec:
                   fieldPath: status.podIP
         - name: analytics-snmp-topology
           image: "tangstenfabric/contrail-analytics-snmp-topology:latest"
-          securityContext:
-            privileged: true
           env:
             - name: NODE_TYPE
               value: analytics-snmp
@@ -86,8 +82,6 @@ spec:
               name: docker-unix-socket
         - name: provisioner
           image: "tangstenfabric/contrail-provisioner:latest"
-          securityContext:
-            privileged: true
           env:
             - name: NODE_TYPE
               value: analytics-snmp

@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	storagev1 "k8s.io/api/storage/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -18,7 +16,6 @@ import (
 	"github.com/tungstenfabric/tf-operator/pkg/label"
 
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
@@ -192,31 +189,6 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 
 	zookeeperDefaultConfiguration := instance.ConfigurationParameters()
 
-	storageResource := corev1.ResourceStorage
-	diskSize, err := resource.ParseQuantity(zookeeperDefaultConfiguration.Storage.Size)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-	storageClassName := "local-storage"
-	statefulSet.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "pvc",
-			Namespace: request.Namespace,
-			Labels:    label.New(instanceType, request.Name),
-		},
-		Spec: corev1.PersistentVolumeClaimSpec{
-			AccessModes: []corev1.PersistentVolumeAccessMode{
-				"ReadWriteOnce",
-			},
-			Selector: &metav1.LabelSelector{
-				MatchLabels: label.New(instanceType, request.Name),
-			},
-			StorageClassName: &storageClassName,
-			Resources: corev1.ResourceRequirements{
-				Requests: corev1.ResourceList{storageResource: diskSize},
-			},
-		},
-	}}
 	for idx, container := range statefulSet.Spec.Template.Spec.Containers {
 
 		if container.Name == "zookeeper" {
@@ -227,15 +199,7 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 			} else {
 				(&statefulSet.Spec.Template.Spec.Containers[idx]).Command = instanceContainer.Command
 			}
-			volumeMountList := []corev1.VolumeMount{}
-			volumeMount := corev1.VolumeMount{
-				Name:      "pvc",
-				MountPath: "/var/lib/zookeeper",
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			(&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts = volumeMountList
 			(&statefulSet.Spec.Template.Spec.Containers[idx]).Image = instanceContainer.Image
-
 		}
 
 	}
@@ -274,98 +238,16 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 			(&statefulSet.Spec.Template.Spec.InitContainers[idx]).Command = instanceContainer.Command
 		}
 		if container.Name == "init" {
-			volumeMount := corev1.VolumeMount{
-				Name:      request.Name + "-" + instanceType + "-init",
-				MountPath: zookeeperDefaultConfiguration.Storage.Path,
-			}
-			(&statefulSet.Spec.Template.Spec.InitContainers[idx]).VolumeMounts = append((&statefulSet.Spec.Template.Spec.InitContainers[idx]).VolumeMounts, volumeMount)
+			// nothing to do
 		}
 		if container.Name == "conf-init" {
 			volumeMount := corev1.VolumeMount{
-				Name:      request.Name + "-" + instanceType + "-init",
-				MountPath: "/mnt/zookeeper",
-			}
-			(&statefulSet.Spec.Template.Spec.InitContainers[idx]).VolumeMounts = append((&statefulSet.Spec.Template.Spec.InitContainers[idx]).VolumeMounts, volumeMount)
-			volumeMount = corev1.VolumeMount{
 				Name:      configMapName,
 				MountPath: "/zookeeper-conf",
 			}
 			(&statefulSet.Spec.Template.Spec.InitContainers[idx]).VolumeMounts = append((&statefulSet.Spec.Template.Spec.InitContainers[idx]).VolumeMounts, volumeMount)
 			(&statefulSet.Spec.Template.Spec.InitContainers[idx]).Command = []string{
 				"sh", "-c", configurationInitCommand}
-		}
-	}
-
-	volumeBindingMode := storagev1.VolumeBindingMode("WaitForFirstConsumer")
-	storageClass := &storagev1.StorageClass{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "local-storage",
-		},
-		Provisioner:       "kubernetes.io/no-provisioner",
-		VolumeBindingMode: &volumeBindingMode,
-	}
-	err = r.Client.Get(context.TODO(), types.NamespacedName{Name: storageClass.Name}, storageClass)
-	if err != nil && errors.IsNotFound(err) {
-		err = r.Client.Create(context.TODO(), storageClass)
-		if err != nil {
-			if !errors.IsAlreadyExists(err) {
-				return reconcile.Result{}, err
-			}
-		}
-	}
-
-	volumeMode := corev1.PersistentVolumeMode("Filesystem")
-	nodeSelectorMatchExpressions := []corev1.NodeSelectorRequirement{}
-	for k, v := range instance.Spec.CommonConfiguration.NodeSelector {
-		valueList := []string{v}
-		expression := corev1.NodeSelectorRequirement{
-			Key:      k,
-			Operator: corev1.NodeSelectorOperator("In"),
-			Values:   valueList,
-		}
-		nodeSelectorMatchExpressions = append(nodeSelectorMatchExpressions, expression)
-	}
-	nodeSelectorTerm := corev1.NodeSelector{
-		NodeSelectorTerms: []corev1.NodeSelectorTerm{{
-			MatchExpressions: nodeSelectorMatchExpressions,
-		}},
-	}
-	volumeNodeAffinity := corev1.VolumeNodeAffinity{
-		Required: &nodeSelectorTerm,
-	}
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-	localVolumeSource := corev1.LocalVolumeSource{
-		Path: zookeeperDefaultConfiguration.Storage.Path,
-	}
-
-	replicasInt := int(*instance.Spec.CommonConfiguration.Replicas)
-	for i := 0; i < replicasInt; i++ {
-		pv := &corev1.PersistentVolume{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:   instance.Name + "-pv-" + strconv.Itoa(i),
-				Labels: label.New(instanceType, request.Name),
-			},
-			Spec: corev1.PersistentVolumeSpec{
-				Capacity:   corev1.ResourceList{storageResource: diskSize},
-				VolumeMode: &volumeMode,
-				AccessModes: []corev1.PersistentVolumeAccessMode{
-					"ReadWriteOnce",
-				},
-				PersistentVolumeReclaimPolicy: corev1.PersistentVolumeReclaimPolicy("Retain"),
-				StorageClassName:              "local-storage",
-				NodeAffinity:                  &volumeNodeAffinity,
-				PersistentVolumeSource: corev1.PersistentVolumeSource{
-					Local: &localVolumeSource,
-				},
-			},
-		}
-		err = r.Client.Get(context.TODO(), types.NamespacedName{Name: pv.Name, Namespace: request.Namespace}, pv)
-		if err != nil && errors.IsNotFound(err) {
-			if err = r.Client.Create(context.TODO(), pv); err != nil && !errors.IsAlreadyExists(err) {
-				return reconcile.Result{}, err
-			}
 		}
 	}
 
@@ -441,22 +323,6 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 		if err = instance.ManageNodeStatus(podIPMap, r.Client); err != nil {
 			return reconcile.Result{}, err
 		}
-
-		labelSelector := labels.SelectorFromSet(label.New(instanceType, request.Name))
-		listOps := &client.ListOptions{Namespace: request.Namespace, LabelSelector: labelSelector}
-		pvcList := &corev1.PersistentVolumeClaimList{}
-		err = r.Client.List(context.TODO(), pvcList, listOps)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-		for _, pvc := range pvcList.Items {
-			if err = controllerutil.SetControllerReference(instance, &pvc, r.Scheme); err != nil {
-				return reconcile.Result{}, err
-			}
-			if err = r.Client.Update(context.TODO(), &pvc); err != nil {
-				return reconcile.Result{}, err
-			}
-		}
 	}
 
 	if err = r.ensurePodDisruptionBudgetExists(instance); err != nil {
@@ -493,11 +359,11 @@ func (r *ReconcileZookeeper) ensurePodDisruptionBudgetExists(zookeeper *v1alpha1
 
 const configurationInitCommand = `#!/bin/sh
 set -x
-if ! [[ -f /mnt/zookeeper/zoo.cfg && -f /mnt/zookeeper/zoo.cfg.dynamic ]]; then
-	cp /zookeeper-conf/log4j.properties /mnt/zookeeper/
-	cp /zookeeper-conf/configuration.xsl /mnt/zookeeper/
-	cp /zookeeper-conf/zoo.cfg /mnt/zookeeper/
-	cp /zookeeper-conf/zoo.cfg.dynamic.$POD_IP /mnt/zookeeper/zoo.cfg.dynamic
-	cp /zookeeper-conf/myid.$POD_IP /mnt/zookeeper/myid
+if ! [[ -f /var/lib/zookeeper/zoo.cfg && -f /var/lib/zookeeper/zoo.cfg.dynamic ]]; then
+	cp /zookeeper-conf/log4j.properties /var/lib/zookeeper/
+	cp /zookeeper-conf/configuration.xsl /var/lib/zookeeper/
+	cp /zookeeper-conf/zoo.cfg /var/lib/zookeeper/
+	cp /zookeeper-conf/zoo.cfg.dynamic.$POD_IP /var/lib/zookeeper/zoo.cfg.dynamic
+	cp /zookeeper-conf/myid.$POD_IP /var/lib/zookeeper/myid
 fi
 `

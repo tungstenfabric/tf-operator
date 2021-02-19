@@ -227,7 +227,7 @@ func (c *Zookeeper) ConfigurationParameters() ZookeeperConfiguration {
 	var adminEnableServer bool
 	var adminPort int
 	if c.Spec.ServiceConfiguration.Storage.Path == "" {
-		zookeeperConfiguration.Storage.Path = "/mnt/zookeeper"
+		zookeeperConfiguration.Storage.Path = "/var/lib/zookeeper"
 	} else {
 		zookeeperConfiguration.Storage.Path = c.Spec.ServiceConfiguration.Storage.Path
 	}

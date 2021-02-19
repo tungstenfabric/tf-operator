@@ -1217,18 +1217,22 @@ func AddCommonVolumes(podSpec *corev1.PodSpec) {
 		{
 			Name:      "etc-hosts",
 			MountPath: "/etc/hosts",
+			ReadOnly:  true,
 		},
 		{
 			Name:      "etc-resolv",
 			MountPath: "/etc/resolv.conf",
+			ReadOnly:  true,
 		},
 		{
 			Name:      "etc-timezone",
 			MountPath: "/etc/timezone",
+			ReadOnly:  true,
 		},
 		{
 			Name:      "etc-localtime",
 			MountPath: "/etc/localtime",
+			ReadOnly:  true,
 		},
 		{
 			Name:      "var-crashes",
@@ -1256,3 +1260,10 @@ func AddCommonVolumes(podSpec *corev1.PodSpec) {
 		c.VolumeMounts = append(c.VolumeMounts, commonMounts...)
 	}
 }
+
+// TODO: common for nodemgrs
+// - /var/run:/var/run:z
+// - /run/runc:/run/runc:z
+// - /sys/fs/cgroup:/sys/fs/cgroup:ro
+// - /sys/fs/selinux:/sys/fs/selinux
+// - /var/lib/containers:/var/lib/containers:shared

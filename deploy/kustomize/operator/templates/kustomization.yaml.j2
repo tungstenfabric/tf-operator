@@ -14,6 +14,9 @@
 bases:
 - ../../base/operator
 
+patchesStrategicMerge:
+  - replicas.yaml
+
 images:
 - name: tf-operator
   newTag: {{ CONTRAIL_DEPLOYER_CONTAINER_TAG }}

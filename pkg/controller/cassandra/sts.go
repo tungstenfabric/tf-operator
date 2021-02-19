@@ -39,7 +39,8 @@ spec:
       - effect: NoExecute
         operator: Exists
       containers:
-      - image: cassandra:3.11.4
+      - name: cassandra
+        image: tungstenfabric/contrail-external-cassandra:latest
         env:
         - name: POD_IP
           valueFrom:
@@ -75,19 +76,18 @@ spec:
             - /bin/bash
             - -c
             - "if [[ $(nodetool -p {{ .LocalJmxPort }} status | grep ${POD_IP} |awk '{print $1}') != 'UN' ]]; then exit -1; fi;"
-        name: cassandra
         securityContext:
           capabilities:
             add:
               - IPC_LOCK
               - SYS_NICE
-          privileged: false
-          procMount: Default
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
         volumeMounts:
         - mountPath: /var/log/cassandra
           name: cassandra-logs
+        - mountPath: /var/lib/cassandra
+          name: cassandra-data
       - name: nodemanager
         image: tungstenfabric/contrail-nodemgr:latest
         env:
@@ -134,9 +134,6 @@ spec:
         image: busybox:latest
         name: init
         resources: {}
-        securityContext:
-          privileged: false
-          procMount: Default
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
         volumeMounts:
@@ -151,6 +148,10 @@ spec:
           path: /var/run
           type: ""
         name: var-run
+      - hostPath:
+          path: /var/lib/contrail/cassandra
+          type: ""
+        name: cassandra-data
       - downwardAPI:
           defaultMode: 420
           items:
@@ -163,14 +164,7 @@ spec:
               fieldPath: metadata.labels
             path: pod_labelsx
         name: status
-  volumeClaimTemplates:
-  - metadata:
-      name: cassandra-data
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      resources:
-        requests:
-          storage: 5G
+
 `))
 
 // GetSTS returns cassandra sts object by template

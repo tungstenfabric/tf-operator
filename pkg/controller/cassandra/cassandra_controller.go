@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"strconv"
 	"text/template"
 	"time"
 
@@ -15,17 +14,13 @@ import (
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
-	"github.com/tungstenfabric/tf-operator/pkg/label"
 
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -34,7 +29,6 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -177,9 +171,8 @@ type ReconcileCassandra struct {
 }
 
 var cassandraInitKeystoreCommandTemplate = template.Must(template.New("").Parse(
-	"rm -f /etc/keystore/server-truststore.jks /etc/keystore/server-keystore.jks ; " +
-		"keytool -keystore /etc/keystore/server-truststore.jks -keypass {{ .KeystorePassword }} -storepass {{ .TruststorePassword }} -list -alias CARoot -noprompt;" +
-		"if [ $? -ne 0 ]; then keytool -keystore /etc/keystore/server-truststore.jks -keypass {{ .KeystorePassword }} -storepass {{ .TruststorePassword }} -noprompt -alias CARoot -import -file {{ .CAFilePath }}; fi && " +
+	"rm -f /etc/keystore/server-truststore.jks /etc/keystore/server-keystore.jks && " +
+		"keytool -keystore /etc/keystore/server-truststore.jks -keypass {{ .KeystorePassword }} -storepass {{ .TruststorePassword }} -noprompt -alias CARoot -import -file {{ .CAFilePath }} && " +
 		"openssl pkcs12 -export -in /etc/certificates/server-${POD_IP}.crt -inkey /etc/certificates/server-key-${POD_IP}.pem -chain -CAfile {{ .CAFilePath }} -password pass:{{ .TruststorePassword }} -name $(hostname -f) -out TmpFile && " +
 		"keytool -importkeystore -deststorepass {{ .KeystorePassword }} -destkeypass {{ .KeystorePassword }} -destkeystore /etc/keystore/server-keystore.jks -deststoretype pkcs12 -srcstorepass {{ .TruststorePassword }} -srckeystore TmpFile -srcstoretype PKCS12 -alias $(hostname -f) -noprompt ;"))
 
@@ -250,38 +243,13 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 
 	cassandraDefaultConfiguration := instance.ConfigurationParameters()
 
-	storageResource := corev1.ResourceStorage
-	diskSize, err := resource.ParseQuantity(cassandraDefaultConfiguration.Storage.Size)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-	storageClassName := "local-storage"
-	statefulSet.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "pvc",
-			Namespace: request.Namespace,
-			Labels:    label.New(instanceType, request.Name),
-		},
-		Spec: corev1.PersistentVolumeClaimSpec{
-			AccessModes: []corev1.PersistentVolumeAccessMode{
-				"ReadWriteOnce",
-			},
-			Selector: &metav1.LabelSelector{
-				MatchLabels: label.New(instanceType, request.Name),
-			},
-			StorageClassName: &storageClassName,
-			Resources: corev1.ResourceRequirements{
-				Requests: corev1.ResourceList{storageResource: diskSize},
-			},
-		},
-	}}
-
 	emptyVolume := corev1.Volume{
 		Name: request.Name + "-keystore",
 		VolumeSource: corev1.VolumeSource{
 			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		},
 	}
+
 	statefulSet.Spec.Template.Spec.Volumes = append(statefulSet.Spec.Template.Spec.Volumes, emptyVolume)
 
 	for idx := range statefulSet.Spec.Template.Spec.Containers {
@@ -297,10 +265,6 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 			corev1.VolumeMount{
 				Name:      configmapsVolumeName,
 				MountPath: "/etc/contrailconfigmaps",
-			},
-			corev1.VolumeMount{
-				Name:      "pvc",
-				MountPath: "/var/lib/cassandra",
 			},
 			corev1.VolumeMount{
 				Name:      secretVolumeName,
@@ -467,81 +431,6 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		}
 	}
 
-	volumeBindingMode := storagev1.VolumeBindingMode("WaitForFirstConsumer")
-	storageClass := &storagev1.StorageClass{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "local-storage",
-		},
-		Provisioner:       "kubernetes.io/no-provisioner",
-		VolumeBindingMode: &volumeBindingMode,
-	}
-	err = r.Client.Get(context.TODO(), types.NamespacedName{Name: storageClass.Name}, storageClass)
-	if err != nil && errors.IsNotFound(err) {
-		err = r.Client.Create(context.TODO(), storageClass)
-		if err != nil {
-			if !errors.IsAlreadyExists(err) {
-				return reconcile.Result{}, err
-			}
-		}
-	}
-
-	volumeMode := corev1.PersistentVolumeMode("Filesystem")
-	nodeSelectorMatchExpressions := []corev1.NodeSelectorRequirement{}
-	for k, v := range instance.Spec.CommonConfiguration.NodeSelector {
-		valueList := []string{v}
-		expression := corev1.NodeSelectorRequirement{
-			Key:      k,
-			Operator: corev1.NodeSelectorOperator("In"),
-			Values:   valueList,
-		}
-		nodeSelectorMatchExpressions = append(nodeSelectorMatchExpressions, expression)
-	}
-	nodeSelectorTerm := corev1.NodeSelector{
-		NodeSelectorTerms: []corev1.NodeSelectorTerm{{
-			MatchExpressions: nodeSelectorMatchExpressions,
-		}},
-	}
-	volumeNodeAffinity := corev1.VolumeNodeAffinity{
-		Required: &nodeSelectorTerm,
-	}
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-	localVolumeSource := corev1.LocalVolumeSource{
-		Path: cassandraDefaultConfiguration.Storage.Path,
-	}
-	replicasInt := 1
-	if instance.Spec.CommonConfiguration.Replicas != nil {
-		replicasInt = int(*instance.Spec.CommonConfiguration.Replicas)
-	}
-	for i := 0; i < replicasInt; i++ {
-		pv := &corev1.PersistentVolume{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:   instance.Name + "-pv-" + strconv.Itoa(i),
-				Labels: label.New(instanceType, request.Name),
-			},
-			Spec: corev1.PersistentVolumeSpec{
-				Capacity:   corev1.ResourceList{storageResource: diskSize},
-				VolumeMode: &volumeMode,
-				AccessModes: []corev1.PersistentVolumeAccessMode{
-					"ReadWriteOnce",
-				},
-				PersistentVolumeReclaimPolicy: corev1.PersistentVolumeReclaimPolicy("Retain"),
-				StorageClassName:              "local-storage",
-				NodeAffinity:                  &volumeNodeAffinity,
-				PersistentVolumeSource: corev1.PersistentVolumeSource{
-					Local: &localVolumeSource,
-				},
-			},
-		}
-		err = r.Client.Get(context.TODO(), types.NamespacedName{Name: pv.Name, Namespace: request.Namespace}, pv)
-		if err != nil && errors.IsNotFound(err) {
-			if err = r.Client.Create(context.TODO(), pv); err != nil && !errors.IsAlreadyExists(err) {
-				return reconcile.Result{}, err
-			}
-		}
-	}
-
 	v1alpha1.AddCommonVolumes(&statefulSet.Spec.Template.Spec)
 
 	// Create statefulset if it doesn't exist
@@ -571,22 +460,6 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		}
 		if err := r.ensureCertificatesExist(instance, podList, clusterIP, instanceType); err != nil {
 			return reconcile.Result{}, err
-		}
-
-		labelSelector := labels.SelectorFromSet(label.New(instanceType, request.Name))
-		listOps := &client.ListOptions{Namespace: request.Namespace, LabelSelector: labelSelector}
-		pvcList := &corev1.PersistentVolumeClaimList{}
-		err = r.Client.List(context.TODO(), pvcList, listOps)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-		for _, pvc := range pvcList.Items {
-			if err = controllerutil.SetControllerReference(instance, &pvc, r.Scheme); err != nil {
-				return reconcile.Result{}, err
-			}
-			if err = r.Client.Update(context.TODO(), &pvc); err != nil {
-				return reconcile.Result{}, err
-			}
 		}
 		if err = instance.SetPodsToReady(podList, r.Client); err != nil {
 			return reconcile.Result{}, err
