@@ -16,7 +16,7 @@ function link_file() {
   while [ ! -e $src ] ; do sleep 1; done
   echo "INFO: $(date): link $src => $dst"
   ln -sf $src $dst
-	cat $dst
+  cat $dst
 }
 
 sig_file=/var/run/nodemanager-${NODE_TYPE}-${POD_IP}.pid.sighup
@@ -29,8 +29,8 @@ function kill_process() {
 	rm -f $pid_file
 	[ -n "$pid" ] || exit -1
 	kill $pid
-	for i in {1..5}; do sleep 2; kill -0 $pid || break; done
-	if kill -0 $pid ; then kill -9 $pid ; fi
+	for i in {1..5}; do sleep 2; kill -0 $pid >/dev/null 2>&1 || break; done
+	if kill -0 $pid >/dev/null 2>&1 ; then kill -9 $pid ; fi
 }
 function trap_sighup() {
 	touch $sig_file

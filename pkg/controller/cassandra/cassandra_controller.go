@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1"
-	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1/templates"
 	"github.com/tungstenfabric/tf-operator/pkg/randomstring"
 
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
@@ -338,24 +337,6 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 				command := []string{"bash", "/etc/contrailconfigmaps/database-nodemanager-runner.sh"}
 				container.Command = command
 			}
-
-			// TODO: till 2 DBs are not supported
-			configNodes, err := instance.GetConfigNodes(request, r.Client)
-			if err != nil {
-				return reconcile.Result{}, err
-			}
-			dbServers := configtemplates.JoinListWithSeparator(configNodes, ",")
-			envVars := []corev1.EnvVar{
-				{
-					Name:  "ANALYTICSDB_NODES",
-					Value: dbServers,
-				},
-				{
-					Name:  "CONFIGDB_NODES",
-					Value: dbServers,
-				},
-			}
-			container.Env = append(container.Env, envVars...)
 		}
 
 		if container.Name == "provisioner" {
