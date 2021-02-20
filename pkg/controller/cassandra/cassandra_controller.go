@@ -171,9 +171,9 @@ type ReconcileCassandra struct {
 }
 
 var cassandraInitKeystoreCommandTemplate = template.Must(template.New("").Parse(
-	"rm -f /etc/keystore/server-truststore.jks /etc/keystore/server-keystore.jks && " +
-		"keytool -keystore /etc/keystore/server-truststore.jks -keypass {{ .KeystorePassword }} -storepass {{ .TruststorePassword }} -noprompt -alias CARoot -import -file {{ .CAFilePath }} && " +
-		"openssl pkcs12 -export -in /etc/certificates/server-${POD_IP}.crt -inkey /etc/certificates/server-key-${POD_IP}.pem -chain -CAfile {{ .CAFilePath }} -password pass:{{ .TruststorePassword }} -name $(hostname -f) -out TmpFile && " +
+	"rm -f /etc/keystore/server-truststore.jks /etc/keystore/server-keystore.jks && mkdir -p /etc/keystore ;" +
+		"keytool -keystore /etc/keystore/server-truststore.jks -keypass {{ .KeystorePassword }} -storepass {{ .TruststorePassword }} -noprompt -alias CARoot -import -file {{ .CAFilePath }} ; " +
+		"openssl pkcs12 -export -in /etc/certificates/server-${POD_IP}.crt -inkey /etc/certificates/server-key-${POD_IP}.pem -chain -CAfile {{ .CAFilePath }} -password pass:{{ .TruststorePassword }} -name $(hostname -f) -out TmpFile ; " +
 		"keytool -importkeystore -deststorepass {{ .KeystorePassword }} -destkeypass {{ .KeystorePassword }} -destkeystore /etc/keystore/server-keystore.jks -deststoretype pkcs12 -srcstorepass {{ .TruststorePassword }} -srckeystore TmpFile -srcstoretype PKCS12 -alias $(hostname -f) -noprompt ;"))
 
 type cassandraInitKeystoreCommandData struct {
@@ -243,15 +243,6 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 
 	cassandraDefaultConfiguration := instance.ConfigurationParameters()
 
-	emptyVolume := corev1.Volume{
-		Name: request.Name + "-keystore",
-		VolumeSource: corev1.VolumeSource{
-			EmptyDir: &corev1.EmptyDirVolumeSource{},
-		},
-	}
-
-	statefulSet.Spec.Template.Spec.Volumes = append(statefulSet.Spec.Template.Spec.Volumes, emptyVolume)
-
 	for idx := range statefulSet.Spec.Template.Spec.Containers {
 
 		container := &statefulSet.Spec.Template.Spec.Containers[idx]
@@ -269,10 +260,6 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 			corev1.VolumeMount{
 				Name:      secretVolumeName,
 				MountPath: "/etc/certificates",
-			},
-			corev1.VolumeMount{
-				Name:      request.Name + "-keystore",
-				MountPath: "/etc/keystore",
 			},
 			corev1.VolumeMount{
 				Name:      csrSignerCaVolumeName,
