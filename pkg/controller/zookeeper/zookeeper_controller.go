@@ -12,7 +12,6 @@ import (
 
 	"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
-	"github.com/tungstenfabric/tf-operator/pkg/k8s"
 	"github.com/tungstenfabric/tf-operator/pkg/label"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -279,14 +278,6 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 			return reconcile.Result{}, err
 		}
 
-		for _, pod := range podIPList {
-			for _, c := range pod.Status.Conditions {
-				if c.Type == corev1.PodReady && c.Status == corev1.ConditionFalse {
-					delete(podIPMap, pod.Name)
-				}
-			}
-		}
-
 		pods := make([]corev1.Pod, len(podIPList))
 		copy(pods, podIPList)
 		sort.SliceStable(pods, func(i, j int) bool { return pods[i].Name < pods[j].Name })
@@ -311,12 +302,13 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 
 			serverDef := fmt.Sprintf("server.%d=%s:%s;%s:2181",
 				myidInt+1, found.Status.PodIP,
-				strconv.Itoa(*zookeeperDefaultConfiguration.ElectionPort)+":"+strconv.Itoa(*zookeeperDefaultConfiguration.ServerPort), found.Status.PodIP)
+				strconv.Itoa(*zookeeperDefaultConfiguration.ElectionPort)+":"+strconv.Itoa(*zookeeperDefaultConfiguration.ServerPort),
+				found.Status.PodIP)
 			runScript := fmt.Sprintf("zkCli.sh -server %s reconfig -add \"%s\"", found.Status.PodIP, serverDef)
 			command := []string{"bash", "-c", runScript, serverDef}
-			_, _, err = k8s.ExecToPodThroughAPI(command, "zookeeper", found.Name, found.Namespace, nil)
-			if err != nil {
-				return reconcile.Result{}, err
+			if sout, serr, err := v1alpha1.ExecCmdInContainer(found, "zookeeper", command); err != nil {
+				reqLogger.Error(err, "Zookeeper reconfig failed", "out", sout, "err", serr)
+				return requeueReconcile, err
 			}
 		}
 

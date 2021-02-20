@@ -2,6 +2,7 @@ package templates
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 
 	"text/template"
@@ -25,20 +26,26 @@ skipACL=yes
 dynamicConfigFile=/var/lib/zookeeper/zoo.cfg.dynamic
 `))
 
+// DynamicZookeeperConfig creates zk dynamic config
 func DynamicZookeeperConfig(pods []core.Pod, electionPort, serverPort, clientPort string) (map[string]string, error) {
 	dynamicConf := make(map[string]string, 0)
-	var firstServerDef string
+	serverDef := ""
+	sort.SliceStable(pods, func(i, j int) bool { return pods[i].Name < pods[j].Name })
 	for _, pod := range pods {
 		myidString := pod.Name[len(pod.Name)-1:]
 		myidInt, err := strconv.Atoi(myidString)
 		if err != nil {
 			return nil, err
 		}
-		serverDef := firstServerDef + fmt.Sprintf("server.%d=%s:%s:participant;%s:%s\n",
+		serverDef = serverDef + fmt.Sprintf("server.%d=%s:%s:participant;%s:%s\n",
 			myidInt+1, pod.Status.PodIP,
 			electionPort+":"+serverPort, pod.Status.PodIP, clientPort)
-		if myidInt == 0 {
-			firstServerDef = serverDef
+	}
+	for _, pod := range pods {
+		myidString := pod.Name[len(pod.Name)-1:]
+		myidInt, err := strconv.Atoi(myidString)
+		if err != nil {
+			return nil, err
 		}
 		dynamicConf["myid."+pod.Status.PodIP] = strconv.Itoa(myidInt + 1)
 		dynamicConf["zoo.cfg.dynamic."+pod.Status.PodIP] = serverDef
