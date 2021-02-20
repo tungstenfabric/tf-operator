@@ -6,7 +6,9 @@ import "text/template"
 // TODO: might be moved to tf-container-builder as main entrypoint or function
 // to commonize approach with sighup between orchestrators
 var NodemanagerRunner = template.Must(template.New("").Parse(`#!/bin/bash
+set -e
 [[ "$LOG_LEVEL" != "SYS_DEBUG" ]] || set -x
+
 function link_file() {
   local src=/etc/contrailconfigmaps/$1
   local dst=/etc/contrail/${2:-${1}}

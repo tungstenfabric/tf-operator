@@ -188,33 +188,32 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 
 	zookeeperDefaultConfiguration := instance.ConfigurationParameters()
 
-	for idx, container := range statefulSet.Spec.Template.Spec.Containers {
+	for idx := range statefulSet.Spec.Template.Spec.Containers {
+
+		container := &statefulSet.Spec.Template.Spec.Containers[idx]
+		instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
+		container.Image = instanceContainer.Image
 
 		if container.Name == "zookeeper" {
-			instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
 			if instanceContainer.Command == nil {
-				command := []string{"bash", "-c", "zkServer.sh --config /var/lib/zookeeper start-foreground"}
-				(&statefulSet.Spec.Template.Spec.Containers[idx]).Command = command
+				command := []string{"bash", "-c",
+					configurationInitCommand +
+						"zkServer.sh --config /var/lib/zookeeper start-foreground",
+				}
+				container.Command = command
 			} else {
-				(&statefulSet.Spec.Template.Spec.Containers[idx]).Command = instanceContainer.Command
+				container.Command = instanceContainer.Command
 			}
-			(&statefulSet.Spec.Template.Spec.Containers[idx]).Image = instanceContainer.Image
+			container.VolumeMounts = append(container.VolumeMounts,
+				corev1.VolumeMount{
+					Name:      configMapName,
+					MountPath: "/zookeeper-conf",
+				})
 		}
 
 	}
-	initHostPathType := corev1.HostPathType("DirectoryOrCreate")
-	initHostPathSource := &corev1.HostPathVolumeSource{
-		Path: zookeeperDefaultConfiguration.Storage.Path,
-		Type: &initHostPathType,
-	}
-	initVolume := corev1.Volume{
-		Name: request.Name + "-" + instanceType + "-init",
-		VolumeSource: corev1.VolumeSource{
-			HostPath: initHostPathSource,
-		},
-	}
-	statefulSet.Spec.Template.Spec.Volumes = append(statefulSet.Spec.Template.Spec.Volumes, initVolume)
 	statefulSet.Spec.PodManagementPolicy = appsv1.OrderedReadyPodManagement
+
 	// Configure InitContainers.
 	statefulSet.Spec.Template.Spec.Affinity = &corev1.Affinity{
 		PodAntiAffinity: &corev1.PodAntiAffinity{
@@ -239,15 +238,6 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 		if container.Name == "init" {
 			// nothing to do
 		}
-		if container.Name == "conf-init" {
-			volumeMount := corev1.VolumeMount{
-				Name:      configMapName,
-				MountPath: "/zookeeper-conf",
-			}
-			(&statefulSet.Spec.Template.Spec.InitContainers[idx]).VolumeMounts = append((&statefulSet.Spec.Template.Spec.InitContainers[idx]).VolumeMounts, volumeMount)
-			(&statefulSet.Spec.Template.Spec.InitContainers[idx]).Command = []string{
-				"sh", "-c", configurationInitCommand}
-		}
 	}
 
 	v1alpha1.AddCommonVolumes(&statefulSet.Spec.Template.Spec)
@@ -270,6 +260,7 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 	if err != nil {
 		return reconcile.Result{}, err
 	}
+
 	if len(podIPList) > 0 {
 		if err = instance.InstanceConfiguration(request, configMapName, podIPList, r.Client); err != nil {
 			return reconcile.Result{}, err
@@ -350,12 +341,20 @@ func (r *ReconcileZookeeper) ensurePodDisruptionBudgetExists(zookeeper *v1alpha1
 }
 
 const configurationInitCommand = `#!/bin/sh
-set -x
-if ! [[ -f /var/lib/zookeeper/zoo.cfg && -f /var/lib/zookeeper/zoo.cfg.dynamic ]]; then
-	cp /zookeeper-conf/log4j.properties /var/lib/zookeeper/
-	cp /zookeeper-conf/configuration.xsl /var/lib/zookeeper/
-	cp /zookeeper-conf/zoo.cfg /var/lib/zookeeper/
-	cp /zookeeper-conf/zoo.cfg.dynamic.$POD_IP /var/lib/zookeeper/zoo.cfg.dynamic
-	cp /zookeeper-conf/myid.$POD_IP /var/lib/zookeeper/myid
-fi
+function link_file() {
+  local src=/zookeeper-conf/$1
+  local dst=/var/lib/zookeeper/${2:-${1}}
+  echo "INFO: $(date): wait for $src"
+  while [ ! -e $src ] ; do sleep 1; done
+  echo "INFO: $(date): link $src => $dst"
+  rm -f $dst
+  ln -sf $src $dst
+}
+
+link_file log4j.properties
+link_file configuration.xsl
+link_file zoo.cfg
+link_file zoo.cfg.dynamic.$POD_IP zoo.cfg.dynamic
+link_file myid.$POD_IP myid
+
 `

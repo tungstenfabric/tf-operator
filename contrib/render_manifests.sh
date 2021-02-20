@@ -24,7 +24,7 @@ function _process_manifest() {
     local template
     for template in $templates_to_render ; do
         local rendered_yaml=$(echo "${template%.*}")
-        "$my_dir/../common/jinja2_render.py" < $template > $rendered_yaml
+        "$my_dir/jinja2_render.py" < $template > $rendered_yaml
     done
 }
 

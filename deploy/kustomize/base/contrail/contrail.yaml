@@ -147,6 +147,7 @@ spec:
           configInstance: config1
           ipFabricForwarding: false
           ipFabricSnat: true
+          hostNetworkService: true
           kubernetesTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
           containers:
           - name: init

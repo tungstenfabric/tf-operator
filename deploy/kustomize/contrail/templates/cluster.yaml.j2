@@ -9,14 +9,14 @@ spec:
 {%- if DEPLOYER is defined and DEPLOYER == "openshift" %}
     useKubeadmConfig: false
     clusterConfig:
-      clusterName: {{ K8S_CLUSTER_NAME | default("test") }}
+      clusterName: {{ KUBERNETES_CLUSTER_NAME | default("test") }}
       networking:
-        podSubnet: {{ K8S_PODE_SUBNET | default("10.128.0.0/14") }}
-        serviceSubnet: {{ K8S_SERVICE_SUBNET | default("172.30.0.0/16") }}
-        dnsDomain: {{ K8S_CLUSTER_DOMAIN | default("cluster.local") }}
+        podSubnet: {{ KUBERNETES_PODE_SUBNET | default("10.128.0.0/14") }}
+        serviceSubnet: {{ KUBERNETES_SERVICE_SUBNET | default("172.30.0.0/16") }}
+        dnsDomain: {{ KUBERNETES_CLUSTER_DOMAIN | default("cluster.local") }}
         cniConfig:
-          configPath: "/etc/kubernetes/cni"
-          binaryPath: "/var/lib/cni/bin"
+          configPath: {{ KUBERNETES_CNI_CONFIG_PATH | default("/etc/kubernetes/cni") }}
+          binaryPath: {{ KUBERNETES_CNI_BINARY_PATH | default("/var/lib/cni/bin") }}
 {%- else %}
     useKubeadmConfig: true
 {%- endif -%}

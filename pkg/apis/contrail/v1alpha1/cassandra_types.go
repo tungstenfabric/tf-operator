@@ -113,6 +113,7 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 	}
 
 	seedsListString := strings.Join(c.seeds(podList), ",")
+	cassandraLog.Info("InstanceConfiguration", "seedsListString", seedsListString)
 
 	configNodesInformation, err := NewConfigClusterConfiguration(c.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, client)
 	if err != nil {
@@ -439,7 +440,7 @@ func (c *Cassandra) seeds(podList []corev1.Pod) []string {
 	for _, pod := range pods {
 		seeds = append(seeds, pod.Status.PodIP)
 	}
-	if len(seeds) >= 2 {
+	if len(seeds) > 2 {
 		numberOfSeeds := (len(seeds) - 1) / 2
 		seeds = seeds[:numberOfSeeds+1]
 	}

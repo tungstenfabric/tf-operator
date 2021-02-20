@@ -299,7 +299,7 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 
 			if container.Command == nil {
 				command := []string{"bash", "-c",
-					`	set -x ; 
+					`	set -ex ; 
 						echo "INFO: $(date): wait cqlshrc.${POD_IP}" ; 
 						while [ ! -e /etc/contrailconfigmaps/cqlshrc.${POD_IP} ] ; do sleep 1; done ; 
 						echo "INFO: $(date): wait cassandra.${POD_IP}.yaml" ; 
@@ -441,14 +441,20 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	if len(podList) > 0 {
+	if err := r.ensureCertificatesExist(instance, podList, clusterIP, instanceType); err != nil {
+		return reconcile.Result{}, err
+	}
+	if err = instance.SetPodsToReady(podList, r.Client); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	minPods := 1
+	if instance.Spec.CommonConfiguration.Replicas != nil {
+		// to avoid change of seeds (seeds nodes are not to be changed)
+		minPods = int(*instance.Spec.CommonConfiguration.Replicas)/2 + 1
+	}
+	if len(podList) >= minPods {
 		if err = instance.InstanceConfiguration(request, podList, r.Client); err != nil {
-			return reconcile.Result{}, err
-		}
-		if err := r.ensureCertificatesExist(instance, podList, clusterIP, instanceType); err != nil {
-			return reconcile.Result{}, err
-		}
-		if err = instance.SetPodsToReady(podList, r.Client); err != nil {
 			return reconcile.Result{}, err
 		}
 	}

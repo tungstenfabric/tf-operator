@@ -79,8 +79,8 @@ type KubemanagerConfiguration struct {
 	IPFabricSubnets       string       `json:"ipFabricSubnets,omitempty"`
 	IPFabricForwarding    *bool        `json:"ipFabricForwarding,omitempty"`
 	IPFabricSnat          *bool        `json:"ipFabricSnat,omitempty"`
-	KubernetesTokenFile   string       `json:"kubernetesTokenFile,omitempty"`
 	HostNetworkService    *bool        `json:"hostNetworkService,omitempty"`
+	KubernetesTokenFile   string       `json:"kubernetesTokenFile,omitempty"`
 	RabbitmqUser          string       `json:"rabbitmqUser,omitempty"`
 	RabbitmqPassword      string       `json:"rabbitmqPassword,omitempty"`
 	RabbitmqVhost         string       `json:"rabbitmqVhost,omitempty"`
@@ -367,74 +367,44 @@ func (c *Kubemanager) EnsureServiceAccount(
 // ConfigurationParameters creates KubemanagerConfiguration
 func (c *Kubemanager) ConfigurationParameters(client client.Client) (*KubemanagerConfiguration, error) {
 
-	var logLevel string = LogLevel
-	var cloudOrchestrator string = CloudOrchestrator
-	var kubernetesClusterName string = KubernetesClusterName
-	var kubernetesApiServer string = KubernetesApiServer
-	var kubernetesApiSSLPort int = KubernetesApiSSLPort
-	var kubernetesApiPort int = KubernetesApiPort
-	var podSubnet string = KubernetesPodSubnet
-	var serviceSubnet string = KubernetesServiceSubnet
-	var ipFabricSubnets string = KubernetesIpFabricSubnets
-	var ipFabricForwarding bool = KubernetesIPFabricForwarding
-	var ipFabricSnat bool = KubernetesIPFabricSnat
-	var hostNetworkService bool = KubernetesHostNetworkService
-
 	cinfo, err := ClusterParameters(client)
 	if err != nil {
 		return nil, err
 	}
 
+	var logLevel string = LogLevel
 	if c.Spec.ServiceConfiguration.LogLevel != "" {
 		logLevel = c.Spec.ServiceConfiguration.LogLevel
 	}
 
+	var cloudOrchestrator string = CloudOrchestrator
 	if c.Spec.ServiceConfiguration.CloudOrchestrator != "" {
 		cloudOrchestrator = c.Spec.ServiceConfiguration.CloudOrchestrator
 	}
 
-	if c.Spec.ServiceConfiguration.KubernetesClusterName != "" {
-		kubernetesClusterName = c.Spec.ServiceConfiguration.KubernetesClusterName
-	} else {
-		kubernetesClusterName = cinfo.ClusterName
+	var kubernetesAPIServer string
+	if kubernetesAPIServer, err = cinfo.KubernetesAPIServer(); err != nil {
+		return nil, err
 	}
 
-	if c.Spec.ServiceConfiguration.KubernetesAPIServer != "" {
-		kubernetesApiServer = c.Spec.ServiceConfiguration.KubernetesAPIServer
-	} else {
-		kubernetesApiServer, err = cinfo.KubernetesAPIServer()
+	var kubernetesAPISSLPort int
+	if kubernetesAPISSLPort, err = cinfo.KubernetesAPISSLPort(); err != nil {
+		return nil, err
 	}
 
-	if c.Spec.ServiceConfiguration.KubernetesAPISSLPort != nil {
-		kubernetesApiSSLPort = *c.Spec.ServiceConfiguration.KubernetesAPISSLPort
-	} else {
-		kubernetesApiSSLPort, err = cinfo.KubernetesAPISSLPort()
-	}
-
-	if c.Spec.ServiceConfiguration.KubernetesAPIPort != nil {
-		kubernetesApiPort = *c.Spec.ServiceConfiguration.KubernetesAPIPort
-	}
-
-	if c.Spec.ServiceConfiguration.PodSubnet != "" {
-		podSubnet = c.Spec.ServiceConfiguration.PodSubnet
-	} else {
-		podSubnet = cinfo.Networking.PodSubnet
-	}
-
-	if c.Spec.ServiceConfiguration.ServiceSubnet != "" {
-		serviceSubnet = c.Spec.ServiceConfiguration.ServiceSubnet
-	} else {
-		serviceSubnet = cinfo.Networking.ServiceSubnet
-	}
-
+	var ipFabricSubnets string = KubernetesIpFabricSubnets
 	if c.Spec.ServiceConfiguration.IPFabricSubnets != "" {
 		ipFabricSubnets = c.Spec.ServiceConfiguration.IPFabricSubnets
 	}
+
+	var ipFabricForwarding bool = KubernetesIPFabricForwarding
+	var ipFabricSnat bool = KubernetesIPFabricSnat
 
 	if c.Spec.ServiceConfiguration.IPFabricForwarding != nil {
 		ipFabricForwarding = *c.Spec.ServiceConfiguration.IPFabricForwarding
 	}
 
+	var hostNetworkService bool = KubernetesHostNetworkService
 	if c.Spec.ServiceConfiguration.HostNetworkService != nil {
 		hostNetworkService = *c.Spec.ServiceConfiguration.HostNetworkService
 	}
@@ -443,7 +413,7 @@ func (c *Kubemanager) ConfigurationParameters(client client.Client) (*Kubemanage
 		ipFabricSnat = *c.Spec.ServiceConfiguration.IPFabricSnat
 	}
 
-	var publicFIPPool string = fmt.Sprintf(KubernetesPublicFIPPoolTemplate, kubernetesClusterName)
+	var publicFIPPool string = fmt.Sprintf(KubernetesPublicFIPPoolTemplate, cinfo.ClusterName)
 	if c.Spec.ServiceConfiguration.PublicFIPPool != "" {
 		publicFIPPool = c.Spec.ServiceConfiguration.PublicFIPPool
 	}
@@ -451,12 +421,13 @@ func (c *Kubemanager) ConfigurationParameters(client client.Client) (*Kubemanage
 	kubemanagerConfiguration := &KubemanagerConfiguration{}
 	kubemanagerConfiguration.LogLevel = logLevel
 	kubemanagerConfiguration.CloudOrchestrator = cloudOrchestrator
-	kubemanagerConfiguration.KubernetesClusterName = kubernetesClusterName
-	kubemanagerConfiguration.KubernetesAPIServer = kubernetesApiServer
-	kubemanagerConfiguration.KubernetesAPISSLPort = &kubernetesApiSSLPort
-	kubemanagerConfiguration.KubernetesAPIPort = &kubernetesApiPort
-	kubemanagerConfiguration.PodSubnet = podSubnet
-	kubemanagerConfiguration.ServiceSubnet = serviceSubnet
+	kubemanagerConfiguration.KubernetesClusterName = cinfo.ClusterName
+	kubemanagerConfiguration.KubernetesAPIServer = kubernetesAPIServer
+	kubemanagerConfiguration.KubernetesAPISSLPort = &kubernetesAPISSLPort
+	var kubernetesAPIPort int = KubernetesApiPort
+	kubemanagerConfiguration.KubernetesAPIPort = &kubernetesAPIPort
+	kubemanagerConfiguration.PodSubnet = cinfo.Networking.PodSubnet
+	kubemanagerConfiguration.ServiceSubnet = cinfo.Networking.ServiceSubnet
 	kubemanagerConfiguration.IPFabricSubnets = ipFabricSubnets
 	kubemanagerConfiguration.IPFabricForwarding = &ipFabricForwarding
 	kubemanagerConfiguration.HostNetworkService = &hostNetworkService
