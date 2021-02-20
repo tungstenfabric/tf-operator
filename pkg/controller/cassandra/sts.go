@@ -59,23 +59,6 @@ spec:
               - -c
               - nodetool -p {{ .LocalJmxPort }} drain
               #- nodetool -p {{ .LocalJmxPort }} decommission
-        startupProbe:
-          failureThreshold: 30
-          periodSeconds: 5
-          exec:
-            command:
-            - /bin/bash
-            - -c
-            - "if [[ $(nodetool -p {{ .LocalJmxPort }} status | grep ${POD_IP} |awk '{print $1}') != 'UN' ]]; then exit -1; fi;"
-        readinessProbe:
-          initialDelaySeconds: 30
-          timeoutSeconds: 3
-          failureThreshold: 3
-          exec:
-            command:
-            - /bin/bash
-            - -c
-            - "if [[ $(nodetool -p {{ .LocalJmxPort }} status | grep ${POD_IP} |awk '{print $1}') != 'UN' ]]; then exit -1; fi;"
         securityContext:
           capabilities:
             add:
