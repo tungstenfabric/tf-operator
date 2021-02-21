@@ -86,6 +86,8 @@ spec:
               name: etc-contrail-dns
         - name: nodemanager
           image: tungstenfabric/contrail-nodemgr:latest
+          securityContext:
+            privileged: true
           env:
             - name: VENDOR_DOMAIN
               value: io.tungsten
@@ -104,9 +106,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.annotations['hostname']
-          volumeMounts:
-            - mountPath: /var/run
-              name: var-run
         - name: provisioner
           image: tungstenfabric/contrail-provisioner:latest
           env:
@@ -130,18 +129,11 @@ spec:
               exec:
                 command:
                   - python /etc/contrailconfigmaps/deprovision.py.${POD_IP}
-          volumeMounts:
-            - mountPath: /var/run
-              name: var-run
       volumes:
         - hostPath:
             path: /var/log/contrail/control
             type: ""
           name: contrail-logs
-        - hostPath:
-            path: /var/run
-            type: ""
-          name: var-run
         - hostPath:
             path: /usr/bin
             type: ""

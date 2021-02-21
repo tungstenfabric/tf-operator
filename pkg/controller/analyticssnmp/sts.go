@@ -77,9 +77,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.annotations['hostname']
-          volumeMounts:
-            - mountPath: /var/run
-              name: docker-unix-socket
         - name: provisioner
           image: "tangstenfabric/contrail-provisioner:latest"
           env:
@@ -110,10 +107,6 @@ spec:
             path: /var/log/contrail/analytics-snmp
             type: ""
           name: contrail-logs
-        - hostPath:
-            path: /var/run
-            type: ""
-          name: docker-unix-socket
         - downwardAPI:
             defaultMode: 420
             items:

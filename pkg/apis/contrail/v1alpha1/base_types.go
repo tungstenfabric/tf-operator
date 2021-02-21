@@ -1283,11 +1283,95 @@ func AddCommonVolumes(podSpec *corev1.PodSpec) {
 		c := &podSpec.InitContainers[idx]
 		c.VolumeMounts = append(c.VolumeMounts, commonMounts...)
 	}
+
+	AddNodemanagerVolumes(podSpec)
 }
 
-// TODO: common for nodemgrs
+// AddNodemanagerVolumes append common volumes and mounts
 // - /var/run:/var/run:z
 // - /run/runc:/run/runc:z
 // - /sys/fs/cgroup:/sys/fs/cgroup:ro
 // - /sys/fs/selinux:/sys/fs/selinux
 // - /var/lib/containers:/var/lib/containers:shared
+func AddNodemanagerVolumes(podSpec *corev1.PodSpec) {
+	nodemgrVolumes := []corev1.Volume{
+		{
+			Name: "var-run",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/var/run",
+				},
+			},
+		},
+		{
+			Name: "run-runc",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/run/runc",
+				},
+			},
+		},
+		{
+			Name: "sys-fs-cgroups",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/sys/fs/cgroup",
+				},
+			},
+		},
+		{
+			Name: "sys-fs-selinux",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/sys/fs/selinux",
+				},
+			},
+		},
+		{
+			Name: "var-lib-containers",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/var/lib/containers",
+				},
+			},
+		},
+	}
+
+	var sharedMode corev1.MountPropagationMode = "Bidirectional"
+	nodemgrMounts := []corev1.VolumeMount{
+		{
+			Name:      "var-run",
+			MountPath: "/var/run",
+		},
+		{
+			Name:      "run-runc",
+			MountPath: "/run/runc",
+		},
+		{
+			Name:      "sys-fs-cgroups",
+			MountPath: "/sys/fs/cgroup",
+			ReadOnly:  true,
+		},
+		{
+			Name:      "sys-fs-selinux",
+			MountPath: "/sys/fs/selinux",
+		},
+		{
+			Name:             "var-lib-containers",
+			MountPath:        "/var/lib/containers",
+			MountPropagation: &sharedMode,
+		},
+	}
+
+	hasNodemgr := false
+	for idx := range podSpec.Containers {
+		if strings.HasPrefix(podSpec.Containers[idx].Name, "nodemanager") {
+			hasNodemgr = true
+			c := &podSpec.Containers[idx]
+			c.VolumeMounts = append(c.VolumeMounts, nodemgrMounts...)
+		}
+	}
+	if hasNodemgr {
+		podSpec.Volumes = append(podSpec.Volumes, nodemgrVolumes...)
+	}
+}

@@ -88,9 +88,6 @@ spec:
               fieldPath: metadata.annotations['hostname']
         securityContext:
           privileged: true
-        volumeMounts:
-        - mountPath: /var/run
-          name: var-run
       - name: provisioner
         image: tungstenfabric/contrail-provisioner:latest
         env:
@@ -127,10 +124,6 @@ spec:
           path: /var/log/contrail/cassandra
           type: ""
         name: cassandra-logs
-      - hostPath:
-          path: /var/run
-          type: ""
-        name: var-run
       - hostPath:
           path: /var/lib/contrail/cassandra
           type: ""

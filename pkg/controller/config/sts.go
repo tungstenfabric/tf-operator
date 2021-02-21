@@ -133,6 +133,8 @@ spec:
               name: config-data
         - name: nodemanagerconfig
           image: tungstenfabric/contrail-nodemgr:latest
+          securityContext:
+            privileged: true
           env:
             - name: VENDOR_DOMAIN
               value: io.tungsten
@@ -146,11 +148,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.annotations['hostname']
-          volumeMounts:
-            - mountPath: /var/run
-              name: var-run
         - name: nodemanageranalytics
           image: tungstenfabric/contrail-nodemgr:latest
+          securityContext:
+            privileged: true
           env:
             - name: VENDOR_DOMAIN
               value: io.tungsten
@@ -164,9 +165,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.annotations['hostname']
-          volumeMounts:
-            - mountPath: /var/run
-              name: var-run
         - name: provisioneranalytics
           image: tungstenfabric/contrail-provisioner:latest
           env:
@@ -211,10 +209,6 @@ spec:
             path: /var/lib/contrail/config
             type: ""
           name: config-data
-        - hostPath:
-            path: /var/run
-            type: ""
-          name: var-run
         - hostPath:
             path: /usr/bin
             type: ""

@@ -176,11 +176,8 @@ func GetDaemonset(cniCfg *v1alpha1.CNIConfig, cloudOrchestrator string) *apps.Da
 			Name:  "nodemanager",
 			Image: "tungstenfabric/contrail-nodemgr:latest",
 			Env:   envList,
-			VolumeMounts: []core.VolumeMount{
-				{
-					Name:      "var-run",
-					MountPath: "/var/run",
-				},
+			SecurityContext: &core.SecurityContext{
+				Privileged: &trueVal,
 			},
 		},
 		{
@@ -208,6 +205,7 @@ func GetDaemonset(cniCfg *v1alpha1.CNIConfig, cloudOrchestrator string) *apps.Da
 					Name:      "lib-modules",
 					MountPath: "/lib/modules",
 				},
+				// declared in AddNodemanagerVolumes
 				{
 					Name:      "var-run",
 					MountPath: "/var/run",
@@ -236,14 +234,6 @@ func GetDaemonset(cniCfg *v1alpha1.CNIConfig, cloudOrchestrator string) *apps.Da
 			VolumeSource: core.VolumeSource{
 				HostPath: &core.HostPathVolumeSource{
 					Path: "/var/log/contrail/vrouter-agent",
-				},
-			},
-		},
-		{
-			Name: "var-run",
-			VolumeSource: core.VolumeSource{
-				HostPath: &core.HostPathVolumeSource{
-					Path: "/var/run",
 				},
 			},
 		},
