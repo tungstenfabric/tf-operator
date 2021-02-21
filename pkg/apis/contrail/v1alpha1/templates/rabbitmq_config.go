@@ -35,13 +35,16 @@ if [[ "$RABBITMQ_NODENAME" == "$bootstrap_node" ]] ; then
   exec rabbitmq-server
 else
   rabbitmq-server -detached
-  while true; do
-    rabbitmqctl --node $bootstrap_node ping && rabbitmqctl --node $RABBITMQ_NODENAME ping && break
-  done
-  rabbitmqctl --node $RABBITMQ_NODENAME stop_app
-  rabbitmqctl --node $bootstrap_node forget_cluster_node $RABBITMQ_NODENAME
-  rabbitmqctl --node $RABBITMQ_NODENAME join_cluster $bootstrap_node
-  rabbitmqctl --node $RABBITMQ_NODENAME shutdown
+  while true ; do
+    while true; do
+      rabbitmqctl --node $bootstrap_node ping && rabbitmqctl --node $RABBITMQ_NODENAME ping && break
+    done
+    rabbitmqctl --node $RABBITMQ_NODENAME stop_app || continue
+    rabbitmqctl --node $bootstrap_node forget_cluster_node $RABBITMQ_NODENAME
+    rabbitmqctl --node $RABBITMQ_NODENAME join_cluster $bootstrap_node || continue
+    rabbitmqctl --node $RABBITMQ_NODENAME shutdown
+    break
+  done  
   exec rabbitmq-server
 fi
 
