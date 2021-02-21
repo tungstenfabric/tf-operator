@@ -184,6 +184,10 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 	if err := instance.PrepareSTS(statefulSet, &instance.Spec.CommonConfiguration, request, r.Scheme); err != nil {
 		return reconcile.Result{}, err
 	}
+	if err = v1alpha1.EnsureServiceAccount(&statefulSet.Spec.Template.Spec, instanceType, r.Client, request, r.Scheme, instance); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	instance.AddVolumesToIntendedSTS(statefulSet, map[string]string{configMapName: configMapName})
 
 	zookeeperDefaultConfiguration := instance.ConfigurationParameters()

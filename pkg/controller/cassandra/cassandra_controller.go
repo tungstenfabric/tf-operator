@@ -230,6 +230,9 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	if err = instance.PrepareSTS(statefulSet, &instance.Spec.CommonConfiguration, request, r.Scheme); err != nil {
 		return reconcile.Result{}, err
 	}
+	if err = v1alpha1.EnsureServiceAccount(&statefulSet.Spec.Template.Spec, instanceType, r.Client, request, r.Scheme, instance); err != nil {
+		return reconcile.Result{}, err
+	}
 
 	configmapsVolumeName := request.Name + "-" + instanceType + "-volume"
 	secretVolumeName := request.Name + "-secret-certificates"

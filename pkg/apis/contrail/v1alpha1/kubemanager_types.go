@@ -187,7 +187,7 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 		if c.Spec.ServiceConfiguration.SecretName != "" {
 			secretName = c.Spec.ServiceConfiguration.SecretName
 		} else {
-			secretName = "contrail-kubemanager-secret"
+			secretName = request.Name + "-kubemanager-secret"
 		}
 		if err := client.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: request.Namespace}, secret); err != nil {
 			return err
@@ -348,20 +348,6 @@ func (c *Kubemanager) SetInstanceActive(client client.Client, activeStatus *bool
 func (c *Kubemanager) ManageNodeStatus(podNameIPMap map[string]string, client client.Client) error {
 	c.Status.Nodes = podNameIPMap
 	return client.Status().Update(context.TODO(), c)
-}
-
-// EnsureServiceAccount creates ServiceAccoung, Secret, ClusterRole and ClusterRoleBinding
-// objects if they are not exist.
-func (c *Kubemanager) EnsureServiceAccount(
-	serviceAccountName string,
-	clusterRoleName string,
-	clusterRoleBindingName string,
-	secretName string,
-	client client.Client,
-	scheme *runtime.Scheme) error {
-
-	return EnsureServiceAccount(serviceAccountName, clusterRoleName, clusterRoleBindingName, secretName,
-		client, scheme, c)
 }
 
 // ConfigurationParameters creates KubemanagerConfiguration

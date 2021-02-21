@@ -132,9 +132,8 @@ func (ss *ServiceStatus) ready() bool {
 
 }
 
-// EnsureServiceAccount creates ServiceAccoung, Secret, ClusterRole and ClusterRoleBinding
-// objects if they are not exist.
-func EnsureServiceAccount(
+// ensureServiceAccount creates ServiceAccoung, Secret, ClusterRole and ClusterRoleBinding objects
+func ensureServiceAccount(
 	serviceAccountName string,
 	clusterRoleName string,
 	clusterRoleBindingName string,
@@ -244,6 +243,30 @@ func EnsureServiceAccount(
 			return err
 		}
 	}
+	return nil
+}
+
+// EnsureServiceAccount prepares the intended podList.
+func EnsureServiceAccount(spec *corev1.PodSpec,
+	instanceType string,
+	client client.Client,
+	request reconcile.Request,
+	scheme *runtime.Scheme,
+	object v1.Object) error {
+
+	baseName := request.Name + "-" + instanceType + "-"
+	serviceAccountName := baseName + "service-account"
+	err := ensureServiceAccount(
+		serviceAccountName,
+		baseName+"role",
+		baseName+"role-binding",
+		baseName+"secret",
+		client, scheme, object)
+	if err != nil {
+		log.Error(err, "EnsureServiceAccount failed")
+		return err
+	}
+	spec.ServiceAccountName = serviceAccountName
 	return nil
 }
 
@@ -380,14 +403,15 @@ func PrepareSTS(sts *appsv1.StatefulSet,
 	} else {
 		sts.Spec.PodManagementPolicy = appsv1.PodManagementPolicyType("OrderedReady")
 	}
-	sts.SetName(request.Name + "-" + instanceType + "-statefulset")
+	baseName := request.Name + "-" + instanceType
+	name := baseName + "-statefulset"
+	sts.SetName(name)
 	sts.SetNamespace(request.Namespace)
-	sts.SetLabels(map[string]string{"contrail_manager": instanceType,
-		instanceType: request.Name})
-	sts.Spec.Selector.MatchLabels = map[string]string{"contrail_manager": instanceType,
-		instanceType: request.Name}
-	sts.Spec.Template.SetLabels(map[string]string{"contrail_manager": instanceType,
-		instanceType: request.Name})
+	labels := map[string]string{"contrail_manager": instanceType, instanceType: request.Name}
+	sts.SetLabels(labels)
+	sts.Spec.Selector.MatchLabels = labels
+	sts.Spec.Template.SetLabels(labels)
+
 	if err := controllerutil.SetControllerReference(object, sts, scheme); err != nil {
 		return err
 	}

@@ -244,6 +244,9 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 		reqLogger.Error(err, "PrepareSTS failed")
 		return reconcile.Result{}, err
 	}
+	if err = v1alpha1.EnsureServiceAccount(&statefulSet.Spec.Template.Spec, instanceType, r.Client, request, r.Scheme, instance); err != nil {
+		return reconcile.Result{}, err
+	}
 
 	csrSignerCaVolumeName := request.Name + "-csr-signer-ca"
 	instance.AddVolumesToIntendedSTS(statefulSet, map[string]string{
@@ -252,40 +255,6 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 	})
 	instance.AddSecretVolumesToIntendedSTS(statefulSet, map[string]string{secretCertificates.Name: request.Name + "-secret-certificates"})
 
-	var serviceAccountName string
-	if instance.Spec.ServiceConfiguration.ServiceAccount != "" {
-		serviceAccountName = instance.Spec.ServiceConfiguration.ServiceAccount
-	} else {
-		serviceAccountName = "contrail-kubemanager-service-account"
-	}
-
-	var clusterRoleName string
-	if instance.Spec.ServiceConfiguration.ClusterRole != "" {
-		clusterRoleName = instance.Spec.ServiceConfiguration.ClusterRole
-	} else {
-		clusterRoleName = "contrail-kubemanager-cluster-role"
-	}
-
-	var clusterRoleBindingName string
-	if instance.Spec.ServiceConfiguration.ClusterRoleBinding != "" {
-		clusterRoleBindingName = instance.Spec.ServiceConfiguration.ClusterRoleBinding
-	} else {
-		clusterRoleBindingName = "contrail-kubemanager-cluster-role-binding"
-	}
-
-	var secretName string
-	if instance.Spec.ServiceConfiguration.SecretName != "" {
-		secretName = instance.Spec.ServiceConfiguration.SecretName
-	} else {
-		secretName = "contrail-kubemanager-secret"
-	}
-
-	if err = instance.EnsureServiceAccount(serviceAccountName, clusterRoleName, clusterRoleBindingName, secretName, r.Client, r.Scheme); err != nil {
-		reqLogger.Error(err, "EnsureServiceAccount failed")
-		return reconcile.Result{}, err
-	}
-
-	statefulSet.Spec.Template.Spec.ServiceAccountName = serviceAccountName
 	statefulSet.Spec.Template.Spec.Affinity = &corev1.Affinity{
 		PodAntiAffinity: &corev1.PodAntiAffinity{
 			RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{{
@@ -305,7 +274,11 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 			instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
 			if instanceContainer.Command == nil {
 				command := []string{"bash", "-c",
-					"ln -sf /etc/contrailconfigmaps/vnc_api_lib.ini.${POD_IP} /etc/contrail/vnc_api_lib.ini; " +
+					"set -x ; " +
+						"while [ ! -e /etc/contrailconfigmaps/kubemanager.${POD_IP} ] ; do sleep 1; done ; " +
+						"while [ ! -e /etc/contrailconfigmaps/vnc_api_lib.ini.${POD_IP} ] ; do sleep 1; done ; " +
+						"rm -f /etc/contrail/vnc_api_lib.ini ; " +
+						"ln -sf /etc/contrailconfigmaps/vnc_api_lib.ini.${POD_IP} /etc/contrail/vnc_api_lib.ini ; " +
 						"exec /usr/bin/contrail-kube-manager -c /etc/contrailconfigmaps/kubemanager.${POD_IP}"}
 				(&statefulSet.Spec.Template.Spec.Containers[idx]).Command = command
 			} else {

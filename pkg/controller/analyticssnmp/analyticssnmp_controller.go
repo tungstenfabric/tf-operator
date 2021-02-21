@@ -246,6 +246,9 @@ func (r *ReconcileAnalyticsSnmp) Reconcile(request reconcile.Request) (reconcile
 	if statefulSet, err = r.GetSTS(request, instance, reqLogger); err != nil {
 		return reconcile.Result{}, nil
 	}
+	if err = v1alpha1.EnsureServiceAccount(&statefulSet.Spec.Template.Spec, instanceType, r.Client, request, r.Scheme, instance); err != nil {
+		return reconcile.Result{}, err
+	}
 
 	v1alpha1.AddCommonVolumes(&statefulSet.Spec.Template.Spec)
 

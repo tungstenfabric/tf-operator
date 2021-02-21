@@ -197,6 +197,9 @@ func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Resu
 	if err = instance.PrepareSTS(statefulSet, &instance.Spec.CommonConfiguration, request, r.Scheme); err != nil {
 		return reconcile.Result{}, err
 	}
+	if err = v1alpha1.EnsureServiceAccount(&statefulSet.Spec.Template.Spec, instanceType, r.Client, request, r.Scheme, instance); err != nil {
+		return reconcile.Result{}, err
+	}
 
 	csrSignerCaVolumeName := request.Name + "-csr-signer-ca"
 	instance.AddVolumesToIntendedSTS(statefulSet, map[string]string{

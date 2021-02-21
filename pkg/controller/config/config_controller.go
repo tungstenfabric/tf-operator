@@ -242,9 +242,11 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 	// Therefore those services needs to share a one process namespace
 	trueVal := true
 	statefulSet.Spec.Template.Spec.ShareProcessNamespace = &trueVal
-
 	if err = instance.PrepareSTS(statefulSet, &instance.Spec.CommonConfiguration, request, r.Scheme); err != nil {
 		reqLogger.Error(err, "Failed to prepare stateful set")
+		return reconcile.Result{}, err
+	}
+	if err = v1alpha1.EnsureServiceAccount(&statefulSet.Spec.Template.Spec, instanceType, r.Client, request, r.Scheme, instance); err != nil {
 		return reconcile.Result{}, err
 	}
 
