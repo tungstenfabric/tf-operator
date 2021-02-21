@@ -476,7 +476,6 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		reqLogger.Info("Reload services")
 		if err = instance.ReloadServices(changedServices, r.Client); err != nil {
 			reqLogger.Error(err, "Reload services failed")
-			return reconcile.Result{}, err
 		}
 		requeu = true
 	}
@@ -490,7 +489,6 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		reqLogger.Info("Update Status")
 		if err = r.Client.Status().Update(context.TODO(), instance); err != nil {
 			reqLogger.Error(err, "Update Status failed")
-			return reconcile.Result{}, err
 		}
 		requeu = true
 	}
