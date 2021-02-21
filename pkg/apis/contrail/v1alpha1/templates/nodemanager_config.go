@@ -10,9 +10,9 @@ var NodemanagerRunner = template.Must(template.New("").Parse(`#!/bin/bash
 function link_file() {
   local src=/etc/contrailconfigmaps/$1
   local dst=/etc/contrail/${2:-${1}}
-  echo INFO: $(date): wait for $src
+  echo "INFO: $(date): wait for $src"
   while [ ! -e $src ] ; do sleep 1; done
-  echo INFO: $(date): link $src => $dst
+  echo "INFO: $(date): link $src => $dst"
   ln -sf $src $dst
 	cat $dst
 }

@@ -221,9 +221,12 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 		}
 		configMapInstanceDynamicConfig.Data["cassandra."+pod.Status.PodIP+".yaml"] = cassandraConfigString
 		configMapInstanceDynamicConfig.Data["cqlshrc."+pod.Status.PodIP] = cassandraCqlShrcConfigString
-		configMapInstanceDynamicConfig.Data["vnc_api_lib.ini."+pod.Status.PodIP] = vncAPIConfigBufferString
-		configMapInstanceDynamicConfig.Data["database-nodemgr.conf."+pod.Status.PodIP] = nodemanagerConfigString
-		configMapInstanceDynamicConfig.Data["database-nodemgr.env."+pod.Status.PodIP] = nodemanagerEnvString
+		// wait for api, nodemgr container will wait for config files be ready
+		if apiServerIPListCommaSeparated != "" {
+			configMapInstanceDynamicConfig.Data["vnc_api_lib.ini."+pod.Status.PodIP] = vncAPIConfigBufferString
+			configMapInstanceDynamicConfig.Data["database-nodemgr.conf."+pod.Status.PodIP] = nodemanagerConfigString
+			configMapInstanceDynamicConfig.Data["database-nodemgr.env."+pod.Status.PodIP] = nodemanagerEnvString
+		}
 	}
 
 	configNodes, err := c.GetConfigNodes(request, client)
