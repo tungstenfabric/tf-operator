@@ -250,8 +250,8 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 		if container.Name == "webuiweb" {
 			command := []string{"bash", "-c",
 				"until ss -tulwn | grep LISTEN | grep 6380; do sleep 2; done; " +
-					"while [ -e ! /etc/contrailconfigmaps/config.global.js.${POD_IP} ] ; do sleep 1; done ; " +
-					"while [ -e ! /etc/contrailconfigmaps/contrail-webui-userauth.js.${POD_IP} ] ; do sleep 1; done ; " +
+					"while [ ! -e /etc/contrailconfigmaps/config.global.js.${POD_IP} ] ; do sleep 1; done ; " +
+					"while [ ! -e /etc/contrailconfigmaps/contrail-webui-userauth.js.${POD_IP} ] ; do sleep 1; done ; " +
 					"exec /usr/bin/node /usr/src/contrail/contrail-web-core/webServerStart.js --conf_file /etc/contrailconfigmaps/config.global.js.${POD_IP} --conf_gile /etc/contrailconfigmaps/contrail-webui-userauth.js.${POD_IP}",
 			}
 
@@ -310,8 +310,8 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 		if container.Name == "webuijob" {
 			command := []string{"bash", "-c",
 				"until ss -tulwn | grep LISTEN | grep 6380; do sleep 2; done; " +
-					"while [ -e ! /etc/contrailconfigmaps/config.global.js.${POD_IP} ] ; do sleep 1; done ; " +
-					"while [ -e ! /etc/contrailconfigmaps/contrail-webui-userauth.js.${POD_IP} ] ; do sleep 1; done ; " +
+					"while [ ! -e /etc/contrailconfigmaps/config.global.js.${POD_IP} ] ; do sleep 1; done ; " +
+					"while [ ! -e /etc/contrailconfigmaps/contrail-webui-userauth.js.${POD_IP} ] ; do sleep 1; done ; " +
 					"exec /usr/bin/node /usr/src/contrail/contrail-web-core/jobServerStart.js --conf_file /etc/contrailconfigmaps/config.global.js.${POD_IP} --conf_file /etc/contrailconfigmaps/contrail-webui-userauth.js.${POD_IP}",
 			}
 
