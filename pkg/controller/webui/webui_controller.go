@@ -158,6 +158,13 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	srcControl := &source.Kind{Type: &v1alpha1.Control{}}
+	controlHandler := resourceHandler(mgr.GetClient())
+	predControlSizeChange := utils.ControlActiveChange()
+	if err = c.Watch(srcControl, controlHandler, predControlSizeChange); err != nil {
+		return err
+	}
+
 	srcSTS := &source.Kind{Type: &appsv1.StatefulSet{}}
 	stsHandler := &handler.EnqueueRequestForOwner{
 		IsController: true,
