@@ -135,6 +135,13 @@ spec:
           volumeMounts:
             - mountPath: /var/lib/redis
               name: config-data
+        - name: stunnel
+          image: tungstenfabric/contrail-external-stunnel:latest
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
         - name: nodemanagerconfig
           image: tungstenfabric/contrail-nodemgr:latest
           securityContext:

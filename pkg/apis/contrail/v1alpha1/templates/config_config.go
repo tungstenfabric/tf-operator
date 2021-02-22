@@ -256,6 +256,10 @@ analytics_api_ssl_ca_cert = {{ .CAFilePath }}
 [REDIS]
 redis_uve_list={{ .RedisServerList }}
 redis_password=
+redis_use_ssl=True
+redis_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+redis_certfile=/etc/certificates/server-{{ .PodIP }}.crt
+redis_ca_cert={{ .CAFilePath }}
 [SANDESH]
 introspect_ssl_enable=True
 introspect_ssl_insecure=True
@@ -352,7 +356,10 @@ cassandra_ca_certs={{ .CAFilePath }}
 [REDIS]
 server_list={{ .RedisServerList }}
 password=
-redis_ssl_enable=False
+redis_ssl_enable=True
+redis_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+redis_certfile=/etc/certificates/server-{{ .PodIP }}.crt
+redis_ca_cert={{ .CAFilePath }}
 [SANDESH]
 introspect_ssl_enable=True
 introspect_ssl_insecure=True
@@ -402,3 +409,13 @@ sandesh_ssl_enable=True
 sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
 sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 sandesh_ca_cert={{ .CAFilePath }}`))
+
+// ConfigStunnelConfig is the template for the Stunnel container
+var ConfigStunnelConfig = template.Must(template.New("").Parse(`
+cert=/etc/stunnel/private.pem
+pid=/var/run/stunnel/stunnel.pid
+sslVersion=TLSv1.2
+foreground=yes
+[redis]
+accept={{ .RedisListenAddress }}:{{ .RedisServerPort }}
+connect=127.0.0.1:{{ .RedisServerPort }}`))

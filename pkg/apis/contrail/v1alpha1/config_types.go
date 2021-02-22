@@ -640,6 +640,19 @@ func (c *Config) InstanceConfiguration(configMapName string,
 		data["analytics-nodemgr.conf."+podIP] = configNodemanageranalyticsConfigBuffer.String()
 		// empty env as no db tracking
 		data["analytics-nodemgr.env."+podIP] = ""
+
+		var configStunnelConfigBuffer bytes.Buffer
+		err = configtemplates.ConfigStunnelConfig.Execute(&configStunnelConfigBuffer, struct {
+			RedisListenAddress string
+			RedisServerPort    string
+		}{
+			RedisListenAddress: podIP,
+			RedisServerPort:    "6379",
+		})
+		if err != nil {
+			return err
+		}
+		data["stunnel."+podIP] = configStunnelConfigBuffer.String()
 	}
 
 	configMapInstanceDynamicConfig.Data = data

@@ -48,6 +48,9 @@ images:
 - name: redis
   newTag: {{ CONTRAIL_CONTAINER_TAG }}
   newName: {{ CONTAINER_REGISTRY }}/contrail-external-redis
+- name: stunnel
+  newTag: {{ CONTRAIL_CONTAINER_TAG }}
+  newName: {{ CONTAINER_REGISTRY }}/contrail-external-stunnel
 
 # Contrail
 - name: contrail-analytics-api

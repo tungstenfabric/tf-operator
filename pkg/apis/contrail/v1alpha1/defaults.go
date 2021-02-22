@@ -133,7 +133,7 @@ const (
 	RabbitmqClientSslCacertfile                 string = "/etc/contrail/ssl/certs/ca-cert.pem"
 	RabbitmqHeartbeatInterval                   int    = 10
 	RabbitmqMirroredQueueMode                   string = "all"
-	RedisSslEnable                              bool   = false
+	RedisSslEnable                              bool   = true
 	RedisSslCertfile                            string = "/etc/contrail/ssl/certs/server.pem"
 	RedisSslKeyfile                             string = "/etc/contrail/ssl/private/server-privkey.pem"
 	KafkaNodes                                  string = ""

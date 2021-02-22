@@ -78,6 +78,8 @@ spec:
             image: busybox
           - name: redis
             image: redis
+          - name: stunnel
+            image: stunnel
           - name: api
             image: contrail-controller-config-api
           - name: devicemanager
