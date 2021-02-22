@@ -353,7 +353,9 @@ func GetDaemonset(cniCfg *v1alpha1.CNIConfig, cloudOrchestrator string) *apps.Da
 		RestartPolicy:  "Always",
 		DNSPolicy:      "ClusterFirstWithHostNet",
 		HostNetwork:    true,
-		Tolerations:    podTolerations,
+		// dont share like for others nodemgr as it breals hup -1 logic in agent
+		// ShareProcessNamespace: &trueVal,
+		Tolerations: podTolerations,
 	}
 
 	v1alpha1.AddCommonVolumes(&podSpec)

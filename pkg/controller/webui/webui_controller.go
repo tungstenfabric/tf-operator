@@ -197,6 +197,7 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 	instanceType := "webui"
 	instance := &v1alpha1.Webui{}
 	configInstance := v1alpha1.Config{}
+	controlInstance := v1alpha1.Control{}
 	cassandraInstance := v1alpha1.Cassandra{}
 
 	err := r.Client.Get(context.TODO(), request.NamespacedName, instance)
@@ -216,10 +217,11 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 		return reconcile.Result{}, err
 	}
 
-	configActive := configInstance.IsActive(instance.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, r.Client)
 	cassandraActive := cassandraInstance.IsActive(instance.Spec.ServiceConfiguration.CassandraInstance, request.Namespace, r.Client)
-	if !configActive || !cassandraActive {
-		reqLogger.Info("Dependencies not ready", "db", cassandraActive, "api", configActive)
+	configActive := configInstance.IsActive(instance.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, r.Client)
+	controlActive := controlInstance.IsActive(instance.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, r.Client)
+	if !configActive || !cassandraActive || !controlActive {
+		reqLogger.Info("Dependencies not ready", "db", cassandraActive, "api", configActive, "control", controlActive)
 		return reconcile.Result{}, nil
 	}
 

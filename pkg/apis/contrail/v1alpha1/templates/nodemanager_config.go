@@ -18,6 +18,8 @@ function link_file() {
   cat $dst
 }
 
+# safe pid for ReloadService function
+echo $$ > /service.pid.reload
 sig_file=/var/run/nodemanager-${NODE_TYPE}-${POD_IP}.pid.sighup
 pid_file=/var/run/nodemanager-${NODE_TYPE}-${POD_IP}.pid
 trap 'trap_sighup' SIGHUP

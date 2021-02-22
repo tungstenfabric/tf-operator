@@ -301,13 +301,14 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 
 			if container.Command == nil {
 				command := []string{"bash", "-c",
-					`	set -ex ; 
-						echo "INFO: $(date): wait cqlshrc.${POD_IP}" ; 
-						while [ ! -e /etc/contrailconfigmaps/cqlshrc.${POD_IP} ] ; do sleep 1; done ; 
-						echo "INFO: $(date): wait cassandra.${POD_IP}.yaml" ; 
-						while [ ! -e /etc/contrailconfigmaps/cassandra.${POD_IP}.yaml ] ; do sleep 1; done ; 
-						echo "INFO: $(date): configs ready" ; 
-					` + cassandraInitKeystoreCommandBuffer.String() +
+					`set -ex ;
+echo "INFO: $(date): wait cqlshrc.${POD_IP}" ; 
+while [ ! -e /etc/contrailconfigmaps/cqlshrc.${POD_IP} ] ; do sleep 1; done ; 
+echo "INFO: $(date): wait cassandra.${POD_IP}.yaml" ; 
+while [ ! -e /etc/contrailconfigmaps/cassandra.${POD_IP}.yaml ] ; do sleep 1; done ; 
+echo "INFO: $(date): configs ready" ; 
+` +
+						cassandraInitKeystoreCommandBuffer.String() +
 						// for cqlsh cmd tool
 						"ln -sf /etc/contrailconfigmaps/cqlshrc.${POD_IP} /root/.cqlshrc ; " +
 						// cassandra docker-entrypoint tries patch the config, and nodemanager uses hardcoded path to
@@ -315,6 +316,9 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 						// sets it from env vsariable
 						"rm -f /etc/cassandra/cassandra.yaml ; " +
 						"cp /etc/contrailconfigmaps/cassandra.${POD_IP}.yaml /etc/cassandra/cassandra.yaml ; " +
+						"cat /etc/cassandra/cassandra.yaml ;" +
+						// safe pid for ReloadService function
+						"echo $$ > /service.pid.reload ; " +
 						fmt.Sprintf("exec /docker-entrypoint.sh -f  -Dcassandra.jmx.local.port=%d -Dcassandra.config=file:///etc/contrailconfigmaps/cassandra.${POD_IP}.yaml", *cassandraConfig.JmxLocalPort),
 				}
 				container.Command = command

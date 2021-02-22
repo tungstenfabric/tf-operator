@@ -238,10 +238,6 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 	}
 
 	statefulSet := GetSTS()
-	// DeviceManager pushes configuration to dnsmasq service and then needs to restart it by sending a signal.
-	// Therefore those services needs to share a one process namespace
-	trueVal := true
-	statefulSet.Spec.Template.Spec.ShareProcessNamespace = &trueVal
 	if err = instance.PrepareSTS(statefulSet, &instance.Spec.CommonConfiguration, request, r.Scheme); err != nil {
 		reqLogger.Error(err, "Failed to prepare stateful set")
 		return reconcile.Result{}, err

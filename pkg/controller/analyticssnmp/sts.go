@@ -10,18 +10,30 @@ var StatefulsetYamlData = `
 apiVersion: app/v1
 kind: StatefulSet
 metadata:
-  name: analyticssnmp
+name: analyticssnmp
 spec:
-  selector:
-    matchLabels:
-      contrail_manager: analyticssnmp
-  serviceName: "analyticssnmp"
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        contrail_manager: analyticssnmp
+selector:
+matchLabels:
+contrail_manager: analyticssnmp
+serviceName: "analyticssnmp"
+replicas: 1
+template:
+metadata:
+labels:
+  contrail_manager: analyticssnmp
     spec:
+      dnsPolicy: ClusterFirstWithHostNet
+      hostNetwork: true
+      # nodemanager
+      shareProcessNamespace: true
+      restartPolicy: Always
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+        tolerations:
+        - effect: NoSchedule
+          operator: Exists
+        - effect: NoExecute
+          operator: Exists
       initContainers:
         - name: init
           image: busybox:latest
@@ -92,16 +104,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.annotations['hostname']
-      dnsPolicy: ClusterFirstWithHostNet
-      hostNetwork: true
-      nodeSelector:
-        node-role.kubernetes.io/master: ""
-      restartPolicy: Always
-      tolerations:
-        - effect: NoSchedule
-          operator: Exists
-        - effect: NoExecute
-          operator: Exists
       volumes:
         - hostPath:
             path: /var/log/contrail/analytics-snmp

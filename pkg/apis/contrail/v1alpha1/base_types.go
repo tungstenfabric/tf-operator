@@ -1063,7 +1063,7 @@ func SendSignal(pod *corev1.Pod, containerName, signal string) (stdout, stderr s
 	return ExecCmdInContainer(
 		pod,
 		containerName,
-		[]string{"/usr/bin/bash", "-c", "kill -" + signal + " 1"},
+		[]string{"/usr/bin/bash", "-c", "kill -" + signal + " $(cat /service.pid.reload) || kill -" + signal + " 1"},
 	)
 }
 
