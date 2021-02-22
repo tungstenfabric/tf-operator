@@ -176,7 +176,7 @@ func (c *AnalyticsSnmp) InstanceConfiguration(configMapName string,
 		instrospectListenAddress := c.Spec.CommonConfiguration.IntrospectionListenAddress(podIP)
 
 		var collectorBuffer bytes.Buffer
-		configtemplates.AnalyticsSnmpCollectorConfig.Execute(&collectorBuffer, struct {
+		err = configtemplates.AnalyticsSnmpCollectorConfig.Execute(&collectorBuffer, struct {
 			PodIP                             string
 			Hostname                          string
 			ListenAddress                     string
@@ -215,10 +215,13 @@ func (c *AnalyticsSnmp) InstanceConfiguration(configMapName string,
 			// TODO: move to params
 			LogLevel: "SYS_DEBUG",
 		})
+		if err != nil {
+			return err
+		}
 		data["tf-snmp-collector."+podIP] = collectorBuffer.String()
 
 		var topologyBuffer bytes.Buffer
-		configtemplates.AnalyticsSnmpTopologyConfig.Execute(&topologyBuffer, struct {
+		err = configtemplates.AnalyticsSnmpTopologyConfig.Execute(&topologyBuffer, struct {
 			PodIP                            string
 			Hostname                         string
 			ListenAddress                    string
@@ -258,11 +261,14 @@ func (c *AnalyticsSnmp) InstanceConfiguration(configMapName string,
 			// TODO: move to params
 			LogLevel: "SYS_DEBUG",
 		})
+		if err != nil {
+			return err
+		}
 		data["tf-topology."+podIP] = topologyBuffer.String()
 
 		// TODO: commonize for all services
 		var nodemanagerBuffer bytes.Buffer
-		configtemplates.AnalyticsSnmpNodemanagerConfig.Execute(&nodemanagerBuffer, struct {
+		err = configtemplates.AnalyticsSnmpNodemanagerConfig.Execute(&nodemanagerBuffer, struct {
 			PodIP                    string
 			Hostname                 string
 			ListenAddress            string
@@ -286,13 +292,16 @@ func (c *AnalyticsSnmp) InstanceConfiguration(configMapName string,
 			// TODO: move to params
 			LogLevel: "SYS_DEBUG",
 		})
+		if err != nil {
+			return err
+		}
 		data["analytics-snmp-nodemgr.conf."+podIP] = nodemanagerBuffer.String()
 		// empty env as no db tracking
 		data["analytics-snmp-nodemgr.env."+podIP] = ""
 
 		// TODO: commonize for all services
 		var vnciniBuffer bytes.Buffer
-		configtemplates.AnalyticsSnmpVncConfig.Execute(&vnciniBuffer, struct {
+		err = configtemplates.AnalyticsSnmpVncConfig.Execute(&vnciniBuffer, struct {
 			ConfigNodes   string
 			ConfigApiPort string
 			CAFilePath    string
@@ -301,6 +310,9 @@ func (c *AnalyticsSnmp) InstanceConfiguration(configMapName string,
 			ConfigApiPort: strconv.Itoa(configNodesInformation.APIServerPort),
 			CAFilePath:    certificates.SignerCAFilepath,
 		})
+		if err != nil {
+			return err
+		}
 		data["vnc_api_lib.ini."+podIP] = vnciniBuffer.String()
 	}
 

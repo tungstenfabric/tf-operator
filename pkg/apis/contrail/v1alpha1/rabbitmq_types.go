@@ -163,7 +163,7 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 	saltedP = append(salt[:], hashPass...)
 
 	var rabbitmqDefinitionBuffer bytes.Buffer
-	configtemplates.RabbitmqDefinition.Execute(&rabbitmqDefinitionBuffer, struct {
+	err = configtemplates.RabbitmqDefinition.Execute(&rabbitmqDefinitionBuffer, struct {
 		RabbitmqUser     string
 		RabbitmqPassword string
 		RabbitmqVhost    string
@@ -172,6 +172,9 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 		RabbitmqPassword: base64.StdEncoding.EncodeToString(saltedP),
 		RabbitmqVhost:    string(secret.Data["vhost"]),
 	})
+	if err != nil {
+		return err
+	}
 	data["definitions.json"] = rabbitmqDefinitionBuffer.String()
 
 	configMapInstanceDynamicConfig := &corev1.ConfigMap{}
@@ -195,7 +198,10 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 		return err
 	}
 	var rabbitmqConfigBuffer bytes.Buffer
-	configtemplates.RabbitmqConfig.Execute(&rabbitmqConfigBuffer, struct{}{})
+	err = configtemplates.RabbitmqConfig.Execute(&rabbitmqConfigBuffer, struct{}{})
+	if err != nil {
+		return err
+	}
 	configMapInstancConfig.Data = map[string]string{"run.sh": rabbitmqConfigBuffer.String()}
 	err = client.Update(context.TODO(), configMapInstancConfig)
 	if err != nil {

@@ -123,7 +123,7 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 	for _, pod := range podList {
 
 		var cassandraConfigBuffer bytes.Buffer
-		configtemplates.CassandraConfig.Execute(&cassandraConfigBuffer, struct {
+		err = configtemplates.CassandraConfig.Execute(&cassandraConfigBuffer, struct {
 			ClusterName         string
 			Seeds               string
 			StoragePort         string
@@ -154,20 +154,26 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 			KeystorePassword:    string(cassandraSecret.Data["keystorePassword"]),
 			TruststorePassword:  string(cassandraSecret.Data["truststorePassword"]),
 		})
+		if err != nil {
+			return err
+		}
 		cassandraConfigString := cassandraConfigBuffer.String()
 
 		var cassandraCqlShrcBuffer bytes.Buffer
-		configtemplates.CassandraCqlShrc.Execute(&cassandraCqlShrcBuffer, struct {
+		err = configtemplates.CassandraCqlShrc.Execute(&cassandraCqlShrcBuffer, struct {
 			CAFilePath string
 		}{
 			CAFilePath: certificates.SignerCAFilepath,
 		})
+		if err != nil {
+			return err
+		}
 		cassandraCqlShrcConfigString := cassandraCqlShrcBuffer.String()
 
 		collectorEndpointList := configtemplates.EndpointList(configNodesInformation.CollectorServerIPList, configNodesInformation.CollectorPort)
 		collectorEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(collectorEndpointList, " ")
 		var nodeManagerConfigBuffer bytes.Buffer
-		configtemplates.CassandraNodemanagerConfig.Execute(&nodeManagerConfigBuffer, struct {
+		err = configtemplates.CassandraNodemanagerConfig.Execute(&nodeManagerConfigBuffer, struct {
 			ListenAddress            string
 			InstrospectListenAddress string
 			Hostname                 string
@@ -189,11 +195,14 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 			// TODO: move to params
 			LogLevel: "SYS_DEBUG",
 		})
+		if err != nil {
+			return err
+		}
 		nodemanagerConfigString := nodeManagerConfigBuffer.String()
 
 		apiServerIPListCommaSeparated := configtemplates.JoinListWithSeparator(configNodesInformation.APIServerIPList, ",")
 		var vncAPIConfigBuffer bytes.Buffer
-		configtemplates.ConfigAPIVNC.Execute(&vncAPIConfigBuffer, struct {
+		err = configtemplates.ConfigAPIVNC.Execute(&vncAPIConfigBuffer, struct {
 			APIServerList string
 			APIServerPort string
 			CAFilePath    string
@@ -204,17 +213,23 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 			CAFilePath:    certificates.SignerCAFilepath,
 			AuthMode:      string(configNodesInformation.AuthMode),
 		})
+		if err != nil {
+			return err
+		}
 		vncAPIConfigBufferString := vncAPIConfigBuffer.String()
 
 		// TODO: till analytics db is not separated use api as DBs lists
 		var nodemanagerEnvBuffer bytes.Buffer
-		configtemplates.NodemanagerEnv.Execute(&nodemanagerEnvBuffer, struct {
+		err = configtemplates.NodemanagerEnv.Execute(&nodemanagerEnvBuffer, struct {
 			ConfigDBNodes    string
 			AnalyticsDBNodes string
 		}{
 			ConfigDBNodes:    apiServerIPListCommaSeparated,
 			AnalyticsDBNodes: apiServerIPListCommaSeparated,
 		})
+		if err != nil {
+			return err
+		}
 		nodemanagerEnvString := nodemanagerEnvBuffer.String()
 
 		if configMapInstanceDynamicConfig.Data == nil {

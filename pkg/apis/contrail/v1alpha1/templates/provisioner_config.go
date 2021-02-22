@@ -24,11 +24,11 @@ var ProvisionerRunner = template.Must(template.New("").Parse(`#!/bin/bash
 cfg=/etc/contrailconfigmaps/{{ .ConfigName }}
 echo "INFO: $(date): wait for config $cfg"
 while true ; do
-	sleep 5
-	[ -e $cfg ] || continue
-	source $cfg
-	echo -e "INFO: $(date): config\n$(cat $cfg)"
-	[ -z "$CONFIG_NODES" ] || break
+  sleep 5
+  [ -e $cfg ] || continue
+  source $cfg
+  echo -e "INFO: $(date): config\n$(cat $cfg)"
+  [ -z "$CONFIG_NODES" ] || break
 done
 exec /entrypoint.sh /usr/bin/tail -f /dev/null
 `))

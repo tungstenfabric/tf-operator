@@ -200,7 +200,7 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 		podIP := pod.Status.PodIP
 		instrospectListenAddress := c.Spec.CommonConfiguration.IntrospectionListenAddress(podIP)
 		var controlControlConfigBuffer bytes.Buffer
-		configtemplates.ControlControlConfig.Execute(&controlControlConfigBuffer, struct {
+		err = configtemplates.ControlControlConfig.Execute(&controlControlConfigBuffer, struct {
 			PodIP                    string
 			Hostname                 string
 			ListenAddress            string
@@ -237,15 +237,20 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 			CAFilePath:               certificates.SignerCAFilepath,
 			LogLevel:                 controlConfig.LogLevel,
 		})
+		if err != nil {
+			return err
+		}
 		data["control."+podIP] = controlControlConfigBuffer.String()
 
 		var controlNamedConfigBuffer bytes.Buffer
-		configtemplates.ControlNamedConfig.Execute(&controlNamedConfigBuffer, struct {
-		}{})
+		err = configtemplates.ControlNamedConfig.Execute(&controlNamedConfigBuffer, struct{}{})
+		if err != nil {
+			return err
+		}
 		data["named."+podIP] = controlNamedConfigBuffer.String()
 
 		var controlDNSConfigBuffer bytes.Buffer
-		configtemplates.ControlDNSConfig.Execute(&controlDNSConfigBuffer, struct {
+		err = configtemplates.ControlDNSConfig.Execute(&controlDNSConfigBuffer, struct {
 			PodIP                    string
 			Hostname                 string
 			ListenAddress            string
@@ -278,10 +283,13 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 			CAFilePath:               certificates.SignerCAFilepath,
 			LogLevel:                 controlConfig.LogLevel,
 		})
+		if err != nil {
+			return err
+		}
 		data["dns."+podIP] = controlDNSConfigBuffer.String()
 
 		var controlNodemanagerBuffer bytes.Buffer
-		configtemplates.ControlNodemanagerConfig.Execute(&controlNodemanagerBuffer, struct {
+		err = configtemplates.ControlNodemanagerConfig.Execute(&controlNodemanagerBuffer, struct {
 			Hostname                 string
 			ListenAddress            string
 			InstrospectListenAddress string
@@ -300,12 +308,15 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 			CAFilePath:               certificates.SignerCAFilepath,
 			LogLevel:                 controlConfig.LogLevel,
 		})
+		if err != nil {
+			return err
+		}
 		data["control-nodemgr.conf."+podIP] = controlNodemanagerBuffer.String()
 		// empty env as no db tracking
 		data["control-nodemgr.env."+podIP] = ""
 
 		var vncApiConfigBuffer bytes.Buffer
-		configtemplates.ConfigAPIVNC.Execute(&vncApiConfigBuffer, struct {
+		err = configtemplates.ConfigAPIVNC.Execute(&vncApiConfigBuffer, struct {
 			APIServerList string
 			APIServerPort string
 			CAFilePath    string
@@ -316,11 +327,14 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 			CAFilePath:    certificates.SignerCAFilepath,
 			AuthMode:      string(configNodesInformation.AuthMode),
 		})
+		if err != nil {
+			return err
+		}
 		data["vnc_api_lib.ini."+podIP] = vncApiConfigBuffer.String()
 
 		var controlDeProvisionBuffer bytes.Buffer
 		// TODO: use auth options from config instead of defaults
-		configtemplates.ControlDeProvisionConfig.Execute(&controlDeProvisionBuffer, struct {
+		err = configtemplates.ControlDeProvisionConfig.Execute(&controlDeProvisionBuffer, struct {
 			AdminUsername string
 			AdminPassword string
 			AdminTenant   string
@@ -335,6 +349,9 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 			APIServerPort: strconv.Itoa(configNodesInformation.APIServerPort),
 			Hostname:      hostname,
 		})
+		if err != nil {
+			return err
+		}
 		data["deprovision.py."+podIP] = controlDeProvisionBuffer.String()
 	}
 

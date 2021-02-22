@@ -692,13 +692,16 @@ func (c *Vrouter) GetParamsEnv(clnt client.Client, clusterParams *ClusterParams)
 		return "", err
 	}
 	var vrouterManifestParamsEnv bytes.Buffer
-	configtemplates.VRouterAgentParams.Execute(&vrouterManifestParamsEnv, struct {
+	err = configtemplates.VRouterAgentParams.Execute(&vrouterManifestParamsEnv, struct {
 		ServiceConfig VrouterConfiguration
 		ClusterParams ClusterParams
 	}{
 		ServiceConfig: *vrouterConfig,
 		ClusterParams: *clusterParams,
 	})
+	if err != nil {
+		return "", err
+	}
 	return vrouterManifestParamsEnv.String(), nil
 }
 
@@ -778,7 +781,7 @@ func removeQuotes(str string) string {
 }
 
 // GetAgentConfigsForPod returns correct values of `/etc/contrailconfigmaps/config_name.{$pod_ip}` files
-func (c *Vrouter) GetAgentConfigsForPod(vrouterPod *VrouterPod, hostVars *map[string]string) (agentConfig, lbaasAuthConfig, vncAPILibIniConfig, nodemgrConfig string) {
+func (c *Vrouter) GetAgentConfigsForPod(vrouterPod *VrouterPod, hostVars *map[string]string) (agentConfig, lbaasAuthConfig, vncAPILibIniConfig, nodemgrConfig string, err error) {
 	newMap := make(map[string]string)
 	for key, val := range *hostVars {
 		newMap[key] = val
@@ -786,19 +789,28 @@ func (c *Vrouter) GetAgentConfigsForPod(vrouterPod *VrouterPod, hostVars *map[st
 	newMap["Hostname"] = vrouterPod.Pod.Annotations["hostname"]
 
 	var agentConfigBuffer bytes.Buffer
-	configtemplates.VRouterAgentConfig.Execute(&agentConfigBuffer, newMap)
+	if err = configtemplates.VRouterAgentConfig.Execute(&agentConfigBuffer, newMap); err != nil {
+		vrouter_log.WithName("GetAgentConfigsForPod").Error(err, "VRouterAgentConfig failed")
+		return
+	}
 	agentConfig = agentConfigBuffer.String()
 
 	var lbaasAuthConfigBuffer bytes.Buffer
-	configtemplates.VRouterLbaasAuthConfig.Execute(&lbaasAuthConfigBuffer, newMap)
+	if err = configtemplates.VRouterLbaasAuthConfig.Execute(&lbaasAuthConfigBuffer, newMap); err != nil {
+		return
+	}
 	lbaasAuthConfig = lbaasAuthConfigBuffer.String()
 
 	var vncAPILibIniConfigBuffer bytes.Buffer
-	configtemplates.VRouterVncApiLibIni.Execute(&vncAPILibIniConfigBuffer, newMap)
+	if err = configtemplates.VRouterVncApiLibIni.Execute(&vncAPILibIniConfigBuffer, newMap); err != nil {
+		return
+	}
 	vncAPILibIniConfig = vncAPILibIniConfigBuffer.String()
 
 	var nodemgrConfigBuffer bytes.Buffer
-	configtemplates.VrouterNodemanagerConfig.Execute(&nodemgrConfigBuffer, newMap)
+	if err = configtemplates.VrouterNodemanagerConfig.Execute(&nodemgrConfigBuffer, newMap); err != nil {
+		return
+	}
 	nodemgrConfig = nodemgrConfigBuffer.String()
 
 	return
@@ -811,11 +823,14 @@ func (c *Vrouter) GetCNIConfig(client client.Client, request reconcile.Request) 
 		return "", err
 	}
 	var contrailCNIBuffer bytes.Buffer
-	configtemplates.ContrailCNIConfig.Execute(&contrailCNIBuffer, struct {
+	err = configtemplates.ContrailCNIConfig.Execute(&contrailCNIBuffer, struct {
 		KubernetesClusterName string
 	}{
 		KubernetesClusterName: cfg.ClusterName,
 	})
+	if err != nil {
+		return "", err
+	}
 	return contrailCNIBuffer.String(), nil
 }
 
@@ -856,8 +871,10 @@ func (c *Vrouter) UpdateAgentConfigMapForPod(vrouterPod *VrouterPod,
 	client client.Client,
 ) error {
 
-	agentConfig, lbaasAuthConfig, vncAPILibIniConfig, nodemgrConfig := c.GetAgentConfigsForPod(vrouterPod, hostVars)
-
+	agentConfig, lbaasAuthConfig, vncAPILibIniConfig, nodemgrConfig, err := c.GetAgentConfigsForPod(vrouterPod, hostVars)
+	if err != nil {
+		return err
+	}
 	podIP := vrouterPod.Pod.Status.PodIP
 	configMap.Data["contrail-vrouter-agent.conf."+podIP] = agentConfig
 	configMap.Data["contrail-lbaas.auth.conf."+podIP] = lbaasAuthConfig

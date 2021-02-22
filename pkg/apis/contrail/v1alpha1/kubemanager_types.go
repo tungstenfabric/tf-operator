@@ -193,7 +193,7 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 			return err
 		}
 		token := string(secret.Data["token"])
-		configtemplates.KubemanagerConfig.Execute(&kubemanagerConfigBuffer, struct {
+		err = configtemplates.KubemanagerConfig.Execute(&kubemanagerConfigBuffer, struct {
 			Token                    string
 			ListenAddress            string
 			InstrospectListenAddress string
@@ -250,10 +250,13 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 			LogLevel:                 kubemanagerConfig.LogLevel,
 			PublicFIPPool:            kubemanagerConfig.PublicFIPPool,
 		})
+		if err != nil {
+			return err
+		}
 		data["kubemanager."+pod.Status.PodIP] = kubemanagerConfigBuffer.String()
 
 		var vncApiConfigBuffer bytes.Buffer
-		configtemplates.ConfigAPIVNC.Execute(&vncApiConfigBuffer, struct {
+		err = configtemplates.ConfigAPIVNC.Execute(&vncApiConfigBuffer, struct {
 			APIServerList string
 			APIServerPort string
 			CAFilePath    string
@@ -264,6 +267,9 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 			CAFilePath:    certificates.SignerCAFilepath,
 			AuthMode:      string(configNodesInformation.AuthMode),
 		})
+		if err != nil {
+			return err
+		}
 		data["vnc_api_lib.ini."+pod.Status.PodIP] = vncApiConfigBuffer.String()
 	}
 

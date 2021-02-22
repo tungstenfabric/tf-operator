@@ -73,6 +73,8 @@ spec:
           name: cassandra-data
       - name: nodemanager
         image: tungstenfabric/contrail-nodemgr:latest
+        securityContext:
+          privileged: true
         env:
         - name: VENDOR_DOMAIN
           value: io.tungsten
@@ -86,8 +88,6 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.annotations['hostname']
-        securityContext:
-          privileged: true
       - name: provisioner
         image: tungstenfabric/contrail-provisioner:latest
         env:

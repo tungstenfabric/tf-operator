@@ -17,13 +17,11 @@ var vrouterTemplateFuncs = map[string]interface{}{
 func bool2string(i *bool) string {
 	if i == nil {
 		return ""
-	} else {
-		if *i {
-			return "True"
-		} else {
-			return "False"
-		}
 	}
+	if *i {
+		return "True"
+	}
+	return "False"
 }
 
 func isEnabled(param string) bool {

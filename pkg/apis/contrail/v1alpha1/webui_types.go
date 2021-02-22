@@ -192,6 +192,7 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 		})
 		if err != nil {
 			log.Error(err, "configtemplates.WebuiWebConfig.Execute failed")
+			return err
 		}
 		data["config.global.js."+pod.Status.PodIP] = webuiWebConfigBuffer.String()
 		//fmt.Println("DATA ", data)
@@ -209,6 +210,7 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 		})
 		if err != nil {
 			log.Error(err, "configtemplates.WebuiWebConfig.Execute failed")
+			return err
 		}
 		data["contrail-webui-userauth.js."+pod.Status.PodIP] = webuiAuthConfigBuffer.String()
 	}

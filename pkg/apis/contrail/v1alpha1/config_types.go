@@ -225,7 +225,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 		podIP := pod.Status.PodIP
 		instrospectListenAddress := c.Spec.CommonConfiguration.IntrospectionListenAddress(podIP)
 		var configApiConfigBuffer bytes.Buffer
-		configtemplates.ConfigAPIConfig.Execute(&configApiConfigBuffer, struct {
+		err = configtemplates.ConfigAPIConfig.Execute(&configApiConfigBuffer, struct {
 			PodIP                    string
 			ListenAddress            string
 			ListenPort               string
@@ -260,10 +260,13 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			LogLevel:                 configConfig.LogLevel,
 			CAFilePath:               certificates.SignerCAFilepath,
 		})
+		if err != nil {
+			return err
+		}
 		data["api."+podIP] = configApiConfigBuffer.String()
 
 		var vncApiConfigBuffer bytes.Buffer
-		configtemplates.ConfigAPIVNC.Execute(&vncApiConfigBuffer, struct {
+		err = configtemplates.ConfigAPIVNC.Execute(&vncApiConfigBuffer, struct {
 			PodIP                  string
 			APIServerList          string
 			APIServerPort          string
@@ -284,6 +287,9 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			KeystoneUserDomainName: configAuth.UserDomainName,
 			KeystoneAuthProtocol:   configAuth.AuthProtocol,
 		})
+		if err != nil {
+			return err
+		}
 		data["vnc_api_lib.ini."+podIP] = vncApiConfigBuffer.String()
 
 		fabricMgmtIP := podIP
@@ -292,7 +298,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 		}
 
 		var configDevicemanagerConfigBuffer bytes.Buffer
-		configtemplates.ConfigDeviceManagerConfig.Execute(&configDevicemanagerConfigBuffer, struct {
+		err = configtemplates.ConfigDeviceManagerConfig.Execute(&configDevicemanagerConfigBuffer, struct {
 			PodIP                       string
 			ListenAddress               string
 			InstrospectListenAddress    string
@@ -327,10 +333,13 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			FabricMgmtIP:                fabricMgmtIP,
 			CAFilePath:                  certificates.SignerCAFilepath,
 		})
+		if err != nil {
+			return err
+		}
 		data["devicemanager."+podIP] = configDevicemanagerConfigBuffer.String()
 
 		var fabricAnsibleConfigBuffer bytes.Buffer
-		configtemplates.FabricAnsibleConf.Execute(&fabricAnsibleConfigBuffer, struct {
+		err = configtemplates.FabricAnsibleConf.Execute(&fabricAnsibleConfigBuffer, struct {
 			PodIP               string
 			CollectorServerList string
 			LogLevel            string
@@ -341,10 +350,13 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			LogLevel:            configConfig.LogLevel,
 			CAFilePath:          certificates.SignerCAFilepath,
 		})
+		if err != nil {
+			return err
+		}
 		data["contrail-fabric-ansible.conf."+podIP] = fabricAnsibleConfigBuffer.String()
 
 		var configKeystoneAuthConfBuffer bytes.Buffer
-		configtemplates.ConfigKeystoneAuthConf.Execute(&configKeystoneAuthConfBuffer, struct {
+		err = configtemplates.ConfigKeystoneAuthConf.Execute(&configKeystoneAuthConfBuffer, struct {
 			AdminUsername             string
 			AdminPassword             string
 			KeystoneAddress           string
@@ -365,12 +377,16 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			KeystoneRegion:            configAuth.Region,
 			CAFilePath:                certificates.SignerCAFilepath,
 		})
+		if err != nil {
+			return err
+		}
 		data["contrail-keystone-auth.conf."+podIP] = configKeystoneAuthConfBuffer.String()
+
 		data["dnsmasq."+podIP] = configtemplates.ConfigDNSMasqConfig
 		data["dnsmasq_base."+podIP] = configtemplates.ConfigDNSMasqBaseConfig
 
 		var configSchematransformerConfigBuffer bytes.Buffer
-		configtemplates.ConfigSchematransformerConfig.Execute(&configSchematransformerConfigBuffer, struct {
+		err = configtemplates.ConfigSchematransformerConfig.Execute(&configSchematransformerConfigBuffer, struct {
 			PodIP                    string
 			ListenAddress            string
 			InstrospectListenAddress string
@@ -403,10 +419,13 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			LogLevel:                 configConfig.LogLevel,
 			CAFilePath:               certificates.SignerCAFilepath,
 		})
+		if err != nil {
+			return err
+		}
 		data["schematransformer."+podIP] = configSchematransformerConfigBuffer.String()
 
 		var configServicemonitorConfigBuffer bytes.Buffer
-		configtemplates.ConfigServicemonitorConfig.Execute(&configServicemonitorConfigBuffer, struct {
+		err = configtemplates.ConfigServicemonitorConfig.Execute(&configServicemonitorConfigBuffer, struct {
 			PodIP                    string
 			ListenAddress            string
 			InstrospectListenAddress string
@@ -441,10 +460,13 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			LogLevel:                 configConfig.LogLevel,
 			CAFilePath:               certificates.SignerCAFilepath,
 		})
+		if err != nil {
+			return err
+		}
 		data["servicemonitor."+podIP] = configServicemonitorConfigBuffer.String()
 
 		var configAnalyticsapiConfigBuffer bytes.Buffer
-		configtemplates.ConfigAnalyticsapiConfig.Execute(&configAnalyticsapiConfigBuffer, struct {
+		err = configtemplates.ConfigAnalyticsapiConfig.Execute(&configAnalyticsapiConfigBuffer, struct {
 			PodIP                      string
 			ListenAddress              string
 			InstrospectListenAddress   string
@@ -482,10 +504,13 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			CAFilePath:                 certificates.SignerCAFilepath,
 			LogLevel:                   configConfig.LogLevel,
 		})
+		if err != nil {
+			return err
+		}
 		data["analyticsapi."+podIP] = configAnalyticsapiConfigBuffer.String()
 
 		var configCollectorConfigBuffer bytes.Buffer
-		configtemplates.ConfigCollectorConfig.Execute(&configCollectorConfigBuffer, struct {
+		err = configtemplates.ConfigCollectorConfig.Execute(&configCollectorConfigBuffer, struct {
 			Hostname                 string
 			PodIP                    string
 			ListenAddress            string
@@ -524,10 +549,13 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			AnalyticsStatisticsTTL:   strconv.Itoa(*configConfig.AnalyticsStatisticsTTL),
 			AnalyticsFlowTTL:         strconv.Itoa(*configConfig.AnalyticsFlowTTL),
 		})
+		if err != nil {
+			return err
+		}
 		data["collector."+podIP] = configCollectorConfigBuffer.String()
 
 		var configQueryEngineConfigBuffer bytes.Buffer
-		configtemplates.ConfigQueryEngineConfig.Execute(&configQueryEngineConfigBuffer, struct {
+		err = configtemplates.ConfigQueryEngineConfig.Execute(&configQueryEngineConfigBuffer, struct {
 			Hostname                 string
 			PodIP                    string
 			ListenAddress            string
@@ -550,10 +578,13 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			AnalyticsDataTTL:         strconv.Itoa(*configConfig.AnalyticsDataTTL),
 			LogLevel:                 configConfig.LogLevel,
 		})
+		if err != nil {
+			return err
+		}
 		data["queryengine."+podIP] = configQueryEngineConfigBuffer.String()
 
 		var configNodemanagerconfigConfigBuffer bytes.Buffer
-		configtemplates.ConfigNodemanagerConfigConfig.Execute(&configNodemanagerconfigConfigBuffer, struct {
+		err = configtemplates.ConfigNodemanagerConfigConfig.Execute(&configNodemanagerconfigConfigBuffer, struct {
 			Hostname                 string
 			PodIP                    string
 			ListenAddress            string
@@ -574,12 +605,15 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			CAFilePath:               certificates.SignerCAFilepath,
 			LogLevel:                 configConfig.LogLevel,
 		})
+		if err != nil {
+			return err
+		}
 		data["config-nodemgr.conf."+podIP] = configNodemanagerconfigConfigBuffer.String()
 		// empty env as no db tracking
 		data["config-nodemgr.env."+podIP] = ""
 
 		var configNodemanageranalyticsConfigBuffer bytes.Buffer
-		configtemplates.ConfigNodemanagerAnalyticsConfig.Execute(&configNodemanageranalyticsConfigBuffer, struct {
+		err = configtemplates.ConfigNodemanagerAnalyticsConfig.Execute(&configNodemanageranalyticsConfigBuffer, struct {
 			Hostname                 string
 			PodIP                    string
 			ListenAddress            string
@@ -600,6 +634,9 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			CAFilePath:               certificates.SignerCAFilepath,
 			LogLevel:                 configConfig.LogLevel,
 		})
+		if err != nil {
+			return err
+		}
 		data["analytics-nodemgr.conf."+podIP] = configNodemanageranalyticsConfigBuffer.String()
 		// empty env as no db tracking
 		data["analytics-nodemgr.env."+podIP] = ""
