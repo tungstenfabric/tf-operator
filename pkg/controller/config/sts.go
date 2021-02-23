@@ -126,7 +126,7 @@ spec:
                 fieldRef:
                   fieldPath: status.podIP
         - name: redis
-          image: redis:4.0.14
+          image: tungstenfabric/contrail-external-redis:latest
           env:
             - name: POD_IP
               valueFrom:
