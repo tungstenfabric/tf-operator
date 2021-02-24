@@ -10,17 +10,17 @@ var StatefulsetYamlData = `
 apiVersion: app/v1
 kind: StatefulSet
 metadata:
-name: analyticssnmp
+  name: analyticssnmp
 spec:
-selector:
-matchLabels:
-contrail_manager: analyticssnmp
-serviceName: "analyticssnmp"
-replicas: 1
-template:
-metadata:
-labels:
-  contrail_manager: analyticssnmp
+  selector:
+    matchLabels:
+      contrail_manager: analyticssnmp
+  serviceName: "analyticssnmp"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        contrail_manager: analyticssnmp
     spec:
       dnsPolicy: ClusterFirstWithHostNet
       hostNetwork: true
@@ -29,7 +29,7 @@ labels:
       restartPolicy: Always
       nodeSelector:
         node-role.kubernetes.io/master: ""
-        tolerations:
+      tolerations:
         - effect: NoSchedule
           operator: Exists
         - effect: NoExecute
@@ -51,7 +51,7 @@ labels:
               name: status
       containers:
         - name: analytics-snmp-collector
-          image: "tangstenfabric/contrail-analytics-snmp-collector:latest"
+          image: "tungstenfabric/contrail-analytics-snmp-collector:latest"
           env:
             - name: NODE_TYPE
               value: analytics-snmp
@@ -62,7 +62,7 @@ labels:
                 fieldRef:
                   fieldPath: status.podIP
         - name: analytics-snmp-topology
-          image: "tangstenfabric/contrail-analytics-snmp-topology:latest"
+          image: "tungstenfabric/contrail-analytics-snmp-topology:latest"
           env:
             - name: NODE_TYPE
               value: analytics-snmp
@@ -73,7 +73,7 @@ labels:
                 fieldRef:
                   fieldPath: status.podIP
         - name: nodemanager
-          image: "tangstenfabric/contrail-nodemgr:latest"
+          image: "tungstenfabric/contrail-nodemgr:latest"
           securityContext:
             privileged: true
           env:
@@ -90,7 +90,7 @@ labels:
                 fieldRef:
                   fieldPath: metadata.annotations['hostname']
         - name: provisioner
-          image: "tangstenfabric/contrail-provisioner:latest"
+          image: "tungstenfabric/contrail-provisioner:latest"
           env:
             - name: NODE_TYPE
               value: analytics-snmp
