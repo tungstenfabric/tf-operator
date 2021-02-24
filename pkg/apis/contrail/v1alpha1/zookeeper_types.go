@@ -106,7 +106,7 @@ func (c *Zookeeper) InstanceConfiguration(request reconcile.Request, confCMName 
 		AdminServerPort:   strconv.Itoa(*zookeeperConfig.AdminPort),
 	})
 	if err != nil {
-		return err
+		panic(err)
 	}
 	zookeeperStaticConfigString := zookeeperConfigBuffer.String()
 	confCMData["zoo.cfg"] = zookeeperStaticConfigString

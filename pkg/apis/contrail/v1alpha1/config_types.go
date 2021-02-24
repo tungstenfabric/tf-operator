@@ -261,7 +261,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			CAFilePath:               certificates.SignerCAFilepath,
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["api."+podIP] = configApiConfigBuffer.String()
 
@@ -288,7 +288,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			KeystoneAuthProtocol:   configAuth.AuthProtocol,
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["vnc_api_lib.ini."+podIP] = vncApiConfigBuffer.String()
 
@@ -334,7 +334,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			CAFilePath:                  certificates.SignerCAFilepath,
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["devicemanager."+podIP] = configDevicemanagerConfigBuffer.String()
 
@@ -351,7 +351,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			CAFilePath:          certificates.SignerCAFilepath,
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["contrail-fabric-ansible.conf."+podIP] = fabricAnsibleConfigBuffer.String()
 
@@ -378,7 +378,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			CAFilePath:                certificates.SignerCAFilepath,
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["contrail-keystone-auth.conf."+podIP] = configKeystoneAuthConfBuffer.String()
 
@@ -420,7 +420,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			CAFilePath:               certificates.SignerCAFilepath,
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["schematransformer."+podIP] = configSchematransformerConfigBuffer.String()
 
@@ -461,7 +461,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			CAFilePath:               certificates.SignerCAFilepath,
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["servicemonitor."+podIP] = configServicemonitorConfigBuffer.String()
 
@@ -505,7 +505,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			LogLevel:                   configConfig.LogLevel,
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["analyticsapi."+podIP] = configAnalyticsapiConfigBuffer.String()
 
@@ -550,7 +550,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			AnalyticsFlowTTL:         strconv.Itoa(*configConfig.AnalyticsFlowTTL),
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["collector."+podIP] = configCollectorConfigBuffer.String()
 
@@ -579,7 +579,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			LogLevel:                 configConfig.LogLevel,
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["queryengine."+podIP] = configQueryEngineConfigBuffer.String()
 
@@ -606,7 +606,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			LogLevel:                 configConfig.LogLevel,
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["config-nodemgr.conf."+podIP] = configNodemanagerconfigConfigBuffer.String()
 		// empty env as no db tracking
@@ -635,7 +635,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			LogLevel:                 configConfig.LogLevel,
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["analytics-nodemgr.conf."+podIP] = configNodemanageranalyticsConfigBuffer.String()
 		// empty env as no db tracking
@@ -650,7 +650,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			RedisServerPort:    "6379",
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["stunnel."+podIP] = configStunnelConfigBuffer.String()
 	}
@@ -658,19 +658,13 @@ func (c *Config) InstanceConfiguration(configMapName string,
 	configMapInstanceDynamicConfig.Data = data
 
 	// update with nodemanager runner
-	nmr, err := GetNodemanagerRunner()
-	if err != nil {
-		return err
-	}
+	nmr := GetNodemanagerRunner()
 	configMapInstanceDynamicConfig.Data["config-nodemanager-runner.sh"] = nmr
 	// TODO: till not splitted to different entities
 	configMapInstanceDynamicConfig.Data["analytics-nodemanager-runner.sh"] = nmr
 
 	// update with provisioner configs
-	err = UpdateProvisionerConfigMapData("config-provisioner", apiServerList, configMapInstanceDynamicConfig)
-	if err != nil {
-		return err
-	}
+	UpdateProvisionerConfigMapData("config-provisioner", apiServerList, configMapInstanceDynamicConfig)
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }

@@ -216,7 +216,7 @@ func (c *AnalyticsSnmp) InstanceConfiguration(configMapName string,
 			LogLevel: "SYS_DEBUG",
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["tf-snmp-collector."+podIP] = collectorBuffer.String()
 
@@ -262,7 +262,7 @@ func (c *AnalyticsSnmp) InstanceConfiguration(configMapName string,
 			LogLevel: "SYS_DEBUG",
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["tf-topology."+podIP] = topologyBuffer.String()
 
@@ -293,7 +293,7 @@ func (c *AnalyticsSnmp) InstanceConfiguration(configMapName string,
 			LogLevel: "SYS_DEBUG",
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["analytics-snmp-nodemgr.conf."+podIP] = nodemanagerBuffer.String()
 		// empty env as no db tracking
@@ -311,7 +311,7 @@ func (c *AnalyticsSnmp) InstanceConfiguration(configMapName string,
 			CAFilePath:    certificates.SignerCAFilepath,
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["vnc_api_lib.ini."+podIP] = vnciniBuffer.String()
 	}
@@ -319,19 +319,11 @@ func (c *AnalyticsSnmp) InstanceConfiguration(configMapName string,
 	configMapInstanceDynamicConfig.Data = data
 
 	// TODO: commonize for all services
-	// update with nodemanager runner
-	nmr, err := GetNodemanagerRunner()
-	if err != nil {
-		return err
-	}
 	// TODO: till not splitted to different entities
-	configMapInstanceDynamicConfig.Data["analytics-snmp-nodemanager-runner.sh"] = nmr
+	configMapInstanceDynamicConfig.Data["analytics-snmp-nodemanager-runner.sh"] = GetNodemanagerRunner()
 
 	// update with provisioner configs
-	err = UpdateProvisionerConfigMapData("analytics-snmp-provisioner", configApiIPCommaSeparated, configMapInstanceDynamicConfig)
-	if err != nil {
-		return err
-	}
+	UpdateProvisionerConfigMapData("analytics-snmp-provisioner", configApiIPCommaSeparated, configMapInstanceDynamicConfig)
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }
