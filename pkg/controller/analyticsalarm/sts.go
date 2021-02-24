@@ -27,8 +27,6 @@ spec:
       nodeSelector:
         node-role.kubernetes.io/master: ""
       restartPolicy: Always
-      # nodemanager
-      shareProcessNamespace: true
       tolerations:
         - effect: NoSchedule
           operator: Exists
