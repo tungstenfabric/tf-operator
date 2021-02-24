@@ -29,8 +29,6 @@ spec:
     spec:
       dnsPolicy: ClusterFirstWithHostNet
       hostNetwork: true
-      # nodemanager
-      shareProcessNamespace: true
       restartPolicy: Always
       nodeSelector:
         node-role.kubernetes.io/master: ""
