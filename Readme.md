@@ -3,25 +3,57 @@
 - K8s >= 1.16 installed
 
 # Simple AIO setup 
-- Prepare VM with CentOS 7 with 32GB RAM, 4 CPUs, 64GB diskspace
+## Prepare VM with CentOS 7 with 32GB RAM, 4 CPUs, 64GB diskspace
 
-- Deploy kubernetes with any preferable way, e.g. with help of kubespray (https://github.com/kubernetes-sigs/kubespray.git)
+## Deploy kubernetes with any preferable way, e.g. with help of kubespray (https://github.com/kubernetes-sigs/kubespray.git)
 
-- Prepare manifests for operator and contrail, take deploy/kustomize/contrail/templates and deploy/kustomize/operator/templates as an example (or process them with jijnja parser)
-
-- Deploy manifests, e.g.
+## Download tf-operator project.
 ```bash
 git clone https://github.com/tungstenfabric/tf-operator
-cd tf-operator
-kubectl apply -f ./deploy/crds/
-kubectl wait crds --for=condition=Established --timeout=2m managers.contrail.juniper.net
-kubectl apply -k ./deploy/kustomize/operator/templates/
-kubectl apply -k ./deploy/kustomize/contrail/templates/
 ```
+
+## Prepare TF manifests
+Deployment manifests are jinja templates to be processed:
+ - deploy/kustomize/contrail/templates
+ - deploy/kustomize/operator/templates
+### Examaples of processing
+```bash
+# Preparing manifests (all containers to be pulled out from dockerhub by default)
+./tf-operator/contrib/render_manifests.sh
+```
+```bash
+# Preparing manifests for TF containers to be pulled out from dockerhub and tf-operator from local registry
+export CONTRAIL_DEPLOYER_CONTAINER_TAG="latest"
+export DEPLOYER_CONTAINER_REGISTRY="localhost:5000"
+./tf-operator/contrib/render_manifests.sh
+```
+```bash
+# Preparing manifests for TF all containers to be pulled out from a local registry
+export CONTRAIL_CONTAINER_TAG="latest"
+export CONTAINER_REGISTRY="localhost:5000"
+./tf-operator/contrib/render_manifests.sh
+```
+```bash
+# Preparing manifests for TF containers to be pulled out from a custom registry and tf-operator from local one
+export CONTRAIL_CONTAINER_TAG="latest"
+export CONTAINER_REGISTRY="customregistry:5000"
+export CONTRAIL_DEPLOYER_CONTAINER_TAG="latest"
+export DEPLOYER_CONTAINER_REGISTRY="localhost:5000"
+./tf-operator/contrib/render_manifests.sh
+```
+
+## Deploy TF cluster with operator
+```bash
+kubectl apply -f ./tf-operator/deploy/crds/
+kubectl wait crds --for=condition=Established --timeout=2m managers.contrail.juniper.net
+kubectl apply -k ./tf-operator/deploy/kustomize/operator/templates/
+kubectl apply -k ./tf-operator/deploy/kustomize/contrail/templates/
+```
+
 
 # Building tf-operator
 
-- Prepare build tools
+## Prepare build tools
 ```bash
 # install docker
 sudo yum -y install epel-release wget gcc yum-utils git
@@ -47,12 +79,18 @@ echo export PATH=$PATH:/usr/local/go/bin >> $HOME/.bashrc
 echo export CGO_ENABLED=1 >> $HOME/.bashrc
 sudo usermod -aG docker $(whoami)
 
-# relogin to usermod takes effect
+# logout and relogin back to usermod takes effect
+exit
+# login back
 ```
 
-- Build
+## Download tf-operator project
 ```bash
 git clone https://github.com/tungstenfabric/tf-operator
+```
+
+## Build operator and push into the local registry
+```bash 
 cd tf-operator
 target=localhost:5000/tf-operator:latest
 operator-sdk build $target
