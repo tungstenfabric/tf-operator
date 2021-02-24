@@ -14,12 +14,13 @@ metadata:
 spec:
   selector:
     matchLabels:
-      contrail_manager: analyticssnmp
+      app: analyticssnmp
   serviceName: "analyticssnmp"
   replicas: 1
   template:
     metadata:
       labels:
+        app: analyticssnmp
         contrail_manager: analyticssnmp
     spec:
       dnsPolicy: ClusterFirstWithHostNet

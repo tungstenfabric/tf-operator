@@ -27,7 +27,6 @@ spec:
         cassandra_cr: cassandra
         contrail_manager: cassandra
     spec:
-      terminationGracePeriodSeconds: 10
       dnsPolicy: ClusterFirstWithHostNet
       hostNetwork: true
       # nodemanager
