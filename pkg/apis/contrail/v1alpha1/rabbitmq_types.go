@@ -288,7 +288,7 @@ func (c *Rabbitmq) IsUpgrading(name string, namespace string, client client.Clie
 
 // PrepareSTS prepares the intended deployment for the Rabbitmq object.
 func (c *Rabbitmq) PrepareSTS(sts *appsv1.StatefulSet, commonConfiguration *PodConfiguration, request reconcile.Request, scheme *runtime.Scheme) error {
-	return PrepareSTS(sts, commonConfiguration, "rabbitmq", request, scheme, c, false)
+	return PrepareSTS(sts, commonConfiguration, "rabbitmq", request, scheme, c, true)
 }
 
 // AddVolumesToIntendedSTS adds volumes to the Rabbitmq deployment.

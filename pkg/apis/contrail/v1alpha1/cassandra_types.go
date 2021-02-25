@@ -337,7 +337,7 @@ func (c *Cassandra) CreateSecret(secretName string,
 
 // PrepareSTS prepares the intended deployment for the Cassandra object.
 func (c *Cassandra) PrepareSTS(sts *appsv1.StatefulSet, commonConfiguration *PodConfiguration, request reconcile.Request, scheme *runtime.Scheme) error {
-	podMgmtPolicyParallel := false
+	podMgmtPolicyParallel := true
 	return PrepareSTS(sts, commonConfiguration, "cassandra", request, scheme, c, podMgmtPolicyParallel)
 }
 
