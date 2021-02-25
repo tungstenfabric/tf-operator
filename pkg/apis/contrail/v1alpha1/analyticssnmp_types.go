@@ -365,3 +365,12 @@ func (c *AnalyticsSnmp) ManageNodeStatus(podNameIPMap map[string]string,
 	}
 	return nil
 }
+
+// CommonStartupScript prepare common run service script
+//  command - is a final command to run
+//  configs - config files to be waited for and to be linked from configmap mount
+//   to a destination config folder (if destination is empty no link be done, only wait), e.g.
+//   { "api.${POD_IP}": "", "vnc_api.ini.${POD_IP}": "vnc_api.ini"}
+func (c *AnalyticsSnmp) CommonStartupScript(command string, configs map[string]string) string {
+	return CommonStartupScript(command, configs)
+}

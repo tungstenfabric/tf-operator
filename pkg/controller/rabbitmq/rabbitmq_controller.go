@@ -116,17 +116,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	serviceMap := map[string]string{"contrail_manager": "rabbitmq"}
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
 	podHandler := resourceHandler(mgr.GetClient())
-	predInitStatus := utils.PodInitStatusChange(serviceMap)
 	predPodIPChange := utils.PodIPChange(serviceMap)
-	predInitRunning := utils.PodInitRunning(serviceMap)
 
 	if err = c.Watch(srcPod, podHandler, predPodIPChange); err != nil {
-		return err
-	}
-	if err = c.Watch(srcPod, podHandler, predInitStatus); err != nil {
-		return err
-	}
-	if err = c.Watch(srcPod, podHandler, predInitRunning); err != nil {
 		return err
 	}
 
@@ -240,7 +232,7 @@ func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Resu
 			}
 			volumeMount := corev1.VolumeMount{
 				Name:      request.Name + "-" + instanceType + "-volume",
-				MountPath: "/etc/rabbitmqconfigmaps",
+				MountPath: "/etc/contrailconfigmaps",
 			}
 			volumeMountList = append(volumeMountList, volumeMount)
 			volumeMount = corev1.VolumeMount{
@@ -261,15 +253,6 @@ func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Resu
 
 			(&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts = volumeMountList
 			(&statefulSet.Spec.Template.Spec.Containers[idx]).Image = instanceContainer.Image
-		}
-	}
-
-	// Configure InitContainers.
-	for idx, container := range statefulSet.Spec.Template.Spec.InitContainers {
-		instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
-		(&statefulSet.Spec.Template.Spec.InitContainers[idx]).Image = instanceContainer.Image
-		if instanceContainer.Command != nil {
-			(&statefulSet.Spec.Template.Spec.InitContainers[idx]).Command = instanceContainer.Command
 		}
 	}
 
@@ -359,12 +342,12 @@ func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Resu
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileRabbitmq) ensureCertificatesExist(rabbitmq *v1alpha1.Rabbitmq, pods []corev1.Pod, instanceType string) error {
+func (r *ReconcileRabbitmq) ensureCertificatesExist(instance *v1alpha1.Rabbitmq, pods []corev1.Pod, instanceType string) error {
 	domain, err := v1alpha1.ClusterDNSDomain(r.Client)
 	if err != nil {
 		return err
 	}
-	subjects := rabbitmq.PodsCertSubjects(domain, pods)
-	crt := certificates.NewCertificate(r.Client, r.Scheme, rabbitmq, subjects, instanceType)
+	subjects := instance.PodsCertSubjects(domain, pods)
+	crt := certificates.NewCertificate(r.Client, r.Scheme, instance, subjects, instanceType)
 	return crt.EnsureExistsAndIsSigned()
 }

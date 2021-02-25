@@ -27,29 +27,20 @@ patchesJson6902:
     path: kube-manager.json
 
 images:
-# Public containers
-# TODO: use tf mirrors
-- name: python
-  newTag: {{ CONTRAIL_CONTAINER_TAG }}
-  newName: {{ CONTAINER_REGISTRY }}/contrail-node-init
-- name: busybox
-  newTag: {{ CONTRAIL_CONTAINER_TAG }}
-  newName: {{ CONTAINER_REGISTRY }}/contrail-node-init
-
 # Contrail externals
-- name: cassandra
+- name: contrail-external-cassandra
   newTag: {{ CONTRAIL_CONTAINER_TAG }}
   newName: {{ CONTAINER_REGISTRY }}/contrail-external-cassandra
-- name: zookeeper
+- name: contrail-external-zookeeper
   newTag: {{ CONTRAIL_CONTAINER_TAG }}
   newName: {{ CONTAINER_REGISTRY }}/contrail-external-zookeeper
-- name: rabbitmq
+- name: contrail-external-rabbitmq
   newTag: {{ CONTRAIL_CONTAINER_TAG }}
   newName: {{ CONTAINER_REGISTRY }}/contrail-external-rabbitmq
-- name: redis
+- name: contrail-external-redis
   newTag: {{ CONTRAIL_CONTAINER_TAG }}
   newName: {{ CONTAINER_REGISTRY }}/contrail-external-redis
-- name: stunnel
+- name: contrail-external-stunnel
   newTag: {{ CONTRAIL_CONTAINER_TAG }}
   newName: {{ CONTAINER_REGISTRY }}/contrail-external-stunnel
 

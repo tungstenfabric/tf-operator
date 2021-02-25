@@ -123,9 +123,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	serviceMap := map[string]string{"contrail_manager": "webui"}
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
 	podHandler := resourceHandler(mgr.GetClient())
-	predInitStatus := utils.PodInitStatusChange(serviceMap)
 	predPodIPChange := utils.PodIPChange(serviceMap)
-	predInitRunning := utils.PodInitRunning(serviceMap)
 
 	if err = c.Watch(&source.Kind{Type: &corev1.Service{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
@@ -135,12 +133,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	if err = c.Watch(srcPod, podHandler, predPodIPChange); err != nil {
-		return err
-	}
-	if err = c.Watch(srcPod, podHandler, predInitStatus); err != nil {
-		return err
-	}
-	if err = c.Watch(srcPod, podHandler, predInitRunning); err != nil {
 		return err
 	}
 
@@ -260,15 +252,12 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 
 	for idx, container := range statefulSet.Spec.Template.Spec.Containers {
 		if container.Name == "webuiweb" {
-			command := []string{"bash", "-c",
-				"until ss -tulwn | grep LISTEN | grep 6380; do sleep 2; done; " +
-					"echo \"INFO: $(date): wait for /etc/contrailconfigmaps/config.global.js.${POD_IP}\" ; " +
-					"while [ ! -e /etc/contrailconfigmaps/config.global.js.${POD_IP} ] ; do sleep 1; done ; " +
-					"cat /etc/contrailconfigmaps/config.global.js.${POD_IP} ; " +
-					"echo \"INFO: $(date): wait for /etc/contrailconfigmaps/contrail-webui-userauth.js.${POD_IP}\" ; " +
-					"while [ ! -e /etc/contrailconfigmaps/contrail-webui-userauth.js.${POD_IP} ] ; do sleep 1; done ; " +
-					"cat /etc/contrailconfigmaps/contrail-webui-userauth.js.${POD_IP} ; " +
-					"exec /usr/bin/node /usr/src/contrail/contrail-web-core/webServerStart.js --conf_file /etc/contrailconfigmaps/config.global.js.${POD_IP} --conf_file /etc/contrailconfigmaps/contrail-webui-userauth.js.${POD_IP}",
+			command := []string{"bash", "-c", instance.CommonStartupScript(
+				"exec /usr/bin/node /usr/src/contrail/contrail-web-core/webServerStart.js --conf_file /etc/contrailconfigmaps/config.global.js.${POD_IP} --conf_file /etc/contrailconfigmaps/contrail-webui-userauth.js.${POD_IP}",
+				map[string]string{
+					"config.global.js.${POD_IP}":           "",
+					"contrail-webui-userauth.js.${POD_IP}": "",
+				}),
 			}
 
 			instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
@@ -324,15 +313,12 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 			(&statefulSet.Spec.Template.Spec.Containers[idx]).StartupProbe = &startUpProbe
 		}
 		if container.Name == "webuijob" {
-			command := []string{"bash", "-c",
-				"until ss -tulwn | grep LISTEN | grep 6380; do sleep 2; done; " +
-					"echo \"INFO: $(date): wait for /etc/contrailconfigmaps/config.global.js.${POD_IP}\" ; " +
-					"while [ ! -e /etc/contrailconfigmaps/config.global.js.${POD_IP} ] ; do sleep 1; done ; " +
-					"cat /etc/contrailconfigmaps/config.global.js.${POD_IP} ; " +
-					"echo \"INFO: $(date): wait for /etc/contrailconfigmaps/contrail-webui-userauth.js.${POD_IP}\" ; " +
-					"while [ ! -e /etc/contrailconfigmaps/contrail-webui-userauth.js.${POD_IP} ] ; do sleep 1; done ; " +
-					"cat /etc/contrailconfigmaps/contrail-webui-userauth.js.${POD_IP} ; " +
-					"exec /usr/bin/node /usr/src/contrail/contrail-web-core/jobServerStart.js --conf_file /etc/contrailconfigmaps/config.global.js.${POD_IP} --conf_file /etc/contrailconfigmaps/contrail-webui-userauth.js.${POD_IP}",
+			command := []string{"bash", "-c", instance.CommonStartupScript(
+				"exec /usr/bin/node /usr/src/contrail/contrail-web-core/jobServerStart.js --conf_file /etc/contrailconfigmaps/config.global.js.${POD_IP} --conf_file /etc/contrailconfigmaps/contrail-webui-userauth.js.${POD_IP}",
+				map[string]string{
+					"config.global.js.${POD_IP}":           "",
+					"contrail-webui-userauth.js.${POD_IP}": "",
+				}),
 			}
 
 			instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
@@ -422,14 +408,6 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 				TopologyKey: "kubernetes.io/hostname",
 			}},
 		},
-	}
-
-	for idx, container := range statefulSet.Spec.Template.Spec.InitContainers {
-		instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
-		(&statefulSet.Spec.Template.Spec.InitContainers[idx]).Image = instanceContainer.Image
-		if instanceContainer.Command != nil {
-			(&statefulSet.Spec.Template.Spec.InitContainers[idx]).Command = instanceContainer.Command
-		}
 	}
 
 	if created, err := instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil || created {
@@ -539,12 +517,12 @@ func (r *ReconcileWebui) listWebUIPods(webUIName string) ([]corev1.Pod, error) {
 	return res, nil
 }
 
-func (r *ReconcileWebui) ensureCertificatesExist(webUI *v1alpha1.Webui, pods []corev1.Pod, instanceType string) error {
+func (r *ReconcileWebui) ensureCertificatesExist(instance *v1alpha1.Webui, pods []corev1.Pod, instanceType string) error {
 	domain, err := v1alpha1.ClusterDNSDomain(r.Client)
 	if err != nil {
 		return err
 	}
-	subjects := webUI.PodsCertSubjects(domain, pods)
-	crt := certificates.NewCertificate(r.Client, r.Scheme, webUI, subjects, instanceType)
+	subjects := instance.PodsCertSubjects(domain, pods)
+	crt := certificates.NewCertificate(r.Client, r.Scheme, instance, subjects, instanceType)
 	return crt.EnsureExistsAndIsSigned()
 }

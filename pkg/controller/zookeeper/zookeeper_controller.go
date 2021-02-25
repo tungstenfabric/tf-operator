@@ -11,6 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1"
+	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
 	"github.com/tungstenfabric/tf-operator/pkg/label"
 
@@ -119,17 +120,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	serviceMap := map[string]string{"contrail_manager": "zookeeper"}
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
 	podHandler := resourceHandler(mgr.GetClient())
-	predInitStatus := utils.PodInitStatusChange(serviceMap)
 	predPodIPChange := utils.PodIPChange(serviceMap)
-	predInitRunning := utils.PodInitRunning(serviceMap)
 
 	if err = c.Watch(srcPod, podHandler, predPodIPChange); err != nil {
-		return err
-	}
-	if err = c.Watch(srcPod, podHandler, predInitStatus); err != nil {
-		return err
-	}
-	if err = c.Watch(srcPod, podHandler, predInitRunning); err != nil {
 		return err
 	}
 
@@ -180,6 +173,12 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
+	secretCertificates, err := instance.CreateSecret(request.Name+"-secret-certificates", r.Client, r.Scheme, request)
+	if err != nil {
+		reqLogger.Error(err, "CreateSecret failed")
+		return reconcile.Result{}, err
+	}
+
 	statefulSet := GetSTS()
 	if err := instance.PrepareSTS(statefulSet, &instance.Spec.CommonConfiguration, request, r.Scheme); err != nil {
 		return reconcile.Result{}, err
@@ -188,7 +187,13 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
-	instance.AddVolumesToIntendedSTS(statefulSet, map[string]string{configMapName: configMapName})
+	csrSignerCaVolumeName := request.Name + "-csr-signer-ca"
+	instance.AddVolumesToIntendedSTS(statefulSet, map[string]string{
+		configMapName:                      request.Name + "-" + instanceType + "-volume",
+		certificates.SignerCAConfigMapName: csrSignerCaVolumeName,
+	})
+
+	instance.AddSecretVolumesToIntendedSTS(statefulSet, map[string]string{secretCertificates.Name: request.Name + "-secret-certificates"})
 
 	zookeeperDefaultConfiguration := instance.ConfigurationParameters()
 
@@ -196,29 +201,46 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 
 		container := &statefulSet.Spec.Template.Spec.Containers[idx]
 		instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
-		container.Image = instanceContainer.Image
 
-		if container.Name == "zookeeper" {
-			if instanceContainer.Command == nil {
-				command := []string{"bash", "-c",
-					configurationInitCommand +
-						"zkServer.sh --config /var/lib/zookeeper start-foreground",
-				}
-				container.Command = command
-			} else {
-				container.Command = instanceContainer.Command
-			}
-			container.VolumeMounts = append(container.VolumeMounts,
-				corev1.VolumeMount{
-					Name:      configMapName,
-					MountPath: "/zookeeper-conf",
-				})
+		if instanceContainer.Command != nil {
+			container.Command = instanceContainer.Command
 		}
 
+		container.Image = instanceContainer.Image
+
+		container.VolumeMounts = append(container.VolumeMounts,
+			corev1.VolumeMount{
+				Name:      request.Name + "-" + instanceType + "-volume",
+				MountPath: "/zookeeper-conf",
+			},
+			corev1.VolumeMount{
+				Name:      request.Name + "-secret-certificates",
+				MountPath: "/etc/certificates",
+			},
+			corev1.VolumeMount{
+				Name:      csrSignerCaVolumeName,
+				MountPath: certificates.SignerCAMountPath,
+			},
+		)
+
+		if container.Name == "zookeeper" {
+			if container.Command == nil {
+				command := []string{"bash", "-c", instance.CommonStartupScript(
+					"zkServer.sh --config /var/lib/zookeeper start-foreground",
+					map[string]string{
+						"log4j.properties":        "log4j.properties",
+						"configuration.xsl":       "configuration.xsl",
+						"zoo.cfg":                 "zoo.cfg",
+						"zoo.cfg.dynamic.$POD_IP": "zoo.cfg.dynamic",
+						"myid.$POD_IP":            "myid",
+					}),
+				}
+				container.Command = command
+			}
+		}
 	}
 	statefulSet.Spec.PodManagementPolicy = appsv1.OrderedReadyPodManagement
 
-	// Configure InitContainers.
 	statefulSet.Spec.Template.Spec.Affinity = &corev1.Affinity{
 		PodAntiAffinity: &corev1.PodAntiAffinity{
 			RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{{
@@ -232,16 +254,6 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 				TopologyKey: "kubernetes.io/hostname",
 			}},
 		},
-	}
-	for idx, container := range statefulSet.Spec.Template.Spec.InitContainers {
-		instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
-		(&statefulSet.Spec.Template.Spec.InitContainers[idx]).Image = instanceContainer.Image
-		if instanceContainer.Command != nil {
-			(&statefulSet.Spec.Template.Spec.InitContainers[idx]).Command = instanceContainer.Command
-		}
-		if container.Name == "init" {
-			// nothing to do
-		}
 	}
 
 	v1alpha1.AddCommonVolumes(&statefulSet.Spec.Template.Spec)
@@ -267,6 +279,9 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 
 	if len(podIPList) > 0 {
 		if err = instance.InstanceConfiguration(request, configMapName, podIPList, r.Client); err != nil {
+			return reconcile.Result{}, err
+		}
+		if err := r.ensureCertificatesExist(instance, podIPList, instanceType); err != nil {
 			return reconcile.Result{}, err
 		}
 		if err = instance.SetPodsToReady(podIPList, r.Client); err != nil {
@@ -344,21 +359,12 @@ func (r *ReconcileZookeeper) ensurePodDisruptionBudgetExists(zookeeper *v1alpha1
 	return err
 }
 
-const configurationInitCommand = `#!/bin/sh
-function link_file() {
-  local src=/zookeeper-conf/$1
-  local dst=/var/lib/zookeeper/${2:-${1}}
-  echo "INFO: $(date): wait for $src"
-  while [ ! -e $src ] ; do sleep 1; done
-  echo "INFO: $(date): link $src => $dst"
-  rm -f $dst
-  ln -sf $src $dst
+func (r *ReconcileZookeeper) ensureCertificatesExist(instance *v1alpha1.Zookeeper, pods []corev1.Pod, instanceType string) error {
+	domain, err := v1alpha1.ClusterDNSDomain(r.Client)
+	if err != nil {
+		return err
+	}
+	subjects := instance.PodsCertSubjects(domain, pods)
+	crt := certificates.NewCertificate(r.Client, r.Scheme, instance, subjects, instanceType)
+	return crt.EnsureExistsAndIsSigned()
 }
-
-link_file log4j.properties
-link_file configuration.xsl
-link_file zoo.cfg
-link_file zoo.cfg.dynamic.$POD_IP zoo.cfg.dynamic
-link_file myid.$POD_IP myid
-
-`

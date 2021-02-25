@@ -50,27 +50,6 @@ func GetSTS(instance *v1alpha1.Rabbitmq) *apps.StatefulSet {
 		})
 	}
 
-	var podInitContainers = []core.Container{
-		{
-			Name:  "init",
-			Image: "busybox",
-			Command: []string{
-				"sh",
-				"-c",
-				"until grep ready /tmp/podinfo/pod_labels > /dev/null 2>&1; do sleep 1; done",
-			},
-			Env: nodeEnv,
-			VolumeMounts: []core.VolumeMount{
-				{
-					Name:      "status",
-					MountPath: "/tmp/podinfo",
-				},
-			},
-			TerminationMessagePath:   "/dev/termination-log",
-			TerminationMessagePolicy: core.TerminationMessageReadFile,
-		},
-	}
-
 	var podContainers = []core.Container{
 		{
 			Name:  "rabbitmq",
@@ -144,14 +123,13 @@ func GetSTS(instance *v1alpha1.Rabbitmq) *apps.StatefulSet {
 	}
 
 	var podSpec = core.PodSpec{
-		Volumes:        podVolumes,
-		InitContainers: podInitContainers,
-		Containers:     podContainers,
-		RestartPolicy:  "Always",
-		DNSPolicy:      "ClusterFirstWithHostNet",
-		HostNetwork:    true,
-		Tolerations:    podTolerations,
-		NodeSelector:   map[string]string{"node-role.kubernetes.io/master": ""},
+		Volumes:       podVolumes,
+		Containers:    podContainers,
+		RestartPolicy: "Always",
+		DNSPolicy:     "ClusterFirstWithHostNet",
+		HostNetwork:   true,
+		Tolerations:   podTolerations,
+		NodeSelector:  map[string]string{"node-role.kubernetes.io/master": ""},
 	}
 
 	var stsTemplate = core.PodTemplateSpec{

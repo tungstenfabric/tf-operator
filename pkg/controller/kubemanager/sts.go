@@ -20,27 +20,6 @@ func GetSTS() *apps.StatefulSet {
 		},
 	}
 
-	var podInitContainers = []core.Container{
-		{
-			Name:  "init",
-			Image: "busybox:latest",
-			Command: []string{
-				"sh",
-				"-c",
-				"until grep ready /tmp/podinfo/pod_labels > /dev/null 2>&1; do sleep 1; done",
-			},
-			Env: []core.EnvVar{
-				podIPEnv,
-			},
-			VolumeMounts: []core.VolumeMount{
-				{
-					Name:      "status",
-					MountPath: "/tmp/podinfo",
-				},
-			},
-		},
-	}
-
 	var podContainers = []core.Container{
 		{
 			Name:  "kubemanager",
@@ -106,14 +85,13 @@ func GetSTS() *apps.StatefulSet {
 	}
 
 	var podSpec = core.PodSpec{
-		Volumes:        podVolumes,
-		InitContainers: podInitContainers,
-		Containers:     podContainers,
-		RestartPolicy:  "Always",
-		DNSPolicy:      "ClusterFirstWithHostNet",
-		HostNetwork:    true,
-		Tolerations:    podTolerations,
-		NodeSelector:   map[string]string{"node-role.kubernetes.io/master": ""},
+		Volumes:       podVolumes,
+		Containers:    podContainers,
+		RestartPolicy: "Always",
+		DNSPolicy:     "ClusterFirstWithHostNet",
+		HostNetwork:   true,
+		Tolerations:   podTolerations,
+		NodeSelector:  map[string]string{"node-role.kubernetes.io/master": ""},
 	}
 
 	var stsTemplate = core.PodTemplateSpec{

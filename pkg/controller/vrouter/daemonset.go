@@ -87,22 +87,6 @@ func GetDaemonset(cniCfg *v1alpha1.CNIConfig, cloudOrchestrator string) *apps.Da
 
 	var podInitContainers = []core.Container{
 		{
-			Name:  "init",
-			Image: "busybox:latest",
-			Command: []string{
-				"sh",
-				"-c",
-				"until grep ready /tmp/podinfo/pod_labels > /dev/null 2>&1; do sleep 1; done",
-			},
-			Env: envList,
-			VolumeMounts: []core.VolumeMount{
-				{
-					Name:      "status",
-					MountPath: "/tmp/podinfo",
-				},
-			},
-		},
-		{
 			Name:  "nodeinit",
 			Image: "tungstenfabric/contrail-node-init:latest",
 			Env:   envListNodeInit,

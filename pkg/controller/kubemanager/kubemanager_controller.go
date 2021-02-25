@@ -2,6 +2,7 @@ package kubemanager
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -124,17 +125,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	serviceMap := map[string]string{"contrail_manager": "kubemanager"}
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
 	podHandler := resourceHandler(mgr.GetClient())
-	predInitStatus := utils.PodInitStatusChange(serviceMap)
 	predPodIPChange := utils.PodIPChange(serviceMap)
-	predInitRunning := utils.PodInitRunning(serviceMap)
 
 	if err = c.Watch(srcPod, podHandler, predPodIPChange); err != nil {
-		return err
-	}
-	if err = c.Watch(srcPod, podHandler, predInitStatus); err != nil {
-		return err
-	}
-	if err = c.Watch(srcPod, podHandler, predInitRunning); err != nil {
 		return err
 	}
 
@@ -269,51 +262,46 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 			}},
 		},
 	}
-	for idx, container := range statefulSet.Spec.Template.Spec.Containers {
-		if container.Name == "kubemanager" {
-			instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
-			if instanceContainer.Command == nil {
-				command := []string{"bash", "-c",
-					"set -x ; " +
-						"while [ ! -e /etc/contrailconfigmaps/kubemanager.${POD_IP} ] ; do sleep 1; done ; " +
-						"while [ ! -e /etc/contrailconfigmaps/vnc_api_lib.ini.${POD_IP} ] ; do sleep 1; done ; " +
-						"rm -f /etc/contrail/vnc_api_lib.ini ; " +
-						"ln -sf /etc/contrailconfigmaps/vnc_api_lib.ini.${POD_IP} /etc/contrail/vnc_api_lib.ini ; " +
-						"exec /usr/bin/contrail-kube-manager -c /etc/contrailconfigmaps/kubemanager.${POD_IP}"}
-				(&statefulSet.Spec.Template.Spec.Containers[idx]).Command = command
-			} else {
-				(&statefulSet.Spec.Template.Spec.Containers[idx]).Command = instanceContainer.Command
-			}
+	for idx := range statefulSet.Spec.Template.Spec.Containers {
+		container := &statefulSet.Spec.Template.Spec.Containers[idx]
+		instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
+		if instanceContainer == nil {
+			reqLogger.Info(fmt.Sprintf("There is no %s container in the manifect", container.Name))
+			continue
+		}
 
-			volumeMountList := []corev1.VolumeMount{}
-			if len((&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts) > 0 {
-				volumeMountList = (&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts
-			}
-			volumeMount := corev1.VolumeMount{
+		if instanceContainer.Command != nil {
+			container.Command = instanceContainer.Command
+		}
+
+		container.Image = instanceContainer.Image
+
+		container.VolumeMounts = append(container.VolumeMounts,
+			corev1.VolumeMount{
 				Name:      request.Name + "-" + instanceType + "-volume",
 				MountPath: "/etc/contrailconfigmaps",
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			volumeMount = corev1.VolumeMount{
+			},
+			corev1.VolumeMount{
 				Name:      request.Name + "-secret-certificates",
 				MountPath: "/etc/certificates",
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			volumeMount = corev1.VolumeMount{
+			},
+			corev1.VolumeMount{
 				Name:      csrSignerCaVolumeName,
 				MountPath: certificates.SignerCAMountPath,
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			(&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts = volumeMountList
-			(&statefulSet.Spec.Template.Spec.Containers[idx]).Image = instanceContainer.Image
-		}
-	}
+			},
+		)
 
-	for idx, container := range statefulSet.Spec.Template.Spec.InitContainers {
-		instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
-		(&statefulSet.Spec.Template.Spec.InitContainers[idx]).Image = instanceContainer.Image
-		if instanceContainer.Command != nil {
-			(&statefulSet.Spec.Template.Spec.InitContainers[idx]).Command = instanceContainer.Command
+		if container.Name == "kubemanager" {
+			if container.Command == nil {
+				command := []string{"bash", "-c", instance.CommonStartupScript(
+					"exec /usr/bin/contrail-kube-manager -c /etc/contrailconfigmaps/kubemanager.${POD_IP}",
+					map[string]string{
+						"kubemanager.${POD_IP}":     "",
+						"vnc_api_lib.ini.${POD_IP}": "vnc_api_lib.ini",
+					}),
+				}
+				container.Command = command
+			}
 		}
 	}
 

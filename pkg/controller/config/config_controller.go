@@ -117,9 +117,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	serviceMap := map[string]string{"contrail_manager": "config"}
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
 	podHandler := resourceHandler(mgr.GetClient())
-	predInitStatus := utils.PodInitStatusChange(serviceMap)
 	predPodIPChange := utils.PodIPChange(serviceMap)
-	predInitRunning := utils.PodInitRunning(serviceMap)
 
 	if err = c.Watch(&source.Kind{Type: &corev1.Service{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
@@ -129,12 +127,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	if err = c.Watch(srcPod, podHandler, predPodIPChange); err != nil {
-		return err
-	}
-	if err = c.Watch(srcPod, podHandler, predInitStatus); err != nil {
-		return err
-	}
-	if err = c.Watch(srcPod, podHandler, predInitRunning); err != nil {
 		return err
 	}
 
@@ -297,9 +289,13 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 
 		case "api":
 			if container.Command == nil {
-				command := []string{"bash", "-c",
-					"ln -sf /etc/contrailconfigmaps/vnc_api_lib.ini.${POD_IP} /etc/contrail/vnc_api_lib.ini; " +
-						"exec /usr/bin/contrail-api --conf_file /etc/contrailconfigmaps/api.${POD_IP} --conf_file /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP} --worker_id 0",
+				command := []string{"bash", "-c", instance.CommonStartupScript(
+					"exec /usr/bin/contrail-api --conf_file /etc/contrailconfigmaps/api.${POD_IP} --conf_file /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP} --worker_id 0",
+					map[string]string{
+						"api.${POD_IP}":                         "",
+						"contrail-keystone-auth.conf.${POD_IP}": "",
+						"vnc_api_lib.ini.${POD_IP}":             "vnc_api_lib.ini",
+					}),
 				}
 				container.Command = command
 			}
@@ -309,11 +305,16 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 				// exec /usr/bin/contrail-device-manager is importnant as
 				// as dm use search byt inclusion in cmd line to kill others
 				// and occasionally kill parent bash (and himself indirectly)
-				command := []string{"bash", "-c",
-					"ln -sf /etc/contrailconfigmaps/vnc_api_lib.ini.${POD_IP} /etc/contrail/vnc_api_lib.ini; " +
-						"exec /usr/bin/contrail-device-manager --conf_file /etc/contrailconfigmaps/devicemanager.${POD_IP} " +
-						" --conf_file /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP}" +
-						" --fabric_ansible_conf_file /etc/contrailconfigmaps/contrail-fabric-ansible.conf.${POD_IP} /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP}",
+				command := []string{"bash", "-c", instance.CommonStartupScript(
+					"exec /usr/bin/contrail-device-manager --conf_file /etc/contrailconfigmaps/devicemanager.${POD_IP}"+
+						" --conf_file /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP}"+
+						" --fabric_ansible_conf_file /etc/contrailconfigmaps/contrail-fabric-ansible.conf.${POD_IP}",
+					map[string]string{
+						"devicemanager.${POD_IP}":                "",
+						"contrail-fabric-ansible.conf.${POD_IP}": "",
+						"contrail-keystone-auth.conf.${POD_IP}":  "",
+						"vnc_api_lib.ini.${POD_IP}":              "vnc_api_lib.ini",
+					}),
 				}
 				container.Command = command
 			}
@@ -340,12 +341,15 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 				// exec dnsmasq is important because dm does process
 				// management by names and search in cmd line
 				// (to avoid wrong trigger of search on bash cmd)
-				command := []string{"bash", "-c",
-					"ln -sf /etc/contrailconfigmaps/vnc_api_lib.ini.${POD_IP} /etc/contrail/vnc_api_lib.ini ; " +
-						"mkdir -p /var/lib/dnsmasq ; " +
-						"rm -f /var/lib/dnsmasq/base.conf ; " +
-						"cp /etc/contrailconfigmaps/dnsmasq_base.${POD_IP} /var/lib/dnsmasq/base.conf ; " +
+				command := []string{"bash", "-c", instance.CommonStartupScript(
+					"mkdir -p /var/lib/dnsmasq ; "+
+						"rm -f /var/lib/dnsmasq/base.conf ; "+
+						"cp /etc/contrailconfigmaps/dnsmasq_base.${POD_IP} /var/lib/dnsmasq/base.conf ; "+
 						"exec dnsmasq -k -p0 --conf-file=/etc/contrailconfigmaps/dnsmasq.${POD_IP}",
+					map[string]string{
+						"dnsmasq.${POD_IP}":      "",
+						"dnsmasq_base.${POD_IP}": "",
+					}),
 				}
 				container.Command = command
 			}
@@ -369,45 +373,62 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 
 		case "servicemonitor":
 			if container.Command == nil {
-				command := []string{"bash", "-c",
-					"ln -sf /etc/contrailconfigmaps/vnc_api_lib.ini.${POD_IP} /etc/contrail/vnc_api_lib.ini; " +
-						"exec /usr/bin/contrail-svc-monitor --conf_file /etc/contrailconfigmaps/servicemonitor.${POD_IP} --conf_file /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP}",
+				command := []string{"bash", "-c", instance.CommonStartupScript(
+					"exec /usr/bin/contrail-svc-monitor --conf_file /etc/contrailconfigmaps/servicemonitor.${POD_IP} --conf_file /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP}",
+					map[string]string{
+						"servicemonitor.${POD_IP}":              "",
+						"contrail-keystone-auth.conf.${POD_IP}": "",
+						"vnc_api_lib.ini.${POD_IP}":             "vnc_api_lib.ini",
+					}),
 				}
 				container.Command = command
 			}
 
 		case "schematransformer":
 			if container.Command == nil {
-				command := []string{"bash", "-c",
-					"ln -sf /etc/contrailconfigmaps/vnc_api_lib.ini.${POD_IP} /etc/contrail/vnc_api_lib.ini; " +
-						"exec /usr/bin/contrail-schema --conf_file /etc/contrailconfigmaps/schematransformer.${POD_IP}  --conf_file /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP}",
+				command := []string{"bash", "-c", instance.CommonStartupScript(
+					"exec /usr/bin/contrail-schema --conf_file /etc/contrailconfigmaps/schematransformer.${POD_IP}  --conf_file /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP}",
+					map[string]string{
+						"schematransformer.${POD_IP}":           "",
+						"contrail-keystone-auth.conf.${POD_IP}": "",
+						"vnc_api_lib.ini.${POD_IP}":             "vnc_api_lib.ini",
+					}),
 				}
 				container.Command = command
 			}
 
 		case "analyticsapi":
 			if container.Command == nil {
-				command := []string{"bash", "-c",
-					"ln -sf /etc/contrailconfigmaps/vnc_api_lib.ini.${POD_IP} /etc/contrail/vnc_api_lib.ini; " +
-						"exec /usr/bin/contrail-analytics-api -c /etc/contrailconfigmaps/analyticsapi.${POD_IP} -c /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP}",
+				command := []string{"bash", "-c", instance.CommonStartupScript(
+					"exec /usr/bin/contrail-analytics-api -c /etc/contrailconfigmaps/analyticsapi.${POD_IP} -c /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP}",
+					map[string]string{
+						"analyticsapi.${POD_IP}":                "",
+						"contrail-keystone-auth.conf.${POD_IP}": "",
+						"vnc_api_lib.ini.${POD_IP}":             "vnc_api_lib.ini",
+					}),
 				}
 				container.Command = command
 			}
 
 		case "queryengine":
 			if container.Command == nil {
-				command := []string{"bash", "-c",
-					"ln -sf /etc/contrailconfigmaps/vnc_api_lib.ini.${POD_IP} /etc/contrail/vnc_api_lib.ini; " +
-						"exec /usr/bin/contrail-query-engine --conf_file /etc/contrailconfigmaps/queryengine.${POD_IP}",
+				command := []string{"bash", "-c", instance.CommonStartupScript(
+					"exec /usr/bin/contrail-query-engine --conf_file /etc/contrailconfigmaps/queryengine.${POD_IP}",
+					map[string]string{
+						"queryengine.${POD_IP}": "",
+					}),
 				}
 				container.Command = command
 			}
 
 		case "collector":
 			if container.Command == nil {
-				command := []string{"bash", "-c",
-					"ln -sf /etc/contrailconfigmaps/vnc_api_lib.ini.${POD_IP} /etc/contrail/vnc_api_lib.ini; " +
-						"exec /usr/bin/contrail-collector --conf_file /etc/contrailconfigmaps/collector.${POD_IP}",
+				command := []string{"bash", "-c", instance.CommonStartupScript(
+					"exec /usr/bin/contrail-collector --conf_file /etc/contrailconfigmaps/collector.${POD_IP}",
+					map[string]string{
+						"collector.${POD_IP}":       "",
+						"vnc_api_lib.ini.${POD_IP}": "vnc_api_lib.ini",
+					}),
 				}
 				container.Command = command
 			}
@@ -443,15 +464,16 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 
 		case "stunnel":
 			if container.Command == nil {
-				command := []string{"bash", "-c",
-					"mkdir -p /etc/stunnel /var/run/stunnel; " +
-						"while [ ! -e /etc/certificates/server-key-${POD_IP}.pem ] ; do sleep 1; done ; " +
-						"while [ ! -e /etc/certificates/server-${POD_IP}.crt ] ; do sleep 1; done ; " +
-						"while [ ! -e /etc/contrailconfigmaps/stunnel.${POD_IP} ] ; do sleep 1; done ; " +
-						"cat /etc/certificates/server-key-${POD_IP}.pem /etc/certificates/server-${POD_IP}.crt > /etc/stunnel/private.pem; " +
-						"chmod 600 /etc/stunnel/private.pem; " +
+				command := []string{"bash", "-c", instance.CommonStartupScript(
+					"mkdir -p /etc/stunnel /var/run/stunnel; "+
+						"cat /etc/certificates/server-key-${POD_IP}.pem /etc/certificates/server-${POD_IP}.crt > /etc/stunnel/private.pem; "+
+						"chmod 600 /etc/stunnel/private.pem; "+
 						"exec stunnel /etc/contrailconfigmaps/stunnel.${POD_IP}",
+					map[string]string{
+						"stunnel.${POD_IP}": "",
+					}),
 				}
+
 				container.Command = command
 			}
 
@@ -473,16 +495,6 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 				container.Command = command
 			}
 		}
-	}
-
-	// Configure InitContainers
-	for idx := range statefulSet.Spec.Template.Spec.InitContainers {
-		container := &statefulSet.Spec.Template.Spec.InitContainers[idx]
-		instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
-		if instanceContainer.Command != nil {
-			container.Command = instanceContainer.Command
-		}
-		container.Image = instanceContainer.Image
 	}
 
 	v1alpha1.AddCommonVolumes(&statefulSet.Spec.Template.Spec)

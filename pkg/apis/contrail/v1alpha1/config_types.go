@@ -929,8 +929,18 @@ func (c *Config) ConfigurationParameters() ConfigConfiguration {
 
 }
 
+// SetEndpointInStatus updates Endpoint in status
 func (c *Config) SetEndpointInStatus(client client.Client, clusterIP string) error {
 	c.Status.Endpoint = clusterIP
 	err := client.Status().Update(context.TODO(), c)
 	return err
+}
+
+// CommonStartupScript prepare common run service script
+//  command - is a final command to run
+//  configs - config files to be waited for and to be linked from configmap mount
+//   to a destination config folder (if destination is empty no link be done, only wait), e.g.
+//   { "api.${POD_IP}": "", "vnc_api.ini.${POD_IP}": "vnc_api.ini"}
+func (c *Config) CommonStartupScript(command string, configs map[string]string) string {
+	return CommonStartupScript(command, configs)
 }

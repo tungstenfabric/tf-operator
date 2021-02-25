@@ -120,17 +120,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	serviceMap := map[string]string{"contrail_manager": "cassandra"}
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
 	podHandler := resourceHandler(mgr.GetClient())
-	predInitStatus := utils.PodInitStatusChange(serviceMap)
 	predPodIPChange := utils.PodIPChange(serviceMap)
-	predInitRunning := utils.PodInitRunning(serviceMap)
 
 	if err = c.Watch(srcPod, podHandler, predPodIPChange); err != nil {
-		return err
-	}
-	if err = c.Watch(srcPod, podHandler, predInitStatus); err != nil {
-		return err
-	}
-	if err = c.Watch(srcPod, podHandler, predInitRunning); err != nil {
 		return err
 	}
 
@@ -322,24 +314,6 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		},
 	}
 
-	for idx := range statefulSet.Spec.Template.Spec.InitContainers {
-
-		container := &statefulSet.Spec.Template.Spec.InitContainers[idx]
-		instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
-		if instanceContainer.Command != nil {
-			container.Command = instanceContainer.Command
-		}
-
-		container.Image = instanceContainer.Image
-
-		if container.Name == "init" {
-			if container.Command == nil {
-				command := []string{"sh", "-c", "until grep ready /tmp/podinfo/pod_labels > /dev/null 2>&1; do sleep 1; done"}
-				container.Command = command
-			}
-		}
-	}
-
 	v1alpha1.AddCommonVolumes(&statefulSet.Spec.Template.Spec)
 
 	// Create statefulset if it doesn't exist
@@ -397,7 +371,6 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		}
 	}
 	*instance.Status.ConfigChanged = len(changedServices) > 0
-	reqLogger.Info("ConfigChanged", "beforeConfigChanged", beforeCheck, "configChanged", *instance.Status.ConfigChanged)
 
 	requeu := false
 	if *instance.Status.ConfigChanged {
@@ -428,12 +401,12 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileCassandra) ensureCertificatesExist(cassandra *v1alpha1.Cassandra, pods []corev1.Pod, serviceIP string, instanceType string) error {
+func (r *ReconcileCassandra) ensureCertificatesExist(instance *v1alpha1.Cassandra, pods []corev1.Pod, serviceIP string, instanceType string) error {
 	domain, err := v1alpha1.ClusterDNSDomain(r.Client)
 	if err != nil {
 		return err
 	}
-	subjects := cassandra.PodsCertSubjects(domain, pods, serviceIP)
-	crt := certificates.NewCertificate(r.Client, r.Scheme, cassandra, subjects, instanceType)
+	subjects := instance.PodsCertSubjects(domain, pods, serviceIP)
+	crt := certificates.NewCertificate(r.Client, r.Scheme, instance, subjects, instanceType)
 	return crt.EnsureExistsAndIsSigned()
 }

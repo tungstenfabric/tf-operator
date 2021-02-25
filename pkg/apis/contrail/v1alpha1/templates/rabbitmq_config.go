@@ -11,7 +11,7 @@ var addFunc = template.FuncMap{
 // RabbitmqConfig is the template of the Rabbitmq service configuration.
 var RabbitmqConfig = template.Must(template.New("").Parse(`#!/bin/bash
 function link_file() {
-  local src=/etc/rabbitmqconfigmaps/$1
+  local src=/etc/contrailconfigmaps/$1
   local dst=/etc/rabbitmq/${2:-${1}}
   echo INFO: $(date): wait for $src
   while [ ! -e $src ] ; do sleep 1; done
@@ -40,17 +40,19 @@ bootstrap_node="rabbit@$(cat /etc/rabbitmq/0)"
 if [[ "$RABBITMQ_NODENAME" == "$bootstrap_node" ]] ; then
   rabbitmq-server
 else
-  rabbitmq-server -detached
   while true ; do
+    rabbitmqctl --node $RABBITMQ_NODENAME shutdown || true
+    rabbitmq-server -detached || exit 1
     while true; do
       rabbitmqctl --node $bootstrap_node ping && rabbitmqctl --node $RABBITMQ_NODENAME ping && break
     done
+    sleep $(( $RANDOM % 5 ))
     rabbitmqctl --node $RABBITMQ_NODENAME stop_app || continue
     rabbitmqctl --node $bootstrap_node forget_cluster_node $RABBITMQ_NODENAME
     rabbitmqctl --node $RABBITMQ_NODENAME join_cluster $bootstrap_node || continue
-    rabbitmqctl --node $RABBITMQ_NODENAME shutdown
     break
-  done  
+  done
+  rabbitmqctl --node $RABBITMQ_NODENAME shutdown
   rabbitmq-server
 fi
 `))

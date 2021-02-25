@@ -121,9 +121,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	serviceMap := map[string]string{"contrail_manager": instanceType}
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
 	podHandler := resourceHandler(mgr.GetClient())
-	predInitStatus := utils.PodInitStatusChange(serviceMap)
 	predPodIPChange := utils.PodIPChange(serviceMap)
-	predInitRunning := utils.PodInitRunning(serviceMap)
 
 	if err = c.Watch(&source.Kind{Type: &corev1.Service{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
@@ -133,12 +131,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	if err = c.Watch(srcPod, podHandler, predPodIPChange); err != nil {
-		return err
-	}
-	if err = c.Watch(srcPod, podHandler, predInitStatus); err != nil {
-		return err
-	}
-	if err = c.Watch(srcPod, podHandler, predInitRunning); err != nil {
 		return err
 	}
 
@@ -415,13 +407,27 @@ func (r *ReconcileAnalyticsSnmp) GetSTS(request reconcile.Request, instance *v1a
 
 		if container.Name == "analytics-snmp-collector" {
 			if container.Command == nil {
-				container.Command = []string{"bash", "-c", "ln -sf /etc/contrailconfigmaps/vnc_api_lib.ini.${POD_IP} /etc/contrail/vnc_api_lib.ini; /usr/bin/tf-snmp-collector -c /etc/contrailconfigmaps/tf-snmp-collector.${POD_IP} --device-config-file /etc/contrail/device.ini"}
+				command := []string{"bash", "-c", instance.CommonStartupScript(
+					"exec /usr/bin/tf-snmp-collector -c /etc/contrailconfigmaps/tf-snmp-collector.${POD_IP} --device-config-file /etc/contrail/device.ini",
+					map[string]string{
+						"tf-snmp-collector.${POD_IP}": "",
+						"vnc_api_lib.ini.${POD_IP}":   "vnc_api_lib.ini",
+					}),
+				}
+				container.Command = command
 			}
 		}
 
 		if container.Name == "analytics-snmp-topology" {
 			if container.Command == nil {
-				container.Command = []string{"bash", "-c", "ln -sf /etc/contrailconfigmaps/vnc_api_lib.ini.${POD_IP} /etc/contrail/vnc_api_lib.ini; /usr/bin/tf-topology -c /etc/contrailconfigmaps/tf-topology.${POD_IP}"}
+				command := []string{"bash", "-c", instance.CommonStartupScript(
+					"exec /usr/bin/tf-topology -c /etc/contrailconfigmaps/tf-topology.${POD_IP}",
+					map[string]string{
+						"tf-topology.${POD_IP}":     "",
+						"vnc_api_lib.ini.${POD_IP}": "vnc_api_lib.ini",
+					}),
+				}
+				container.Command = command
 			}
 		}
 
