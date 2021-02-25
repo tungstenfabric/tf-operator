@@ -35,6 +35,32 @@ spec:
             image: contrail-analytics-snmp-collector
           - name: analytics-snmp-topology
             image: contrail-analytics-snmp-topology
+    analyticsAlarm:
+      metadata:
+        labels:
+          contrail_cluster: cluster1
+        name: analyticsalarm1
+      spec:
+        commonConfiguration:
+          nodeSelector:
+            node-role.kubernetes.io/master: ""
+        serviceConfiguration:
+          logLevel: SYS_DEBUG
+          zookeeperInstance: zookeeper1
+          cassandraInstance: cassandra1
+          rabbitmqInstance: rabbitmq1
+          configInstance: config1
+          containers:
+          - name: init
+            image: python
+          - name: nodemanager
+            image: contrail-nodemgr
+          - name: provisioner
+            image: contrail-provisioner
+          - name: analytics-alarm-gen
+            image: contrail-analytics-alarm-gen
+          - name: kafka
+            image: contrail-external-kafka
     cassandras:
     - metadata:
         labels:

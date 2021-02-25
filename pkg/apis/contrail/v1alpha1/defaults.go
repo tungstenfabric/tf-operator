@@ -46,6 +46,7 @@ const (
 	AnalyticsApiVip                             string = ""
 	AnalyticsAlarmNodes                         string = ""
 	AlarmgenIntrospectPort                      int    = 5995
+	AlarmgenPartitions                          int    = 30
 	AlarmgenRedisAggregateDbOffset              string = "1"
 	BgpPort                                     int    = 179
 	BgpAutoMesh                                 bool   = true
