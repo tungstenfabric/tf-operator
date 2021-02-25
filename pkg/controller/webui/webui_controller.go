@@ -226,7 +226,7 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 
 	cassandraActive := cassandraInstance.IsActive(instance.Spec.ServiceConfiguration.CassandraInstance, request.Namespace, r.Client)
 	configActive := configInstance.IsActive(instance.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, r.Client)
-	controlActive := controlInstance.IsActive(instance.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, r.Client)
+	controlActive := controlInstance.IsActive(instance.Spec.ServiceConfiguration.ControlInstance, request.Namespace, r.Client)
 	if !configActive || !cassandraActive || !controlActive {
 		reqLogger.Info("Dependencies not ready", "db", cassandraActive, "api", configActive, "control", controlActive)
 		return reconcile.Result{}, nil
