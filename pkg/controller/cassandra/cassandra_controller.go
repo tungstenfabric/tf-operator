@@ -1,10 +1,8 @@
 package cassandra
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"text/template"
 	"time"
 
 	"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1"
@@ -169,18 +167,6 @@ type ReconcileCassandra struct {
 	Kubernetes *k8s.Kubernetes
 }
 
-var cassandraInitKeystoreCommandTemplate = template.Must(template.New("").Parse(
-	"rm -f /etc/keystore/server-truststore.jks /etc/keystore/server-keystore.jks && mkdir -p /etc/keystore ;" +
-		"keytool -keystore /etc/keystore/server-truststore.jks -keypass {{ .KeystorePassword }} -storepass {{ .TruststorePassword }} -noprompt -alias CARoot -import -file {{ .CAFilePath }} ; " +
-		"openssl pkcs12 -export -in /etc/certificates/server-${POD_IP}.crt -inkey /etc/certificates/server-key-${POD_IP}.pem -chain -CAfile {{ .CAFilePath }} -password pass:{{ .TruststorePassword }} -name $(hostname -f) -out TmpFile ; " +
-		"keytool -importkeystore -deststorepass {{ .KeystorePassword }} -destkeypass {{ .KeystorePassword }} -destkeystore /etc/keystore/server-keystore.jks -deststoretype pkcs12 -srcstorepass {{ .TruststorePassword }} -srckeystore TmpFile -srcstoretype PKCS12 -alias $(hostname -f) -noprompt ;"))
-
-type cassandraInitKeystoreCommandData struct {
-	KeystorePassword   string
-	TruststorePassword string
-	CAFilePath         string
-}
-
 // Reconcile reconciles cassandra.
 func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// reqLogger := log.WithName("Reconcile").WithName(request.Name)
@@ -200,13 +186,29 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, nil
 	}
 
-	configMapName := request.Name + "-" + instanceType + "-configmap"
-	configMap, err := instance.CreateConfigMap(configMapName, r.Client, r.Scheme, request)
+	secretCertificates, err := instance.CreateSecret(request.Name+"-secret-certificates", r.Client, r.Scheme, request)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 
-	secretCertificates, err := instance.CreateSecret(request.Name+"-secret-certificates", r.Client, r.Scheme, request)
+	secretKeystore, err := instance.CreateSecret(request.Name+"-secret", r.Client, r.Scheme, request)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	_, KPok := secretKeystore.Data["keystorePassword"]
+	_, TPok := secretKeystore.Data["truststorePassword"]
+	if !KPok || !TPok {
+		secretKeystore.Data = map[string][]byte{
+			"keystorePassword":   []byte(randomstring.RandString{Size: 10}.Generate()),
+			"truststorePassword": []byte(randomstring.RandString{Size: 10}.Generate()),
+		}
+		if err = r.Client.Update(context.TODO(), secretKeystore); err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
+	configMapName := request.Name + "-" + instanceType + "-configmap"
+	configMap, err := instance.CreateConfigMap(configMapName, r.Client, r.Scheme, request)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -243,8 +245,6 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	})
 	instance.AddSecretVolumesToIntendedSTS(statefulSet, map[string]string{secretCertificates.Name: secretVolumeName})
 
-	cassandraDefaultConfiguration := instance.ConfigurationParameters()
-
 	for idx := range statefulSet.Spec.Template.Spec.Containers {
 
 		container := &statefulSet.Spec.Template.Spec.Containers[idx]
@@ -272,55 +272,8 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		container.Image = instanceContainer.Image
 
 		if container.Name == "cassandra" {
-			secret, err := instance.CreateSecret(request.Name+"-secret", r.Client, r.Scheme, request)
-			if err != nil {
-				return reconcile.Result{}, err
-			}
-			_, KPok := secret.Data["keystorePassword"]
-			_, TPok := secret.Data["truststorePassword"]
-			if !KPok || !TPok {
-				secret.Data = map[string][]byte{
-					"keystorePassword":   []byte(randomstring.RandString{10}.Generate()),
-					"truststorePassword": []byte(randomstring.RandString{10}.Generate()),
-				}
-				if err = r.Client.Update(context.TODO(), secret); err != nil {
-					return reconcile.Result{}, err
-				}
-			}
-			cassandraKeystorePassword := string(secret.Data["keystorePassword"])
-			cassandraTruststorePassword := string(secret.Data["truststorePassword"])
-			var cassandraInitKeystoreCommandBuffer bytes.Buffer
-			err = cassandraInitKeystoreCommandTemplate.Execute(&cassandraInitKeystoreCommandBuffer, cassandraInitKeystoreCommandData{
-				KeystorePassword:   cassandraKeystorePassword,
-				TruststorePassword: cassandraTruststorePassword,
-				CAFilePath:         certificates.SignerCAFilepath,
-			})
-			if err != nil {
-				panic(err)
-			}
-
 			if container.Command == nil {
-				command := []string{"bash", "-c",
-					`set -ex ;
-echo "INFO: $(date): wait cqlshrc.${POD_IP}" ; 
-while [ ! -e /etc/contrailconfigmaps/cqlshrc.${POD_IP} ] ; do sleep 1; done ; 
-echo "INFO: $(date): wait cassandra.${POD_IP}.yaml" ; 
-while [ ! -e /etc/contrailconfigmaps/cassandra.${POD_IP}.yaml ] ; do sleep 1; done ; 
-echo "INFO: $(date): configs ready" ; 
-` +
-						cassandraInitKeystoreCommandBuffer.String() +
-						// for cqlsh cmd tool
-						"ln -sf /etc/contrailconfigmaps/cqlshrc.${POD_IP} /root/.cqlshrc ; " +
-						// cassandra docker-entrypoint tries patch the config, and nodemanager uses hardcoded path to
-						// detect cassandra data path for size checks, this file will contains wrong seeds as entrypoint
-						// sets it from env vsariable
-						"rm -f /etc/cassandra/cassandra.yaml ; " +
-						"cp /etc/contrailconfigmaps/cassandra.${POD_IP}.yaml /etc/cassandra/cassandra.yaml ; " +
-						"cat /etc/cassandra/cassandra.yaml ;" +
-						// safe pid for ReloadService function
-						"echo $$ > /service.pid.reload ; " +
-						fmt.Sprintf("exec /docker-entrypoint.sh -f  -Dcassandra.jmx.local.port=%d -Dcassandra.config=file:///etc/contrailconfigmaps/cassandra.${POD_IP}.yaml", *cassandraConfig.JmxLocalPort),
-				}
+				command := []string{"bash", "/etc/contrailconfigmaps/cassandra-run.sh"}
 				container.Command = command
 			}
 
@@ -354,19 +307,6 @@ echo "INFO: $(date): configs ready" ;
 		}
 	}
 
-	initHostPathType := corev1.HostPathType("DirectoryOrCreate")
-	initHostPathSource := &corev1.HostPathVolumeSource{
-		Path: cassandraDefaultConfiguration.Storage.Path,
-		Type: &initHostPathType,
-	}
-	initVolume := corev1.Volume{
-		Name: request.Name + "-" + instanceType + "-init",
-		VolumeSource: corev1.VolumeSource{
-			HostPath: initHostPathSource,
-		},
-	}
-
-	statefulSet.Spec.Template.Spec.Volumes = append(statefulSet.Spec.Template.Spec.Volumes, initVolume)
 	statefulSet.Spec.Template.Spec.Affinity = &corev1.Affinity{
 		PodAntiAffinity: &corev1.PodAntiAffinity{
 			RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{{
@@ -389,12 +329,6 @@ echo "INFO: $(date): configs ready" ;
 		if instanceContainer.Command != nil {
 			container.Command = instanceContainer.Command
 		}
-
-		container.VolumeMounts = append(container.VolumeMounts,
-			corev1.VolumeMount{
-				Name:      request.Name + "-" + instanceType + "-init",
-				MountPath: cassandraDefaultConfiguration.Storage.Path,
-			})
 
 		container.Image = instanceContainer.Image
 

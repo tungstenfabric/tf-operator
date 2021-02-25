@@ -232,9 +232,6 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 		}
 		nodemanagerEnvString := nodemanagerEnvBuffer.String()
 
-		if configMapInstanceDynamicConfig.Data == nil {
-			configMapInstanceDynamicConfig.Data = map[string]string{}
-		}
 		configMapInstanceDynamicConfig.Data["cassandra."+pod.Status.PodIP+".yaml"] = cassandraConfigString
 		configMapInstanceDynamicConfig.Data["cqlshrc."+pod.Status.PodIP] = cassandraCqlShrcConfigString
 		// wait for api, nodemgr container will wait for config files be ready
@@ -277,6 +274,30 @@ func (c *Cassandra) CreateConfigMap(configMapName string,
 		return nil, err
 	}
 	UpdateProvisionerConfigMapData("database-provisioner", configtemplates.JoinListWithSeparator(configNodes, ","), configMap)
+
+	cassandraSecret := &corev1.Secret{}
+	if err := client.Get(context.TODO(), types.NamespacedName{Name: request.Name + "-secret", Namespace: request.Namespace}, cassandraSecret); err != nil {
+		return nil, err
+	}
+	cassandraConfig := c.ConfigurationParameters()
+
+	var cassandraCommandBuffer bytes.Buffer
+	err = configtemplates.CassandraCommandTemplate.Execute(&cassandraCommandBuffer, struct {
+		KeystorePassword   string
+		TruststorePassword string
+		CAFilePath         string
+		JmxLocalPort       string
+	}{
+		KeystorePassword:   string(cassandraSecret.Data["keystorePassword"]),
+		TruststorePassword: string(cassandraSecret.Data["truststorePassword"]),
+		CAFilePath:         certificates.SignerCAFilepath,
+		JmxLocalPort:       strconv.Itoa(*cassandraConfig.JmxLocalPort),
+	})
+	if err != nil {
+		panic(err)
+	}
+	cassandraCommandString := cassandraCommandBuffer.String()
+	configMap.Data["cassandra-run.sh"] = cassandraCommandString
 
 	if err = client.Update(context.TODO(), configMap); err != nil {
 		return nil, err

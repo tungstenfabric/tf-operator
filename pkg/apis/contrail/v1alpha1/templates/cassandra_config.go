@@ -152,3 +152,36 @@ sandesh_keyfile=/etc/certificates/server-key-{{ .ListenAddress }}.pem
 sandesh_certfile=/etc/certificates/server-{{ .ListenAddress }}.crt
 sandesh_ca_cert={{ .CAFilePath }}
 `))
+
+// CassandraCommandTemplate start script
+var CassandraCommandTemplate = template.Must(template.New("").Parse(`#!/bin/bash
+set -ex;
+echo "INFO: $(date): wait cqlshrc.${POD_IP}" ; 
+while [ ! -e /etc/contrailconfigmaps/cqlshrc.${POD_IP} ] ; do sleep 1; done ; 
+echo "INFO: $(date): wait cassandra.${POD_IP}.yaml" ; 
+while [ ! -e /etc/contrailconfigmaps/cassandra.${POD_IP}.yaml ] ; do sleep 1; done ; 
+echo "INFO: $(date): configs ready" ; 
+
+# generate keystore for ssl
+rm -f /etc/keystore/server-truststore.jks /etc/keystore/server-keystore.jks ;
+mkdir -p /etc/keystore ;
+keytool -keystore /etc/keystore/server-truststore.jks -keypass {{ .KeystorePassword }} -storepass {{ .TruststorePassword }} -noprompt -alias CARoot -import -file {{ .CAFilePath }} ;
+openssl pkcs12 -export -in /etc/certificates/server-${POD_IP}.crt -inkey /etc/certificates/server-key-${POD_IP}.pem -chain -CAfile {{ .CAFilePath }} -password pass:{{ .TruststorePassword }} -name $(hostname -f) -out TmpFile ;
+keytool -importkeystore -deststorepass {{ .KeystorePassword }} -destkeypass {{ .KeystorePassword }} -destkeystore /etc/keystore/server-keystore.jks -deststoretype pkcs12 -srcstorepass {{ .TruststorePassword }} -srckeystore TmpFile -srcstoretype PKCS12 -alias $(hostname -f) -noprompt ;
+
+# for cqlsh cmd tool
+ln -sf /etc/contrailconfigmaps/cqlshrc.${POD_IP} /root/.cqlshrc ;
+
+# cassandra docker-entrypoint tries patch the config, and nodemanager uses hardcoded path to
+# detect cassandra data path for size checks, this file will contains wrong seeds as entrypoint
+# sets it from env variable
+rm -f /etc/cassandra/cassandra.yaml ;
+cp /etc/contrailconfigmaps/cassandra.${POD_IP}.yaml /etc/cassandra/cassandra.yaml ;
+cat /etc/cassandra/cassandra.yaml ;
+
+# safe pid for ReloadService function
+echo $$ > /service.pid.reload ;
+
+# start service
+exec /docker-entrypoint.sh -f -Dcassandra.jmx.local.port={{ .JmxLocalPort }} -Dcassandra.config=file:///etc/contrailconfigmaps/cassandra.${POD_IP}.yaml
+`))
