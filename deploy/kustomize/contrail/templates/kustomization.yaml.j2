@@ -30,11 +30,12 @@ images:
 # Public containers
 # TODO: use tf mirrors
 - name: python
-  newTag: 3.8.2-alpine
-  newName: python
+  newTag: {{ CONTRAIL_CONTAINER_TAG }}
+  newName: {{ CONTAINER_REGISTRY }}/contrail-node-init
 - name: busybox
-  newTag: latest
-  newName: busybox
+  newTag: {{ CONTRAIL_CONTAINER_TAG }}
+  newName: {{ CONTAINER_REGISTRY }}/contrail-node-init
+
 # Contrail externals
 - name: cassandra
   newTag: {{ CONTRAIL_CONTAINER_TAG }}
