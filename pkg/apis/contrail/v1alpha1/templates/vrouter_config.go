@@ -176,11 +176,9 @@ hostname={{ .Hostname }}
 agent_name={{ .Hostname }}
 xmpp_dns_auth_enable={{ .XMPP_SSL_ENABLE }}
 xmpp_auth_enable={{ .XMPP_SSL_ENABLE }}
-{{ if isEnabled .XMPP_SSL_ENABLE }}
 xmpp_server_cert={{ .XMPP_SERVER_CERTFILE }}
 xmpp_server_key={{ .XMPP_SERVER_KEYFILE }}
 xmpp_ca_cert={{ .XMPP_SERVER_CA_CERTFILE }}
-{{ end }}
 {{ if eq .AGENT_MODE "dpdk" }}
 platform={{ .AGENT_MODE }}
 physical_interface_mac={{ .PHYS_INT_MAC }}
@@ -194,17 +192,12 @@ physical_interface_mac = {{ .PHYS_INT_MAC }}
 tsn_servers = {{ .TSN_NODES | replace "," " " }}
 
 [SANDESH]
-{{ if isEnabled .INTROSPECT_SSL_ENABLE }}
 introspect_ssl_enable={{ .INTROSPECT_SSL_ENABLE }}
 introspect_ssl_insecure=True
 sandesh_ssl_enable={{ .SANDESH_SSL_ENABLE }}
 sandesh_keyfile={{ .SANDESH_KEYFILE }}
 sandesh_certfile={{ .SANDESH_CERTFILE }}
 sandesh_ca_cert={{ .SANDESH_CA_CERTFILE }}
-{{ else }}
-introspect_ssl_enable={{ .INTROSPECT_SSL_ENABLE }}
-sandesh_ssl_enable={{ .SANDESH_SSL_ENABLE }}
-{{ end }}
 
 [NETWORKS]
 control_network_ip={{ .CONTROL_NETWORK_IP }}
@@ -215,7 +208,7 @@ servers={{ .DNS_SERVERS_LIST }}
 [METADATA]
 metadata_proxy_secret={{ .METADATA_PROXY_SECRET }}
 
-{{ if isEnabled .METADATA_SSL_ENABLE }}
+{{ if .METADATA_SSL_ENABLE }}
 metadata_use_ssl={{ .METADATA_SSL_ENABLE }}
 metadata_client_cert={{ .METADATA_SSL_CERTFILE }}
 metadata_client_key={{ .METADATA_SSL_KEYFILE }}

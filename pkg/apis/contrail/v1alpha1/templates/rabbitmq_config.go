@@ -32,7 +32,7 @@ chown -R rabbitmq:rabbitmq /var/lib/rabbitmq /var/log/rabbitmq /var/run/rabbitmq
 export RABBITMQ_NODENAME=rabbit@${POD_IP}
 bootstrap_node="rabbit@$(cat /etc/rabbitmq/0)"
 if [[ "$RABBITMQ_NODENAME" == "$bootstrap_node" ]] ; then
-  exec rabbitmq-server
+  rabbitmq-server
 else
   rabbitmq-server -detached
   while true ; do
@@ -45,7 +45,7 @@ else
     rabbitmqctl --node $RABBITMQ_NODENAME shutdown
     break
   done  
-  exec rabbitmq-server
+  rabbitmq-server
 fi
 
 `))
