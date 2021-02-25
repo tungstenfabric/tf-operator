@@ -39,12 +39,14 @@ seed_provider:
 - class_name: org.apache.cassandra.locator.SimpleSeedProvider
   parameters:
   - seeds: {{ .Seeds }}
-concurrent_reads: 32
-concurrent_writes: 32
-concurrent_counter_writes: 32
-concurrent_materialized_view_writes: 32
+concurrent_reads: {{ or .Parameters.ConcurrentReads 32 }}
+concurrent_writes: {{ or .Parameters.ConcurrentWrites 32 }}
+concurrent_counter_writes: {{ or .Parameters.ConcurrentCounterWrites 32 }}
+concurrent_materialized_view_writes: {{ or .Parameters.ConcurrentMaterializedViewWrites 32 }}
+concurrent_compactors: {{ or .Parameters.ConcurrentCompactors 1 }}
+memtable_flush_writers: {{ or .Parameters.MemtableFlushWriters 2 }}
 disk_optimization_strategy: ssd
-memtable_allocation_type: heap_buffers
+memtable_allocation_type: {{ or .Parameters.MemtableAllocationType "heap_buffers" }}
 index_summary_capacity_in_mb:
 index_summary_resize_interval_in_minutes: 60
 trickle_fsync: false
@@ -70,7 +72,7 @@ tombstone_failure_threshold: 100000
 column_index_size_in_kb: 64
 batch_size_warn_threshold_in_kb: 5
 batch_size_fail_threshold_in_kb: 50
-compaction_throughput_mb_per_sec: 16
+compaction_throughput_mb_per_sec: {{ or .Parameters.CompactionThroughputMbPerSec 16 }}
 compaction_large_partition_warning_threshold_mb: 100
 sstable_preemptive_open_interval_in_mb: 50
 read_request_timeout_in_ms: 5000
