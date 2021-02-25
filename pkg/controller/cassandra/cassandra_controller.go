@@ -296,7 +296,7 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 				CAFilePath:         certificates.SignerCAFilepath,
 			})
 			if err != nil {
-				return reconcile.Result{}, err
+				panic(err)
 			}
 
 			if container.Command == nil {

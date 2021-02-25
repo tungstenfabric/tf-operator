@@ -147,14 +147,17 @@ spec:
 // GetSTS returns cassandra sts object by template
 func GetSTS(cassandraConfig *v1alpha1.CassandraConfiguration) *appsv1.StatefulSet {
 	var buf bytes.Buffer
-	yamlDatacassandraSTS.Execute(&buf, struct {
+	err := yamlDatacassandraSTS.Execute(&buf, struct {
 		LocalJmxPort int
 	}{
 		LocalJmxPort: *cassandraConfig.JmxLocalPort,
 	})
+	if err != nil {
+		panic(err)
+	}
 	strSts := buf.String()
 	sts := appsv1.StatefulSet{}
-	err := yaml.Unmarshal([]byte(strSts), &sts)
+	err = yaml.Unmarshal([]byte(strSts), &sts)
 	if err != nil {
 		panic(err)
 	}

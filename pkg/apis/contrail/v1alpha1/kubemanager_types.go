@@ -251,7 +251,7 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 			PublicFIPPool:            kubemanagerConfig.PublicFIPPool,
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["kubemanager."+pod.Status.PodIP] = kubemanagerConfigBuffer.String()
 
@@ -268,7 +268,7 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 			AuthMode:      string(configNodesInformation.AuthMode),
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["vnc_api_lib.ini."+pod.Status.PodIP] = vncApiConfigBuffer.String()
 	}

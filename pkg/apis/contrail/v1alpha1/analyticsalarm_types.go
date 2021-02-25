@@ -247,7 +247,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 			LogLevel: "SYS_DEBUG",
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["tf-alarm-gen."+podIP] = alarmBuffer.String()
 
@@ -283,7 +283,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 			LogLevel: "SYS_DEBUG",
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["kafka.config."+podIP] = kafkaBuffer.String()
 
@@ -314,7 +314,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 			LogLevel: "SYS_DEBUG",
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["analytics-alarm-nodemgr.conf."+podIP] = nodemanagerBuffer.String()
 		// empty env as no db tracking
@@ -332,7 +332,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 			CAFilePath:    certificates.SignerCAFilepath,
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["vnc_api_lib.ini."+podIP] = vnciniBuffer.String()
 	}
@@ -341,18 +341,11 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 
 	// TODO: commonize for all services
 	// update with nodemanager runner
-	nmr, err := GetNodemanagerRunner()
-	if err != nil {
-		return err
-	}
 	// TODO: till not splitted to different entities
-	configMapInstanceDynamicConfig.Data["analytics-alarm-nodemanager-runner.sh"] = nmr
+	configMapInstanceDynamicConfig.Data["analytics-alarm-nodemanager-runner.sh"] = GetNodemanagerRunner()
 
 	// update with provisioner configs
-	err = UpdateProvisionerConfigMapData("analytics-alarm-provisioner", configApiIPCommaSeparated, configMapInstanceDynamicConfig)
-	if err != nil {
-		return err
-	}
+	UpdateProvisionerConfigMapData("analytics-alarm-provisioner", configApiIPCommaSeparated, configMapInstanceDynamicConfig)
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }

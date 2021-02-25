@@ -191,8 +191,7 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 			CAFilePath:                certificates.SignerCAFilepath,
 		})
 		if err != nil {
-			log.Error(err, "configtemplates.WebuiWebConfig.Execute failed")
-			return err
+			panic(err)
 		}
 		data["config.global.js."+pod.Status.PodIP] = webuiWebConfigBuffer.String()
 		//fmt.Println("DATA ", data)
@@ -209,8 +208,7 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 			KeystoneUserDomainName:    authConfig.UserDomainName,
 		})
 		if err != nil {
-			log.Error(err, "configtemplates.WebuiWebConfig.Execute failed")
-			return err
+			panic(err)
 		}
 		data["contrail-webui-userauth.js."+pod.Status.PodIP] = webuiAuthConfigBuffer.String()
 	}

@@ -173,7 +173,7 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 		RabbitmqVhost:    string(secret.Data["vhost"]),
 	})
 	if err != nil {
-		return err
+		panic(err)
 	}
 	data["definitions.json"] = rabbitmqDefinitionBuffer.String()
 
@@ -200,7 +200,7 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 	var rabbitmqConfigBuffer bytes.Buffer
 	err = configtemplates.RabbitmqConfig.Execute(&rabbitmqConfigBuffer, struct{}{})
 	if err != nil {
-		return err
+		panic(err)
 	}
 	configMapInstancConfig.Data = map[string]string{"run.sh": rabbitmqConfigBuffer.String()}
 	err = client.Update(context.TODO(), configMapInstancConfig)

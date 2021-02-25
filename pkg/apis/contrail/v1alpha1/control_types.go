@@ -238,14 +238,14 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 			LogLevel:                 controlConfig.LogLevel,
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["control."+podIP] = controlControlConfigBuffer.String()
 
 		var controlNamedConfigBuffer bytes.Buffer
 		err = configtemplates.ControlNamedConfig.Execute(&controlNamedConfigBuffer, struct{}{})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["named."+podIP] = controlNamedConfigBuffer.String()
 
@@ -284,7 +284,7 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 			LogLevel:                 controlConfig.LogLevel,
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["dns."+podIP] = controlDNSConfigBuffer.String()
 
@@ -309,7 +309,7 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 			LogLevel:                 controlConfig.LogLevel,
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["control-nodemgr.conf."+podIP] = controlNodemanagerBuffer.String()
 		// empty env as no db tracking
@@ -328,7 +328,7 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 			AuthMode:      string(configNodesInformation.AuthMode),
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["vnc_api_lib.ini."+podIP] = vncApiConfigBuffer.String()
 
@@ -350,7 +350,7 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 			Hostname:      hostname,
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["deprovision.py."+podIP] = controlDeProvisionBuffer.String()
 	}
@@ -358,21 +358,15 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 	configMapInstanceDynamicConfig.Data = data
 
 	// update with nodemanager runner
-	nmr, err := GetNodemanagerRunner()
-	if err != nil {
-		return err
-	}
-	configMapInstanceDynamicConfig.Data["control-nodemanager-runner.sh"] = nmr
+	configMapInstanceDynamicConfig.Data["control-nodemanager-runner.sh"] = GetNodemanagerRunner()
 
 	// update with provisioner configs
-	err = UpdateProvisionerConfigMapData("control-provisioner", configApiIPListCommaSeparated, configMapInstanceDynamicConfig)
-	if err != nil {
-		return err
-	}
+	UpdateProvisionerConfigMapData("control-provisioner", configApiIPListCommaSeparated, configMapInstanceDynamicConfig)
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }
 
+// CreateConfigMap creates configmap
 func (c *Control) CreateConfigMap(configMapName string,
 	client client.Client,
 	scheme *runtime.Scheme,

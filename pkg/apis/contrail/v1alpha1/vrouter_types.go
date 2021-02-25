@@ -700,7 +700,7 @@ func (c *Vrouter) GetParamsEnv(clnt client.Client, clusterParams *ClusterParams)
 		ClusterParams: *clusterParams,
 	})
 	if err != nil {
-		return "", err
+		panic(err)
 	}
 	return vrouterManifestParamsEnv.String(), nil
 }
@@ -790,26 +790,25 @@ func (c *Vrouter) GetAgentConfigsForPod(vrouterPod *VrouterPod, hostVars *map[st
 
 	var agentConfigBuffer bytes.Buffer
 	if err = configtemplates.VRouterAgentConfig.Execute(&agentConfigBuffer, newMap); err != nil {
-		vrouter_log.WithName("GetAgentConfigsForPod").Error(err, "VRouterAgentConfig failed")
-		return
+		panic(err)
 	}
 	agentConfig = agentConfigBuffer.String()
 
 	var lbaasAuthConfigBuffer bytes.Buffer
 	if err = configtemplates.VRouterLbaasAuthConfig.Execute(&lbaasAuthConfigBuffer, newMap); err != nil {
-		return
+		panic(err)
 	}
 	lbaasAuthConfig = lbaasAuthConfigBuffer.String()
 
 	var vncAPILibIniConfigBuffer bytes.Buffer
 	if err = configtemplates.VRouterVncApiLibIni.Execute(&vncAPILibIniConfigBuffer, newMap); err != nil {
-		return
+		panic(err)
 	}
 	vncAPILibIniConfig = vncAPILibIniConfigBuffer.String()
 
 	var nodemgrConfigBuffer bytes.Buffer
 	if err = configtemplates.VrouterNodemanagerConfig.Execute(&nodemgrConfigBuffer, newMap); err != nil {
-		return
+		panic(err)
 	}
 	nodemgrConfig = nodemgrConfigBuffer.String()
 
@@ -829,7 +828,7 @@ func (c *Vrouter) GetCNIConfig(client client.Client, request reconcile.Request) 
 		KubernetesClusterName: cfg.ClusterName,
 	})
 	if err != nil {
-		return "", err
+		panic(err)
 	}
 	return contrailCNIBuffer.String(), nil
 }
@@ -838,16 +837,10 @@ func (c *Vrouter) GetCNIConfig(client client.Client, request reconcile.Request) 
 // TODO: move to separate configmap
 func (c *Vrouter) DefaultAgentConfigMapData(configMap *corev1.ConfigMap, client client.Client) error {
 	if configMap.Data["vrouter-nodemanager-runner.sh"] == "" {
-		nmr, err := GetNodemanagerRunner()
-		if err != nil {
-			return err
-		}
-		configMap.Data["vrouter-nodemanager-runner.sh"] = nmr
+		configMap.Data["vrouter-nodemanager-runner.sh"] = GetNodemanagerRunner()
 	}
 	if configMap.Data["vrouter-provisioner.sh"] == "" {
-		if err := UpdateProvisionerRunner("vrouter-provisioner", configMap); err != nil {
-			return err
-		}
+		UpdateProvisionerRunner("vrouter-provisioner", configMap)
 	}
 	return client.Update(context.Background(), configMap)
 }
@@ -883,9 +876,7 @@ func (c *Vrouter) UpdateAgentConfigMapForPod(vrouterPod *VrouterPod,
 	configMap.Data["vrouter-nodemgr.env."+podIP] = ""
 
 	// update with provisioner configs
-	if err := UpdateProvisionerConfigMapData("vrouter-provisioner", clusterParams.ConfigNodes, configMap); err != nil {
-		return err
-	}
+	UpdateProvisionerConfigMapData("vrouter-provisioner", clusterParams.ConfigNodes, configMap)
 
 	return client.Update(context.Background(), configMap)
 }
@@ -954,13 +945,9 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 		return false, nil
 	}
 
-	// wait till new files is delivered to agent
-	provData, err := ProvisionerEnvData(clusterParams.ConfigNodes)
-	if err != nil {
-		log.Error(err, "ProvisionerEnvData failed")
-		return true, nil
-	}
+	provData := ProvisionerEnvData(clusterParams.ConfigNodes)
 
+	// wait till new files is delivered to agent
 	eq, err := vrouterPod.IsAgentConfigsAvaliable(c, provData, configMap)
 	if err != nil || !eq {
 		log.Info("Configs are not available", "err", err)

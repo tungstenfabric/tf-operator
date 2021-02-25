@@ -996,7 +996,7 @@ func (c *CassandraClusterConfiguration) FillWithDefaultValues() {
 }
 
 // ProvisionerEnvData returns provisioner env data
-func ProvisionerEnvData(configAPINodes string) (string, error) {
+func ProvisionerEnvData(configAPINodes string) string {
 	var bufEnv bytes.Buffer
 	err := templates.ProvisionerConfig.Execute(&bufEnv, struct {
 		ConfigAPINodes   string
@@ -1007,11 +1007,14 @@ func ProvisionerEnvData(configAPINodes string) (string, error) {
 		ConfigAPINodes:   configAPINodes,
 		SignerCAFilepath: certificates.SignerCAFilepath,
 	})
-	return bufEnv.String(), err
+	if err != nil {
+		panic(err)
+	}
+	return bufEnv.String()
 }
 
 // UpdateProvisionerRunner adds provisioner runner data
-func UpdateProvisionerRunner(configMapName string, configMap *corev1.ConfigMap) error {
+func UpdateProvisionerRunner(configMapName string, configMap *corev1.ConfigMap) {
 	var bufRun bytes.Buffer
 	err := templates.ProvisionerRunner.Execute(&bufRun, struct {
 		ConfigName string
@@ -1019,32 +1022,24 @@ func UpdateProvisionerRunner(configMapName string, configMap *corev1.ConfigMap) 
 		ConfigName: configMapName + ".env",
 	})
 	if err != nil {
-		return err
+		panic(err)
 	}
 	configMap.Data[configMapName+".sh"] = bufRun.String()
-	return nil
 }
 
 // UpdateProvisionerConfigMapData update provisioner data in config map
-func UpdateProvisionerConfigMapData(configMapName string, configAPINodes string, configMap *corev1.ConfigMap) error {
-	if err := UpdateProvisionerRunner(configMapName, configMap); err != nil {
-		return err
-	}
-	envData, err := ProvisionerEnvData(configAPINodes)
-	if err != nil {
-		return err
-	}
-	configMap.Data[configMapName+".env"] = envData
-	return nil
+func UpdateProvisionerConfigMapData(configMapName string, configAPINodes string, configMap *corev1.ConfigMap) {
+	UpdateProvisionerRunner(configMapName, configMap)
+	configMap.Data[configMapName+".env"] = ProvisionerEnvData(configAPINodes)
 }
 
 // GetNodemanagerRunner returns nodemanagaer runner script
-func GetNodemanagerRunner() (string, error) {
+func GetNodemanagerRunner() string {
 	var bufRun bytes.Buffer
 	if err := templates.NodemanagerRunner.Execute(&bufRun, struct{}{}); err != nil {
-		return "", err
+		panic(err)
 	}
-	return bufRun.String(), nil
+	return bufRun.String()
 }
 
 // ExecCmdInContainer runs command inside a container

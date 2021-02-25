@@ -155,7 +155,7 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 			TruststorePassword:  string(cassandraSecret.Data["truststorePassword"]),
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		cassandraConfigString := cassandraConfigBuffer.String()
 
@@ -166,7 +166,7 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 			CAFilePath: certificates.SignerCAFilepath,
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		cassandraCqlShrcConfigString := cassandraCqlShrcBuffer.String()
 
@@ -196,7 +196,7 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 			LogLevel: "SYS_DEBUG",
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		nodemanagerConfigString := nodeManagerConfigBuffer.String()
 
@@ -214,7 +214,7 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 			AuthMode:      string(configNodesInformation.AuthMode),
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		vncAPIConfigBufferString := vncAPIConfigBuffer.String()
 
@@ -228,7 +228,7 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 			AnalyticsDBNodes: apiServerIPListCommaSeparated,
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		nodemanagerEnvString := nodemanagerEnvBuffer.String()
 
@@ -249,11 +249,7 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 	if err != nil {
 		return err
 	}
-	err = UpdateProvisionerConfigMapData("database-provisioner",
-		configtemplates.JoinListWithSeparator(configNodes, ","), configMapInstanceDynamicConfig)
-	if err != nil {
-		return err
-	}
+	UpdateProvisionerConfigMapData("database-provisioner", configtemplates.JoinListWithSeparator(configNodes, ","), configMapInstanceDynamicConfig)
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }
@@ -274,20 +270,14 @@ func (c *Cassandra) CreateConfigMap(configMapName string,
 		return nil, err
 	}
 
-	nmr, err := GetNodemanagerRunner()
-	if err != nil {
-		return nil, err
-	}
-	configMap.Data["database-nodemanager-runner.sh"] = nmr
+	configMap.Data["database-nodemanager-runner.sh"] = GetNodemanagerRunner()
 
 	configNodes, err := c.GetConfigNodes(request, client)
 	if err != nil {
 		return nil, err
 	}
-	if err = UpdateProvisionerConfigMapData("database-provisioner",
-		configtemplates.JoinListWithSeparator(configNodes, ","), configMap); err != nil {
-		return nil, err
-	}
+	UpdateProvisionerConfigMapData("database-provisioner", configtemplates.JoinListWithSeparator(configNodes, ","), configMap)
+
 	if err = client.Update(context.TODO(), configMap); err != nil {
 		return nil, err
 	}
