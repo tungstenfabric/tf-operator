@@ -607,6 +607,31 @@ spec:
                             description: CassandraConfiguration is the Spec for the
                               cassandras API.
                             properties:
+                              cassandraParameters:
+                                description: CassandraConfigParameters defines additional
+                                  parameters for Cassandra confgiuration
+                                properties:
+                                  compactionThroughputMbPerSec:
+                                    type: integer
+                                  concurrentCompactors:
+                                    type: integer
+                                  concurrentCounterWrites:
+                                    type: integer
+                                  concurrentMaterializedViewWrites:
+                                    type: integer
+                                  concurrentReads:
+                                    type: integer
+                                  concurrentWrites:
+                                    type: integer
+                                  memtableAllocationType:
+                                    enum:
+                                    - heap_buffers
+                                    - offheap_buffers
+                                    - offheap_objects
+                                    type: string
+                                  memtableFlushWriters:
+                                    type: integer
+                                type: object
                               clusterName:
                                 type: string
                               configInstance:
