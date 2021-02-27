@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/usr/bin/env bash
 # 
 # Acceptd following env variable for rendering
 # CONTAINER_REGISTRY                - TF container registry (default dockerhub)
@@ -15,7 +15,7 @@
 my_file="$(readlink -e "$0")"
 my_dir="$(dirname $my_file)"
 
-export WORKSPACE=${WORKSPACE:-$HOME}
+export WORKSPACE=${WORKSPACE:-${my_dir}/../..}
 export OPERATOR_REPO=${OPERATOR_REPO:-$WORKSPACE/tf-operator}
 
 function _process_manifest() {

@@ -33,19 +33,6 @@ spec:
         effect: NoSchedule
       - operator: Exists
         effect: NoExecute
-      initContainers:
-      - name: init
-        command:
-        - sh
-        - -c
-        - until grep ready /tmp/podinfo/pod_labels > /dev/null 2>&1; do sleep 1; done
-        image: busybox
-        resources: {}
-        terminationMessagePath: /dev/termination-log
-        terminationMessagePolicy: File
-        volumeMounts:
-        - mountPath: /tmp/podinfo
-          name: status
       containers:
       - name: zookeeper
         env:

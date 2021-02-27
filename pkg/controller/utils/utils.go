@@ -187,50 +187,6 @@ func DSStatusChange(appGroupKind schema.GroupKind) predicate.Funcs {
 	}
 }
 
-// PodStatusChange monitors per application size change.
-func PodStatusChange(appGroupKind schema.GroupKind) predicate.Funcs {
-	return predicate.Funcs{
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			oldPod, ok := e.ObjectOld.(*corev1.Pod)
-			if !ok {
-				reqLogger.Info("type conversion mismatch")
-			}
-			newPod, ok := e.ObjectNew.(*corev1.Pod)
-			if !ok {
-				reqLogger.Info("type conversion mismatch")
-			}
-			isOwner := false
-			oldReady := true
-			newReady := true
-			for _, owner := range newPod.ObjectMeta.OwnerReferences {
-				if *owner.Controller {
-					groupVersionKind := schema.FromAPIVersionAndKind(owner.APIVersion, owner.Kind)
-					if appGroupKind == groupVersionKind.GroupKind() {
-						isOwner = true
-					}
-				}
-			}
-			for _, containerStatus := range oldPod.Status.ContainerStatuses {
-				if !containerStatus.Ready {
-					oldReady = false
-					break
-				}
-
-			}
-			for _, containerStatus := range newPod.Status.ContainerStatuses {
-				if !containerStatus.Ready {
-					newReady = false
-					break
-				}
-			}
-			if (oldReady != newReady) && isOwner {
-				return true
-			}
-			return false
-		},
-	}
-}
-
 // PodIPChange returns predicate function based on group kind.
 func PodIPChange(appLabel map[string]string) predicate.Funcs {
 	return predicate.Funcs{
@@ -253,92 +209,16 @@ func PodIPChange(appLabel map[string]string) predicate.Funcs {
 	}
 }
 
-// PodInitStatusChange returns predicate function based on group kind.
-func PodInitStatusChange(appLabel map[string]string) predicate.Funcs {
-	return predicate.Funcs{
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			for key, value := range e.MetaOld.GetLabels() {
-				if appLabel[key] == value {
-					oldPod, ok := e.ObjectOld.(*corev1.Pod)
-					if !ok {
-						reqLogger.Info("type conversion mismatch")
-					}
-					newPod, ok := e.ObjectNew.(*corev1.Pod)
-					if !ok {
-						reqLogger.Info("type conversion mismatch")
-					}
-					newPodReady := true
-					oldPodReady := true
-					if newPod.Status.InitContainerStatuses == nil {
-						newPodReady = false
-					}
-					if oldPod.Status.InitContainerStatuses == nil {
-						oldPodReady = false
-					}
-					for _, initContainerStatus := range newPod.Status.InitContainerStatuses {
-						if initContainerStatus.Name == "init" {
-							if !initContainerStatus.Ready {
-								newPodReady = false
-							}
-						}
-					}
-					for _, initContainerStatus := range oldPod.Status.InitContainerStatuses {
-						if initContainerStatus.Name == "init" {
-							if !initContainerStatus.Ready {
-								oldPodReady = false
-							}
-						}
-					}
-					return newPodReady != oldPodReady
-				}
-			}
-			return false
-		},
+func statusChange(pold, pnew *bool) bool {
+	newActive := false
+	if pnew != nil {
+		newActive = *pnew
 	}
-}
-
-// PodInitRunning returns predicate function based on group kind.
-func PodInitRunning(appLabel map[string]string) predicate.Funcs {
-	return predicate.Funcs{
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			for key, value := range e.MetaOld.GetLabels() {
-				if appLabel[key] == value {
-					oldPod, ok := e.ObjectOld.(*corev1.Pod)
-					if !ok {
-						reqLogger.Info("type conversion mismatch")
-					}
-					newPod, ok := e.ObjectNew.(*corev1.Pod)
-					if !ok {
-						reqLogger.Info("type conversion mismatch")
-					}
-					newPodRunning := true
-					oldPodRunning := true
-					if newPod.Status.InitContainerStatuses == nil {
-						newPodRunning = false
-					}
-					if oldPod.Status.InitContainerStatuses == nil {
-						oldPodRunning = false
-					}
-					for _, initContainerStatus := range newPod.Status.InitContainerStatuses {
-						if initContainerStatus.Name == "init" {
-							if initContainerStatus.State.Running == nil {
-								newPodRunning = false
-							}
-						}
-					}
-					for _, initContainerStatus := range oldPod.Status.InitContainerStatuses {
-						if initContainerStatus.Name == "init" {
-							if initContainerStatus.State.Running == nil {
-								oldPodRunning = false
-							}
-						}
-					}
-					return newPodRunning != oldPodRunning
-				}
-			}
-			return false
-		},
+	oldActive := false
+	if pold != nil {
+		oldActive = *pold
 	}
+	return !oldActive && newActive
 }
 
 // CassandraActiveChange returns predicate function based on group kind.
@@ -353,18 +233,7 @@ func CassandraActiveChange() predicate.Funcs {
 			if !ok {
 				reqLogger.Info("type conversion mismatch")
 			}
-			newActive := false
-			oldActive := false
-			if newCassandra.Status.Active != nil {
-				newActive = *newCassandra.Status.Active
-			}
-			if oldCassandra.Status.Active != nil {
-				oldActive = *oldCassandra.Status.Active
-			}
-			if !oldActive && newActive {
-				return true
-			}
-			return false
+			return statusChange(oldCassandra.Status.Active, newCassandra.Status.Active)
 		},
 	}
 }
@@ -381,19 +250,7 @@ func ConfigActiveChange() predicate.Funcs {
 			if !ok {
 				reqLogger.Info("type conversion mismatch")
 			}
-			newConfigActive := false
-			oldConfigActive := false
-			if newConfig.Status.Active != nil {
-				newConfigActive = *newConfig.Status.Active
-			}
-			if oldConfig.Status.Active != nil {
-				oldConfigActive = *oldConfig.Status.Active
-			}
-			if !oldConfigActive && newConfigActive {
-				return true
-			}
-			return false
-
+			return statusChange(oldConfig.Status.Active, newConfig.Status.Active)
 		},
 	}
 }
@@ -410,19 +267,7 @@ func VrouterActiveChange() predicate.Funcs {
 			if !ok {
 				reqLogger.Info("type conversion mismatch")
 			}
-			newVrouterActive := false
-			oldVrouterActive := false
-			if newVrouter.Status.Active != nil {
-				newVrouterActive = *newVrouter.Status.Active
-			}
-			if oldVrouter.Status.Active != nil {
-				oldVrouterActive = *oldVrouter.Status.Active
-			}
-			if !oldVrouterActive && newVrouterActive {
-				return true
-			}
-			return false
-
+			return statusChange(oldVrouter.Status.Active, newVrouter.Status.Active)
 		},
 	}
 }
@@ -431,27 +276,15 @@ func VrouterActiveChange() predicate.Funcs {
 func ControlActiveChange() predicate.Funcs {
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			oldConfig, ok := e.ObjectOld.(*v1alpha1.Control)
+			oldControl, ok := e.ObjectOld.(*v1alpha1.Control)
 			if !ok {
 				reqLogger.Info("type conversion mismatch")
 			}
-			newConfig, ok := e.ObjectNew.(*v1alpha1.Control)
+			newControl, ok := e.ObjectNew.(*v1alpha1.Control)
 			if !ok {
 				reqLogger.Info("type conversion mismatch")
 			}
-			newConfigActive := false
-			oldConfigActive := false
-			if newConfig.Status.Active != nil {
-				newConfigActive = *newConfig.Status.Active
-			}
-			if oldConfig.Status.Active != nil {
-				oldConfigActive = *oldConfig.Status.Active
-			}
-			if !oldConfigActive && newConfigActive {
-				return true
-			}
-			return false
-
+			return statusChange(oldControl.Status.Active, newControl.Status.Active)
 		},
 	}
 }
@@ -468,19 +301,7 @@ func RabbitmqActiveChange() predicate.Funcs {
 			if !ok {
 				reqLogger.Info("type conversion mismatch")
 			}
-			newRabbitmqActive := false
-			oldRabbitmqActive := false
-			if newRabbitmq.Status.Active != nil {
-				newRabbitmqActive = *newRabbitmq.Status.Active
-			}
-			if oldRabbitmq.Status.Active != nil {
-				oldRabbitmqActive = *oldRabbitmq.Status.Active
-			}
-			if !oldRabbitmqActive && newRabbitmqActive {
-				return true
-			}
-			return false
-
+			return statusChange(oldRabbitmq.Status.Active, newRabbitmq.Status.Active)
 		},
 	}
 }
@@ -497,19 +318,7 @@ func ZookeeperActiveChange() predicate.Funcs {
 			if !ok {
 				reqLogger.Info("type conversion mismatch")
 			}
-			newZookeeperActive := false
-			oldZookeeperActive := false
-			if newZookeeper.Status.Active != nil {
-				newZookeeperActive = *newZookeeper.Status.Active
-			}
-			if oldZookeeper.Status.Active != nil {
-				oldZookeeperActive = *oldZookeeper.Status.Active
-			}
-			if !oldZookeeperActive && newZookeeperActive {
-				return true
-			}
-			return false
-
+			return statusChange(oldZookeeper.Status.Active, newZookeeper.Status.Active)
 		},
 	}
 }
@@ -545,7 +354,7 @@ func GetContainerFromList(containerName string, containerList []*v1alpha1.Contai
 	return nil
 }
 
-// Check if some labeled pods switch to Running or from Running to another phase
+// PodPhaseChanges Check if some labeled pods switch to Running or from Running to another phase
 func PodPhaseChanges(podLabels map[string]string) predicate.Funcs {
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {

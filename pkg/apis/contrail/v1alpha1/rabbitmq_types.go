@@ -127,7 +127,7 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 			TCPListenOptions:  c.Spec.ServiceConfiguration.TCPListenOptions,
 		})
 		if err != nil {
-			return err
+			panic(err)
 		}
 		data["rabbitmq.conf."+pod.Status.PodIP] = rabbitmqPodConfig.String()
 		rabbitmqEnvConfigString := fmt.Sprintf("HOME=/var/lib/rabbitmq\n")

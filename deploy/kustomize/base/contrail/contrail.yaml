@@ -25,8 +25,6 @@ spec:
           rabbitmqInstance: rabbitmq1
           configInstance: config1
           containers:
-          - name: init
-            image: python
           - name: nodemanager
             image: contrail-nodemgr
           - name: provisioner
@@ -73,12 +71,8 @@ spec:
         serviceConfiguration:
           configInstance: config1
           containers:
-          - name: init
-            image: python
-          - name: init2
-            image: cassandra
           - name: cassandra
-            image: cassandra
+            image: contrail-external-cassandra
           - name: nodemanager
             image: contrail-nodemgr
           - name: provisioner
@@ -98,14 +92,10 @@ spec:
           cassandraInstance: cassandra1
           rabbitmqInstance: rabbitmq1
           containers:
-          - name: init
-            image: python
-          - name: init2
-            image: busybox
           - name: redis
-            image: redis
+            image: contrail-external-redis
           - name: stunnel
-            image: stunnel
+            image: contrail-external-stunnel
           - name: api
             image: contrail-controller-config-api
           - name: devicemanager
@@ -146,8 +136,6 @@ spec:
           configInstance: config1
           logLevel: SYS_DEBUG
           containers:
-          - name: init
-            image: python:alpine
           - name: control
             image: contrail-controller-control-control
           - name: dns
@@ -178,8 +166,6 @@ spec:
           hostNetworkService: true
           kubernetesTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
           containers:
-          - name: init
-            image: python:alpine
           - name: kubemanager
             image: contrail-kubernetes-kube-manager
     rabbitmq:
@@ -194,10 +180,8 @@ spec:
         serviceConfiguration:
           logLevel: SYS_DEBUG
           containers:
-          - name: init
-            image: python:alpine
           - name: rabbitmq
-            image: rabbitmq:3.7
+            image: contrail-external-rabbitmq
     vrouters:
     - metadata:
         labels:
@@ -210,8 +194,6 @@ spec:
           controlInstance: control1
           contrailStatusImage: contrail-status
           containers:
-          - name: init
-            image: python:alpine
           - name: nodeinit
             image: contrail-node-init
           - name: vrouterkernelinit
@@ -241,10 +223,8 @@ spec:
           cassandraInstance: cassandra1
           logLevel: SYS_DEBUG
           containers:
-          - name: init
-            image: python:alpine
           - name: redis
-            image: redis
+            image: contrail-external-redis
           - name: webuijob
             image: contrail-controller-webui-job
           - name: webuiweb
@@ -261,9 +241,5 @@ spec:
         serviceConfiguration:
           logLevel: SYS_DEBUG
           containers:
-            - name: init
-              image: python
-            - name: conf-init
-              image: python
             - name: zookeeper
-              image: zookeeper
+              image: contrail-external-zookeeper

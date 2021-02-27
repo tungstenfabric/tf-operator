@@ -13,6 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1/templates"
+	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -165,6 +166,19 @@ func (c *Zookeeper) IsUpgrading(name string, namespace string, client client.Cli
 	return false
 }
 
+// CreateSecret creates a secret.
+func (c *Zookeeper) CreateSecret(secretName string,
+	client client.Client,
+	scheme *runtime.Scheme,
+	request reconcile.Request) (*corev1.Secret, error) {
+	return CreateSecret(secretName,
+		client,
+		scheme,
+		request,
+		"zookeeper",
+		c)
+}
+
 // PrepareSTS prepares the intended deployment for the Zookeeper object.
 func (c *Zookeeper) PrepareSTS(sts *appsv1.StatefulSet, commonConfiguration *PodConfiguration, request reconcile.Request, scheme *runtime.Scheme) error {
 	return PrepareSTS(sts, commonConfiguration, "zookeeper", request, scheme, c, false)
@@ -269,4 +283,36 @@ func (c *Zookeeper) ConfigurationParameters() ZookeeperConfiguration {
 	zookeeperConfiguration.AdminPort = &adminPort
 
 	return zookeeperConfiguration
+}
+
+// PodsCertSubjects gets list of Zookeeper pods certificate subjets which can be passed to the certificate API
+func (c *Zookeeper) PodsCertSubjects(domain string, podList []corev1.Pod) []certificates.CertificateSubject {
+	var altIPs PodAlternativeIPs
+	return PodsCertSubjects(domain, podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
+}
+
+// CommonStartupScript prepare common run service script
+//  command - is a final command to run
+//  configs - config files to be waited for and to be linked from configmap mount
+//   to a destination config folder (if destination is empty no link be done, only wait), e.g.
+//   { "api.${POD_IP}": "", "vnc_api.ini.${POD_IP}": "vnc_api.ini"}
+func (c *Zookeeper) CommonStartupScript(command string, configs map[string]string) string {
+	var buf bytes.Buffer
+	err := configtemplates.CommonRunConfig.Execute(&buf, struct {
+		Command        string
+		Configs        map[string]string
+		ConfigMapMount string
+		DstConfigPath  string
+		CAFilePath     string
+	}{
+		Command:        command,
+		Configs:        configs,
+		ConfigMapMount: "/zookeeper-conf",
+		DstConfigPath:  "/var/lib/zookeeper",
+		CAFilePath:     certificates.SignerCAFilepath,
+	})
+	if err != nil {
+		panic(err)
+	}
+	return buf.String()
 }

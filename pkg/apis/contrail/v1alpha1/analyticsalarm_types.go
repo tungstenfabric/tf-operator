@@ -56,18 +56,18 @@ type AnalyticsAlarmSpec struct {
 // AnalyticsAlarmConfiguration is the Spec for the Analytics Alarm API.
 // +k8s:openapi-gen=true
 type AnalyticsAlarmConfiguration struct {
-	CassandraInstance                 string       `json:"cassandraInstance,omitempty"`
-	ZookeeperInstance                 string       `json:"zookeeperInstance,omitempty"`
-	RabbitmqInstance                  string       `json:"rabbitmqInstance,omitempty"`
-	ConfigInstance                    string       `json:"configInstance,omitempty"`
-	LogFilePath                       string       `json:"logFilePath,omitempty"`
-	LogLevel                          string       `json:"logLevel,omitempty"`
-	LogLocal                          string       `json:"logLocal,omitempty"`
-	AlarmgenRedisAggregateDbOffset    *int         `json:"alarmgenRedisAggregateDbOffset,omitempty"`
-	AlarmgenPartitions                *int         `json:"alarmgenPartitions,omitempty"`
-	AlarmgenIntrospectListenPort      *int         `json:"alarmgenIntrospectListenPort,omitempty"`
-	AlarmgenLogFileName               string       `json:"alarmgenLogFileName,omitempty"`
-	Containers                        []*Container `json:"containers,omitempty"`
+	CassandraInstance              string       `json:"cassandraInstance,omitempty"`
+	ZookeeperInstance              string       `json:"zookeeperInstance,omitempty"`
+	RabbitmqInstance               string       `json:"rabbitmqInstance,omitempty"`
+	ConfigInstance                 string       `json:"configInstance,omitempty"`
+	LogFilePath                    string       `json:"logFilePath,omitempty"`
+	LogLevel                       string       `json:"logLevel,omitempty"`
+	LogLocal                       string       `json:"logLocal,omitempty"`
+	AlarmgenRedisAggregateDbOffset *int         `json:"alarmgenRedisAggregateDbOffset,omitempty"`
+	AlarmgenPartitions             *int         `json:"alarmgenPartitions,omitempty"`
+	AlarmgenIntrospectListenPort   *int         `json:"alarmgenIntrospectListenPort,omitempty"`
+	AlarmgenLogFileName            string       `json:"alarmgenLogFileName,omitempty"`
+	Containers                     []*Container `json:"containers,omitempty"`
 }
 
 // AnalyticsAlarmStatus is the Status for the Analytics Alarm API.
@@ -204,28 +204,28 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 
 		var alarmBuffer bytes.Buffer
 		err = configtemplates.AnalyticsAlarmgenConfig.Execute(&alarmBuffer, struct {
-			PodIP                             string
-			Hostname                          string
-			ListenAddress                     string
-			InstrospectListenAddress          string
-			AlarmgenRedisAggregateDbOffset    string
-			AlarmgenPartitions                string
-			AlarmgenIntrospectListenPort      string
-			LogFile                           string
-			LogLevel                          string
-			LogLocal                          string
-			CollectorServers                  string
-			ZookeeperServers                  string
-			ConfigServers                     string
-			ConfigDbServerList                string
-			KafkaServers                      string
-			CassandraSslCaCertfile            string
-			RabbitmqServerList                string
-			RabbitmqVhost                     string
-			RabbitmqUser                      string
-			RabbitmqPassword                  string
-			RedisServerList                   string
-			CAFilePath                        string
+			PodIP                          string
+			Hostname                       string
+			ListenAddress                  string
+			InstrospectListenAddress       string
+			AlarmgenRedisAggregateDbOffset string
+			AlarmgenPartitions             string
+			AlarmgenIntrospectListenPort   string
+			LogFile                        string
+			LogLevel                       string
+			LogLocal                       string
+			CollectorServers               string
+			ZookeeperServers               string
+			ConfigServers                  string
+			ConfigDbServerList             string
+			KafkaServers                   string
+			CassandraSslCaCertfile         string
+			RabbitmqServerList             string
+			RabbitmqVhost                  string
+			RabbitmqUser                   string
+			RabbitmqPassword               string
+			RedisServerList                string
+			CAFilePath                     string
 		}{
 			PodIP:                    podIP,
 			Hostname:                 hostname,
@@ -399,4 +399,13 @@ func (c *AnalyticsAlarm) ManageNodeStatus(podNameIPMap map[string]string,
 		return err
 	}
 	return nil
+}
+
+// CommonStartupScript prepare common run service script
+//  command - is a final command to run
+//  configs - config files to be waited for and to be linked from configmap mount
+//   to a destination config folder (if destination is empty no link be done, only wait), e.g.
+//   { "api.${POD_IP}": "", "vnc_api.ini.${POD_IP}": "vnc_api.ini"}
+func (c *AnalyticsAlarm) CommonStartupScript(command string, configs map[string]string) string {
+	return CommonStartupScript(command, configs)
 }

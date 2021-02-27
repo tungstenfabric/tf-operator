@@ -102,24 +102,6 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.annotations['hostname']
-      initContainers:
-      - command:
-        - sh
-        - -c
-        - until grep ready /tmp/podinfo/pod_labels > /dev/null 2>&1; do sleep 1; done
-        env:
-        - name: POD_IP
-          valueFrom:
-            fieldRef:
-              fieldPath: status.podIP
-        image: busybox:latest
-        name: init
-        resources: {}
-        terminationMessagePath: /dev/termination-log
-        terminationMessagePolicy: File
-        volumeMounts:
-        - mountPath: /tmp/podinfo
-          name: status
       volumes:
       - hostPath:
           path: /var/log/contrail/cassandra

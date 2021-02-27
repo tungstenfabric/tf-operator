@@ -125,18 +125,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
 	podHandler := resourceHandler(mgr.GetClient())
 
-	predInitStatus := utils.PodInitStatusChange(serviceMap)
-	if err = c.Watch(srcPod, podHandler, predInitStatus); err != nil {
-		return err
-	}
-
 	predPodIPChange := utils.PodIPChange(serviceMap)
 	if err = c.Watch(srcPod, podHandler, predPodIPChange); err != nil {
-		return err
-	}
-
-	predInitRunning := utils.PodInitRunning(serviceMap)
-	if err = c.Watch(srcPod, podHandler, predInitRunning); err != nil {
 		return err
 	}
 
@@ -296,30 +286,19 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 
 		if container.Name == "vrouteragent" {
 			if container.Command == nil {
-				command := []string{"bash", "-c",
-					`set -x;
-function wait_file_ready() {
-  echo "INFO: $(date): wait for $1";
-  while [ ! -e $1 ] ; do sleep 1 ; done;
-  echo "INFO: $(date): done"
-}
-mkdir -p /var/log/contrail/vrouter-agent;
-cfg_folder=/etc/contrailconfigmaps ;
-wait_file_ready $cfg_folder/params.env.${POD_IP} ;
-source $cfg_folder/params.env.${POD_IP};
-source /actions.sh;
-prepare_agent;
-wait_file_ready $cfg_folder/contrail-vrouter-agent.conf.${POD_IP} ;
-wait_file_ready $cfg_folder/contrail-lbaas.auth.conf.${POD_IP} ;
-wait_file_ready $cfg_folder/vnc_api_lib.ini.${POD_IP} ;
-ln -sf $cfg_folder/contrail-vrouter-agent.conf.${POD_IP} /etc/contrail/contrail-vrouter-agent.conf;
-ln -sf $cfg_folder/contrail-lbaas.auth.conf.${POD_IP} /etc/contrail/contrail-lbaas.auth.conf;
-ln -sf $cfg_folder/vnc_api_lib.ini.${POD_IP} /etc/contrail/vnc_api_lib.ini;
-start_agent;
-wait $(cat /var/run/vrouter-agent.pid)
-`,
+				command := []string{"bash", "-c", v1alpha1.CommonStartupScript(
+					"mkdir -p /var/log/contrail/vrouter-agent; "+
+						"source /etc/contrailconfigmaps/params.env.${POD_IP}; "+
+						"source /actions.sh; "+
+						"prepare_agent; "+
+						"link_file contrail-vrouter-agent.conf.${POD_IP} contrail-vrouter-agent.conf; "+
+						"link_file contrail-lbaas.auth.conf.${POD_IP} contrail-lbaas.auth.conf; "+
+						"link_file vnc_api_lib.ini.${POD_IP} vnc_api_lib.ini; "+
+						// agent handles errors w/o -e (use of -e leads to un-recovered bind iface on cleanup)
+						"set +e; "+
+						"start_agent; ",
+					map[string]string{"params.env.${POD_IP}": ""}),
 				}
-
 				container.Command = command
 			}
 		}

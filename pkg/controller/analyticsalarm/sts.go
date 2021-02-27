@@ -34,21 +34,6 @@ spec:
           operator: Exists
         - effect: NoExecute
           operator: Exists
-      initContainers:
-        - name: init
-          image: busybox:latest
-          command:
-            - sh
-            - -c
-            - until grep ready /tmp/podinfo/pod_labels > dev/null 2>&1; do sleep 1; done
-          env:
-            - name: POD_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.podIP
-          volumeMounts:
-            - mountPath: /tmp/podinfo
-              name: status
       containers:
         - name: analytics-alarm-gen
           image: "tungstenfabric/contrail-analytics-alarm-gen:latest"

@@ -118,17 +118,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	serviceMap := map[string]string{"contrail_manager": "control"}
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
 	podHandler := resourceHandler(mgr.GetClient())
-	predInitStatus := utils.PodInitStatusChange(serviceMap)
 	predPodIPChange := utils.PodIPChange(serviceMap)
-	predInitRunning := utils.PodInitRunning(serviceMap)
 
 	if err = c.Watch(srcPod, podHandler, predPodIPChange); err != nil {
-		return err
-	}
-	if err = c.Watch(srcPod, podHandler, predInitStatus); err != nil {
-		return err
-	}
-	if err = c.Watch(srcPod, podHandler, predInitRunning); err != nil {
 		return err
 	}
 
@@ -285,8 +277,11 @@ func (r *ReconcileControl) Reconcile(request reconcile.Request) (reconcile.Resul
 
 		if container.Name == "control" {
 			if container.Command == nil {
-				command := []string{"bash", "-c",
+				command := []string{"bash", "-c", instance.CommonStartupScript(
 					"exec /usr/bin/contrail-control --conf_file /etc/contrailconfigmaps/control.${POD_IP}",
+					map[string]string{
+						"control.${POD_IP}": "",
+					}),
 				}
 				container.Command = command
 			}
@@ -295,12 +290,16 @@ func (r *ReconcileControl) Reconcile(request reconcile.Request) (reconcile.Resul
 		if container.Name == "named" {
 			instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
 			if instanceContainer.Command == nil {
-				command := []string{"bash", "-c",
-					"touch /var/log/contrail/contrail-named.log; " +
-						"chgrp contrail /var/log/contrail/contrail-named.log; " +
-						"chmod g+w /var/log/contrail/contrail-named.log; " +
+				command := []string{"bash", "-c", instance.CommonStartupScript(
+					"touch /var/log/contrail/contrail-named.log; "+
+						"chgrp contrail /var/log/contrail/contrail-named.log; "+
+						"chmod g+w /var/log/contrail/contrail-named.log; "+
 						"exec /usr/bin/contrail-named -f -g -u contrail -c /etc/contrailconfigmaps/named.${POD_IP}",
+					map[string]string{
+						"named.${POD_IP}": "",
+					}),
 				}
+
 				container.Command = command
 			}
 
@@ -314,8 +313,11 @@ func (r *ReconcileControl) Reconcile(request reconcile.Request) (reconcile.Resul
 
 		if container.Name == "dns" {
 			if container.Command == nil {
-				command := []string{"bash", "-c",
+				command := []string{"bash", "-c", instance.CommonStartupScript(
 					"exec /usr/bin/contrail-dns --conf_file /etc/contrailconfigmaps/dns.${POD_IP}",
+					map[string]string{
+						"dns.${POD_IP}": "",
+					}),
 				}
 				container.Command = command
 			}
@@ -333,14 +335,6 @@ func (r *ReconcileControl) Reconcile(request reconcile.Request) (reconcile.Resul
 				command := []string{"bash", "/etc/contrailconfigmaps/control-provisioner.sh"}
 				container.Command = command
 			}
-		}
-	}
-
-	for idx, container := range statefulSet.Spec.Template.Spec.InitContainers {
-		instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
-		(&statefulSet.Spec.Template.Spec.InitContainers[idx]).Image = instanceContainer.Image
-		if instanceContainer.Command != nil {
-			(&statefulSet.Spec.Template.Spec.InitContainers[idx]).Command = instanceContainer.Command
 		}
 	}
 

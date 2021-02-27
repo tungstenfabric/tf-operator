@@ -8,7 +8,6 @@ import (
 	"text/template"
 	"time"
 
-
 	"github.com/go-logr/logr"
 	"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1"
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
@@ -125,9 +124,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	serviceMap := map[string]string{"contrail_manager": instanceType}
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
 	podHandler := resourceHandler(mgr.GetClient())
-	predInitStatus := utils.PodInitStatusChange(serviceMap)
 	predPodIPChange := utils.PodIPChange(serviceMap)
-	predInitRunning := utils.PodInitRunning(serviceMap)
 
 	if err = c.Watch(&source.Kind{Type: &corev1.Service{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
@@ -137,12 +134,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	if err = c.Watch(srcPod, podHandler, predPodIPChange); err != nil {
-		return err
-	}
-	if err = c.Watch(srcPod, podHandler, predInitStatus); err != nil {
-		return err
-	}
-	if err = c.Watch(srcPod, podHandler, predInitRunning); err != nil {
 		return err
 	}
 
@@ -273,7 +264,7 @@ func (r *ReconcileAnalyticsAlarm) Reconcile(request reconcile.Request) (reconcil
 
 	if updated, err := instance.UpdateSTS(statefulSet, instanceType, request, r.Client); err != nil || updated {
 		if err != nil {
-				return reconcile.Result{}, err
+			return reconcile.Result{}, err
 		}
 		return requeueReconcile, nil
 	}
@@ -431,7 +422,14 @@ func (r *ReconcileAnalyticsAlarm) GetSTS(request reconcile.Request, instance *v1
 
 		if container.Name == "analytics-alarm-gen" {
 			if container.Command == nil {
-				container.Command = []string{"bash", "-c", "ln -sf /etc/contrailconfigmaps/vnc_api_lib.ini.${POD_IP} /etc/contrail/vnc_api_lib.ini; /usr/bin/contrail-alarm-gen -c /etc/contrailconfigmaps/tf-alarm-gen.${POD_IP}"}
+				command := []string{"bash", "-c", instance.CommonStartupScript(
+					"exec /usr/bin/contrail-alarm-gen -c /etc/contrailconfigmaps/tf-alarm-gen.${POD_IP}",
+					map[string]string{
+						"tf-alarm-gen.${POD_IP}":    "",
+						"vnc_api_lib.ini.${POD_IP}": "vnc_api_lib.ini",
+					}),
+				}
+				container.Command = command
 			}
 		}
 
@@ -462,18 +460,17 @@ func (r *ReconcileAnalyticsAlarm) GetSTS(request reconcile.Request, instance *v1
 				CAFilePath:         certificates.SignerCAFilepath,
 			})
 			if err != nil {
-				reqLogger.Error(err, "Cannot Init Keystore")
-				return nil, err
+				panic(err)
 			}
 
 			if container.Command == nil {
-				command := []string{"bash", "-c",
-					`	set -x ;
-						echo "INFO: $(date): wait /etc/contrailconfigmaps/kafka.config.${POD_IP}" ;
-						while [ ! -e //etc/contrailconfigmaps/kafka.config.${POD_IP} ] ; do sleep 1; done ;
-						echo "INFO: $(date): configs ready" ;
-					` + kafkaInitKeystoreCommandBuffer.String() +
-					    "bin/kafka-server-start.sh /etc/contrailconfigmaps/kafka.config.${POD_IP}"}
+				command := []string{"bash", "-c", instance.CommonStartupScript(
+					kafkaInitKeystoreCommandBuffer.String()+
+						"bin/kafka-server-start.sh /etc/contrailconfigmaps/kafka.config.${POD_IP}",
+					map[string]string{
+						"kafka.config.${POD_IP}": "",
+					}),
+				}
 				container.Command = command
 			}
 		}

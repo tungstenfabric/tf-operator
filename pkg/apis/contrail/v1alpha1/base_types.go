@@ -29,6 +29,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1/templates"
+	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1/templates"
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
 )
@@ -1369,4 +1370,30 @@ func AddNodemanagerVolumes(podSpec *corev1.PodSpec) {
 	if hasNodemgr {
 		podSpec.Volumes = append(podSpec.Volumes, nodemgrVolumes...)
 	}
+}
+
+// CommonStartupScript prepare common run service script
+//  command - is a final command to run
+//  configs - config files to be waited for and to be linked from configmap mount
+//   to a destination config folder (if destination is empty no link be done, only wait), e.g.
+//   { "api.${POD_IP}": "", "vnc_api.ini.${POD_IP}": "vnc_api.ini"}
+func CommonStartupScript(command string, configs map[string]string) string {
+	var buf bytes.Buffer
+	err := configtemplates.CommonRunConfig.Execute(&buf, struct {
+		Command        string
+		Configs        map[string]string
+		ConfigMapMount string
+		DstConfigPath  string
+		CAFilePath     string
+	}{
+		Command:        command,
+		Configs:        configs,
+		ConfigMapMount: "/etc/contrailconfigmaps",
+		DstConfigPath:  "/etc/contrail",
+		CAFilePath:     certificates.SignerCAFilepath,
+	})
+	if err != nil {
+		panic(err)
+	}
+	return buf.String()
 }
