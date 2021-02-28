@@ -239,7 +239,6 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 			}
 		}
 	}
-	statefulSet.Spec.PodManagementPolicy = appsv1.OrderedReadyPodManagement
 
 	statefulSet.Spec.Template.Spec.Affinity = &corev1.Affinity{
 		PodAntiAffinity: &corev1.PodAntiAffinity{

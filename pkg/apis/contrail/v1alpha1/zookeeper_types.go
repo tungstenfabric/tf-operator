@@ -181,7 +181,7 @@ func (c *Zookeeper) CreateSecret(secretName string,
 
 // PrepareSTS prepares the intended deployment for the Zookeeper object.
 func (c *Zookeeper) PrepareSTS(sts *appsv1.StatefulSet, commonConfiguration *PodConfiguration, request reconcile.Request, scheme *runtime.Scheme) error {
-	return PrepareSTS(sts, commonConfiguration, "zookeeper", request, scheme, c, false)
+	return PrepareSTS(sts, commonConfiguration, "zookeeper", request, scheme, c, true)
 }
 
 // AddVolumesToIntendedSTS adds volumes to the Zookeeper deployment.
