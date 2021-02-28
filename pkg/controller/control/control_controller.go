@@ -303,10 +303,8 @@ func (r *ReconcileControl) Reconcile(request reconcile.Request) (reconcile.Resul
 				container.Command = command
 			}
 
-			var group int64 = 1999
 			var privileged bool = true
 			container.SecurityContext = &corev1.SecurityContext{
-				RunAsGroup: &group,
 				Privileged: &privileged,
 			}
 		}
@@ -339,6 +337,7 @@ func (r *ReconcileControl) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	v1alpha1.AddCommonVolumes(&statefulSet.Spec.Template.Spec)
+	v1alpha1.DefaultSecurityContext(&statefulSet.Spec.Template.Spec)
 
 	if created, err := instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil || created {
 		if err != nil {

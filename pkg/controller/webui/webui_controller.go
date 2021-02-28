@@ -408,6 +408,7 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 	}
 
 	v1alpha1.AddCommonVolumes(&statefulSet.Spec.Template.Spec)
+	v1alpha1.DefaultSecurityContext(&statefulSet.Spec.Template.Spec)
 
 	statefulSet.Spec.Template.Spec.Affinity = &corev1.Affinity{
 		PodAntiAffinity: &corev1.PodAntiAffinity{

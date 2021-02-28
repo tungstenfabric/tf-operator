@@ -65,7 +65,6 @@ spec:
                   fieldPath: status.podIP
           securityContext:
             privileged: true
-            runAsGroup: 1999
           volumeMounts:
             - mountPath: /etc/contrail
               name: etc-contrail

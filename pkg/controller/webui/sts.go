@@ -64,6 +64,10 @@ spec:
                   fieldPath: status.podIP
         - name: redis
           image: tungstenfabric/contrail-external-redis:latest
+          # run as root for now, as container designed to switch user itslef
+          #securityContext:
+          #  # uid from tf-container-builder
+          #  runAsUser: 999
           env:
             - name: POD_IP
               valueFrom:

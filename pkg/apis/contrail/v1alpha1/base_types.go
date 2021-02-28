@@ -1397,3 +1397,45 @@ func CommonStartupScript(command string, configs map[string]string) string {
 	}
 	return buf.String()
 }
+
+func addGroup(ng int64, a []int64) []int64 {
+	for _, g := range a {
+		if g == ng {
+			return a
+		}
+	}
+	return append(a, ng)
+}
+
+// DefaultSecurityContext sets security context if not set yet
+// (it is to be set explicetely as on openshift default is restricted
+// after bootstrap completed)
+func DefaultSecurityContext(podSpec *corev1.PodSpec) {
+	if podSpec.SecurityContext == nil {
+		podSpec.SecurityContext = &corev1.PodSecurityContext{}
+	}
+	var rootid int64 = 0
+	var uid int64 = 1999
+	if podSpec.SecurityContext.FSGroup == nil {
+		podSpec.SecurityContext.FSGroup = &uid
+	}
+	podSpec.SecurityContext.SupplementalGroups = addGroup(uid, podSpec.SecurityContext.SupplementalGroups)
+	falseVal := false
+	for idx := range podSpec.Containers {
+		c := &podSpec.Containers[idx]
+		if c.SecurityContext == nil {
+			c.SecurityContext = &corev1.SecurityContext{}
+		}
+		if c.SecurityContext.Privileged == nil {
+			c.SecurityContext.Privileged = &falseVal
+		}
+		if c.SecurityContext.RunAsUser == nil {
+			// for now all containers expect to be run under root, they do switch user
+			// by themselves
+			c.SecurityContext.RunAsUser = &rootid
+		}
+		if c.SecurityContext.RunAsGroup == nil {
+			c.SecurityContext.RunAsGroup = &rootid
+		}
+	}
+}

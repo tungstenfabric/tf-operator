@@ -343,6 +343,7 @@ func GetDaemonset(cniCfg *v1alpha1.CNIConfig, cloudOrchestrator string) *apps.Da
 	}
 
 	v1alpha1.AddCommonVolumes(&podSpec)
+	v1alpha1.DefaultSecurityContext(&podSpec)
 
 	var daemonSetSelector = meta.LabelSelector{
 		MatchLabels: map[string]string{"app": "vrouter"},

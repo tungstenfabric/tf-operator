@@ -237,13 +237,6 @@ func (r *ReconcileAnalyticsAlarm) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, err
 	}
 
-	emptyVolume := corev1.Volume{
-		Name: request.Name + "-keystore",
-		VolumeSource: corev1.VolumeSource{
-			EmptyDir: &corev1.EmptyDirVolumeSource{},
-		},
-	}
-
 	statefulSet := &appsv1.StatefulSet{}
 	if statefulSet, err = r.GetSTS(request, instance, reqLogger); err != nil {
 		return reconcile.Result{}, nil
@@ -253,7 +246,7 @@ func (r *ReconcileAnalyticsAlarm) Reconcile(request reconcile.Request) (reconcil
 	}
 
 	v1alpha1.AddCommonVolumes(&statefulSet.Spec.Template.Spec)
-	statefulSet.Spec.Template.Spec.Volumes = append(statefulSet.Spec.Template.Spec.Volumes, emptyVolume)
+	v1alpha1.DefaultSecurityContext(&statefulSet.Spec.Template.Spec)
 
 	if created, err := instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil || created {
 		if err != nil {
@@ -411,10 +404,6 @@ func (r *ReconcileAnalyticsAlarm) GetSTS(request reconcile.Request, instance *v1
 				MountPath: "/etc/certificates",
 			},
 			corev1.VolumeMount{
-				Name:      request.Name + "-keystore",
-				MountPath: "/etc/keystore",
-			},
-			corev1.VolumeMount{
 				Name:      request.Name + "-csr-signer-ca",
 				MountPath: certificates.SignerCAMountPath,
 			},
@@ -494,8 +483,7 @@ func (r *ReconcileAnalyticsAlarm) GetSTS(request reconcile.Request, instance *v1
 }
 
 var kafkaInitKeystoreCommandTemplate = template.Must(template.New("").Parse(
-	"rm -f /etc/keystore/kafka.server.truststore.jks /etc/keystore/kafka.server.keystore.jks ; " +
-		"keytool -keystore /opt/kafka_2.11-2.3.1/kafka.server.truststore.jks -keypass {{ .KeystorePassword }} -storepass {{ .TruststorePassword }} -noprompt  -alias CARoot -import -file {{ .CAFilePath }} && " +
+	"keytool -keystore /opt/kafka_2.11-2.3.1/kafka.server.truststore.jks -keypass {{ .KeystorePassword }} -storepass {{ .TruststorePassword }} -noprompt  -alias CARoot -import -file {{ .CAFilePath }} && " +
 		"openssl pkcs12 -export -in /etc/certificates/server-${POD_IP}.crt -inkey /etc/certificates/server-key-${POD_IP}.pem -chain -CAfile {{ .CAFilePath }} -password pass:{{ .TruststorePassword }} -name localhost -out TmpFile && " +
 		"keytool -importkeystore -deststorepass {{ .KeystorePassword }} -destkeypass {{ .KeystorePassword }} -destkeystore /opt/kafka_2.11-2.3.1/kafka.server.keystore.jks -srcstorepass {{ .TruststorePassword }} -srckeystore TmpFile -srcstoretype PKCS12 -alias localhost && " +
 		"keytool -keystore /opt/kafka_2.11-2.3.1/kafka.server.keystore.jks -keypass {{ .KeystorePassword }} -storepass {{ .KeystorePassword }} -noprompt -alias CARoot -import -file {{ .CAFilePath }} ; "))
