@@ -253,7 +253,14 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 	for idx, container := range statefulSet.Spec.Template.Spec.Containers {
 		if container.Name == "webuiweb" {
 			command := []string{"bash", "-c", instance.CommonStartupScript(
-				"exec /usr/bin/node /usr/src/contrail/contrail-web-core/webServerStart.js --conf_file /etc/contrailconfigmaps/config.global.js.${POD_IP} --conf_file /etc/contrailconfigmaps/contrail-webui-userauth.js.${POD_IP}",
+				// use copy as webui resolves symlinks just to "..data/config.global.js.10.0.0.206"
+				// instead of resolve like
+				//    readlink -e /etc/contrailconfigmaps/config.global.js.10.0.0.206
+				//    /etc/contrailconfigmaps/..2021_02_28_17_21_52.558864405/config.global.js.10.0.0.206
+				"rm -rf /etc/contrail; mkdir -p /etc/contrail; "+
+					"cp /etc/contrailconfigmaps/config.global.js.${POD_IP} /etc/contrail/config.global.js; "+
+					"cp /etc/contrailconfigmaps/contrail-webui-userauth.js.${POD_IP} /etc/contrail/contrail-webui-userauth.js; "+
+					"exec /usr/bin/node /usr/src/contrail/contrail-web-core/webServerStart.js",
 				map[string]string{
 					"config.global.js.${POD_IP}":           "",
 					"contrail-webui-userauth.js.${POD_IP}": "",
@@ -314,7 +321,14 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 		}
 		if container.Name == "webuijob" {
 			command := []string{"bash", "-c", instance.CommonStartupScript(
-				"exec /usr/bin/node /usr/src/contrail/contrail-web-core/jobServerStart.js --conf_file /etc/contrailconfigmaps/config.global.js.${POD_IP} --conf_file /etc/contrailconfigmaps/contrail-webui-userauth.js.${POD_IP}",
+				// use copy as webui resolves symlinks just to "..data/config.global.js.10.0.0.206"
+				// instead of resolve like
+				//    readlink -e /etc/contrailconfigmaps/config.global.js.10.0.0.206
+				//    /etc/contrailconfigmaps/..2021_02_28_17_21_52.558864405/config.global.js.10.0.0.206
+				"rm -rf /etc/contrail; mkdir -p /etc/contrail; "+
+					"cp /etc/contrailconfigmaps/config.global.js.${POD_IP} /etc/contrail/config.global.js; "+
+					"cp /etc/contrailconfigmaps/contrail-webui-userauth.js.${POD_IP} /etc/contrail/contrail-webui-userauth.js; "+
+					"exec /usr/bin/node /usr/src/contrail/contrail-web-core/jobServerStart.js",
 				map[string]string{
 					"config.global.js.${POD_IP}":           "",
 					"contrail-webui-userauth.js.${POD_IP}": "",
