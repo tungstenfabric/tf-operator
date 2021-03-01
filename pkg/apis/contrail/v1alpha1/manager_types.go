@@ -106,6 +106,10 @@ type ManagerConfiguration struct {
 	// zero and not specified. Defaults to 1.
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty" protobuf:"varint,1,opt,name=replicas"`
+	// Kubernetes Cluster Configuration
+	// +kubebuilder:validation:Enum=info;debug;warning;error;critical;none
+	// +optional
+	LogLevel string `json:"logLevel,omitempty"`
 }
 
 // ManagerStatus defines the observed state of Manager.

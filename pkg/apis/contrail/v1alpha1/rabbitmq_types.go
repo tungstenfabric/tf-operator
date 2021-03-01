@@ -118,6 +118,7 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 			PodIP                    string
 			PodsList                 []corev1.Pod
 			TCPListenOptions         *TCPListenOptionsConfig
+			LogLevel                 string
 		}{
 			RabbitmqPort:             *rabbitmqConfig.Port,
 			SignerCAFilepath:         certificates.SignerCAFilepath,
@@ -125,6 +126,7 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 			PodIP:                    pod.Status.PodIP,
 			PodsList:                 podList,
 			TCPListenOptions:         rabbitmqConfig.TCPListenOptions,
+			LogLevel:                 c.Spec.CommonConfiguration.LogLevel,
 		})
 		if err != nil {
 			panic(err)

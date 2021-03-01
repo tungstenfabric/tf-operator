@@ -344,6 +344,9 @@ func MergeCommonConfiguration(manager v1alpha1.ManagerConfiguration,
 	if instance.AuthParameters == nil && manager.AuthParameters != nil {
 		instance.AuthParameters = manager.AuthParameters
 	}
+	if instance.LogLevel == "" && manager.LogLevel != "" {
+		instance.LogLevel = manager.LogLevel
+	}
 	return instance
 }
 

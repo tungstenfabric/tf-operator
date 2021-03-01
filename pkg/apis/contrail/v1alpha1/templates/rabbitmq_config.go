@@ -2,12 +2,6 @@ package templates
 
 import "text/template"
 
-var addFunc = template.FuncMap{
-	"add": func(i, j int) int {
-		return i + j
-	},
-}
-
 // RabbitmqConfig is the template of the Rabbitmq service configuration.
 var RabbitmqConfig = template.Must(template.New("").Parse(`#!/bin/bash
 function link_file() {
@@ -58,7 +52,7 @@ fi
 `))
 
 // RabbitmqDefinition is the template for Rabbitmq user/vhost configuration
-var RabbitmqDefinition = template.Must(template.New("").Funcs(addFunc).Parse(`{
+var RabbitmqDefinition = template.Must(template.New("").Funcs(tfFuncs).Parse(`{
   "users": [
     {
       "name": "{{ .RabbitmqUser }}",
@@ -96,7 +90,7 @@ var RabbitmqDefinition = template.Must(template.New("").Funcs(addFunc).Parse(`{
 `))
 
 // RabbitmqPodConfig is the template for Rabbitmq pod configuration
-var RabbitmqPodConfig = template.Must(template.New("").Funcs(addFunc).Parse(`listeners.tcp = none
+var RabbitmqPodConfig = template.Must(template.New("").Funcs(tfFuncs).Parse(`listeners.tcp = none
 listeners.ssl.default = {{ .RabbitmqPort }}
 loopback_users = none
 management.tcp.port = {{ add .RabbitmqPort 10000}}
@@ -107,6 +101,7 @@ ssl_options.certfile = /etc/certificates/server-{{ .PodIP }}.crt
 ssl_options.verify = verify_peer
 ssl_options.fail_if_no_peer_cert = true
 cluster_partition_handling = {{ .ClusterPartitionHandling }}
+log.file.level = {{ lowerOrDefault .LogLevel "info" }}
 {{ if .TCPListenOptions }}
 {{ if .TCPListenOptions.Backlog }}tcp_listen_options.backlog = {{ .TCPListenOptions.Backlog }}{{ end }}
 {{ if .TCPListenOptions.Nodelay }}tcp_listen_options.nodelay = {{ .TCPListenOptions.Nodelay }}{{ end }}
