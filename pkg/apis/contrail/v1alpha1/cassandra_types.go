@@ -7,8 +7,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"errors"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -121,6 +122,10 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 	if err != nil {
 		return err
 	}
+	if configMapInstanceDynamicConfig.Data == nil {
+		return errors.New("configMap data is nil")
+	}
+
 	cassandraConfig := c.ConfigurationParameters()
 	cassandraSecret := &corev1.Secret{}
 	if err = client.Get(context.TODO(), types.NamespacedName{Name: request.Name + "-secret", Namespace: request.Namespace}, cassandraSecret); err != nil {
@@ -542,7 +547,7 @@ func (c *Cassandra) UpdateStatus(cassandraConfig *CassandraConfiguration, podNam
 // GetConfigNodes requests config api nodes
 func (c *Cassandra) GetConfigNodes(request reconcile.Request, clnt client.Client) ([]string, error) {
 	cfg, err := NewConfigClusterConfiguration(c.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, clnt)
-	if err != nil && !errors.IsNotFound(err) {
+	if err != nil && !k8serrors.IsNotFound(err) {
 		return nil, err
 	}
 	return cfg.APIServerIPList, nil
