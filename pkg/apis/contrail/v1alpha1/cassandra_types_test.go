@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var podList = []corev1.Pod{
+var cassandraPodList = []corev1.Pod{
 	{
 		Status: corev1.PodStatus{PodIP: "1.1.1.1"},
 		ObjectMeta: metav1.ObjectMeta{
@@ -36,7 +36,7 @@ var podList = []corev1.Pod{
 	},
 }
 
-var request = reconcile.Request{
+var cassandraRequest = reconcile.Request{
 	NamespacedName: types.NamespacedName{
 		Name:      "cassandra1",
 		Namespace: "test-ns",
@@ -100,7 +100,7 @@ func TestCassandraConfigMapsWithDefaultValues(t *testing.T) {
 		},
 	}
 
-	require.NoError(t, cassandra.InstanceConfiguration(request, podList, cl))
+	require.NoError(t, cassandra.InstanceConfiguration(cassandraRequest, cassandraPodList, cl))
 
 	var cassandraConfigMap = &corev1.ConfigMap{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "cassandra1-cassandra-configmap", Namespace: "test-ns"}, cassandraConfigMap), "Error while gathering cassandra config map")
@@ -159,7 +159,7 @@ func TestCassandraConfigMapsWithCustomValues(t *testing.T) {
 		},
 	}
 
-	require.NoError(t, cassandra.InstanceConfiguration(request, podList, cl))
+	require.NoError(t, cassandra.InstanceConfiguration(cassandraRequest, cassandraPodList, cl))
 
 	var cassandraConfigMap = &corev1.ConfigMap{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "cassandra1-cassandra-configmap", Namespace: "test-ns"}, cassandraConfigMap), "Error while gathering cassandra config map")

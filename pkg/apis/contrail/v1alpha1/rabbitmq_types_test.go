@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var podList = []corev1.Pod{
+var rabbitmqPodList = []corev1.Pod{
 	{
 		Status: corev1.PodStatus{PodIP: "1.1.1.1"},
 		ObjectMeta: metav1.ObjectMeta{
@@ -36,7 +36,7 @@ var podList = []corev1.Pod{
 	},
 }
 
-var request = reconcile.Request{
+var rabbitmqRequest = reconcile.Request{
 	NamespacedName: types.NamespacedName{
 		Name:      "rabbitmq1",
 		Namespace: "test-ns",
@@ -88,7 +88,7 @@ func TestRabbitmqConfigMapsWithDefaultValues(t *testing.T) {
 		},
 	}
 
-	rabbitmq.InstanceConfiguration(request, podList, cl)
+	rabbitmq.InstanceConfiguration(rabbitmqRequest, rabbitmqPodList, cl)
 
 	var rabbitmqConfigMap = &corev1.ConfigMap{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "rabbitmq1-rabbitmq-configmap", Namespace: "test-ns"}, rabbitmqConfigMap), "Error while gathering rabbitmq config map")
@@ -153,7 +153,7 @@ func TestRabbitmqConfigMapsWithInetDistListenValues(t *testing.T) {
 		},
 	}
 
-	rabbitmq.InstanceConfiguration(request, podList, cl)
+	rabbitmq.InstanceConfiguration(rabbitmqRequest, rabbitmqPodList, cl)
 
 	var rabbitmqConfigMap = &corev1.ConfigMap{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "rabbitmq1-rabbitmq-configmap", Namespace: "test-ns"}, rabbitmqConfigMap), "Error while gathering rabbitmq config map")
@@ -228,7 +228,7 @@ func TestRabbitmqConfigMapsWithTCPListenOptionsValues(t *testing.T) {
 		},
 	}
 
-	rabbitmq.InstanceConfiguration(request, podList, cl)
+	rabbitmq.InstanceConfiguration(rabbitmqRequest, rabbitmqPodList, cl)
 
 	var rabbitmqConfigMap = &corev1.ConfigMap{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "rabbitmq1-rabbitmq-configmap", Namespace: "test-ns"}, rabbitmqConfigMap), "Error while gathering rabbitmq config map")
@@ -303,7 +303,7 @@ func TestRabbitmqConfigMapsWithAllValues(t *testing.T) {
 		},
 	}
 
-	rabbitmq.InstanceConfiguration(request, podList, cl)
+	rabbitmq.InstanceConfiguration(rabbitmqRequest, rabbitmqPodList, cl)
 
 	var rabbitmqConfigMap = &corev1.ConfigMap{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "rabbitmq1-rabbitmq-configmap", Namespace: "test-ns"}, rabbitmqConfigMap), "Error while gathering rabbitmq config map")
