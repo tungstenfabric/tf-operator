@@ -100,6 +100,10 @@ type ManagerConfiguration struct {
 	// Kubernetes Cluster Configuration
 	// +optional
 	ClusterConfig *KubernetesClusterConfig `json:"clusterConfig,omitempty"`
+	// Number of desired pods. This is a pointer to distinguish between explicit
+	// zero and not specified. Defaults to 1.
+	// +optional
+	Replicas *int32 `json:"replicas,omitempty" protobuf:"varint,1,opt,name=replicas"`
 }
 
 // ManagerStatus defines the observed state of Manager.

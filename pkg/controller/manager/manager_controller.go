@@ -138,9 +138,14 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	replicas := r.getReplicas(nodes)
-	if replicas == 0 {
-		return reconcile.Result{}, nil
+	var replicas int32
+	if instance.Spec.CommonConfiguration.Replicas != nil {
+		replicas = *instance.Spec.CommonConfiguration.Replicas
+	} else {
+		replicas = r.getReplicas(nodes)
+		if replicas == 0 {
+			return reconcile.Result{}, nil
+		}
 	}
 
 	nodesHostAliases := r.getNodesHostAliases(nodes)
