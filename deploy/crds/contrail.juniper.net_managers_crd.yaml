@@ -113,6 +113,16 @@ spec:
                 introspectListenAll:
                   description: Use 0.0.0.0 for isntrospection ports
                   type: boolean
+                logLevel:
+                  description: Kubernetes Cluster Configuration
+                  enum:
+                  - info
+                  - debug
+                  - warning
+                  - error
+                  - critical
+                  - none
+                  type: string
                 nodeSelector:
                   additionalProperties:
                     type: string
@@ -266,6 +276,16 @@ spec:
                             introspectListenAll:
                               description: Use 0.0.0.0 for isntrospection ports
                               type: boolean
+                            logLevel:
+                              description: Kubernetes Cluster Configuration
+                              enum:
+                              - info
+                              - debug
+                              - warning
+                              - error
+                              - critical
+                              - none
+                              type: string
                             nodeSelector:
                               additionalProperties:
                                 type: string
@@ -477,6 +497,16 @@ spec:
                             introspectListenAll:
                               description: Use 0.0.0.0 for isntrospection ports
                               type: boolean
+                            logLevel:
+                              description: Kubernetes Cluster Configuration
+                              enum:
+                              - info
+                              - debug
+                              - warning
+                              - error
+                              - critical
+                              - none
+                              type: string
                             nodeSelector:
                               additionalProperties:
                                 type: string
@@ -694,6 +724,16 @@ spec:
                               introspectListenAll:
                                 description: Use 0.0.0.0 for isntrospection ports
                                 type: boolean
+                              logLevel:
+                                description: Kubernetes Cluster Configuration
+                                enum:
+                                - info
+                                - debug
+                                - warning
+                                - error
+                                - critical
+                                - none
+                                type: string
                               nodeSelector:
                                 additionalProperties:
                                   type: string
@@ -955,6 +995,16 @@ spec:
                             introspectListenAll:
                               description: Use 0.0.0.0 for isntrospection ports
                               type: boolean
+                            logLevel:
+                              description: Kubernetes Cluster Configuration
+                              enum:
+                              - info
+                              - debug
+                              - warning
+                              - error
+                              - critical
+                              - none
+                              type: string
                             nodeSelector:
                               additionalProperties:
                                 type: string
@@ -1225,6 +1275,16 @@ spec:
                               introspectListenAll:
                                 description: Use 0.0.0.0 for isntrospection ports
                                 type: boolean
+                              logLevel:
+                                description: Kubernetes Cluster Configuration
+                                enum:
+                                - info
+                                - debug
+                                - warning
+                                - error
+                                - critical
+                                - none
+                                type: string
                               nodeSelector:
                                 additionalProperties:
                                   type: string
@@ -1496,6 +1556,16 @@ spec:
                               introspectListenAll:
                                 description: Use 0.0.0.0 for isntrospection ports
                                 type: boolean
+                              logLevel:
+                                description: Kubernetes Cluster Configuration
+                                enum:
+                                - info
+                                - debug
+                                - warning
+                                - error
+                                - critical
+                                - none
+                                type: string
                               nodeSelector:
                                 additionalProperties:
                                   type: string
@@ -1724,6 +1794,16 @@ spec:
                             introspectListenAll:
                               description: Use 0.0.0.0 for isntrospection ports
                               type: boolean
+                            logLevel:
+                              description: Kubernetes Cluster Configuration
+                              enum:
+                              - info
+                              - debug
+                              - warning
+                              - error
+                              - critical
+                              - none
+                              type: string
                             nodeSelector:
                               additionalProperties:
                                 type: string
@@ -1944,6 +2024,16 @@ spec:
                               introspectListenAll:
                                 description: Use 0.0.0.0 for isntrospection ports
                                 type: boolean
+                              logLevel:
+                                description: Kubernetes Cluster Configuration
+                                enum:
+                                - info
+                                - debug
+                                - warning
+                                - error
+                                - critical
+                                - none
+                                type: string
                               nodeSelector:
                                 additionalProperties:
                                   type: string
@@ -2320,6 +2410,16 @@ spec:
                             introspectListenAll:
                               description: Use 0.0.0.0 for isntrospection ports
                               type: boolean
+                            logLevel:
+                              description: Kubernetes Cluster Configuration
+                              enum:
+                              - info
+                              - debug
+                              - warning
+                              - error
+                              - critical
+                              - none
+                              type: string
                             nodeSelector:
                               additionalProperties:
                                 type: string
@@ -2539,6 +2639,16 @@ spec:
                               introspectListenAll:
                                 description: Use 0.0.0.0 for isntrospection ports
                                 type: boolean
+                              logLevel:
+                                description: Kubernetes Cluster Configuration
+                                enum:
+                                - info
+                                - debug
+                                - warning
+                                - error
+                                - critical
+                                - none
+                                type: string
                               nodeSelector:
                                 additionalProperties:
                                   type: string

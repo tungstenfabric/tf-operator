@@ -154,6 +154,7 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 			KeystoneRegion            string
 			Manager                   string
 			CAFilePath                string
+			LogLevel                  string
 		}{
 			PodIP:                     pod.Status.PodIP,
 			Hostname:                  hostname,
@@ -175,6 +176,7 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 			KeystoneRegion:            authConfig.Region,
 			Manager:                   manager,
 			CAFilePath:                certificates.SignerCAFilepath,
+			LogLevel:                  c.Spec.CommonConfiguration.LogLevel,
 		})
 		if err != nil {
 			panic(err)

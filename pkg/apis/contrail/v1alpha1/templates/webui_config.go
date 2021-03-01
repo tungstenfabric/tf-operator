@@ -1,9 +1,11 @@
 package templates
 
-import "text/template"
+import (
+	"text/template"
+)
 
 // WebuiWebConfig is the template of the Webui Web service configuration.
-var WebuiWebConfig = template.Must(template.New("").Parse(`/*
+var WebuiWebConfig = template.Must(template.New("").Funcs(tfFuncs).Parse(`/*
 * Copyright (c) 2014 Juniper Networks, Inc. All rights reserved.
 */
 var config = {};
@@ -149,7 +151,7 @@ config.qe = {};
 config.qe.enable_stat_queries = false;
 
 config.logs = {};
-config.logs.level = 'debug';
+config.logs.level = '{{ lowerOrDefault .LogLevel "info" }}';
 
 config.getDomainProjectsFromApiServer = false;
 
