@@ -445,6 +445,16 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 		reconcileAgain = reconcileAgain || again
 	}
 
+	falseVal := false
+	instance.Status.ActiveOnControllers = &falseVal
+	isControllerActive, err := instance.IsActiveOnControllers(r.Client)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	instance.Status.ActiveOnControllers = &isControllerActive
+
+	// check reconcile after the check IsActiveOnControllers to allow set it if masters are ready
+	// but some workers are not
 	if reconcileAgain == true {
 		reqLogger.Info("Update Status")
 		if err := r.Client.Status().Update(context.TODO(), instance); err != nil {
@@ -453,14 +463,6 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 		}
 		return reconcileRequeue, nil
 	}
-
-	falseVal := false
-	instance.Status.ActiveOnControllers = &falseVal
-	isControllerActive, err := instance.IsActiveOnControllers(r.Client)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-	instance.Status.ActiveOnControllers = &isControllerActive
 
 	instance.Status.Active = &falseVal
 	if err = instance.SetInstanceActive(r.Client, instance.Status.Active, daemonSet, request, instance); err != nil {
