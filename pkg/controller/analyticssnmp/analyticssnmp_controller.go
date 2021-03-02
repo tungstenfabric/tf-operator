@@ -409,7 +409,8 @@ func (r *ReconcileAnalyticsSnmp) GetSTS(request reconcile.Request, instance *v1a
 		if container.Name == "analytics-snmp-collector" {
 			if container.Command == nil {
 				command := []string{"bash", "-c", instance.CommonStartupScript(
-					"exec /usr/bin/tf-snmp-collector -c /etc/contrailconfigmaps/tf-snmp-collector.${POD_IP} --device-config-file /etc/contrail/device.ini",
+					// in 2011 branch binary has old name
+					"exec /usr/bin/contrail-snmp-collector -c /etc/contrailconfigmaps/tf-snmp-collector.${POD_IP} --device-config-file /etc/contrail/device.ini",
 					map[string]string{
 						"tf-snmp-collector.${POD_IP}": "",
 						"vnc_api_lib.ini.${POD_IP}":   "vnc_api_lib.ini",
