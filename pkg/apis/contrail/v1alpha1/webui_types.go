@@ -51,6 +51,7 @@ type WebuiSpec struct {
 // +k8s:openapi-gen=true
 type WebuiConfiguration struct {
 	ConfigInstance    string       `json:"configInstance,omitempty"`
+	AnalyticsInstance  string       `json:"analyticsInstance,omitempty"`
 	ControlInstance   string       `json:"controlInstance,omitempty"`
 	CassandraInstance string       `json:"cassandraInstance,omitempty"`
 	Containers        []*Container `json:"containers,omitempty"`
@@ -120,12 +121,17 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 		return err
 	}
 
+	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(c.Spec.ServiceConfiguration.AnalyticsInstance, request.Namespace, client)
+	if err != nil {
+		return err
+	}
+
 	authConfig := c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters
 
 	manager := "none"
 
 	configApiIPListCommaSeparatedQuoted := configtemplates.JoinListWithSeparatorAndSingleQuotes(configNodesInformation.APIServerIPList, ",")
-	analyticsIPListCommaSeparatedQuoted := configtemplates.JoinListWithSeparatorAndSingleQuotes(configNodesInformation.AnalyticsServerIPList, ",")
+	analyticsIPListCommaSeparatedQuoted := configtemplates.JoinListWithSeparatorAndSingleQuotes(analyticsNodesInformation.AnalyticsServerIPList, ",")
 	controlXMPPIPListCommaSeparatedQuoted := configtemplates.JoinListWithSeparatorAndSingleQuotes(controlNodesInformation.ControlServerIPList, ",")
 	cassandraIPListCommaSeparatedQuoted := configtemplates.JoinListWithSeparatorAndSingleQuotes(cassandraNodesInformation.ServerIPList, ",")
 	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
@@ -161,7 +167,7 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 			APIServerList:             configApiIPListCommaSeparatedQuoted,
 			APIServerPort:             strconv.Itoa(configNodesInformation.APIServerPort),
 			AnalyticsServerList:       analyticsIPListCommaSeparatedQuoted,
-			AnalyticsServerPort:       strconv.Itoa(configNodesInformation.AnalyticsServerPort),
+			AnalyticsServerPort:       strconv.Itoa(analyticsNodesInformation.AnalyticsServerPort),
 			ControlNodeList:           controlXMPPIPListCommaSeparatedQuoted,
 			DnsNodePort:               strconv.Itoa(controlNodesInformation.DNSIntrospectPort),
 			CassandraServerList:       cassandraIPListCommaSeparatedQuoted,

@@ -179,6 +179,8 @@ spec:
                   type: integer
                 alarmgenRedisAggregateDbOffset:
                   type: integer
+                analyticsInstance:
+                  type: string
                 cassandraInstance:
                   type: string
                 configInstance:

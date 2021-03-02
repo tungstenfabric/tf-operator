@@ -49,6 +49,7 @@ type CassandraSpec struct {
 type CassandraConfiguration struct {
 	Containers          []*Container              `json:"containers,omitempty"`
 	ConfigInstance      string                    `json:"configInstance,omitempty"`
+	AnalyticsInstance   string                    `json:"analyticsInstance,omitempty"`
 	ClusterName         string                    `json:"clusterName,omitempty"`
 	ListenAddress       string                    `json:"listenAddress,omitempty"`
 	Port                *int                      `json:"port,omitempty"`
@@ -140,6 +141,11 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 		return err
 	}
 
+	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(c.Spec.ServiceConfiguration.AnalyticsInstance, request.Namespace, client)
+	if err != nil {
+		return err
+	}
+
 	for _, pod := range podList {
 
 		var cassandraConfigBuffer bytes.Buffer
@@ -192,7 +198,7 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 		}
 		cassandraCqlShrcConfigString := cassandraCqlShrcBuffer.String()
 
-		collectorEndpointList := configtemplates.EndpointList(configNodesInformation.CollectorServerIPList, configNodesInformation.CollectorPort)
+		collectorEndpointList := configtemplates.EndpointList(analyticsNodesInformation.CollectorServerIPList, analyticsNodesInformation.CollectorPort)
 		collectorEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(collectorEndpointList, " ")
 		var nodeManagerConfigBuffer bytes.Buffer
 		err = configtemplates.CassandraNodemanagerConfig.Execute(&nodeManagerConfigBuffer, struct {
@@ -242,7 +248,6 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 		}
 		vncAPIConfigBufferString := vncAPIConfigBuffer.String()
 
-		// TODO: till analytics db is not separated use api as DBs lists
 		var nodemanagerEnvBuffer bytes.Buffer
 		err = configtemplates.NodemanagerEnv.Execute(&nodemanagerEnvBuffer, struct {
 			ConfigDBNodes    string

@@ -16,6 +16,8 @@ var reqLogger = log.WithValues()
 
 // const defines the Group constants.
 const (
+	ANALYTICS      = "Analytics.contrail.juniper.net"
+	ANALYTICSDB    = "AnalyticsDB.contrail.juniper.net"
 	ANALYTICSSNMP  = "AnalyticsSnmp.contrail.juniper.net"
 	ANALYTICSALARM = "AnalyticsAlarm.contrail.juniper.net"
 	CASSANDRA      = "Cassandra.contrail.juniper.net"
@@ -33,6 +35,16 @@ const (
 
 func RemoveIndex(s []corev1.Container, index int) []corev1.Container {
 	return append(s[:index], s[index+1:]...)
+}
+
+// AnalyticsGroupKind returns group kind.
+func AnalyticsGroupKind() schema.GroupKind {
+	return schema.ParseGroupKind(ANALYTICS)
+}
+
+// AnalyticsDBGroupKind returns group kind.
+func AnalyticsDBGroupKind() schema.GroupKind {
+	return schema.ParseGroupKind(ANALYTICSDB)
 }
 
 // AnalyticsSnmpGroupKind returns group kind.

@@ -1,8 +1,7 @@
-package config
+package analytics
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"time"
 
@@ -28,7 +27,7 @@ import (
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
 )
 
-var log = logf.Log.WithName("controller_config")
+var log = logf.Log.WithName("controller_analytics")
 
 var restartTime, _ = time.ParseDuration("1s")
 var requeueReconcile = reconcile.Result{Requeue: true, RequeueAfter: restartTime}
@@ -37,7 +36,7 @@ func resourceHandler(myclient client.Client) handler.Funcs {
 	appHandler := handler.Funcs{
 		CreateFunc: func(e event.CreateEvent, q workqueue.RateLimitingInterface) {
 			listOps := &client.ListOptions{Namespace: e.Meta.GetNamespace()}
-			list := &v1alpha1.ConfigList{}
+			list := &v1alpha1.AnalyticsList{}
 			err := myclient.List(context.TODO(), list, listOps)
 			if err == nil {
 				for _, app := range list.Items {
@@ -50,7 +49,7 @@ func resourceHandler(myclient client.Client) handler.Funcs {
 		},
 		UpdateFunc: func(e event.UpdateEvent, q workqueue.RateLimitingInterface) {
 			listOps := &client.ListOptions{Namespace: e.MetaNew.GetNamespace()}
-			list := &v1alpha1.ConfigList{}
+			list := &v1alpha1.AnalyticsList{}
 			err := myclient.List(context.TODO(), list, listOps)
 			if err == nil {
 				for _, app := range list.Items {
@@ -63,7 +62,7 @@ func resourceHandler(myclient client.Client) handler.Funcs {
 		},
 		DeleteFunc: func(e event.DeleteEvent, q workqueue.RateLimitingInterface) {
 			listOps := &client.ListOptions{Namespace: e.Meta.GetNamespace()}
-			list := &v1alpha1.ConfigList{}
+			list := &v1alpha1.AnalyticsList{}
 			err := myclient.List(context.TODO(), list, listOps)
 			if err == nil {
 				for _, app := range list.Items {
@@ -76,7 +75,7 @@ func resourceHandler(myclient client.Client) handler.Funcs {
 		},
 		GenericFunc: func(e event.GenericEvent, q workqueue.RateLimitingInterface) {
 			listOps := &client.ListOptions{Namespace: e.Meta.GetNamespace()}
-			list := &v1alpha1.ConfigList{}
+			list := &v1alpha1.AnalyticsList{}
 			err := myclient.List(context.TODO(), list, listOps)
 			if err == nil {
 				for _, app := range list.Items {
@@ -91,13 +90,13 @@ func resourceHandler(myclient client.Client) handler.Funcs {
 	return appHandler
 }
 
-// Add adds the Config controller to the manager.
+// Add adds the Analytics controller to the manager.
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
 }
 
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileConfig{
+	return &ReconcileAnalytics{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		Manager:    mgr,
@@ -106,23 +105,23 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 }
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller.
-	c, err := controller.New("config-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("analytics-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
 
-	// Watch for changes to primary resource Config
-	if err = c.Watch(&source.Kind{Type: &v1alpha1.Config{}}, &handler.EnqueueRequestForObject{}); err != nil {
+	// Watch for changes to primary resource Analytics
+	if err = c.Watch(&source.Kind{Type: &v1alpha1.Analytics{}}, &handler.EnqueueRequestForObject{}); err != nil {
 		return err
 	}
-	serviceMap := map[string]string{"contrail_manager": "config"}
+	serviceMap := map[string]string{"contrail_manager": "analytics"}
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
 	podHandler := resourceHandler(mgr.GetClient())
 	predPodIPChange := utils.PodIPChange(serviceMap)
 
 	if err = c.Watch(&source.Kind{Type: &corev1.Service{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &v1alpha1.Config{},
+		OwnerType:    &v1alpha1.Analytics{},
 	}); err != nil {
 		return err
 	}
@@ -155,7 +154,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	srcSTS := &source.Kind{Type: &appsv1.StatefulSet{}}
 	stsHandler := &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &v1alpha1.Config{},
+		OwnerType:    &v1alpha1.Analytics{},
 	}
 	stsPred := utils.STSStatusChange(utils.ConfigGroupKind())
 	if err = c.Watch(srcSTS, stsHandler, stsPred); err != nil {
@@ -165,11 +164,11 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-// blank assignment to verify that ReconcileConfig implements reconcile.Reconciler.
-var _ reconcile.Reconciler = &ReconcileConfig{}
+// blank assignment to verify that ReconcileCAnalytics implements reconcile.Reconciler.
+var _ reconcile.Reconciler = &ReconcileAnalytics{}
 
-// ReconcileConfig reconciles a Config object.
-type ReconcileConfig struct {
+// ReconcileAnalytics reconciles a Analytics object.
+type ReconcileAnalytics struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver.
 	Client     client.Client
@@ -178,23 +177,23 @@ type ReconcileConfig struct {
 	Kubernetes *k8s.Kubernetes
 }
 
-// Reconcile reconciles Config
-func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+// Reconcile reconciles Analytics
+func (r *ReconcileAnalytics) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Start")
-	instanceType := "config"
-	instance := &v1alpha1.Config{}
+	instanceType := "analytics"
+	instance := &v1alpha1.Analytics{}
 	cassandraInstance := &v1alpha1.Cassandra{}
 	zookeeperInstance := &v1alpha1.Zookeeper{}
 	rabbitmqInstance := &v1alpha1.Rabbitmq{}
 
 	if err := r.Client.Get(context.TODO(), request.NamespacedName, instance); err != nil && errors.IsNotFound(err) {
-		reqLogger.Error(err, "Failed to get config obj")
+		reqLogger.Error(err, "Failed to get analytics obj")
 		return reconcile.Result{}, nil
 	}
 
 	if !instance.GetDeletionTimestamp().IsZero() {
-		reqLogger.Info("Config is deleting, skip reconcile")
+		reqLogger.Info("Analytics is deleting, skip reconcile")
 		return reconcile.Result{}, nil
 	}
 
@@ -207,12 +206,12 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 	}
 
 	servicePortsMap := map[int32]string{
-		int32(v1alpha1.ConfigApiPort):    "api",
+		int32(v1alpha1.AnalyticsApiPort): "analytics",
 	}
-	configService := r.Kubernetes.Service(request.Name+"-"+instanceType, corev1.ServiceTypeClusterIP, servicePortsMap, instanceType, instance)
+	analyticsService := r.Kubernetes.Service(request.Name+"-"+instanceType, corev1.ServiceTypeClusterIP, servicePortsMap, instanceType, instance)
 
-	if err := configService.EnsureExists(); err != nil {
-		reqLogger.Error(err, "Config service doesnt exist")
+	if err := analyticsService.EnsureExists(); err != nil {
+		reqLogger.Error(err, "Analytics service doesnt exist")
 		return reconcile.Result{}, err
 	}
 
@@ -289,12 +288,12 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 
 		switch container.Name {
 
-		case "api":
+		case "analyticsapi":
 			if container.Command == nil {
 				command := []string{"bash", "-c", instance.CommonStartupScript(
-					"exec /usr/bin/contrail-api --conf_file /etc/contrailconfigmaps/api.${POD_IP} --conf_file /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP} --worker_id 0",
+					"exec /usr/bin/contrail-analytics-api -c /etc/contrailconfigmaps/analyticsapi.${POD_IP} -c /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP}",
 					map[string]string{
-						"api.${POD_IP}":                         "",
+						"analyticsapi.${POD_IP}":                "",
 						"contrail-keystone-auth.conf.${POD_IP}": "",
 						"vnc_api_lib.ini.${POD_IP}":             "vnc_api_lib.ini",
 					}),
@@ -302,138 +301,72 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 				container.Command = command
 			}
 
-		case "devicemanager":
+		case "collector":
 			if container.Command == nil {
-				// exec /usr/bin/contrail-device-manager is importnant as
-				// as dm use search byt inclusion in cmd line to kill others
-				// and occasionally kill parent bash (and himself indirectly)
 				command := []string{"bash", "-c", instance.CommonStartupScript(
-					"exec /usr/bin/contrail-device-manager --conf_file /etc/contrailconfigmaps/devicemanager.${POD_IP}"+
-						" --conf_file /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP}"+
-						" --fabric_ansible_conf_file /etc/contrailconfigmaps/contrail-fabric-ansible.conf.${POD_IP}",
+					"exec /usr/bin/contrail-collector --conf_file /etc/contrailconfigmaps/collector.${POD_IP}",
 					map[string]string{
-						"devicemanager.${POD_IP}":                "",
-						"contrail-fabric-ansible.conf.${POD_IP}": "",
-						"contrail-keystone-auth.conf.${POD_IP}":  "",
-						"vnc_api_lib.ini.${POD_IP}":              "vnc_api_lib.ini",
+						"collector.${POD_IP}":       "",
+						"vnc_api_lib.ini.${POD_IP}": "vnc_api_lib.ini",
 					}),
 				}
 				container.Command = command
 			}
 
-			container.SecurityContext = &corev1.SecurityContext{
-				Capabilities: &corev1.Capabilities{
-					Add: []corev1.Capability{"SYS_PTRACE", "KILL"},
-				},
-			}
-
-			container.VolumeMounts = append(container.VolumeMounts,
-				corev1.VolumeMount{
-					Name:      "tftp",
-					MountPath: "/var/lib/tftp",
-				},
-				corev1.VolumeMount{
-					Name:      "dnsmasq",
-					MountPath: "/var/lib/dnsmasq",
-				},
-			)
-
-		case "dnsmasq":
+		case "redis":
 			if container.Command == nil {
-				// exec dnsmasq is important because dm does process
-				// management by names and search in cmd line
-				// (to avoid wrong trigger of search on bash cmd)
-				command := []string{"bash", "-c", instance.CommonStartupScript(
-					"mkdir -p /var/lib/dnsmasq ; "+
-						"rm -f /var/lib/dnsmasq/base.conf ; "+
-						"cp /etc/contrailconfigmaps/dnsmasq_base.${POD_IP} /var/lib/dnsmasq/base.conf ; "+
-						"exec dnsmasq -k -p0 --conf-file=/etc/contrailconfigmaps/dnsmasq.${POD_IP}",
-					map[string]string{
-						"dnsmasq.${POD_IP}":      "",
-						"dnsmasq_base.${POD_IP}": "",
-					}),
+				command := []string{"bash", "-c",
+					"exec redis-server --lua-time-limit 15000 --dbfilename '' --bind 127.0.0.1 --port 6379",
 				}
 				container.Command = command
 			}
 
-			container.SecurityContext = &corev1.SecurityContext{
-				Capabilities: &corev1.Capabilities{
-					Add: []corev1.Capability{"NET_ADMIN", "NET_RAW"},
+			readinessProbe := corev1.Probe{
+				FailureThreshold: 3,
+				PeriodSeconds:    3,
+				Handler: corev1.Handler{
+					Exec: &corev1.ExecAction{
+						Command: []string{"sh", "-c", "redis-cli -h 127.0.0.1 -p 6379 ping"},
+					},
 				},
 			}
-
-			container.VolumeMounts = append(container.VolumeMounts,
-				corev1.VolumeMount{
-					Name:      "tftp",
-					MountPath: "/var/lib/tftp",
+			startupProbe := corev1.Probe{
+				FailureThreshold: 30,
+				PeriodSeconds:    3,
+				Handler: corev1.Handler{
+					Exec: &corev1.ExecAction{
+						Command: []string{"sh", "-c", "redis-cli -h 127.0.0.1 -p 6379 ping"},
+					},
 				},
-				corev1.VolumeMount{
-					Name:      "dnsmasq",
-					MountPath: "/var/lib/dnsmasq",
-				},
-			)
-
-		case "servicemonitor":
-			if container.Command == nil {
-				command := []string{"bash", "-c", instance.CommonStartupScript(
-					"exec /usr/bin/contrail-svc-monitor --conf_file /etc/contrailconfigmaps/servicemonitor.${POD_IP} --conf_file /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP}",
-					map[string]string{
-						"servicemonitor.${POD_IP}":              "",
-						"contrail-keystone-auth.conf.${POD_IP}": "",
-						"vnc_api_lib.ini.${POD_IP}":             "vnc_api_lib.ini",
-					}),
-				}
-				container.Command = command
 			}
+			container.ReadinessProbe = &readinessProbe
+			container.StartupProbe = &startupProbe
 
-		case "schematransformer":
+		case "stunnel":
 			if container.Command == nil {
 				command := []string{"bash", "-c", instance.CommonStartupScript(
-					"exec /usr/bin/contrail-schema --conf_file /etc/contrailconfigmaps/schematransformer.${POD_IP}  --conf_file /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP}",
+					"mkdir -p /etc/stunnel /var/run/stunnel; "+
+						"cat /etc/certificates/server-key-${POD_IP}.pem /etc/certificates/server-${POD_IP}.crt > /etc/stunnel/private.pem; "+
+						"chmod 600 /etc/stunnel/private.pem; "+
+						"exec stunnel /etc/contrailconfigmaps/stunnel.${POD_IP}",
 					map[string]string{
-						"schematransformer.${POD_IP}":           "",
-						"contrail-keystone-auth.conf.${POD_IP}": "",
-						"vnc_api_lib.ini.${POD_IP}":             "vnc_api_lib.ini",
+						"stunnel.${POD_IP}": "",
 					}),
 				}
+
 				container.Command = command
 			}
 
 		case "nodemanager":
 			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/config-nodemanager-runner.sh"}
+				command := []string{"bash", "/etc/contrailconfigmaps/analytics-nodemanager-runner.sh"}
 				container.Command = command
 			}
 
 		case "provisioner":
 			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/config-provisioner.sh"}
+				command := []string{"bash", "/etc/contrailconfigmaps/analytics-provisioner.sh"}
 				container.Command = command
-			}
-			if instance.Spec.ServiceConfiguration.LinklocalServiceConfig != nil {
-				ll := instance.ConfigurationParameters().LinklocalServiceConfig
-				container.Env = append(container.Env,
-					corev1.EnvVar{
-						Name:  "IPFABRIC_SERVICE_HOST",
-						Value: ll.IPFabricServiceHost,
-					},
-					corev1.EnvVar{
-						Name:  "IPFABRIC_SERVICE_PORT",
-						Value: fmt.Sprint(*ll.IPFabricServicePort),
-					},
-					corev1.EnvVar{
-						Name:  "LINKLOCAL_SERVICE_NAME",
-						Value: *ll.Name,
-					},
-					corev1.EnvVar{
-						Name:  "LINKLOCAL_SERVICE_IP",
-						Value: *ll.IP,
-					},
-					corev1.EnvVar{
-						Name:  "LINKLOCAL_SERVICE_PORT",
-						Value: fmt.Sprint(*ll.Port),
-					},
-				)
 			}
 		}
 	}
@@ -481,7 +414,7 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 		}
 	}
 
-	if err = instance.SetEndpointInStatus(r.Client, configService.ClusterIP()); err != nil {
+	if err = instance.SetEndpointInStatus(r.Client, analyticsService.ClusterIP()); err != nil {
 		reqLogger.Error(err, "Failed to set endpointIn status")
 		return reconcile.Result{}, err
 	}
@@ -525,7 +458,7 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileConfig) ensureCertificatesExist(instance *v1alpha1.Config, pods []corev1.Pod, instanceType string) error {
+func (r *ReconcileAnalytics) ensureCertificatesExist(instance *v1alpha1.Analytics, pods []corev1.Pod, instanceType string) error {
 	domain, err := v1alpha1.ClusterDNSDomain(r.Client)
 	if err != nil {
 		return err

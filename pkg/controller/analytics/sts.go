@@ -1,29 +1,30 @@
-package config
+package analytics
 
 import (
 	"github.com/ghodss/yaml"
 	appsv1 "k8s.io/api/apps/v1"
 )
 
-var yamlDataConfigSts = `
+var yamlDataAnalyticsSts = `
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: config
+  name: analytics
 spec:
   selector:
     matchLabels:
-      app: config
-  serviceName: "config"
+      app: analytics
+  serviceName: "analytics"
   replicas: 1
   template:
     metadata:
       labels:
-        app: config
-        contrail_manager: config
+        app: analytics
+        contrail_manager: analytics
     spec:
       dnsPolicy: ClusterFirstWithHostNet
       hostNetwork: true
+      # nodemanager pidhost and
       # deviceManager pushes configuration to dnsmasq service and then needs to restart it by sending a signal.
       # Therefore those services needs to share a one process namespace
       shareProcessNamespace: true
@@ -36,54 +37,36 @@ spec:
         - effect: NoExecute
           operator: Exists
       containers:
-        - name: api
-          image: tungstenfabric/contrail-controller-config-api:latest
+        - name: analyticsapi
+          image: tungstenfabric/contrail-analytics-api:latest
           env:
             - name: POD_IP
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-          #startupProbe:
-          #  failureThreshold: 30
-          #  periodSeconds: 5
-          #  httpGet:
-          #    scheme: HTTPS
-          #    path: /
-          #    port: 8082
-          #readinessProbe:
-          #  failureThreshold: 3
-          #  periodSeconds: 3
-          #  httpGet:
-          #    scheme: HTTPS
-          #    path: /
-          #    port: 8082
-        - name: devicemanager
-          image: tungstenfabric/contrail-controller-config-devicemgr:latest
-          env:
-            - name: VENDOR_DOMAIN
-              value: io.tungsten
-            - name: POD_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.podIP
-        - name: dnsmasq
-          image: tungstenfabric/contrail-external-dnsmasq:latest
-          env:
-            - name: VENDOR_DOMAIN
-              value: io.tungsten
-            - name: POD_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.podIP
-        - name: schematransformer
-          image: tungstenfabric/contrail-controller-config-schema:latest
+            - name: ANALYTICSDB_ENABLE
+              value: "true"
+            - name: ANALYTICS_ALARM_ENABLE
+              value: "true"
+        - name: collector
+          image: tungstenfabric/contrail-analytics-collector:latest
           env:
             - name: POD_IP
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-        - name: servicemonitor
-          image: tungstenfabric/contrail-controller-config-svcmonitor:latest
+        - name: redis
+          image: tungstenfabric/contrail-external-redis:latest
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          volumeMounts:
+            - mountPath: /var/lib/redis
+              name: analytics-data
+        - name: stunnel
+          image: tungstenfabric/contrail-external-stunnel:latest
           env:
             - name: POD_IP
               valueFrom:
@@ -97,7 +80,7 @@ spec:
             - name: VENDOR_DOMAIN
               value: io.tungsten
             - name: NODE_TYPE
-              value: config
+              value: analytics
             - name: POD_IP
               valueFrom:
                 fieldRef:
@@ -110,7 +93,7 @@ spec:
           image: tungstenfabric/contrail-provisioner:latest
           env:
             - name: NODE_TYPE
-              value: config
+              value: analytics
             - name: POD_IP
               valueFrom:
                 fieldRef:
@@ -119,6 +102,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.annotations['hostname']
+          volumeMounts:
       volumes:
         - hostPath:
             path: /var/lib/tftp
@@ -129,13 +113,13 @@ spec:
             type: ""
           name: dnsmasq
         - hostPath:
-            path: /var/log/contrail/config
+            path: /var/log/contrail/analytics
             type: ""
           name: contrail-logs
         - hostPath:
-            path: /var/lib/contrail/config
+            path: /var/lib/contrail/analytics
             type: ""
-          name: config-data
+          name: analytics-data
         - hostPath:
             path: /usr/bin
             type: ""
@@ -153,14 +137,14 @@ spec:
               path: pod_labelsx
           name: status`
 
-// GetSTS returns StatesfulSet object created from yamlDataConfigSts
+// GetSTS returns StatesfulSet object created from yamlDataAnalyticsSts
 func GetSTS() *appsv1.StatefulSet {
 	sts := appsv1.StatefulSet{}
-	err := yaml.Unmarshal([]byte(yamlDataConfigSts), &sts)
+	err := yaml.Unmarshal([]byte(yamlDataAnalyticsSts), &sts)
 	if err != nil {
 		panic(err)
 	}
-	jsonData, err := yaml.YAMLToJSON([]byte(yamlDataConfigSts))
+	jsonData, err := yaml.YAMLToJSON([]byte(yamlDataAnalyticsSts))
 	if err != nil {
 		panic(err)
 	}

@@ -46,6 +46,7 @@ type ControlConfiguration struct {
 	CassandraInstance string       `json:"cassandraInstance,omitempty"`
 	RabbitmqInstance  string       `json:"rabbitmqInstance,omitempty"`
 	ConfigInstance    string       `json:"configInstance,omitempty"`
+	AnalyticsInstance string       `json:"analyticsInstance,omitempty"`
 	BGPPort           *int         `json:"bgpPort,omitempty"`
 	ASNNumber         *int         `json:"asnNumber,omitempty"`
 	XMPPPort          *int         `json:"xmppPort,omitempty"`
@@ -177,6 +178,12 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 		return err
 	}
 
+	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(c.Spec.ServiceConfiguration.AnalyticsInstance,
+		request.Namespace, client)
+	if err != nil {
+		return err
+	}
+
 	controlConfig := c.ConfigurationParameters()
 	if rabbitmqSecretUser == "" {
 		rabbitmqSecretUser = controlConfig.RabbitmqUser
@@ -196,8 +203,8 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 	configApiIPListSpaceSeparated := configtemplates.JoinListWithSeparator(configNodesInformation.APIServerIPList, " ")
 	configApiIPListCommaSeparated := configtemplates.JoinListWithSeparator(configNodesInformation.APIServerIPList, ",")
 	configApiIPListCommaSeparatedQuoted := configtemplates.JoinListWithSeparatorAndSingleQuotes(configNodesInformation.APIServerIPList, ",")
-	configCollectorEndpointList := configtemplates.EndpointList(configNodesInformation.CollectorServerIPList, configNodesInformation.CollectorPort)
-	configCollectorEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(configCollectorEndpointList, " ")
+	collectorEndpointList := configtemplates.EndpointList(analyticsNodesInformation.CollectorServerIPList, analyticsNodesInformation.CollectorPort)
+	collectorEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(collectorEndpointList, " ")
 
 	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
 	var data = make(map[string]string)
@@ -236,7 +243,7 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 			CassandraServerList:      cassandraCQLEndpointListSpaceSeparated,
 			RabbitmqServerList:       rabbitmqSSLEndpointListSpaceSeparated,
 			RabbitmqServerPort:       strconv.Itoa(rabbitmqNodesInformation.Port),
-			CollectorServerList:      configCollectorEndpointListSpaceSeparated,
+			CollectorServerList:      collectorEndpointListSpaceSeparated,
 			RabbitmqUser:             rabbitmqSecretUser,
 			RabbitmqPassword:         rabbitmqSecretPassword,
 			RabbitmqVhost:            rabbitmqSecretVhost,
@@ -282,7 +289,7 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 			CassandraServerList:      cassandraCQLEndpointListSpaceSeparated,
 			RabbitmqServerList:       rabbitmqSSLEndpointListSpaceSeparated,
 			RabbitmqServerPort:       strconv.Itoa(rabbitmqNodesInformation.Port),
-			CollectorServerList:      configCollectorEndpointListSpaceSeparated,
+			CollectorServerList:      collectorEndpointListSpaceSeparated,
 			RabbitmqUser:             rabbitmqSecretUser,
 			RabbitmqPassword:         rabbitmqSecretPassword,
 			RabbitmqVhost:            rabbitmqSecretVhost,
@@ -308,7 +315,7 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 			Hostname:                 hostname,
 			ListenAddress:            podIP,
 			InstrospectListenAddress: instrospectListenAddress,
-			CollectorServerList:      configCollectorEndpointListSpaceSeparated,
+			CollectorServerList:      collectorEndpointListSpaceSeparated,
 			CassandraPort:            strconv.Itoa(cassandraNodesInformation.CQLPort),
 			CassandraJmxPort:         strconv.Itoa(cassandraNodesInformation.JMXPort),
 			CAFilePath:               certificates.SignerCAFilepath,

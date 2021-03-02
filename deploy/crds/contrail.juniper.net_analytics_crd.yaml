@@ -1,7 +1,8 @@
+# TODO
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: configs.contrail.juniper.net
+  name: analytics.contrail.juniper.net
 spec:
   additionalPrinterColumns:
   - JSONPath: .status.replicas
@@ -21,16 +22,16 @@ spec:
     type: boolean
   group: contrail.juniper.net
   names:
-    kind: Config
-    listKind: ConfigList
-    plural: configs
-    singular: config
+    kind: Analytics
+    listKind: AnalyticsList
+    plural: analytics
+    singular: analytics
   scope: Namespaced
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
-      description: Config is the Schema for the configs API.
+      description: Analytics is the Schema for the analytics API.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -45,7 +46,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: ConfigSpec is the Spec for the Config API.
+          description: AnalyticsSpec is the Spec for the Analytics API.
           properties:
             commonConfiguration:
               description: PodConfiguration is the common services struct.
@@ -116,16 +117,6 @@ spec:
                 introspectListenAll:
                   description: Use 0.0.0.0 for isntrospection ports
                   type: boolean
-                logLevel:
-                  description: Kubernetes Cluster Configuration
-                  enum:
-                  - info
-                  - debug
-                  - warning
-                  - error
-                  - critical
-                  - none
-                  type: string
                 nodeSelector:
                   additionalProperties:
                     type: string
@@ -180,7 +171,7 @@ spec:
                   type: array
               type: object
             serviceConfiguration:
-              description: ConfigConfiguration is the Spec for the Config API.
+              description: AnalyticsConfiguration is the Spec for the Analytics API.
               properties:
                 aaaMode:
                   description: AAAMode aaa mode
@@ -188,12 +179,33 @@ spec:
                   - noauth
                   - rbac
                   type: string
-                apiIntrospectPort:
+                analyticsConfigAuditTTL:
+                  description: Time (in hours) the analytics config data entering
+                    the collector stays in the Cassandra database. Defaults to 2160
+                    hours.
                   type: integer
-                apiPort:
+                analyticsDataTTL:
+                  description: Time (in hours) that the analytics object and log data
+                    stays in the Cassandra database. Defaults to 48 hours.
+                  type: integer
+                analyticsFlowTTL:
+                  description: Time to live (TTL) for flow data in hours. Defaults
+                    to 2 hours.
+                  type: integer
+                analyticsIntrospectPort:
+                  type: integer
+                analyticsPort:
+                  type: integer
+                analyticsStatisticsTTL:
+                  description: Time to live (TTL) for statistics data in hours. Defaults
+                    to 4 hours.
                   type: integer
                 cassandraInstance:
                   type: string
+                collectorIntrospectPort:
+                  type: integer
+                collectorPort:
+                  type: integer
                 containers:
                   items:
                     description: Container defines name, image and command.
@@ -208,27 +220,9 @@ spec:
                         type: string
                     type: object
                   type: array
-                deviceManagerIntrospectPort:
-                  type: integer
-                fabricMgmtIP:
-                  type: string
-                linklocalServiceConfig:
-                  description: LinklocalServiceConfig is the Spec for link local coniguration
-                  properties:
-                    ip:
-                      type: string
-                    ipFabricServiceHost:
-                      type: string
-                    ipFabricServicePort:
-                      type: integer
-                    name:
-                      type: string
-                    port:
-                      type: integer
-                  type: object
                 logLevel:
                   type: string
-                analyticsInstance:
+                configInstance:
                   type: string
                 rabbitmqInstance:
                   type: string
@@ -238,8 +232,6 @@ spec:
                   type: string
                 rabbitmqVhost:
                   type: string
-                schemaIntrospectPort:
-                  type: integer
                 storage:
                   properties:
                     path:
@@ -248,8 +240,6 @@ spec:
                       pattern: ^([0-9]+)([KMGTPE]i)?$
                       type: string
                   type: object
-                svcMonitorIntrospectPort:
-                  type: integer
                 zookeeperInstance:
                   type: string
               type: object
@@ -257,7 +247,7 @@ spec:
           - serviceConfiguration
           type: object
         status:
-          description: ConfigStatus status of Config
+          description: AnalyticsStatus status of Analytics
           properties:
             active:
               type: boolean

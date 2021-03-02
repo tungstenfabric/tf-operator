@@ -59,6 +59,7 @@ type KubemanagerServiceConfiguration struct {
 	ZookeeperInstance        string `json:"zookeeperInstance,omitempty"`
 	RabbitmqInstance         string `json:"rabbitmqInstance,omitempty"`
 	ConfigInstance           string `json:"configInstance,omitempty"`
+	AnalyticsInstance        string `json:"analyticsInstance,omitempty"`
 }
 
 // KubemanagerConfiguration is the configuration for the kubemanagers API.
@@ -141,6 +142,13 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 	}
 	configNodesInformation.FillWithDefaultValues()
 
+	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(
+		c.Spec.ServiceConfiguration.AnalyticsInstance, request.Namespace, client)
+	if err != nil {
+		return err
+	}
+	analyticsNodesInformation.FillWithDefaultValues()
+
 	var rabbitmqSecretUser string
 	var rabbitmqSecretPassword string
 	var rabbitmqSecretVhost string
@@ -174,8 +182,8 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 	for _, pod := range podList {
 
 		configApiIPListCommaSeparated := configtemplates.JoinListWithSeparator(configNodesInformation.APIServerIPList, ",")
-		configCollectorEndpointList := configtemplates.EndpointList(configNodesInformation.CollectorServerIPList, configNodesInformation.CollectorPort)
-		configCollectorEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(configCollectorEndpointList, " ")
+		collectorEndpointList := configtemplates.EndpointList(analyticsNodesInformation.CollectorServerIPList, analyticsNodesInformation.CollectorPort)
+		collectorEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(collectorEndpointList, " ")
 		rabbitmqSSLEndpointListCommaSeparated := configtemplates.JoinListWithSeparator(rabbitmqNodesInformation.ServerIPList, ",")
 		zookeeperEndpointList := configtemplates.EndpointList(zookeeperNodesInformation.ServerIPList, zookeeperNodesInformation.ClientPort)
 		zookeeperEndpointListCommaSeparated := configtemplates.JoinListWithSeparator(zookeeperEndpointList, ",")
@@ -241,7 +249,7 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 			ZookeeperServerList:      zookeeperEndpointListCommaSeparated,
 			RabbitmqServerList:       rabbitmqSSLEndpointListCommaSeparated,
 			RabbitmqServerPort:       strconv.Itoa(rabbitmqNodesInformation.Port),
-			CollectorServerList:      configCollectorEndpointListSpaceSeparated,
+			CollectorServerList:      collectorEndpointListSpaceSeparated,
 			HostNetworkService:       strconv.FormatBool(*kubemanagerConfig.HostNetworkService),
 			RabbitmqUser:             rabbitmqSecretUser,
 			RabbitmqPassword:         rabbitmqSecretPassword,
