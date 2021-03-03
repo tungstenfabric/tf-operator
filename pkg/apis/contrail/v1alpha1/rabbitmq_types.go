@@ -56,11 +56,10 @@ type RabbitmqConfiguration struct {
 	Password     string       `json:"password,omitempty"`
 	Secret       string       `json:"secret,omitempty"`
 	// +kubebuilder:validation:Enum=exactly;all;nodes
-	MirroredQueueMode string `json:"mirroredQueueMode,omitempty"`
-	// +kubebuilder:validation:Enum=autoheal;pause_minority;pause_if_all_down
-	ClusterPartitionHandling *string                `json:"clusterPartitionHandling,omitempty"`
-	TCPListenOptions         TCPListenOptionsConfig `json:"tcpListenOptions,omitempty"`
-	CTLDistPorts             *CTLDistPortsConfig    `json:"ctlDistPorts,omitempty"`
+	MirroredQueueMode        *string                 `json:"mirroredQueueMode,omitempty"`
+	ClusterPartitionHandling *string                 `json:"clusterPartitionHandling,omitempty"`
+	TCPListenOptions         *TCPListenOptionsConfig `json:"tcpListenOptions,omitempty"`
+	CTLDistPorts             *CTLDistPortsConfig     `json:"ctlDistPorts,omitempty"`
 }
 
 // RabbitmqStatus +k8s:openapi-gen=true
@@ -100,6 +99,7 @@ func init() {
 	SchemeBuilder.Register(&Rabbitmq{}, &RabbitmqList{})
 }
 
+// InstanceConfiguration prepare rabbit configs
 func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 	podList []corev1.Pod,
 	client client.Client) error {
@@ -112,19 +112,19 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 	for _, pod := range podList {
 		var rabbitmqPodConfig bytes.Buffer
 		err := configtemplates.RabbitmqPodConfig.Execute(&rabbitmqPodConfig, struct {
-			RabbitmqPort      int
-			SignerCAFilepath  string
-			MirroredQueueMode string
-			PodIP             string
-			PodsList          []corev1.Pod
-			TCPListenOptions  TCPListenOptionsConfig
+			RabbitmqPort             int
+			SignerCAFilepath         string
+			ClusterPartitionHandling string
+			PodIP                    string
+			PodsList                 []corev1.Pod
+			TCPListenOptions         *TCPListenOptionsConfig
 		}{
-			RabbitmqPort:      *rabbitmqConfig.Port,
-			SignerCAFilepath:  certificates.SignerCAFilepath,
-			MirroredQueueMode: c.Spec.ServiceConfiguration.MirroredQueueMode,
-			PodIP:             pod.Status.PodIP,
-			PodsList:          podList,
-			TCPListenOptions:  c.Spec.ServiceConfiguration.TCPListenOptions,
+			RabbitmqPort:             *rabbitmqConfig.Port,
+			SignerCAFilepath:         certificates.SignerCAFilepath,
+			ClusterPartitionHandling: *rabbitmqConfig.ClusterPartitionHandling,
+			PodIP:                    pod.Status.PodIP,
+			PodsList:                 podList,
+			TCPListenOptions:         rabbitmqConfig.TCPListenOptions,
 		})
 		if err != nil {
 			panic(err)
@@ -184,17 +184,17 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 
 	var rabbitmqDefinitionBuffer bytes.Buffer
 	err = configtemplates.RabbitmqDefinition.Execute(&rabbitmqDefinitionBuffer, struct {
-		RabbitmqUser             string
-		RabbitmqPassword         string
-		RabbitmqVhost            string
-		ClusterPartitionHandling *string
-		RabbitmqPort             int
+		RabbitmqUser      string
+		RabbitmqPassword  string
+		RabbitmqVhost     string
+		MirroredQueueMode string
+		RabbitmqPort      int
 	}{
-		RabbitmqUser:             string(secret.Data["user"]),
-		RabbitmqPassword:         base64.StdEncoding.EncodeToString(saltedP),
-		RabbitmqVhost:            string(secret.Data["vhost"]),
-		ClusterPartitionHandling: c.Spec.ServiceConfiguration.ClusterPartitionHandling,
-		RabbitmqPort:             *rabbitmqConfig.Port,
+		RabbitmqUser:      string(secret.Data["user"]),
+		RabbitmqPassword:  base64.StdEncoding.EncodeToString(saltedP),
+		RabbitmqVhost:     string(secret.Data["vhost"]),
+		MirroredQueueMode: *rabbitmqConfig.MirroredQueueMode,
+		RabbitmqPort:      *rabbitmqConfig.Port,
 	})
 	if err != nil {
 		panic(err)
@@ -382,12 +382,24 @@ func (c *Rabbitmq) ConfigurationParameters() RabbitmqConfiguration {
 	} else {
 		secret = c.GetName() + "-secret"
 	}
+
+	partHandling := RabbitmqClusterPartitionHandling
+	if c.Spec.ServiceConfiguration.ClusterPartitionHandling != nil {
+		partHandling = *c.Spec.ServiceConfiguration.ClusterPartitionHandling
+	}
+	mirredQueueMode := RabbitmqMirroredQueueMode
+	if c.Spec.ServiceConfiguration.MirroredQueueMode != nil {
+		mirredQueueMode = *c.Spec.ServiceConfiguration.MirroredQueueMode
+	}
+
 	rabbitmqConfiguration.Port = &port
 	rabbitmqConfiguration.ErlangCookie = erlangCookie
 	rabbitmqConfiguration.Vhost = vhost
 	rabbitmqConfiguration.User = user
 	rabbitmqConfiguration.Password = password
 	rabbitmqConfiguration.Secret = secret
+	rabbitmqConfiguration.ClusterPartitionHandling = &partHandling
+	rabbitmqConfiguration.MirroredQueueMode = &mirredQueueMode
 
 	return rabbitmqConfiguration
 }

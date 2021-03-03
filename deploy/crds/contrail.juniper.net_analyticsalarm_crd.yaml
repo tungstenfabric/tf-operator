@@ -18,7 +18,7 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
-      description: AnalyticsAlarm is the Schema for the Analytics Alarmgen API.
+      description: AnalyticsAlarm is the Schema for the Analytics Alarm API.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -33,7 +33,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: AnalyticsAlarmSpec is the Spec for the Analytics Alarmgen API.
+          description: AnalyticsAlarmSpec is the Spec for the Analytics Alarm API.
           properties:
             commonConfiguration:
               description: PodConfiguration is the common services struct.
@@ -125,8 +125,16 @@ spec:
               type: object
             serviceConfiguration:
               description: AnalyticsAlarmConfiguration is the Spec for the Analytics
-                Alarmgen API.
+                Alarm API.
               properties:
+                alarmgenIntrospectListenPort:
+                  type: integer
+                alarmgenLogFileName:
+                  type: string
+                alarmgenPartitions:
+                  type: integer
+                alarmgenRedisAggregateDbOffset:
+                  type: integer
                 cassandraInstance:
                   type: string
                 configInstance:
@@ -153,14 +161,6 @@ spec:
                   type: string
                 rabbitmqInstance:
                   type: string
-                alarmgenRedisAggregateDbOffset:
-                  type: integer
-                alarmgenIntrospectListenPort:
-                  type: integer
-                alarmgenLogFileName:
-                  type: string
-                alarmgenPartitions:
-                  type: integer
                 zookeeperInstance:
                   type: string
               type: object
@@ -168,7 +168,8 @@ spec:
           - serviceConfiguration
           type: object
         status:
-          description: AnalyticsAlarmStatus is the Status for the Analytics Alarmgen API.
+          description: AnalyticsAlarmStatus is the Status for the Analytics Alarm
+            API.
           properties:
             active:
               type: boolean

@@ -79,19 +79,19 @@ var RabbitmqDefinition = template.Must(template.New("").Funcs(addFunc).Parse(`{
       "write": ".*",
       "read": ".*"
     }
-  ]{{ if .ClusterPartitionHandling }},
+  ],
   "policies": [
     {
-      "vhost": "/",
+      "vhost": "{{ .RabbitmqVhost }}",
       "name": "ha",
       "pattern": "^(?!amq\.).*",
       "definition": {
-          "ha-mode": "{{ .ClusterPartitionHandling }}",
+          "ha-mode": "{{ .MirroredQueueMode }}",
           "ha-sync-mode": "automatic",
           "ha-sync-batch-size": 5
       }
     }
-  ]{{ end }}
+  ]
 }
 `))
 
@@ -106,14 +106,16 @@ ssl_options.keyfile = /etc/certificates/server-key-{{ .PodIP }}.pem
 ssl_options.certfile = /etc/certificates/server-{{ .PodIP }}.crt
 ssl_options.verify = verify_peer
 ssl_options.fail_if_no_peer_cert = true
-{{ if .MirroredQueueMode }}mirrored_queue_mode = {{ .MirroredQueueMode }}{{ end }}
+cluster_partition_handling = {{ .ClusterPartitionHandling }}
+{{ if .TCPListenOptions }}
 {{ if .TCPListenOptions.Backlog }}tcp_listen_options.backlog = {{ .TCPListenOptions.Backlog }}{{ end }}
 {{ if .TCPListenOptions.Nodelay }}tcp_listen_options.nodelay = {{ .TCPListenOptions.Nodelay }}{{ end }}
 {{ if .TCPListenOptions.LingerOn }}tcp_listen_options.linger.on = {{ .TCPListenOptions.LingerOn }}{{ end }}
 {{ if .TCPListenOptions.LingerTimeout }}tcp_listen_options.linger.timeout = {{ .TCPListenOptions.LingerTimeout }}{{ end }}
 {{ if .TCPListenOptions.ExitOnClose }}tcp_listen_options.exit_on_close = {{ .TCPListenOptions.ExitOnClose }}{{ end }}
+{{ end }}
 {{ $podsCount := len .PodsList }}{{ if gt $podsCount 1 }}cluster_formation.peer_discovery_backend = classic_config
 {{ range $idx, $pod := .PodsList }}cluster_formation.classic_config.nodes.{{ add $idx 1 }} = rabbit@{{ $pod.Status.PodIP }}
 {{ end }}
-{{end}}
+{{ end }}
 `))

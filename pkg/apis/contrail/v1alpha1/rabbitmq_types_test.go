@@ -75,6 +75,7 @@ func TestRabbitmqConfigMapsWithDefaultValues(t *testing.T) {
 	require.NoError(t, corev1.SchemeBuilder.AddToScheme(scheme), "Failed to add CoreV1 into scheme")
 
 	cl := fake.NewFakeClientWithScheme(scheme, rabbitmqCM, rabbitmqRunnerCM, rabbitmqSecret)
+	cph := "autoheal"
 	rabbitmq := Rabbitmq{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "rabbitmq1",
@@ -82,7 +83,7 @@ func TestRabbitmqConfigMapsWithDefaultValues(t *testing.T) {
 		},
 		Spec: RabbitmqSpec{
 			ServiceConfiguration: RabbitmqConfiguration{
-				MirroredQueueMode: "all",
+				ClusterPartitionHandling: &cph,
 			},
 		},
 	}
@@ -96,7 +97,7 @@ func TestRabbitmqConfigMapsWithDefaultValues(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "none", rabbitmqConfig.Section("").Key("listeners.tcp").String())
-	assert.Equal(t, "all", rabbitmqConfig.Section("").Key("mirrored_queue_mode").String())
+	assert.Equal(t, "autoheal", rabbitmqConfig.Section("").Key("cluster_partition_handling").String())
 	assert.Equal(t, "5673", rabbitmqConfig.Section("").Key("listeners.ssl.default").String())
 	assert.Equal(t, "none", rabbitmqConfig.Section("").Key("loopback_users").String())
 	assert.Equal(t, "15673", rabbitmqConfig.Section("").Key("management.tcp.port").String())
@@ -116,7 +117,7 @@ func TestRabbitmqConfigMapsWithDefaultValues(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "none", rabbitmqConfig.Section("").Key("listeners.tcp").String())
-	assert.Equal(t, "all", rabbitmqConfig.Section("").Key("mirrored_queue_mode").String())
+	assert.Equal(t, "autoheal", rabbitmqConfig.Section("").Key("cluster_partition_handling").String())
 	assert.Equal(t, "5673", rabbitmqConfig.Section("").Key("listeners.ssl.default").String())
 	assert.Equal(t, "none", rabbitmqConfig.Section("").Key("loopback_users").String())
 	assert.Equal(t, "15673", rabbitmqConfig.Section("").Key("management.tcp.port").String())
@@ -139,6 +140,7 @@ func TestRabbitmqConfigMapsWithInetDistListenValues(t *testing.T) {
 	require.NoError(t, corev1.SchemeBuilder.AddToScheme(scheme), "Failed to add CoreV1 into scheme")
 
 	cl := fake.NewFakeClientWithScheme(scheme, rabbitmqCM, rabbitmqRunnerCM, rabbitmqSecret)
+	cph := "autoheal"
 	rabbitmq := Rabbitmq{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "rabbitmq1",
@@ -146,7 +148,7 @@ func TestRabbitmqConfigMapsWithInetDistListenValues(t *testing.T) {
 		},
 		Spec: RabbitmqSpec{
 			ServiceConfiguration: RabbitmqConfiguration{
-				MirroredQueueMode: "all",
+				ClusterPartitionHandling: &cph,
 			},
 		},
 	}
@@ -160,7 +162,7 @@ func TestRabbitmqConfigMapsWithInetDistListenValues(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "none", rabbitmqConfig.Section("").Key("listeners.tcp").String())
-	assert.Equal(t, "all", rabbitmqConfig.Section("").Key("mirrored_queue_mode").String())
+	assert.Equal(t, "autoheal", rabbitmqConfig.Section("").Key("cluster_partition_handling").String())
 	assert.Equal(t, "5673", rabbitmqConfig.Section("").Key("listeners.ssl.default").String())
 	assert.Equal(t, "none", rabbitmqConfig.Section("").Key("loopback_users").String())
 	assert.Equal(t, "15673", rabbitmqConfig.Section("").Key("management.tcp.port").String())
@@ -180,7 +182,7 @@ func TestRabbitmqConfigMapsWithInetDistListenValues(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "none", rabbitmqConfig.Section("").Key("listeners.tcp").String())
-	assert.Equal(t, "all", rabbitmqConfig.Section("").Key("mirrored_queue_mode").String())
+	assert.Equal(t, "autoheal", rabbitmqConfig.Section("").Key("cluster_partition_handling").String())
 	assert.Equal(t, "5673", rabbitmqConfig.Section("").Key("listeners.ssl.default").String())
 	assert.Equal(t, "none", rabbitmqConfig.Section("").Key("loopback_users").String())
 	assert.Equal(t, "15673", rabbitmqConfig.Section("").Key("management.tcp.port").String())
@@ -206,6 +208,7 @@ func TestRabbitmqConfigMapsWithTCPListenOptionsValues(t *testing.T) {
 	backlog := 600
 	timeout := 700
 	trueVal := true
+	cph := "autoheal"
 	rabbitmq := Rabbitmq{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "rabbitmq1",
@@ -213,7 +216,7 @@ func TestRabbitmqConfigMapsWithTCPListenOptionsValues(t *testing.T) {
 		},
 		Spec: RabbitmqSpec{
 			ServiceConfiguration: RabbitmqConfiguration{
-				MirroredQueueMode: "all",
+				ClusterPartitionHandling: &cph,
 				TCPListenOptions: TCPListenOptionsConfig{
 					Backlog:       &backlog,
 					Nodelay:       &trueVal,
@@ -234,7 +237,7 @@ func TestRabbitmqConfigMapsWithTCPListenOptionsValues(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "none", rabbitmqConfig.Section("").Key("listeners.tcp").String())
-	assert.Equal(t, "all", rabbitmqConfig.Section("").Key("mirrored_queue_mode").String())
+	assert.Equal(t, "autoheal", rabbitmqConfig.Section("").Key("cluster_partition_handling").String())
 	assert.Equal(t, "5673", rabbitmqConfig.Section("").Key("listeners.ssl.default").String())
 	assert.Equal(t, "none", rabbitmqConfig.Section("").Key("loopback_users").String())
 	assert.Equal(t, "15673", rabbitmqConfig.Section("").Key("management.tcp.port").String())
@@ -254,7 +257,7 @@ func TestRabbitmqConfigMapsWithTCPListenOptionsValues(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "none", rabbitmqConfig.Section("").Key("listeners.tcp").String())
-	assert.Equal(t, "all", rabbitmqConfig.Section("").Key("mirrored_queue_mode").String())
+	assert.Equal(t, "autoheal", rabbitmqConfig.Section("").Key("cluster_partition_handling").String())
 	assert.Equal(t, "5673", rabbitmqConfig.Section("").Key("listeners.ssl.default").String())
 	assert.Equal(t, "none", rabbitmqConfig.Section("").Key("loopback_users").String())
 	assert.Equal(t, "15673", rabbitmqConfig.Section("").Key("management.tcp.port").String())
@@ -280,6 +283,7 @@ func TestRabbitmqConfigMapsWithAllValues(t *testing.T) {
 	backlog := 600
 	timeout := 700
 	trueVal := true
+	cph := "autoheal"
 	rabbitmq := Rabbitmq{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "rabbitmq1",
@@ -287,7 +291,7 @@ func TestRabbitmqConfigMapsWithAllValues(t *testing.T) {
 		},
 		Spec: RabbitmqSpec{
 			ServiceConfiguration: RabbitmqConfiguration{
-				MirroredQueueMode: "all",
+				MirroredQueueMode: &cph,
 				TCPListenOptions: TCPListenOptionsConfig{
 					Backlog:       &backlog,
 					Nodelay:       &trueVal,
@@ -308,7 +312,7 @@ func TestRabbitmqConfigMapsWithAllValues(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "none", rabbitmqConfig.Section("").Key("listeners.tcp").String())
-	assert.Equal(t, "all", rabbitmqConfig.Section("").Key("mirrored_queue_mode").String())
+	assert.Equal(t, "autoheal", rabbitmqConfig.Section("").Key("cluster_partition_handling").String())
 	assert.Equal(t, "5673", rabbitmqConfig.Section("").Key("listeners.ssl.default").String())
 	assert.Equal(t, "none", rabbitmqConfig.Section("").Key("loopback_users").String())
 	assert.Equal(t, "15673", rabbitmqConfig.Section("").Key("management.tcp.port").String())
@@ -328,7 +332,7 @@ func TestRabbitmqConfigMapsWithAllValues(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "none", rabbitmqConfig.Section("").Key("listeners.tcp").String())
-	assert.Equal(t, "all", rabbitmqConfig.Section("").Key("mirrored_queue_mode").String())
+	assert.Equal(t, "autoheal", rabbitmqConfig.Section("").Key("cluster_partition_handling").String())
 	assert.Equal(t, "5673", rabbitmqConfig.Section("").Key("listeners.ssl.default").String())
 	assert.Equal(t, "none", rabbitmqConfig.Section("").Key("loopback_users").String())
 	assert.Equal(t, "15673", rabbitmqConfig.Section("").Key("management.tcp.port").String())
