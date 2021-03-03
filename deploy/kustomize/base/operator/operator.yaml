@@ -172,7 +172,11 @@ spec:
         name: tf-operator
     spec:
       serviceAccountName: contrail-operator
+      dnsPolicy: ClusterFirstWithHostNet
       hostNetwork: true
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      restartPolicy: Always
       tolerations:
         - effect: NoExecute
           operator: Exists
