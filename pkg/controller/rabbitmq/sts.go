@@ -40,14 +40,18 @@ func GetSTS(instance *v1alpha1.Rabbitmq) *apps.StatefulSet {
 	}
 
 	if instance.Spec.ServiceConfiguration.CTLDistPorts != nil {
-		nodeEnv = append(nodeEnv, core.EnvVar{
-			Name:  "RABBITMQ_CTL_DIST_PORT_MIN",
-			Value: strconv.Itoa(*instance.Spec.ServiceConfiguration.CTLDistPorts.Min),
-		})
-		nodeEnv = append(nodeEnv, core.EnvVar{
-			Name:  "RABBITMQ_CTL_DIST_PORT_MAX",
-			Value: strconv.Itoa(*instance.Spec.ServiceConfiguration.CTLDistPorts.Max),
-		})
+		if instance.Spec.ServiceConfiguration.CTLDistPorts.Min != nil {
+			nodeEnv = append(nodeEnv, core.EnvVar{
+				Name:  "RABBITMQ_CTL_DIST_PORT_MIN",
+				Value: strconv.Itoa(*instance.Spec.ServiceConfiguration.CTLDistPorts.Min),
+			})
+		}
+		if instance.Spec.ServiceConfiguration.CTLDistPorts.Max != nil {
+			nodeEnv = append(nodeEnv, core.EnvVar{
+				Name:  "RABBITMQ_CTL_DIST_PORT_MAX",
+				Value: strconv.Itoa(*instance.Spec.ServiceConfiguration.CTLDistPorts.Max),
+			})
+		}
 	}
 
 	var podContainers = []core.Container{

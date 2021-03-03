@@ -1504,10 +1504,6 @@ spec:
                             API.
                           properties:
                             clusterPartitionHandling:
-                              enum:
-                              - autoheal
-                              - pause_minority
-                              - pause_if_all_down
                               type: string
                             containers:
                               items:
