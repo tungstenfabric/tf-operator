@@ -20,7 +20,6 @@ type ManagerSpec struct {
 	// Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html
 	CommonConfiguration ManagerConfiguration `json:"commonConfiguration,omitempty"`
 	Services            Services             `json:"services,omitempty"`
-	KeystoneSecretName  string               `json:"keystoneSecretName,omitempty"`
 }
 
 // Services defines the desired state of Services.
@@ -94,6 +93,9 @@ type ManagerConfiguration struct {
 	// Use 0.0.0.0 for isntrospection ports
 	// +optional
 	IntrospectListenAll *bool `json:"introspectListenAll,omitempty"`
+	// AuthParameters auth parameters
+	// +optional
+	AuthParameters *AuthParameters `json:"authParameters,omitempty"`
 	// Read cluster parameters from kubeadm config map
 	// +optional
 	UseKubeadmConfig *bool `json:"useKubeadmConfig,omitempty"`

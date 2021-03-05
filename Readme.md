@@ -41,6 +41,26 @@ export CONTRAIL_DEPLOYER_CONTAINER_TAG="latest"
 export DEPLOYER_CONTAINER_REGISTRY="localhost:5000"
 ./tf-operator/contrib/render_manifests.sh
 ```
+```bash
+# Preparing manifests for TF to be used with Openshift
+# it needs additionally definitions for cluster & domain names you use
+export DEPLOYER="openshift"
+export KUBERNETES_CLUSTER_NAME="test1"
+export KUBERNETES_CLUSTER_DOMAIN="example.com"
+./tf-operator/contrib/render_manifests.sh
+```
+```bash
+# Preparing manifests for TF to use external Keystone for auth
+# (keystone is not a part of tf-operator)
+export AUTH_MODE="keystone"
+export KEYSTONE_AUTH_HOST="<keystone address"
+export KEYSTONE_AUTH_ADMIN_PASSWORD="<password>"
+# or alternatively create k8s secret with keystone password and use it like
+# export KEYSTONE_SECRET_NAME="<secret name>"
+# all supported params are in deploy/kustomize/contrail/templates/auth.yaml.j2
+./tf-operator/contrib/render_manifests.sh
+```
+
 
 ## Deploy TF cluster with operator
 ```bash

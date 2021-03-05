@@ -2,6 +2,7 @@ package manager
 
 import (
 	"context"
+
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -149,6 +150,15 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	nodesHostAliases := r.getNodesHostAliases(nodes)
+
+	// set defaults if not set
+	if instance.Spec.CommonConfiguration.AuthParameters == nil {
+		instance.Spec.CommonConfiguration.AuthParameters = &v1alpha1.AuthParameters{}
+		instance.Spec.CommonConfiguration.AuthParameters.AuthMode = v1alpha1.AuthenticationModeNoAuth
+	}
+	if err := instance.Spec.CommonConfiguration.AuthParameters.Prepare(request.Namespace, r.client); err != nil {
+		return reconcile.Result{}, err
+	}
 
 	if err := r.processVRouters(instance, replicas); err != nil {
 		log.Error(err, "processVRouters")
@@ -481,7 +491,6 @@ func (r *ReconcileManager) processWebui(manager *v1alpha1.Manager, replicas int3
 	webui := &v1alpha1.Webui{}
 	webui.ObjectMeta = manager.Spec.Services.Webui.ObjectMeta
 	webui.ObjectMeta.Namespace = manager.Namespace
-	manager.Spec.Services.Webui.Spec.ServiceConfiguration.KeystoneSecretName = manager.Spec.KeystoneSecretName
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, webui, func() error {
 		webui.Spec = manager.Spec.Services.Webui.Spec
 		webui.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, webui.Spec.CommonConfiguration)

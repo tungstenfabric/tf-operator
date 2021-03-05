@@ -1,0 +1,43 @@
+---
+apiVersion: contrail.juniper.net/v1alpha1
+kind: Manager
+metadata:
+  name: cluster1
+  namespace: contrail
+spec:
+  commonConfiguration:
+    authParameters:
+      authMode: {{ AUTH_MODE | default("noauth") }}
+  {%- if KEYSTONE_SECRET_NAME is defined and KEYSTONE_SECRET_NAME != "" %}
+      keystoneSecretName: {{ KEYSTONE_SECRET_NAME }}
+  {%- endif %}
+  {%- if AUTH_MODE is defined and AUTH_MODE == "keystone" %}
+      keystoneAuthParameters:
+    {%- if KEYSTONE_AUTH_PROTO is defined and KEYSTONE_AUTH_PROTO != "" %}
+        authProtocol: {{ KEYSTONE_AUTH_PROTO }}
+    {%- endif %}
+    {%- if KEYSTONE_AUTH_HOST is defined and KEYSTONE_AUTH_HOST != "" %}
+        address: {{ KEYSTONE_AUTH_HOST }}
+    {%- endif %}
+    {%- if KEYSTONE_AUTH_PORT is defined and KEYSTONE_AUTH_PORT != "" %}
+        port: {{ KEYSTONE_AUTH_PORT }}
+    {%- endif %}
+    {%- if KEYSTONE_AUTH_ADMIN_TENANT is defined and KEYSTONE_AUTH_ADMIN_TENANT != "" %}
+        adminTenant: {{ KEYSTONE_AUTH_ADMIN_TENANT }}
+    {%- endif %}
+    {%- if KEYSTONE_AUTH_ADMIN_USER is defined and KEYSTONE_AUTH_ADMIN_USER != "" %}
+        adminUsername: {{ KEYSTONE_AUTH_ADMIN_USER }}
+    {%- endif %}
+    {%- if KEYSTONE_AUTH_ADMIN_PASSWORD is defined and KEYSTONE_AUTH_ADMIN_PASSWORD != "" %}
+        adminPassword: {{ KEYSTONE_AUTH_ADMIN_PASSWORD }}
+    {%- endif %}
+    {%- if KEYSTONE_AUTH_REGION_NAME is defined and KEYSTONE_AUTH_REGION_NAME != "" %}
+        region: {{ KEYSTONE_AUTH_REGION_NAME }}
+    {%- endif %}
+    {%- if KEYSTONE_AUTH_USER_DOMAIN_NAME is defined and KEYSTONE_AUTH_USER_DOMAIN_NAME != "" %}
+        userDomainName: {{ KEYSTONE_AUTH_USER_DOMAIN_NAME }}
+    {%- endif %}
+    {%- if KEYSTONE_AUTH_PROJECT_DOMAIN_NAME is defined and KEYSTONE_AUTH_PROJECT_DOMAIN_NAME != "" %}
+        projectDomainName: {{ KEYSTONE_AUTH_PROJECT_DOMAIN_NAME }}
+    {%- endif %}
+  {%- endif %}

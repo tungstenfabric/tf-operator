@@ -3,11 +3,11 @@ package v1alpha1
 import (
 	"bytes"
 	"context"
+	"errors"
 	"reflect"
 	"sort"
 	"strconv"
 	"strings"
-	"errors"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -228,12 +228,12 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 			APIServerList string
 			APIServerPort string
 			CAFilePath    string
-			AuthMode      string
+			AuthMode      AuthenticationMode
 		}{
 			APIServerList: apiServerIPListCommaSeparated,
 			APIServerPort: strconv.Itoa(configNodesInformation.APIServerPort),
 			CAFilePath:    certificates.SignerCAFilepath,
-			AuthMode:      string(configNodesInformation.AuthMode),
+			AuthMode:      c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 		})
 		if err != nil {
 			panic(err)

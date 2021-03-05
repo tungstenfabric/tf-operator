@@ -73,6 +73,7 @@ type ControlStatus struct {
 	ConfigChanged *bool                           `json:"configChanged,omitempty"`
 }
 
+// ControlServiceStatus status of control
 // +k8s:openapi-gen=true
 type ControlServiceStatus struct {
 	Connections              []Connection `json:"connections,omitempty"`
@@ -83,18 +84,21 @@ type ControlServiceStatus struct {
 	State                    string       `json:"state,omitempty"`
 }
 
+// StaticRoutes statuic routes
 // +k8s:openapi-gen=true
 type StaticRoutes struct {
 	Down   string `json:"down,omitempty"`
 	Number string `json:"number,omitempty"`
 }
 
+// BGPPeer bgp peer status
 // +k8s:openapi-gen=true
 type BGPPeer struct {
 	Up     string `json:"up,omitempty"`
 	Number string `json:"number,omitempty"`
 }
 
+// Connection connection status
 // +k8s:openapi-gen=true
 type Connection struct {
 	Type   string   `json:"type,omitempty"`
@@ -103,6 +107,7 @@ type Connection struct {
 	Nodes  []string `json:"nodes,omitempty"`
 }
 
+// ControlStatusPorts status of connection ports
 // +k8s:openapi-gen=true
 type ControlStatusPorts struct {
 	BGPPort           string `json:"bgpPort,omitempty"`
@@ -124,6 +129,7 @@ func init() {
 	SchemeBuilder.Register(&Control{}, &ControlList{})
 }
 
+// InstanceConfiguration prepares control configmap
 func (c *Control) InstanceConfiguration(request reconcile.Request,
 	podList []corev1.Pod,
 	client client.Client) error {
@@ -320,12 +326,12 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 			APIServerList string
 			APIServerPort string
 			CAFilePath    string
-			AuthMode      string
+			AuthMode      AuthenticationMode
 		}{
 			APIServerList: configApiIPListCommaSeparated,
 			APIServerPort: strconv.Itoa(configNodesInformation.APIServerPort),
 			CAFilePath:    certificates.SignerCAFilepath,
-			AuthMode:      string(configNodesInformation.AuthMode),
+			AuthMode:      c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 		})
 		if err != nil {
 			panic(err)

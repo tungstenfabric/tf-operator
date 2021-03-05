@@ -236,7 +236,9 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 	if err = instance.PrepareDaemonSet(daemonSet, &instance.Spec.CommonConfiguration, request, r.Scheme, r.Client); err != nil {
 		return reconcile.Result{}, err
 	}
-	err = v1alpha1.EnsureServiceAccount(&daemonSet.Spec.Template.Spec, instanceType, r.Client, request, r.Scheme, instance)
+	err = v1alpha1.EnsureServiceAccount(&daemonSet.Spec.Template.Spec,
+		instanceType, instance.Spec.CommonConfiguration.ImagePullSecrets,
+		r.Client, request, r.Scheme, instance)
 	if err != nil {
 		return reconcile.Result{}, err
 	}

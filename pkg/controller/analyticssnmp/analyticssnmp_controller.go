@@ -238,7 +238,9 @@ func (r *ReconcileAnalyticsSnmp) Reconcile(request reconcile.Request) (reconcile
 	if statefulSet, err = r.GetSTS(request, instance, reqLogger); err != nil {
 		return reconcile.Result{}, nil
 	}
-	if err = v1alpha1.EnsureServiceAccount(&statefulSet.Spec.Template.Spec, instanceType, r.Client, request, r.Scheme, instance); err != nil {
+	if err = v1alpha1.EnsureServiceAccount(&statefulSet.Spec.Template.Spec,
+		instanceType, instance.Spec.CommonConfiguration.ImagePullSecrets,
+		r.Client, request, r.Scheme, instance); err != nil {
 		return reconcile.Result{}, err
 	}
 
