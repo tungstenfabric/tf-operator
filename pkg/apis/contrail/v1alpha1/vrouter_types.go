@@ -96,6 +96,7 @@ type VrouterConfiguration struct {
 	ContrailStatusImage string `json:"contrailStatusImage,omitempty"`
 	// What is it doing?
 	EnvVariablesConfig map[string]string `json:"envVariablesConfig,omitempty"`
+	ControlInstance    string            `json:"controlInstance,omitempty"`
 
 	// New params for vrouter configuration
 	CloudOrchestrator string `json:"cloudOrchestrator,omitempty"`
@@ -674,9 +675,22 @@ type ClusterParams struct {
 }
 
 // GetControlNodes returns control nodes list (str comma separated)
-func (c *Vrouter) GetControlNodes(clnt client.Client) string {
-	ips, _ := c.GetNodesByLabels(clnt, client.MatchingLabels{"contrail_manager": "control"})
-	return ips
+func (c *Vrouter) GetControlNodes(clnt client.Client) (string, error) {
+	control := &Control{}
+	if err := clnt.Get(context.TODO(), types.NamespacedName{
+		Namespace: c.Namespace,
+		Name:      c.Spec.ServiceConfiguration.ControlInstance,
+	}, control); errors.IsNotFound(err) {
+		return "", nil
+	} else if err != nil {
+		return "", err
+	}
+	var ipList []string
+	for _, ip := range control.Status.Nodes {
+		ipList = append(ipList, ip)
+	}
+	sort.Strings(ipList)
+	return strings.Join(ipList, ","), nil
 }
 
 // GetConfigNodes returns config nodes list (str comma separated)
@@ -885,7 +899,12 @@ func (c *Vrouter) UpdateAgentConfigMapForPod(vrouterPod *VrouterPod,
 func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouterPod *VrouterPod, configMap *corev1.ConfigMap, clnt client.Client) (bool, error) {
 
 	log := vrouter_log.WithName("UpdateAgent").WithValues("nodeName", nodeName)
-	clusterParams := ClusterParams{ConfigNodes: c.GetConfigNodes(clnt), ControlNodes: c.GetControlNodes(clnt)}
+	controlNodesList, err := c.GetControlNodes(clnt)
+	if err != nil {
+		return true, err
+	}
+	clusterParams := ClusterParams{ConfigNodes: c.GetConfigNodes(clnt), ControlNodes: controlNodesList}
+
 	log.Info("UpdateAgent start", "clusterParams", clusterParams)
 	params, err := c.GetParamsEnv(clnt, &clusterParams)
 	if err != nil {

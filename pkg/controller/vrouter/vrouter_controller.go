@@ -223,7 +223,10 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 	configNodes := instance.GetConfigNodes(r.Client)
-	controlNodes := instance.GetControlNodes(r.Client)
+	controlNodes, err := instance.GetControlNodes(r.Client)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
 	reqLogger.Info("Controller nodes", "configNodes", configNodes, "controlNodes", controlNodes)
 
 	kcc, err := v1alpha1.ClusterParameters(r.Client)
