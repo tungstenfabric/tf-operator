@@ -25,18 +25,6 @@ import (
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// AuthenticationMode auth mode
-// +k8s:openapi-gen=true
-// +kubebuilder:validation:Enum=noauth;keystone
-type AuthenticationMode string
-
-const (
-	// AuthenticationModeNoAuth No auth mode
-	AuthenticationModeNoAuth AuthenticationMode = "noauth"
-	// AuthenticationModeKeystone Keytsone aith mode
-	AuthenticationModeKeystone AuthenticationMode = "keystone"
-)
-
 // AAAMode aaa mode
 // +k8s:openapi-gen=true
 // +kubebuilder:validation:Enum=noauth;rbac
@@ -78,27 +66,26 @@ type ConfigSpec struct {
 // ConfigConfiguration is the Spec for the Config API.
 // +k8s:openapi-gen=true
 type ConfigConfiguration struct {
-	Containers                  []*Container       `json:"containers,omitempty"`
-	APIPort                     *int               `json:"apiPort,omitempty"`
-	AnalyticsPort               *int               `json:"analyticsPort,omitempty"`
-	CollectorPort               *int               `json:"collectorPort,omitempty"`
-	ApiIntrospectPort           *int               `json:"apiIntrospectPort,omitempty"`
-	SchemaIntrospectPort        *int               `json:"schemaIntrospectPort,omitempty"`
-	DeviceManagerIntrospectPort *int               `json:"deviceManagerIntrospectPort,omitempty"`
-	SvcMonitorIntrospectPort    *int               `json:"svcMonitorIntrospectPort,omitempty"`
-	AnalyticsApiIntrospectPort  *int               `json:"analyticsIntrospectPort,omitempty"`
-	CollectorIntrospectPort     *int               `json:"collectorIntrospectPort,omitempty"`
-	CassandraInstance           string             `json:"cassandraInstance,omitempty"`
-	ZookeeperInstance           string             `json:"zookeeperInstance,omitempty"`
-	RabbitmqInstance            string             `json:"rabbitmqInstance,omitempty"`
-	RabbitmqUser                string             `json:"rabbitmqUser,omitempty"`
-	RabbitmqPassword            string             `json:"rabbitmqPassword,omitempty"`
-	RabbitmqVhost               string             `json:"rabbitmqVhost,omitempty"`
-	LogLevel                    string             `json:"logLevel,omitempty"`
-	AuthMode                    AuthenticationMode `json:"authMode,omitempty"`
-	AAAMode                     AAAMode            `json:"aaaMode,omitempty"`
-	Storage                     Storage            `json:"storage,omitempty"`
-	FabricMgmtIP                string             `json:"fabricMgmtIP,omitempty"`
+	Containers                  []*Container `json:"containers,omitempty"`
+	APIPort                     *int         `json:"apiPort,omitempty"`
+	AnalyticsPort               *int         `json:"analyticsPort,omitempty"`
+	CollectorPort               *int         `json:"collectorPort,omitempty"`
+	ApiIntrospectPort           *int         `json:"apiIntrospectPort,omitempty"`
+	SchemaIntrospectPort        *int         `json:"schemaIntrospectPort,omitempty"`
+	DeviceManagerIntrospectPort *int         `json:"deviceManagerIntrospectPort,omitempty"`
+	SvcMonitorIntrospectPort    *int         `json:"svcMonitorIntrospectPort,omitempty"`
+	AnalyticsApiIntrospectPort  *int         `json:"analyticsIntrospectPort,omitempty"`
+	CollectorIntrospectPort     *int         `json:"collectorIntrospectPort,omitempty"`
+	CassandraInstance           string       `json:"cassandraInstance,omitempty"`
+	ZookeeperInstance           string       `json:"zookeeperInstance,omitempty"`
+	RabbitmqInstance            string       `json:"rabbitmqInstance,omitempty"`
+	RabbitmqUser                string       `json:"rabbitmqUser,omitempty"`
+	RabbitmqPassword            string       `json:"rabbitmqPassword,omitempty"`
+	RabbitmqVhost               string       `json:"rabbitmqVhost,omitempty"`
+	LogLevel                    string       `json:"logLevel,omitempty"`
+	AAAMode                     AAAMode      `json:"aaaMode,omitempty"`
+	Storage                     Storage      `json:"storage,omitempty"`
+	FabricMgmtIP                string       `json:"fabricMgmtIP,omitempty"`
 	// Time (in hours) that the analytics object and log data stays in the Cassandra database. Defaults to 48 hours.
 	AnalyticsDataTTL *int `json:"analyticsDataTTL,omitempty"`
 	// Time (in hours) the analytics config data entering the collector stays in the Cassandra database. Defaults to 2160 hours.
@@ -143,6 +130,8 @@ func (c *Config) InstanceConfiguration(configMapName string,
 	if err != nil {
 		return err
 	}
+
+	configAuth := c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters
 
 	cassandraNodesInformation, err := NewCassandraClusterConfiguration(
 		c.Spec.ServiceConfiguration.CassandraInstance, request.Namespace, client)
@@ -217,10 +206,6 @@ func (c *Config) InstanceConfiguration(configMapName string,
 
 	var data = make(map[string]string)
 	for _, pod := range podList {
-		configAuth, err := c.AuthParameters(client)
-		if err != nil {
-			return err
-		}
 		hostname := pod.Annotations["hostname"]
 		podIP := pod.Status.PodIP
 		instrospectListenAddress := c.Spec.CommonConfiguration.IntrospectionListenAddress(podIP)
@@ -255,7 +240,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			RabbitmqUser:             rabbitmqSecretUser,
 			RabbitmqPassword:         rabbitmqSecretPassword,
 			RabbitmqVhost:            rabbitmqSecretVhost,
-			AuthMode:                 configConfig.AuthMode,
+			AuthMode:                 c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 			AAAMode:                  configConfig.AAAMode,
 			LogLevel:                 configConfig.LogLevel,
 			CAFilePath:               certificates.SignerCAFilepath,
@@ -273,14 +258,14 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			AuthMode               AuthenticationMode
 			CAFilePath             string
 			KeystoneAddress        string
-			KeystonePort           int
+			KeystonePort           *int
 			KeystoneUserDomainName string
 			KeystoneAuthProtocol   string
 		}{
 			PodIP:                  podIP,
 			APIServerList:          apiServerList,
 			APIServerPort:          strconv.Itoa(*configConfig.APIPort),
-			AuthMode:               configConfig.AuthMode,
+			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 			CAFilePath:             certificates.SignerCAFilepath,
 			KeystoneAddress:        configAuth.Address,
 			KeystonePort:           configAuth.Port,
@@ -358,9 +343,9 @@ func (c *Config) InstanceConfiguration(configMapName string,
 		var configKeystoneAuthConfBuffer bytes.Buffer
 		err = configtemplates.ConfigKeystoneAuthConf.Execute(&configKeystoneAuthConfBuffer, struct {
 			AdminUsername             string
-			AdminPassword             string
+			AdminPassword             *string
 			KeystoneAddress           string
-			KeystonePort              int
+			KeystonePort              *int
 			KeystoneAuthProtocol      string
 			KeystoneUserDomainName    string
 			KeystoneProjectDomainName string
@@ -669,13 +654,6 @@ func (c *Config) InstanceConfiguration(configMapName string,
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }
 
-// AuthParameters makes default empty ConfigAuthParameters
-func (c *Config) AuthParameters(client client.Client) (*ConfigAuthParameters, error) {
-	// TODO: to be implented
-	secretName := ""
-	return AuthParameters(c.Namespace, secretName, client)
-}
-
 // CreateConfigMap makes default empty ConfigMap
 func (c *Config) CreateConfigMap(configMapName string,
 	client client.Client,
@@ -750,6 +728,7 @@ func (c *Config) PodsCertSubjects(domain string, podList []corev1.Pod) []certifi
 	return PodsCertSubjects(domain, podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
 }
 
+// SetPodsToReady set pods ready
 func (c *Config) SetPodsToReady(podIPList []corev1.Pod, client client.Client) error {
 	return SetPodsToReady(podIPList, client)
 }
@@ -880,15 +859,11 @@ func (c *Config) ConfigurationParameters() ConfigConfiguration {
 	}
 	configConfiguration.RabbitmqVhost = rabbitmqVhost
 
-	configConfiguration.AuthMode = c.Spec.ServiceConfiguration.AuthMode
-	if configConfiguration.AuthMode == "" {
-		configConfiguration.AuthMode = AuthenticationModeNoAuth
-	}
-
 	configConfiguration.AAAMode = c.Spec.ServiceConfiguration.AAAMode
 	if configConfiguration.AAAMode == "" {
 		configConfiguration.AAAMode = AAAModeNoAuth
-		if configConfiguration.AuthMode == AuthenticationModeKeystone {
+		ap := c.Spec.CommonConfiguration.AuthParameters
+		if ap != nil && ap.AuthMode == AuthenticationModeKeystone {
 			configConfiguration.AAAMode = AAAModeRBAC
 		}
 	}

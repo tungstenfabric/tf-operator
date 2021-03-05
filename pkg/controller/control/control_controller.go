@@ -216,7 +216,9 @@ func (r *ReconcileControl) Reconcile(request reconcile.Request) (reconcile.Resul
 	if err = instance.PrepareSTS(statefulSet, &instance.Spec.CommonConfiguration, request, r.Scheme); err != nil {
 		return reconcile.Result{}, err
 	}
-	if err = v1alpha1.EnsureServiceAccount(&statefulSet.Spec.Template.Spec, instanceType, r.Client, request, r.Scheme, instance); err != nil {
+	if err = v1alpha1.EnsureServiceAccount(&statefulSet.Spec.Template.Spec,
+		instanceType, instance.Spec.CommonConfiguration.ImagePullSecrets,
+		r.Client, request, r.Scheme, instance); err != nil {
 		return reconcile.Result{}, err
 	}
 

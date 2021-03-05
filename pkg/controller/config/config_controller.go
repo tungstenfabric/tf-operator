@@ -234,7 +234,9 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 		reqLogger.Error(err, "Failed to prepare stateful set")
 		return reconcile.Result{}, err
 	}
-	if err = v1alpha1.EnsureServiceAccount(&statefulSet.Spec.Template.Spec, instanceType, r.Client, request, r.Scheme, instance); err != nil {
+	if err = v1alpha1.EnsureServiceAccount(&statefulSet.Spec.Template.Spec,
+		instanceType, instance.Spec.CommonConfiguration.ImagePullSecrets,
+		r.Client, request, r.Scheme, instance); err != nil {
 		return reconcile.Result{}, err
 	}
 

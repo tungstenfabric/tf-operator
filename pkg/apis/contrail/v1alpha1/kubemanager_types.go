@@ -260,12 +260,12 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 			APIServerList string
 			APIServerPort string
 			CAFilePath    string
-			AuthMode      string
+			AuthMode      AuthenticationMode
 		}{
 			APIServerList: configApiIPListCommaSeparated,
 			APIServerPort: strconv.Itoa(configNodesInformation.APIServerPort),
 			CAFilePath:    certificates.SignerCAFilepath,
-			AuthMode:      string(configNodesInformation.AuthMode),
+			AuthMode:      c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 		})
 		if err != nil {
 			panic(err)

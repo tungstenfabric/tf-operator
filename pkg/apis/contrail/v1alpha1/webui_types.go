@@ -50,11 +50,10 @@ type WebuiSpec struct {
 // WebuiConfiguration is the Spec for the cassandras API.
 // +k8s:openapi-gen=true
 type WebuiConfiguration struct {
-	ConfigInstance     string       `json:"configInstance,omitempty"`
-	ControlInstance    string       `json:"controlInstance,omitempty"`
-	CassandraInstance  string       `json:"cassandraInstance,omitempty"`
-	Containers         []*Container `json:"containers,omitempty"`
-	KeystoneSecretName string       `json:"keystoneSecretName,omitempty"`
+	ConfigInstance    string       `json:"configInstance,omitempty"`
+	ControlInstance   string       `json:"controlInstance,omitempty"`
+	CassandraInstance string       `json:"cassandraInstance,omitempty"`
+	Containers        []*Container `json:"containers,omitempty"`
 }
 
 // +k8s:openapi-gen=true
@@ -89,16 +88,6 @@ type WebuiList struct {
 	Items           []Webui `json:"items"`
 }
 
-// +k8s:openapi-gen=true
-type keystoneEndpoint struct {
-	address           string
-	port              int
-	authProtocol      string
-	region            string
-	userDomainName    string
-	projectDomainName string
-}
-
 func init() {
 	SchemeBuilder.Register(&Webui{}, &WebuiList{})
 }
@@ -131,10 +120,7 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 		return err
 	}
 
-	authConfig, err := c.AuthParameters(client)
-	if err != nil {
-		return err
-	}
+	authConfig := c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters
 
 	manager := "none"
 
@@ -159,12 +145,12 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 			CassandraServerList       string
 			CassandraPort             string
 			AdminUsername             string
-			AdminPassword             string
+			AdminPassword             *string
 			KeystoneProjectDomainName string
 			KeystoneUserDomainName    string
 			KeystoneAuthProtocol      string
 			KeystoneAddress           string
-			KeystonePort              int
+			KeystonePort              *int
 			KeystoneRegion            string
 			Manager                   string
 			CAFilePath                string
@@ -198,7 +184,7 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 		var webuiAuthConfigBuffer bytes.Buffer
 		err = configtemplates.WebuiAuthConfig.Execute(&webuiAuthConfigBuffer, struct {
 			AdminUsername             string
-			AdminPassword             string
+			AdminPassword             *string
 			KeystoneProjectDomainName string
 			KeystoneUserDomainName    string
 		}{
@@ -244,13 +230,6 @@ func (c *Webui) CreateConfigMap(configMapName string,
 		request,
 		"webui",
 		c)
-}
-
-// AuthParameters makes default empty ConfigAuthParameters
-func (c *Webui) AuthParameters(client client.Client) (*ConfigAuthParameters, error) {
-	// TODO: to be implented
-	secretName := ""
-	return AuthParameters(c.Namespace, secretName, client)
 }
 
 // PrepareSTS prepares the intended deployment for the Webui object.
