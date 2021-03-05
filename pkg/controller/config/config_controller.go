@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -491,10 +492,41 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 				container.Command = command
 			}
 
-		case "provisioneranalytics", "provisionerconfig":
+		case "provisioneranalytics":
 			if container.Command == nil {
 				command := []string{"bash", "/etc/contrailconfigmaps/config-provisioner.sh"}
 				container.Command = command
+			}
+
+		case "provisionerconfig":
+			if container.Command == nil {
+				command := []string{"bash", "/etc/contrailconfigmaps/config-provisioner.sh"}
+				container.Command = command
+			}
+			if instance.Spec.ServiceConfiguration.LinklocalServiceConfig != nil {
+				ll := instance.ConfigurationParameters().LinklocalServiceConfig
+				container.Env = append(container.Env,
+					corev1.EnvVar{
+						Name:  "IPFABRIC_SERVICE_HOST",
+						Value: ll.IPFabricServiceHost,
+					},
+					corev1.EnvVar{
+						Name:  "IPFABRIC_SERVICE_PORT",
+						Value: fmt.Sprint(*ll.IPFabricServicePort),
+					},
+					corev1.EnvVar{
+						Name:  "LINKLOCAL_SERVICE_NAME",
+						Value: *ll.Name,
+					},
+					corev1.EnvVar{
+						Name:  "LINKLOCAL_SERVICE_IP",
+						Value: *ll.IP,
+					},
+					corev1.EnvVar{
+						Name:  "LINKLOCAL_SERVICE_PORT",
+						Value: fmt.Sprint(*ll.Port),
+					},
+				)
 			}
 		}
 	}

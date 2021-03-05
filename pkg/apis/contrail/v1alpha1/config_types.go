@@ -93,7 +93,18 @@ type ConfigConfiguration struct {
 	// Time to live (TTL) for statistics data in hours. Defaults to 4 hours.
 	AnalyticsStatisticsTTL *int `json:"analyticsStatisticsTTL,omitempty"`
 	// Time to live (TTL) for flow data in hours. Defaults to 2 hours.
-	AnalyticsFlowTTL *int `json:"analyticsFlowTTL,omitempty"`
+	AnalyticsFlowTTL       *int                    `json:"analyticsFlowTTL,omitempty"`
+	LinklocalServiceConfig *LinklocalServiceConfig `json:"linklocalServiceConfig,omitempty"`
+}
+
+// LinklocalServiceConfig is the Spec for link local coniguration
+// +k8s:openapi-gen=true
+type LinklocalServiceConfig struct {
+	IPFabricServiceHost string  `json:"ipFabricServiceHost,omitempty"`
+	IPFabricServicePort *int    `json:"ipFabricServicePort,omitempty"`
+	Name                *string `json:"name,omitempty"`
+	Port                *int    `json:"port,omitempty"`
+	IP                  *string `json:"ip,omitempty"`
 }
 
 // ConfigStatus status of Config
@@ -899,6 +910,26 @@ func (c *Config) ConfigurationParameters() ConfigConfiguration {
 		analyticsFlowTTL = AnalyticsFlowTTL
 	}
 	configConfiguration.AnalyticsFlowTTL = &analyticsFlowTTL
+
+	if c.Spec.ServiceConfiguration.LinklocalServiceConfig != nil {
+		configConfiguration.LinklocalServiceConfig = c.Spec.ServiceConfiguration.LinklocalServiceConfig
+		if configConfiguration.LinklocalServiceConfig.Name == nil {
+			name := LinklocalServiceName
+			configConfiguration.LinklocalServiceConfig.Name = &name
+		}
+		if configConfiguration.LinklocalServiceConfig.Port == nil {
+			port := LinklocalServicePort
+			configConfiguration.LinklocalServiceConfig.Port = &port
+		}
+		if configConfiguration.LinklocalServiceConfig.IP == nil {
+			ip := LinklocalServiceIp
+			configConfiguration.LinklocalServiceConfig.IP = &ip
+		}
+		if configConfiguration.LinklocalServiceConfig.IPFabricServicePort == nil {
+			port := IpfabricServicePort
+			configConfiguration.LinklocalServiceConfig.IPFabricServicePort = &port
+		}
+	}
 
 	return configConfiguration
 
