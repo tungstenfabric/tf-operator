@@ -13,7 +13,7 @@ spec:
       networking:
         podSubnet: {{ KUBERNETES_PODE_SUBNET | default("10.128.0.0/14") }}
         serviceSubnet: {{ KUBERNETES_SERVICE_SUBNET | default("172.30.0.0/16") }}
-        dnsDomain: {{ KUBERNETES_CLUSTER_DOMAIN | default("cluster.local") }}
+        dnsDomain: {{ KUBERNETES_CLUSTER_DOMAIN | default("example.com") }}
         cniConfig:
           configPath: {{ KUBERNETES_CNI_CONFIG_PATH | default("/etc/kubernetes/cni") }}
           binaryPath: {{ KUBERNETES_CNI_BINARY_PATH | default("/var/lib/cni/bin") }}
