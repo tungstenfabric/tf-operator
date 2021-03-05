@@ -230,7 +230,6 @@ spec:
       spec:
         serviceConfiguration:
           logLevel: SYS_DEBUG
-          cassandraInstance: cassandra1
           controlInstance: control1
           contrailStatusImage: contrail-status
           containers:
