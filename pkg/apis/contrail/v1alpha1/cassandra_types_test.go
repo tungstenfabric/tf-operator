@@ -56,7 +56,7 @@ var cassandraSecret = &corev1.Secret{
 		Namespace: "test-ns",
 	},
 	Data: map[string][]byte{
-		"keystorePassword":   []byte("test_keystone_pass"),
+		"keystorePassword":   []byte("test_keystore_pass"),
 		"truststorePassword": []byte("test_truestore_pass"),
 	},
 }

@@ -54,19 +54,6 @@ type ServiceStatus struct {
 	Created *bool   `json:"created,omitempty"`
 }
 
-// ActiveStatus signals the current status
-type ActiveStatus struct {
-	Active *bool `json:"active,omitempty"`
-}
-
-// ServiceInstance is the interface to manage instances.
-type ServiceInstance interface {
-	Get(client.Client, reconcile.Request) error
-	Update(client.Client) error
-	Create(client.Client) error
-	Delete(client.Client) error
-}
-
 // PodConfiguration is the common services struct.
 // +k8s:openapi-gen=true
 type PodConfiguration struct {
@@ -99,6 +86,9 @@ type PodConfiguration struct {
 	// Use 0.0.0.0 for isntrospection ports
 	// +optional
 	IntrospectListenAll *bool `json:"introspectListenAll,omitempty"`
+	// AuthParameters auth parameters
+	// +optional
+	AuthParameters *AuthParameters `json:"authParameters,omitempty"`
 }
 
 //GetReplicas is used to get number of desired pods.
@@ -133,15 +123,121 @@ func (ss *ServiceStatus) ready() bool {
 
 }
 
+// ensureSecret creates Secret for a service account
+func ensureSecret(serviceAccountName, secretName string,
+	client client.Client,
+	scheme *runtime.Scheme,
+	owner v1.Object) error {
+
+	namespace := owner.GetNamespace()
+	existingSecret := &corev1.Secret{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: namespace}, existingSecret)
+	if err != nil && !k8serrors.IsNotFound(err) {
+		return err
+	}
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: namespace,
+			Annotations: map[string]string{
+				"kubernetes.io/service-account.name": serviceAccountName,
+			},
+		},
+		Type: corev1.SecretType("kubernetes.io/service-account-token"),
+	}
+	err = controllerutil.SetControllerReference(owner, secret, scheme)
+	if err != nil {
+		return err
+	}
+	return client.Create(context.TODO(), secret)
+}
+
+// ensureClusterRole creates ClusterRole
+func ensureClusterRole(clusterRoleName string,
+	client client.Client,
+	scheme *runtime.Scheme,
+	owner v1.Object) error {
+
+	existingClusterRole := &rbacv1.ClusterRole{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: clusterRoleName}, existingClusterRole)
+	if err != nil && !k8serrors.IsNotFound(err) {
+		return err
+	}
+	namespace := owner.GetNamespace()
+	clusterRole := &rbacv1.ClusterRole{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "rbac/v1",
+			Kind:       "ClusterRole",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      clusterRoleName,
+			Namespace: namespace,
+		},
+		Rules: []rbacv1.PolicyRule{{
+			Verbs: []string{
+				"*",
+			},
+			APIGroups: []string{
+				"*",
+			},
+			Resources: []string{
+				"*",
+			},
+		}},
+	}
+	return client.Create(context.TODO(), clusterRole)
+}
+
+// ensureClusterRoleBinding creates ClusterRole binding
+func ensureClusterRoleBinding(
+	serviceAccountName, clusterRoleName, clusterRoleBindingName string,
+	client client.Client,
+	scheme *runtime.Scheme,
+	owner v1.Object) error {
+
+	namespace := owner.GetNamespace()
+	existingClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: clusterRoleBindingName}, existingClusterRoleBinding)
+	if err != nil && !k8serrors.IsNotFound(err) {
+		return err
+	}
+	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "rbac/v1",
+			Kind:       "ClusterRoleBinding",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      clusterRoleBindingName,
+			Namespace: namespace,
+		},
+		Subjects: []rbacv1.Subject{{
+			Kind:      "ServiceAccount",
+			Name:      serviceAccountName,
+			Namespace: namespace,
+		}},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     clusterRoleName,
+		},
+	}
+	return client.Create(context.TODO(), clusterRoleBinding)
+}
+
 // ensureServiceAccount creates ServiceAccoung, Secret, ClusterRole and ClusterRoleBinding objects
 func ensureServiceAccount(
 	serviceAccountName string,
 	clusterRoleName string,
 	clusterRoleBindingName string,
 	secretName string,
+	imagePullSecret []string,
 	client client.Client,
 	scheme *runtime.Scheme,
 	owner v1.Object) error {
+
+	if err := ensureSecret(serviceAccountName, secretName, client, scheme, owner); err != nil {
+		return nil
+	}
 
 	namespace := owner.GetNamespace()
 	existingServiceAccount := &corev1.ServiceAccount{}
@@ -157,6 +253,16 @@ func ensureServiceAccount(
 				Namespace: namespace,
 			},
 		}
+		serviceAccount.Secrets = append(serviceAccount.Secrets,
+			corev1.ObjectReference{
+				Kind:      "Secret",
+				Namespace: namespace,
+				Name:      secretName})
+		for _, name := range imagePullSecret {
+			serviceAccount.ImagePullSecrets = append(serviceAccount.ImagePullSecrets,
+				corev1.LocalObjectReference{Name: name})
+		}
+
 		err = controllerutil.SetControllerReference(owner, serviceAccount, scheme)
 		if err != nil {
 			return err
@@ -165,84 +271,11 @@ func ensureServiceAccount(
 			return err
 		}
 	}
-
-	existingSecret := &corev1.Secret{}
-	err = client.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: namespace}, existingSecret)
-	if err != nil && k8serrors.IsNotFound(err) {
-		secret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      secretName,
-				Namespace: namespace,
-				Annotations: map[string]string{
-					"kubernetes.io/service-account.name": serviceAccountName,
-				},
-			},
-			Type: corev1.SecretType("kubernetes.io/service-account-token"),
-		}
-		err = controllerutil.SetControllerReference(owner, secret, scheme)
-		if err != nil {
-			return err
-		}
-		if err = client.Create(context.TODO(), secret); err != nil {
-			return err
-		}
+	if err := ensureClusterRole(clusterRoleName, client, scheme, owner); err != nil {
+		return nil
 	}
-
-	existingClusterRole := &rbacv1.ClusterRole{}
-	err = client.Get(context.TODO(), types.NamespacedName{Name: clusterRoleName}, existingClusterRole)
-	if err != nil && k8serrors.IsNotFound(err) {
-		clusterRole := &rbacv1.ClusterRole{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "rbac/v1",
-				Kind:       "ClusterRole",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      clusterRoleName,
-				Namespace: namespace,
-			},
-			Rules: []rbacv1.PolicyRule{{
-				Verbs: []string{
-					"*",
-				},
-				APIGroups: []string{
-					"*",
-				},
-				Resources: []string{
-					"*",
-				},
-			}},
-		}
-		if err = client.Create(context.TODO(), clusterRole); err != nil {
-			return err
-		}
-	}
-
-	existingClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
-	err = client.Get(context.TODO(), types.NamespacedName{Name: clusterRoleBindingName}, existingClusterRoleBinding)
-	if err != nil && k8serrors.IsNotFound(err) {
-		clusterRoleBinding := &rbacv1.ClusterRoleBinding{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "rbac/v1",
-				Kind:       "ClusterRoleBinding",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      clusterRoleBindingName,
-				Namespace: namespace,
-			},
-			Subjects: []rbacv1.Subject{{
-				Kind:      "ServiceAccount",
-				Name:      serviceAccountName,
-				Namespace: namespace,
-			}},
-			RoleRef: rbacv1.RoleRef{
-				APIGroup: "rbac.authorization.k8s.io",
-				Kind:     "ClusterRole",
-				Name:     clusterRoleName,
-			},
-		}
-		if err = client.Create(context.TODO(), clusterRoleBinding); err != nil {
-			return err
-		}
+	if err := ensureClusterRoleBinding(serviceAccountName, clusterRoleName, clusterRoleName, client, scheme, owner); err != nil {
+		return nil
 	}
 	return nil
 }
@@ -250,6 +283,7 @@ func ensureServiceAccount(
 // EnsureServiceAccount prepares the intended podList.
 func EnsureServiceAccount(spec *corev1.PodSpec,
 	instanceType string,
+	imagePullSecret []string,
 	client client.Client,
 	request reconcile.Request,
 	scheme *runtime.Scheme,
@@ -262,6 +296,7 @@ func EnsureServiceAccount(spec *corev1.PodSpec,
 		baseName+"role",
 		baseName+"role-binding",
 		baseName+"secret",
+		imagePullSecret,
 		client, scheme, object)
 	if err != nil {
 		log.Error(err, "EnsureServiceAccount failed")
@@ -287,6 +322,7 @@ func SetPodsToReady(podList []corev1.Pod, client client.Client) error {
 // +k8s:deepcopy-gen=false
 type podAltIPsRetriver func(pod corev1.Pod) []string
 
+// PodAlternativeIPs alternative IPs list for cert alt names subject
 // +k8s:deepcopy-gen=false
 type PodAlternativeIPs struct {
 	// Function which operate over pod object
@@ -836,7 +872,6 @@ func NewConfigClusterConfiguration(name, namespace string, client client.Client)
 	}
 	config := instance.ConfigurationParameters()
 	clusterConfig := ConfigClusterConfiguration{
-		AuthMode:        config.AuthMode,
 		APIServerPort:   *config.APIPort,
 		APIServerIPList: nodes,
 		// TODO: till not splited
@@ -848,51 +883,15 @@ func NewConfigClusterConfiguration(name, namespace string, client client.Client)
 	return clusterConfig, nil
 }
 
-// ConfigAuthParameters is Keystone auth options
-type ConfigAuthParameters struct {
-	AdminUsername     string
-	AdminPassword     string
-	AdminTenant       string
-	Address           string
-	Port              int
-	Region            string
-	AuthProtocol      string
-	UserDomainName    string
-	ProjectDomainName string
-}
-
-// AuthParameters makes default empty ConfigAuthParameters
-func AuthParameters(namespace string, secretName string, client client.Client) (*ConfigAuthParameters, error) {
-	w := &ConfigAuthParameters{
-		AdminUsername:     KeystoneAuthAdminUser,
-		AdminPassword:     KeystoneAuthAdminPassword,
-		AdminTenant:       KeystoneAuthAdminTenant,
-		Address:           KeystoneAuthHost,
-		Port:              KeystoneAuthPort,
-		AuthProtocol:      KeystoneAuthProto,
-		UserDomainName:    KeystoneAuthUserDomainName,
-		ProjectDomainName: KeystoneAuthProjectDomainName,
-	}
-	if secretName != "" {
-		adminPasswordSecret := &corev1.Secret{}
-		if err := client.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: namespace}, adminPasswordSecret); err != nil {
-			return nil, err
-		}
-		w.AdminPassword = string(adminPasswordSecret.Data["password"])
-	}
-	return w, nil
-}
-
 // ConfigClusterConfiguration  stores all information about service's endpoints
 // under the Contrail Config
 type ConfigClusterConfiguration struct {
-	APIServerPort         int                `json:"apiServerPort,omitempty"`
-	APIServerIPList       []string           `json:"apiServerIPList,omitempty"`
-	AnalyticsServerPort   int                `json:"analyticsServerPort,omitempty"`
-	AnalyticsServerIPList []string           `json:"analyticsServerIPList,omitempty"`
-	CollectorPort         int                `json:"collectorPort,omitempty"`
-	CollectorServerIPList []string           `json:"collectorServerIPList,omitempty"`
-	AuthMode              AuthenticationMode `json:"authMode,omitempty"`
+	APIServerPort         int      `json:"apiServerPort,omitempty"`
+	APIServerIPList       []string `json:"apiServerIPList,omitempty"`
+	AnalyticsServerPort   int      `json:"analyticsServerPort,omitempty"`
+	AnalyticsServerIPList []string `json:"analyticsServerIPList,omitempty"`
+	CollectorPort         int      `json:"collectorPort,omitempty"`
+	CollectorServerIPList []string `json:"collectorServerIPList,omitempty"`
 }
 
 // FillWithDefaultValues sets the default port values if they are set to the
@@ -906,9 +905,6 @@ func (c *ConfigClusterConfiguration) FillWithDefaultValues() {
 	}
 	if c.CollectorPort == 0 {
 		c.CollectorPort = CollectorPort
-	}
-	if c.AuthMode == "" {
-		c.AuthMode = AuthenticationModeNoAuth
 	}
 }
 

@@ -50,6 +50,40 @@ spec:
             commonConfiguration:
               description: PodConfiguration is the common services struct.
               properties:
+                authParameters:
+                  description: AuthParameters auth parameters
+                  properties:
+                    authMode:
+                      description: AuthenticationMode auth mode
+                      enum:
+                      - noauth
+                      - keystone
+                      type: string
+                    keystoneAuthParameters:
+                      description: KeystoneAuthParameters keystone parameters
+                      properties:
+                        address:
+                          type: string
+                        adminPassword:
+                          type: string
+                        adminTenant:
+                          type: string
+                        adminUsername:
+                          type: string
+                        authProtocol:
+                          type: string
+                        port:
+                          type: integer
+                        projectDomainName:
+                          type: string
+                        region:
+                          type: string
+                        userDomainName:
+                          type: string
+                      type: object
+                    keystoneSecretName:
+                      type: string
+                  type: object
                 hostAliases:
                   description: HostAliases is an optional list of hosts and IPs that
                     will be injected into the pod's hosts file if specified.
@@ -169,12 +203,6 @@ spec:
                   type: integer
                 apiPort:
                   type: integer
-                authMode:
-                  description: AuthenticationMode auth mode
-                  enum:
-                  - noauth
-                  - keystone
-                  type: string
                 cassandraInstance:
                   type: string
                 collectorIntrospectPort:
