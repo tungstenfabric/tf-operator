@@ -224,7 +224,7 @@ func TestRabbitmqConfigMapsWithTCPListenOptionsValues(t *testing.T) {
 			},
 			ServiceConfiguration: RabbitmqConfiguration{
 				ClusterPartitionHandling: &cph,
-				TCPListenOptions: TCPListenOptionsConfig{
+				TCPListenOptions: &TCPListenOptionsConfig{
 					Backlog:       &backlog,
 					Nodelay:       &trueVal,
 					LingerOn:      &trueVal,
@@ -304,7 +304,7 @@ func TestRabbitmqConfigMapsWithAllValues(t *testing.T) {
 			},
 			ServiceConfiguration: RabbitmqConfiguration{
 				MirroredQueueMode: &cph,
-				TCPListenOptions: TCPListenOptionsConfig{
+				TCPListenOptions: &TCPListenOptionsConfig{
 					Backlog:       &backlog,
 					Nodelay:       &trueVal,
 					LingerOn:      &trueVal,

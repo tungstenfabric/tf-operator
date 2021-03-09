@@ -55,7 +55,7 @@ spec:
         lifecycle:
           preStop:
             exec:
-              command: 
+              command:
               - /bin/sh
               - -c
               - nodetool -p {{ .LocalJmxPort }} drain

@@ -106,7 +106,7 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 
 	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
 
-	rabbitmqConfig := c.ConfigurationParameters()
+	c.ConfigurationParameters()
 
 	var data = make(map[string]string)
 	for _, pod := range podList {
@@ -120,13 +120,13 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 			TCPListenOptions         *TCPListenOptionsConfig
 			LogLevel                 string
 		}{
-			RabbitmqPort:             *rabbitmqConfig.Port,
+			RabbitmqPort:             *c.Spec.ServiceConfiguration.Port,
 			SignerCAFilepath:         certificates.SignerCAFilepath,
-			ClusterPartitionHandling: *rabbitmqConfig.ClusterPartitionHandling,
+			ClusterPartitionHandling: *c.Spec.ServiceConfiguration.ClusterPartitionHandling,
 			PodIP:                    pod.Status.PodIP,
 			PodsList:                 podList,
-			TCPListenOptions:         rabbitmqConfig.TCPListenOptions,
 			LogLevel:                 c.Spec.CommonConfiguration.LogLevel,
+			TCPListenOptions:         c.Spec.ServiceConfiguration.TCPListenOptions,
 		})
 		if err != nil {
 			panic(err)
@@ -150,7 +150,7 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 	data["plugins.conf"] = "[rabbitmq_management,rabbitmq_management_agent,rabbitmq_peer_discovery_k8s]."
 
 	// common env vars
-	rabbitmqCommonEnvString := fmt.Sprintf("export RABBITMQ_ERLANG_COOKIE=%s\n", rabbitmqConfig.ErlangCookie)
+	rabbitmqCommonEnvString := fmt.Sprintf("export RABBITMQ_ERLANG_COOKIE=%s\n", c.Spec.ServiceConfiguration.ErlangCookie)
 	rabbitmqCommonEnvString = rabbitmqCommonEnvString + fmt.Sprintf("export RABBITMQ_CONFIG_FILE=/etc/rabbitmq/rabbitmq.conf\n")
 	rabbitmqCommonEnvString = rabbitmqCommonEnvString + fmt.Sprintf("export RABBITMQ_CONF_ENV_FILE=/etc/rabbitmq/rabbitmq-env.conf\n")
 	rabbitmqCommonEnvString = rabbitmqCommonEnvString + fmt.Sprintf("export RABBITMQ_ENABLED_PLUGINS_FILE=/etc/rabbitmq/plugins.conf\n")
@@ -160,8 +160,8 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 
 	var secretName string
 	secret := &corev1.Secret{}
-	if rabbitmqConfig.Secret != "" {
-		secretName = rabbitmqConfig.Secret
+	if c.Spec.ServiceConfiguration.Secret != "" {
+		secretName = c.Spec.ServiceConfiguration.Secret
 	} else {
 		secretName = request.Name + "-secret"
 	}
@@ -195,8 +195,8 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 		RabbitmqUser:      string(secret.Data["user"]),
 		RabbitmqPassword:  base64.StdEncoding.EncodeToString(saltedP),
 		RabbitmqVhost:     string(secret.Data["vhost"]),
-		MirroredQueueMode: *rabbitmqConfig.MirroredQueueMode,
-		RabbitmqPort:      *rabbitmqConfig.Port,
+		MirroredQueueMode: *c.Spec.ServiceConfiguration.MirroredQueueMode,
+		RabbitmqPort:      *c.Spec.ServiceConfiguration.Port,
 	})
 	if err != nil {
 		panic(err)
@@ -337,8 +337,8 @@ func (c *Rabbitmq) SetInstanceActive(client client.Client, activeStatus *bool, s
 func (c *Rabbitmq) ManageNodeStatus(podNameIPMap map[string]string,
 	client client.Client) error {
 	c.Status.Nodes = podNameIPMap
-	rabbitmqConfig := c.ConfigurationParameters()
-	c.Status.Secret = rabbitmqConfig.Secret
+	c.ConfigurationParameters()
+	c.Status.Secret = c.Spec.ServiceConfiguration.Secret
 	err := client.Status().Update(context.TODO(), c)
 	if err != nil {
 		return err
@@ -346,62 +346,38 @@ func (c *Rabbitmq) ManageNodeStatus(podNameIPMap map[string]string,
 	return nil
 }
 
-func (c *Rabbitmq) ConfigurationParameters() RabbitmqConfiguration {
-	rabbitmqConfiguration := RabbitmqConfiguration{}
-	var port int
-	var erlangCookie string
-	var vhost string
-	var user string
-	var password string
-	var secret string
-	if c.Spec.ServiceConfiguration.Port != nil {
-		port = *c.Spec.ServiceConfiguration.Port
-	} else {
-		port = RabbitmqNodePort
-	}
-	if c.Spec.ServiceConfiguration.ErlangCookie != "" {
-		erlangCookie = c.Spec.ServiceConfiguration.ErlangCookie
-	} else {
-		erlangCookie = RabbitmqErlangCookie
-	}
-	if c.Spec.ServiceConfiguration.Vhost != "" {
-		vhost = c.Spec.ServiceConfiguration.Vhost
-	} else {
-		vhost = RabbitmqVhost
-	}
-	if c.Spec.ServiceConfiguration.User != "" {
-		user = c.Spec.ServiceConfiguration.User
-	} else {
-		user = RabbitmqUser
-	}
-	if c.Spec.ServiceConfiguration.Password != "" {
-		password = c.Spec.ServiceConfiguration.Password
-	} else {
-		password = RabbitmqPassword
-	}
-	if c.Spec.ServiceConfiguration.Secret != "" {
-		secret = c.Spec.ServiceConfiguration.Secret
-	} else {
-		secret = c.GetName() + "-secret"
-	}
+func (c *Rabbitmq) ConfigurationParameters() {
+	var port = RabbitmqNodePort
+	var erlangCookie = RabbitmqErlangCookie
+	var vhost = RabbitmqVhost
+	var user = RabbitmqUser
+	var password =RabbitmqPassword
+	var secret = c.GetName() + "-secret"
+	var partHandling = RabbitmqClusterPartitionHandling
+	var mirredQueueMode = RabbitmqMirroredQueueMode
 
-	partHandling := RabbitmqClusterPartitionHandling
-	if c.Spec.ServiceConfiguration.ClusterPartitionHandling != nil {
-		partHandling = *c.Spec.ServiceConfiguration.ClusterPartitionHandling
+	if c.Spec.ServiceConfiguration.Port == nil {
+		c.Spec.ServiceConfiguration.Port = &port
 	}
-	mirredQueueMode := RabbitmqMirroredQueueMode
-	if c.Spec.ServiceConfiguration.MirroredQueueMode != nil {
-		mirredQueueMode = *c.Spec.ServiceConfiguration.MirroredQueueMode
+	if c.Spec.ServiceConfiguration.ErlangCookie == "" {
+		c.Spec.ServiceConfiguration.ErlangCookie = erlangCookie
 	}
-
-	rabbitmqConfiguration.Port = &port
-	rabbitmqConfiguration.ErlangCookie = erlangCookie
-	rabbitmqConfiguration.Vhost = vhost
-	rabbitmqConfiguration.User = user
-	rabbitmqConfiguration.Password = password
-	rabbitmqConfiguration.Secret = secret
-	rabbitmqConfiguration.ClusterPartitionHandling = &partHandling
-	rabbitmqConfiguration.MirroredQueueMode = &mirredQueueMode
-
-	return rabbitmqConfiguration
+	if c.Spec.ServiceConfiguration.Vhost == "" {
+		c.Spec.ServiceConfiguration.Vhost = vhost
+	}
+	if c.Spec.ServiceConfiguration.User == "" {
+		c.Spec.ServiceConfiguration.User = user
+	}
+	if c.Spec.ServiceConfiguration.Password == "" {
+		c.Spec.ServiceConfiguration.Password = password
+	}
+	if c.Spec.ServiceConfiguration.Secret == "" {
+		c.Spec.ServiceConfiguration.Secret = secret
+	}
+	if c.Spec.ServiceConfiguration.ClusterPartitionHandling == nil {
+		c.Spec.ServiceConfiguration.ClusterPartitionHandling = &partHandling
+	}
+	if c.Spec.ServiceConfiguration.MirroredQueueMode == nil {
+		c.Spec.ServiceConfiguration.MirroredQueueMode = &mirredQueueMode
+	}
 }
