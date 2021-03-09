@@ -89,6 +89,10 @@ type PodConfiguration struct {
 	// AuthParameters auth parameters
 	// +optional
 	AuthParameters *AuthParameters `json:"authParameters,omitempty"`
+	// Kubernetes Cluster Configuration
+	// +kubebuilder:validation:Enum=info;debug;warning;error;critical;none
+	// +optional
+	LogLevel string `json:"logLevel,omitempty"`
 }
 
 //GetReplicas is used to get number of desired pods.

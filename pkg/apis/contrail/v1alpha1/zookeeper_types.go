@@ -96,7 +96,16 @@ func (c *Zookeeper) InstanceConfiguration(request reconcile.Request, confCMName 
 	if err != nil {
 		return err
 	}
-	confCMData["log4j.properties"] = configtemplates.ZookeeperLogConfig
+	var zookeeperLogConfig bytes.Buffer
+	err = configtemplates.ZookeeperLogConfig.Execute(&zookeeperLogConfig, struct {
+		LogLevel string
+	}{
+		LogLevel: c.Spec.CommonConfiguration.LogLevel,
+	})
+	if err != nil {
+		panic(err)
+	}
+	confCMData["log4j.properties"] = zookeeperLogConfig.String()
 	confCMData["configuration.xsl"] = configtemplates.ZookeeperXslConfig
 	var zookeeperConfigBuffer bytes.Buffer
 	err = configtemplates.ZookeeperStaticConfig.Execute(&zookeeperConfigBuffer, struct {

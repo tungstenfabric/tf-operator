@@ -104,6 +104,7 @@ func TestRabbitmqConfigMapsWithDefaultValues(t *testing.T) {
 	assert.Equal(t, "/etc/ssl/certs/kubernetes/ca-bundle.crt", rabbitmqConfig.Section("").Key("ssl_options.cacertfile").String())
 	assert.Equal(t, "/etc/certificates/server-key-1.1.1.1.pem", rabbitmqConfig.Section("").Key("ssl_options.keyfile").String())
 	assert.Equal(t, "/etc/certificates/server-1.1.1.1.crt", rabbitmqConfig.Section("").Key("ssl_options.certfile").String())
+	assert.Equal(t, "info", rabbitmqConfig.Section("").Key("log.file.level").String())
 	assert.Equal(t, false, rabbitmqConfig.Section("").HasKey("tcp_listen_options.backlog"))
 	assert.Equal(t, false, rabbitmqConfig.Section("").HasKey("tcp_listen_options.nodelay"))
 	assert.Equal(t, false, rabbitmqConfig.Section("").HasKey("tcp_listen_options.linger.on"))
@@ -124,6 +125,7 @@ func TestRabbitmqConfigMapsWithDefaultValues(t *testing.T) {
 	assert.Equal(t, "/etc/ssl/certs/kubernetes/ca-bundle.crt", rabbitmqConfig.Section("").Key("ssl_options.cacertfile").String())
 	assert.Equal(t, "/etc/certificates/server-key-2.2.2.2.pem", rabbitmqConfig.Section("").Key("ssl_options.keyfile").String())
 	assert.Equal(t, "/etc/certificates/server-2.2.2.2.crt", rabbitmqConfig.Section("").Key("ssl_options.certfile").String())
+	assert.Equal(t, "info", rabbitmqConfig.Section("").Key("log.file.level").String())
 	assert.Equal(t, false, rabbitmqConfig.Section("").HasKey("tcp_listen_options.backlog"))
 	assert.Equal(t, false, rabbitmqConfig.Section("").HasKey("tcp_listen_options.nodelay"))
 	assert.Equal(t, false, rabbitmqConfig.Section("").HasKey("tcp_listen_options.linger.on"))
@@ -169,6 +171,7 @@ func TestRabbitmqConfigMapsWithInetDistListenValues(t *testing.T) {
 	assert.Equal(t, "/etc/ssl/certs/kubernetes/ca-bundle.crt", rabbitmqConfig.Section("").Key("ssl_options.cacertfile").String())
 	assert.Equal(t, "/etc/certificates/server-key-1.1.1.1.pem", rabbitmqConfig.Section("").Key("ssl_options.keyfile").String())
 	assert.Equal(t, "/etc/certificates/server-1.1.1.1.crt", rabbitmqConfig.Section("").Key("ssl_options.certfile").String())
+	assert.Equal(t, "info", rabbitmqConfig.Section("").Key("log.file.level").String())
 	assert.Equal(t, false, rabbitmqConfig.Section("").HasKey("tcp_listen_options.backlog"))
 	assert.Equal(t, false, rabbitmqConfig.Section("").HasKey("tcp_listen_options.nodelay"))
 	assert.Equal(t, false, rabbitmqConfig.Section("").HasKey("tcp_listen_options.linger.on"))
@@ -189,6 +192,7 @@ func TestRabbitmqConfigMapsWithInetDistListenValues(t *testing.T) {
 	assert.Equal(t, "/etc/ssl/certs/kubernetes/ca-bundle.crt", rabbitmqConfig.Section("").Key("ssl_options.cacertfile").String())
 	assert.Equal(t, "/etc/certificates/server-key-2.2.2.2.pem", rabbitmqConfig.Section("").Key("ssl_options.keyfile").String())
 	assert.Equal(t, "/etc/certificates/server-2.2.2.2.crt", rabbitmqConfig.Section("").Key("ssl_options.certfile").String())
+	assert.Equal(t, "info", rabbitmqConfig.Section("").Key("log.file.level").String())
 	assert.Equal(t, false, rabbitmqConfig.Section("").HasKey("tcp_listen_options.backlog"))
 	assert.Equal(t, false, rabbitmqConfig.Section("").HasKey("tcp_listen_options.nodelay"))
 	assert.Equal(t, false, rabbitmqConfig.Section("").HasKey("tcp_listen_options.linger.on"))
@@ -215,6 +219,9 @@ func TestRabbitmqConfigMapsWithTCPListenOptionsValues(t *testing.T) {
 			Namespace: "test-ns",
 		},
 		Spec: RabbitmqSpec{
+			CommonConfiguration: PodConfiguration{
+				LogLevel: "debug",
+			},
 			ServiceConfiguration: RabbitmqConfiguration{
 				ClusterPartitionHandling: &cph,
 				TCPListenOptions: TCPListenOptionsConfig{
@@ -244,6 +251,7 @@ func TestRabbitmqConfigMapsWithTCPListenOptionsValues(t *testing.T) {
 	assert.Equal(t, "/etc/ssl/certs/kubernetes/ca-bundle.crt", rabbitmqConfig.Section("").Key("ssl_options.cacertfile").String())
 	assert.Equal(t, "/etc/certificates/server-key-1.1.1.1.pem", rabbitmqConfig.Section("").Key("ssl_options.keyfile").String())
 	assert.Equal(t, "/etc/certificates/server-1.1.1.1.crt", rabbitmqConfig.Section("").Key("ssl_options.certfile").String())
+	assert.Equal(t, "debug", rabbitmqConfig.Section("").Key("log.file.level").String())
 	assert.Equal(t, "600", rabbitmqConfig.Section("").Key("tcp_listen_options.backlog").String())
 	assert.Equal(t, "true", rabbitmqConfig.Section("").Key("tcp_listen_options.nodelay").String())
 	assert.Equal(t, "true", rabbitmqConfig.Section("").Key("tcp_listen_options.linger.on").String())
@@ -264,6 +272,7 @@ func TestRabbitmqConfigMapsWithTCPListenOptionsValues(t *testing.T) {
 	assert.Equal(t, "/etc/ssl/certs/kubernetes/ca-bundle.crt", rabbitmqConfig.Section("").Key("ssl_options.cacertfile").String())
 	assert.Equal(t, "/etc/certificates/server-key-2.2.2.2.pem", rabbitmqConfig.Section("").Key("ssl_options.keyfile").String())
 	assert.Equal(t, "/etc/certificates/server-2.2.2.2.crt", rabbitmqConfig.Section("").Key("ssl_options.certfile").String())
+	assert.Equal(t, "debug", rabbitmqConfig.Section("").Key("log.file.level").String())
 	assert.Equal(t, "600", rabbitmqConfig.Section("").Key("tcp_listen_options.backlog").String())
 	assert.Equal(t, "true", rabbitmqConfig.Section("").Key("tcp_listen_options.nodelay").String())
 	assert.Equal(t, "true", rabbitmqConfig.Section("").Key("tcp_listen_options.linger.on").String())
@@ -290,6 +299,9 @@ func TestRabbitmqConfigMapsWithAllValues(t *testing.T) {
 			Namespace: "test-ns",
 		},
 		Spec: RabbitmqSpec{
+			CommonConfiguration: PodConfiguration{
+				LogLevel: "debug",
+			},
 			ServiceConfiguration: RabbitmqConfiguration{
 				MirroredQueueMode: &cph,
 				TCPListenOptions: TCPListenOptionsConfig{
@@ -319,6 +331,7 @@ func TestRabbitmqConfigMapsWithAllValues(t *testing.T) {
 	assert.Equal(t, "/etc/ssl/certs/kubernetes/ca-bundle.crt", rabbitmqConfig.Section("").Key("ssl_options.cacertfile").String())
 	assert.Equal(t, "/etc/certificates/server-key-1.1.1.1.pem", rabbitmqConfig.Section("").Key("ssl_options.keyfile").String())
 	assert.Equal(t, "/etc/certificates/server-1.1.1.1.crt", rabbitmqConfig.Section("").Key("ssl_options.certfile").String())
+	assert.Equal(t, "debug", rabbitmqConfig.Section("").Key("log.file.level").String())
 	assert.Equal(t, "600", rabbitmqConfig.Section("").Key("tcp_listen_options.backlog").String())
 	assert.Equal(t, "true", rabbitmqConfig.Section("").Key("tcp_listen_options.nodelay").String())
 	assert.Equal(t, "true", rabbitmqConfig.Section("").Key("tcp_listen_options.linger.on").String())
@@ -339,6 +352,7 @@ func TestRabbitmqConfigMapsWithAllValues(t *testing.T) {
 	assert.Equal(t, "/etc/ssl/certs/kubernetes/ca-bundle.crt", rabbitmqConfig.Section("").Key("ssl_options.cacertfile").String())
 	assert.Equal(t, "/etc/certificates/server-key-2.2.2.2.pem", rabbitmqConfig.Section("").Key("ssl_options.keyfile").String())
 	assert.Equal(t, "/etc/certificates/server-2.2.2.2.crt", rabbitmqConfig.Section("").Key("ssl_options.certfile").String())
+	assert.Equal(t, "debug", rabbitmqConfig.Section("").Key("log.file.level").String())
 	assert.Equal(t, "600", rabbitmqConfig.Section("").Key("tcp_listen_options.backlog").String())
 	assert.Equal(t, "true", rabbitmqConfig.Section("").Key("tcp_listen_options.nodelay").String())
 	assert.Equal(t, "true", rabbitmqConfig.Section("").Key("tcp_listen_options.linger.on").String())
