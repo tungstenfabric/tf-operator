@@ -158,11 +158,11 @@ sandesh_ca_cert={{ .CAFilePath }}
 // CassandraCommandTemplate start script
 var CassandraCommandTemplate = template.Must(template.New("").Parse(`#!/bin/bash
 set -ex;
-echo "INFO: $(date): wait cqlshrc.${POD_IP}" ; 
-while [ ! -e /etc/contrailconfigmaps/cqlshrc.${POD_IP} ] ; do sleep 1; done ; 
-echo "INFO: $(date): wait cassandra.${POD_IP}.yaml" ; 
-while [ ! -e /etc/contrailconfigmaps/cassandra.${POD_IP}.yaml ] ; do sleep 1; done ; 
-echo "INFO: $(date): configs ready" ; 
+echo "INFO: $(date): wait cqlshrc.${POD_IP}" ;
+while [ ! -e /etc/contrailconfigmaps/cqlshrc.${POD_IP} ] ; do sleep 1; done ;
+echo "INFO: $(date): wait cassandra.${POD_IP}.yaml" ;
+while [ ! -e /etc/contrailconfigmaps/cassandra.${POD_IP}.yaml ] ; do sleep 1; done ;
+echo "INFO: $(date): configs ready" ;
 
 # generate keystore for ssl
 rm -f /etc/keystore/server-truststore.jks /etc/keystore/server-keystore.jks ;

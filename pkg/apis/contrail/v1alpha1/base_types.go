@@ -851,9 +851,9 @@ func NewRabbitmqClusterConfiguration(name, namespace string, client client.Clien
 		}
 		sort.SliceStable(nodes, func(i, j int) bool { return nodes[i] < nodes[j] })
 	}
-	config := instance.ConfigurationParameters()
+	instance.ConfigurationParameters()
 	clusterConfig := RabbitmqClusterConfiguration{
-		Port:         *config.Port,
+		Port:         *instance.Spec.ServiceConfiguration.Port,
 		ServerIPList: nodes,
 		Secret:       instance.Status.Secret,
 	}

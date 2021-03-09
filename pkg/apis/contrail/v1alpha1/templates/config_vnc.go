@@ -13,11 +13,11 @@ cafile = {{ .CAFilePath }}
 [auth]
 AUTHN_TYPE = {{ .AuthMode }}
 ; Authentication settings (optional)
-AUTHN_PROTOCOL = {{ .KeystoneAuthProtocol }}
-AUTHN_SERVER = {{ .KeystoneAddress }}
-AUTHN_PORT = {{ .KeystonePort }}
+AUTHN_PROTOCOL = {{ .KeystoneAuthParameters.AuthProtocol }}
+AUTHN_SERVER = {{ .KeystoneAuthParameters.Address }}
+AUTHN_PORT = {{ .KeystoneAuthParameters.Port }}
 AUTHN_URL = /v3/auth/tokens
-AUTHN_DOMAIN = {{ .KeystoneUserDomainName }}
+AUTHN_DOMAIN = {{ .KeystoneAuthParameters.UserDomainName }}
 cafile = {{ .CAFilePath }}
 ;AUTHN_TOKEN_URL = http://127.0.0.1:35357/v2.0/tokens
 {{ else }}
