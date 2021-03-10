@@ -54,11 +54,11 @@ func DynamicZookeeperConfig(pods []core.Pod, electionPort, serverPort, clientPor
 }
 
 // ZookeeperLogConfig is the template of the Zookeeper Log configuration.
-var ZookeeperLogConfig = `zookeeper.root.logger=INFO, CONSOLE
-zookeeper.console.threshold=INFO
+var ZookeeperLogConfig = template.Must(template.New("").Funcs(tfFuncs).Parse(`zookeeper.root.logger={{ upperOrDefault .LogLevel "INFO" }}
+zookeeper.console.threshold={{ upperOrDefault .LogLevel "INFO" }}
 zookeeper.log.dir=.
 zookeeper.log.file=zookeeper.log
-zookeeper.log.threshold=INFO
+zookeeper.log.threshold={{ upperOrDefault .LogLevel "INFO" }}
 zookeeper.log.maxfilesize=256MB
 zookeeper.log.maxbackupindex=20
 zookeeper.tracelog.dir=${zookeeper.log.dir}
@@ -80,7 +80,7 @@ log4j.appender.TRACEFILE.Threshold=TRACE
 log4j.appender.TRACEFILE.File=${zookeeper.tracelog.dir}/${zookeeper.tracelog.file}
 log4j.appender.TRACEFILE.layout=org.apache.log4j.PatternLayout
 log4j.appender.TRACEFILE.layout.ConversionPattern=%d{ISO8601} [myid:%X{myid}] - %-5p [%t:%C{1}@%L][%x] - %m%n
-`
+`))
 
 // ZookeeperXslConfig is the template of the Zookeeper XSL configuration.
 var ZookeeperXslConfig = `<?xml version="1.0"?>
