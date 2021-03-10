@@ -280,7 +280,7 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 			}
 			if jvmOpts != "" {
 				container.Env = append(container.Env, corev1.EnvVar{
-					Name:  "JVM_OPTS",
+					Name:  "JVM_EXTRA_OPTS",
 					Value: jvmOpts,
 				})
 			}
