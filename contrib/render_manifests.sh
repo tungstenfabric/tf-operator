@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 
+#
 # Acceptd following env variable for rendering
 # CONTAINER_REGISTRY                - TF container registry (default dockerhub)
 # CONTRAIL_CONTAINER_TAG            - TF container tag (default latest)
@@ -8,7 +8,7 @@
 # CONTRAIL_REPLICAS                 - number of replicas (default calculated based on CONTROLLER_NODES
 #                                     if set, otherwise 1)
 # CONTROLLER_NODES                  - CONTROLLER_NODES - for integratiio with tf dev tools, it is comma
-#                                     separated list of IPs of master nodes (used to calculate replicas) 
+#                                     separated list of IPs of master nodes (used to calculate replicas)
 
 [ "${DEBUG,,}" == "true" ] && set -x
 

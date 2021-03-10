@@ -2,7 +2,7 @@
 - CentOS 7
 - K8s >= 1.16 installed
 
-# Simple AIO setup 
+# Simple AIO setup
 ## Prepare VM with CentOS 7 with 32GB RAM, 4 CPUs, 64GB diskspace
 
 ## Deploy kubernetes with any preferable way, e.g. with help of kubespray (https://github.com/kubernetes-sigs/kubespray.git)
@@ -110,7 +110,7 @@ git clone https://github.com/tungstenfabric/tf-operator
 ```
 
 ## Build operator and push into the local registry
-```bash 
+```bash
 cd tf-operator
 target=localhost:5000/tf-operator:latest
 operator-sdk build $target

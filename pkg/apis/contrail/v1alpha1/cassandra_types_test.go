@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"gopkg.in/ini.v1"
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -48,6 +49,7 @@ var cassandraCM = &corev1.ConfigMap{
 		Name:      "cassandra1-cassandra-configmap",
 		Namespace: "test-ns",
 	},
+	Data: map[string]string{"": ""},
 }
 
 var cassandraSecret = &corev1.Secret{
@@ -69,9 +71,15 @@ var config = &Config{
 	Spec: ConfigSpec{
 		ServiceConfiguration: ConfigConfiguration{},
 	},
+	Status: ConfigStatus{
+		Nodes: map[string]string{
+			"pod1": "1.1.1.1",
+			"pod2": "2.2.2.2",
+		},
+	},
 }
 
-type paramsStruct struct {
+type CassandraParamsStruct struct {
 	ConcurrentReads                  int    `yaml:"concurrent_reads"`
 	ConcurrentWrites                 int    `yaml:"concurrent_writes"`
 	ConcurrentCounterWrites          int    `yaml:"concurrent_counter_writes"`
@@ -94,6 +102,11 @@ func TestCassandraConfigMapsWithDefaultValues(t *testing.T) {
 			Namespace: "test-ns",
 		},
 		Spec: CassandraSpec{
+			CommonConfiguration: PodConfiguration{
+				AuthParameters: &AuthParameters{
+					AuthMode: AuthenticationModeNoAuth,
+				},
+			},
 			ServiceConfiguration: CassandraConfiguration{
 				ConfigInstance: "config1",
 			},
@@ -105,7 +118,7 @@ func TestCassandraConfigMapsWithDefaultValues(t *testing.T) {
 	var cassandraConfigMap = &corev1.ConfigMap{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "cassandra1-cassandra-configmap", Namespace: "test-ns"}, cassandraConfigMap), "Error while gathering cassandra config map")
 
-	var cassandraConfig paramsStruct
+	var cassandraConfig CassandraParamsStruct
 	err = yaml.Unmarshal([]byte(cassandraConfigMap.Data["cassandra.1.1.1.1.yaml"]), &cassandraConfig)
 	require.NoError(t, err)
 
@@ -129,6 +142,58 @@ func TestCassandraConfigMapsWithDefaultValues(t *testing.T) {
 	assert.Equal(t, 2, cassandraConfig.MemtableFlushWriters)
 	assert.Equal(t, 32, cassandraConfig.ConcurrentCounterWrites)
 	assert.Equal(t, 32, cassandraConfig.ConcurrentMaterializedViewWrites)
+
+	cassandraEnvConfig, err := ini.Load([]byte(cassandraConfigMap.Data["vnc_api_lib.ini.1.1.1.1"]))
+	require.NoError(t, err)
+
+	assert.Equal(t, "noauth", cassandraEnvConfig.Section("auth").Key("AUTHN_TYPE").String())
+	assert.Equal(t, "1.1.1.1,2.2.2.2", cassandraEnvConfig.Section("global").Key("WEB_SERVER").String())
+	assert.Equal(t, "8082", cassandraEnvConfig.Section("global").Key("WEB_PORT").String())
+
+	cassandraEnvConfig, err = ini.Load([]byte(cassandraConfigMap.Data["vnc_api_lib.ini.2.2.2.2"]))
+	require.NoError(t, err)
+
+	assert.Equal(t, "noauth", cassandraEnvConfig.Section("auth").Key("AUTHN_TYPE").String())
+	assert.Equal(t, "1.1.1.1,2.2.2.2", cassandraEnvConfig.Section("global").Key("WEB_SERVER").String())
+	assert.Equal(t, "8082", cassandraEnvConfig.Section("global").Key("WEB_PORT").String())
+
+	cassandraNodemanagerConfig, err := ini.Load([]byte(cassandraConfigMap.Data["database-nodemgr.conf.1.1.1.1"]))
+	require.NoError(t, err)
+
+	assert.Equal(t, "pod1-host", cassandraNodemanagerConfig.Section("DEFAULTS").Key("hostname").String())
+	assert.Equal(t, "1.1.1.1", cassandraNodemanagerConfig.Section("DEFAULTS").Key("hostip").String())
+	assert.Equal(t, "9042", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_port").String())
+	assert.Equal(t, "7200", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_jmx_port").String())
+	assert.Equal(t, "4", cassandraNodemanagerConfig.Section("DEFAULTS").Key("minimum_diskGB").String())
+	assert.Equal(t, "1.1.1.1:8086 2.2.2.2:8086", cassandraNodemanagerConfig.Section("COLLECTOR").Key("server_list").String())
+	assert.Equal(t, "/etc/certificates/server-key-1.1.1.1.pem", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_keyfile").String())
+	assert.Equal(t, "/etc/certificates/server-1.1.1.1.crt", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_certfile").String())
+	assert.Equal(t, "/etc/ssl/certs/kubernetes/ca-bundle.crt", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_ca_cert").String())
+
+	cassandraNodemanagerConfig, err = ini.Load([]byte(cassandraConfigMap.Data["database-nodemgr.conf.2.2.2.2"]))
+	require.NoError(t, err)
+
+	assert.Equal(t, "pod2-host", cassandraNodemanagerConfig.Section("DEFAULTS").Key("hostname").String())
+	assert.Equal(t, "2.2.2.2", cassandraNodemanagerConfig.Section("DEFAULTS").Key("hostip").String())
+	assert.Equal(t, "9042", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_port").String())
+	assert.Equal(t, "7200", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_jmx_port").String())
+	assert.Equal(t, "4", cassandraNodemanagerConfig.Section("DEFAULTS").Key("minimum_diskGB").String())
+	assert.Equal(t, "1.1.1.1:8086 2.2.2.2:8086", cassandraNodemanagerConfig.Section("COLLECTOR").Key("server_list").String())
+	assert.Equal(t, "/etc/certificates/server-key-2.2.2.2.pem", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_keyfile").String())
+	assert.Equal(t, "/etc/certificates/server-2.2.2.2.crt", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_certfile").String())
+	assert.Equal(t, "/etc/ssl/certs/kubernetes/ca-bundle.crt", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_ca_cert").String())
+
+	cassandraNodemanagerEnvConfig, err := ini.Load([]byte(cassandraConfigMap.Data["database-nodemgr.env.1.1.1.1"]))
+	require.NoError(t, err)
+
+	assert.Equal(t, "1.1.1.1,2.2.2.2", cassandraNodemanagerEnvConfig.Section("").Key("export ANALYTICSDB_NODES").String())
+	assert.Equal(t, "1.1.1.1,2.2.2.2", cassandraNodemanagerEnvConfig.Section("").Key("export CONFIGDB_NODES").String())
+
+	cassandraNodemanagerEnvConfig, err = ini.Load([]byte(cassandraConfigMap.Data["database-nodemgr.env.2.2.2.2"]))
+	require.NoError(t, err)
+
+	assert.Equal(t, "1.1.1.1,2.2.2.2", cassandraNodemanagerEnvConfig.Section("").Key("export ANALYTICSDB_NODES").String())
+	assert.Equal(t, "1.1.1.1,2.2.2.2", cassandraNodemanagerEnvConfig.Section("").Key("export CONFIGDB_NODES").String())
 }
 
 func TestCassandraConfigMapsWithCustomValues(t *testing.T) {
@@ -136,6 +201,7 @@ func TestCassandraConfigMapsWithCustomValues(t *testing.T) {
 	require.NoError(t, err, "Failed to build scheme")
 	require.NoError(t, corev1.SchemeBuilder.AddToScheme(scheme), "Failed to add CoreV1 into scheme")
 
+	var keystoneTestPort = 7777
 	cl := fake.NewFakeClientWithScheme(scheme, cassandraCM, cassandraSecret, config)
 	cassandra := Cassandra{
 		ObjectMeta: metav1.ObjectMeta{
@@ -143,6 +209,17 @@ func TestCassandraConfigMapsWithCustomValues(t *testing.T) {
 			Namespace: "test-ns",
 		},
 		Spec: CassandraSpec{
+			CommonConfiguration: PodConfiguration{
+				AuthParameters: &AuthParameters{
+					AuthMode: AuthenticationModeKeystone,
+					KeystoneAuthParameters: &KeystoneAuthParameters{
+						AuthProtocol:   "https",
+						Address:        "9.9.9.9",
+						Port:           &keystoneTestPort,
+						UserDomainName: "test.net",
+					},
+				},
+			},
 			ServiceConfiguration: CassandraConfiguration{
 				ConfigInstance: "config1",
 				CassandraParameters: CassandraConfigParameters{
@@ -164,7 +241,7 @@ func TestCassandraConfigMapsWithCustomValues(t *testing.T) {
 	var cassandraConfigMap = &corev1.ConfigMap{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "cassandra1-cassandra-configmap", Namespace: "test-ns"}, cassandraConfigMap), "Error while gathering cassandra config map")
 
-	var cassandraConfig paramsStruct
+	var cassandraConfig CassandraParamsStruct
 	err = yaml.Unmarshal([]byte(cassandraConfigMap.Data["cassandra.1.1.1.1.yaml"]), &cassandraConfig)
 	require.NoError(t, err)
 
@@ -188,4 +265,66 @@ func TestCassandraConfigMapsWithCustomValues(t *testing.T) {
 	assert.Equal(t, 66, cassandraConfig.MemtableFlushWriters)
 	assert.Equal(t, 77, cassandraConfig.ConcurrentCounterWrites)
 	assert.Equal(t, 88, cassandraConfig.ConcurrentMaterializedViewWrites)
+
+	cassandraEnvConfig, err := ini.Load([]byte(cassandraConfigMap.Data["vnc_api_lib.ini.1.1.1.1"]))
+	require.NoError(t, err)
+
+	assert.Equal(t, "keystone", cassandraEnvConfig.Section("auth").Key("AUTHN_TYPE").String())
+	assert.Equal(t, "https", cassandraEnvConfig.Section("auth").Key("AUTHN_PROTOCOL").String())
+	assert.Equal(t, "9.9.9.9", cassandraEnvConfig.Section("auth").Key("AUTHN_SERVER").String())
+	assert.Equal(t, "7777", cassandraEnvConfig.Section("auth").Key("AUTHN_PORT").String())
+	assert.Equal(t, "test.net", cassandraEnvConfig.Section("auth").Key("AUTHN_DOMAIN").String())
+	assert.Equal(t, "1.1.1.1,2.2.2.2", cassandraEnvConfig.Section("global").Key("WEB_SERVER").String())
+	assert.Equal(t, "8082", cassandraEnvConfig.Section("global").Key("WEB_PORT").String())
+
+	cassandraEnvConfig, err = ini.Load([]byte(cassandraConfigMap.Data["vnc_api_lib.ini.2.2.2.2"]))
+	require.NoError(t, err)
+
+	assert.Equal(t, "keystone", cassandraEnvConfig.Section("auth").Key("AUTHN_TYPE").String())
+	assert.Equal(t, "https", cassandraEnvConfig.Section("auth").Key("AUTHN_PROTOCOL").String())
+	assert.Equal(t, "9.9.9.9", cassandraEnvConfig.Section("auth").Key("AUTHN_SERVER").String())
+	assert.Equal(t, "7777", cassandraEnvConfig.Section("auth").Key("AUTHN_PORT").String())
+	assert.Equal(t, "test.net", cassandraEnvConfig.Section("auth").Key("AUTHN_DOMAIN").String())
+	assert.Equal(t, "1.1.1.1,2.2.2.2", cassandraEnvConfig.Section("global").Key("WEB_SERVER").String())
+	assert.Equal(t, "8082", cassandraEnvConfig.Section("global").Key("WEB_PORT").String())
+	assert.Equal(t, "1.1.1.1,2.2.2.2", cassandraEnvConfig.Section("global").Key("WEB_SERVER").String())
+	assert.Equal(t, "8082", cassandraEnvConfig.Section("global").Key("WEB_PORT").String())
+
+	cassandraNodemanagerConfig, err := ini.Load([]byte(cassandraConfigMap.Data["database-nodemgr.conf.1.1.1.1"]))
+	require.NoError(t, err)
+
+	assert.Equal(t, "pod1-host", cassandraNodemanagerConfig.Section("DEFAULTS").Key("hostname").String())
+	assert.Equal(t, "1.1.1.1", cassandraNodemanagerConfig.Section("DEFAULTS").Key("hostip").String())
+	assert.Equal(t, "9042", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_port").String())
+	assert.Equal(t, "7200", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_jmx_port").String())
+	assert.Equal(t, "4", cassandraNodemanagerConfig.Section("DEFAULTS").Key("minimum_diskGB").String())
+	assert.Equal(t, "1.1.1.1:8086 2.2.2.2:8086", cassandraNodemanagerConfig.Section("COLLECTOR").Key("server_list").String())
+	assert.Equal(t, "/etc/certificates/server-key-1.1.1.1.pem", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_keyfile").String())
+	assert.Equal(t, "/etc/certificates/server-1.1.1.1.crt", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_certfile").String())
+	assert.Equal(t, "/etc/ssl/certs/kubernetes/ca-bundle.crt", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_ca_cert").String())
+
+	cassandraNodemanagerConfig, err = ini.Load([]byte(cassandraConfigMap.Data["database-nodemgr.conf.2.2.2.2"]))
+	require.NoError(t, err)
+
+	assert.Equal(t, "pod2-host", cassandraNodemanagerConfig.Section("DEFAULTS").Key("hostname").String())
+	assert.Equal(t, "2.2.2.2", cassandraNodemanagerConfig.Section("DEFAULTS").Key("hostip").String())
+	assert.Equal(t, "9042", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_port").String())
+	assert.Equal(t, "7200", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_jmx_port").String())
+	assert.Equal(t, "4", cassandraNodemanagerConfig.Section("DEFAULTS").Key("minimum_diskGB").String())
+	assert.Equal(t, "1.1.1.1:8086 2.2.2.2:8086", cassandraNodemanagerConfig.Section("COLLECTOR").Key("server_list").String())
+	assert.Equal(t, "/etc/certificates/server-key-2.2.2.2.pem", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_keyfile").String())
+	assert.Equal(t, "/etc/certificates/server-2.2.2.2.crt", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_certfile").String())
+	assert.Equal(t, "/etc/ssl/certs/kubernetes/ca-bundle.crt", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_ca_cert").String())
+
+	cassandraNodemanagerEnvConfig, err := ini.Load([]byte(cassandraConfigMap.Data["database-nodemgr.env.1.1.1.1"]))
+	require.NoError(t, err)
+
+	assert.Equal(t, "1.1.1.1,2.2.2.2", cassandraNodemanagerEnvConfig.Section("").Key("export ANALYTICSDB_NODES").String())
+	assert.Equal(t, "1.1.1.1,2.2.2.2", cassandraNodemanagerEnvConfig.Section("").Key("export CONFIGDB_NODES").String())
+
+	cassandraNodemanagerEnvConfig, err = ini.Load([]byte(cassandraConfigMap.Data["database-nodemgr.env.2.2.2.2"]))
+	require.NoError(t, err)
+
+	assert.Equal(t, "1.1.1.1,2.2.2.2", cassandraNodemanagerEnvConfig.Section("").Key("export ANALYTICSDB_NODES").String())
+	assert.Equal(t, "1.1.1.1,2.2.2.2", cassandraNodemanagerEnvConfig.Section("").Key("export CONFIGDB_NODES").String())
 }
