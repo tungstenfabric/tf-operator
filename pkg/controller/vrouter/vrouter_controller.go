@@ -18,7 +18,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	appsv1 "k8s.io/api/apps/v1"
-	core "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -232,7 +231,10 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 		reqLogger.Error(err, "ClusterParameters failed")
 		return reconcile.Result{}, err
 	}
-	daemonSet := GetDaemonset(&kcc.Networking.CNIConfig, vcp.CloudOrchestrator)
+	daemonSet := GetDaemonset(
+		&kcc.Networking.CNIConfig,
+		instance.Spec.ServiceConfiguration.ContrailStatusImage,
+		vcp.CloudOrchestrator)
 	if err = instance.PrepareDaemonSet(daemonSet, &instance.Spec.CommonConfiguration, request, r.Scheme, r.Client); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -324,10 +326,11 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 	for idx := range daemonSet.Spec.Template.Spec.InitContainers {
 
 		container := &daemonSet.Spec.Template.Spec.InitContainers[idx]
-		instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
-
-		if instanceContainer.Command != nil {
-			container.Command = instanceContainer.Command
+		if instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers); instanceContainer != nil {
+			if instanceContainer.Command != nil {
+				container.Command = instanceContainer.Command
+			}
+			container.Image = instanceContainer.Image
 		}
 
 		container.VolumeMounts = append(container.VolumeMounts,
@@ -343,8 +346,6 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 				Name:      csrSignerCaVolumeName,
 				MountPath: certificates.SignerCAMountPath,
 			})
-
-		container.Image = instanceContainer.Image
 
 		container.EnvFrom = append(container.EnvFrom, corev1.EnvFromSource{
 			ConfigMapRef: &corev1.ConfigMapEnvSource{
@@ -385,14 +386,8 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 				})
 		}
 
-		if container.Name == "nodeinit" && instance.Spec.ServiceConfiguration.ContrailStatusImage != "" {
-			container.Env = append(container.Env,
-				core.EnvVar{
-					Name:  "CONTRAIL_STATUS_IMAGE",
-					Value: instance.Spec.ServiceConfiguration.ContrailStatusImage,
-				},
-			)
-		}
+		// nothing to do for nodeinit
+		// if container.Name == "nodeinit" {}
 	}
 
 	if err = instance.CreateDS(daemonSet, &instance.Spec.CommonConfiguration, instanceType, request,
