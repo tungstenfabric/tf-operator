@@ -10,7 +10,7 @@ import (
 )
 
 //GetDaemonset returns DaemonSet object for vRouter
-func GetDaemonset(cniCfg *v1alpha1.CNIConfig, cloudOrchestrator string) *apps.DaemonSet {
+func GetDaemonset(cniCfg *v1alpha1.CNIConfig, contrailStatusImage, cloudOrchestrator string) *apps.DaemonSet {
 	var labelsMountPermission int32 = 0644
 	var trueVal = true
 
@@ -70,36 +70,7 @@ func GetDaemonset(cniCfg *v1alpha1.CNIConfig, cloudOrchestrator string) *apps.Da
 		},
 	}
 
-	envListNodeInit := append(envList,
-		corev1.EnvVar{
-			Name:  "SERVER_CA_CERTFILE",
-			Value: certificates.SignerCAFilepath,
-		},
-		corev1.EnvVar{
-			Name:  "SERVER_CERTFILE",
-			Value: "/etc/certificates/server-${POD_IP}.crt",
-		},
-		corev1.EnvVar{
-			Name:  "SERVER_KEYFILE",
-			Value: "/etc/certificates/server-key-${POD_IP}.pem",
-		},
-	)
-
 	var podInitContainers = []core.Container{
-		{
-			Name:  "nodeinit",
-			Image: "tungstenfabric/contrail-node-init:latest",
-			Env:   envListNodeInit,
-			VolumeMounts: []core.VolumeMount{
-				{
-					Name:      "host-usr-bin",
-					MountPath: "/host/usr/bin",
-				},
-			},
-			SecurityContext: &core.SecurityContext{
-				Privileged: &trueVal,
-			},
-		},
 		{
 			Name:  "vrouterkernelinit",
 			Image: "tungstenfabric/contrail-vrouter-kernel-init:latest",
@@ -148,6 +119,50 @@ func GetDaemonset(cniCfg *v1alpha1.CNIConfig, cloudOrchestrator string) *apps.Da
 				},
 			},
 		},
+	}
+
+	if contrailStatusImage != "" {
+		envListNodeInit := append(envList,
+			corev1.EnvVar{
+				Name:  "SERVER_CA_CERTFILE",
+				Value: certificates.SignerCAFilepath,
+			},
+			corev1.EnvVar{
+				Name:  "SERVER_CERTFILE",
+				Value: "/etc/certificates/server-${POD_IP}.crt",
+			},
+			corev1.EnvVar{
+				Name:  "SERVER_KEYFILE",
+				Value: "/etc/certificates/server-key-${POD_IP}.pem",
+			},
+			core.EnvVar{
+				Name:  "CONTRAIL_STATUS_IMAGE",
+				Value: contrailStatusImage,
+			},
+		)
+		podInitContainers = append(podInitContainers,
+			core.Container{
+				Name:  "nodeinit",
+				Image: "tungstenfabric/contrail-node-init:latest",
+				Env:   envListNodeInit,
+				VolumeMounts: []core.VolumeMount{
+					{
+						Name:      "host-usr-bin",
+						MountPath: "/host/usr/bin",
+					},
+				},
+				SecurityContext: &core.SecurityContext{
+					Privileged: &trueVal,
+				},
+			},
+			// for password protected it is needed to prefetch contrail-status image as it
+			// is not available w/o image secret
+			core.Container{
+				Name:    "nodeinit-status-prefetch",
+				Image:   contrailStatusImage,
+				Command: []string{"sh", "-c", "exit 0"},
+			},
+		)
 	}
 
 	var podContainers = []core.Container{
