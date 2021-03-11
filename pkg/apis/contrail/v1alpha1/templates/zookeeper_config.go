@@ -28,7 +28,7 @@ dynamicConfigFile=/var/lib/zookeeper/zoo.cfg.dynamic
 
 // DynamicZookeeperConfig creates zk dynamic config
 func DynamicZookeeperConfig(pods []core.Pod, electionPort, serverPort, clientPort string) (map[string]string, error) {
-	dynamicConf := make(map[string]string, 0)
+	dynamicConf := make(map[string]string)
 	serverDef := ""
 	sort.SliceStable(pods, func(i, j int) bool { return pods[i].Name < pods[j].Name })
 	for _, pod := range pods {

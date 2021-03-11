@@ -234,8 +234,8 @@ func (r *ReconcileAnalyticsSnmp) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
-	statefulSet := &appsv1.StatefulSet{}
-	if statefulSet, err = r.GetSTS(request, instance, reqLogger); err != nil {
+	statefulSet, err := r.GetSTS(request, instance, reqLogger)
+	if err != nil {
 		return reconcile.Result{}, nil
 	}
 	if err = v1alpha1.EnsureServiceAccount(&statefulSet.Spec.Template.Spec,

@@ -88,7 +88,7 @@ func TestRabbitmqConfigMapsWithDefaultValues(t *testing.T) {
 		},
 	}
 
-	rabbitmq.InstanceConfiguration(rabbitmqRequest, rabbitmqPodList, cl)
+	_ = rabbitmq.InstanceConfiguration(rabbitmqRequest, rabbitmqPodList, cl)
 
 	var rabbitmqConfigMap = &corev1.ConfigMap{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "rabbitmq1-rabbitmq-configmap", Namespace: "test-ns"}, rabbitmqConfigMap), "Error while gathering rabbitmq config map")
@@ -155,7 +155,7 @@ func TestRabbitmqConfigMapsWithInetDistListenValues(t *testing.T) {
 		},
 	}
 
-	rabbitmq.InstanceConfiguration(rabbitmqRequest, rabbitmqPodList, cl)
+	_ = rabbitmq.InstanceConfiguration(rabbitmqRequest, rabbitmqPodList, cl)
 
 	var rabbitmqConfigMap = &corev1.ConfigMap{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "rabbitmq1-rabbitmq-configmap", Namespace: "test-ns"}, rabbitmqConfigMap), "Error while gathering rabbitmq config map")
@@ -235,7 +235,7 @@ func TestRabbitmqConfigMapsWithTCPListenOptionsValues(t *testing.T) {
 		},
 	}
 
-	rabbitmq.InstanceConfiguration(rabbitmqRequest, rabbitmqPodList, cl)
+	_ = rabbitmq.InstanceConfiguration(rabbitmqRequest, rabbitmqPodList, cl)
 
 	var rabbitmqConfigMap = &corev1.ConfigMap{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "rabbitmq1-rabbitmq-configmap", Namespace: "test-ns"}, rabbitmqConfigMap), "Error while gathering rabbitmq config map")
@@ -315,7 +315,7 @@ func TestRabbitmqConfigMapsWithAllValues(t *testing.T) {
 		},
 	}
 
-	rabbitmq.InstanceConfiguration(rabbitmqRequest, rabbitmqPodList, cl)
+	_ = rabbitmq.InstanceConfiguration(rabbitmqRequest, rabbitmqPodList, cl)
 
 	var rabbitmqConfigMap = &corev1.ConfigMap{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "rabbitmq1-rabbitmq-configmap", Namespace: "test-ns"}, rabbitmqConfigMap), "Error while gathering rabbitmq config map")

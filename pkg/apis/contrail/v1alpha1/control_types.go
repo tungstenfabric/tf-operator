@@ -534,17 +534,6 @@ func (c *Control) ConfigurationParameters() ControlConfiguration {
 	return controlConfiguration
 }
 
-// TODO:
-// It looks like an IP for data network to be used by vhost0
-// but now it is not used.
-// It looks retrieveDataIPs might be used instead.
-func getDataIP(pod *corev1.Pod) string {
-	if dataIP, isSet := pod.Annotations["dataSubnetIP"]; isSet {
-		return dataIP
-	}
-	return pod.Status.PodIP
-}
-
 // CommonStartupScript prepare common run service script
 //  command - is a final command to run
 //  configs - config files to be waited for and to be linked from configmap mount

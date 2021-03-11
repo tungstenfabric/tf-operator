@@ -7,7 +7,6 @@ import (
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -223,15 +222,6 @@ func (r *ReconcileManager) getControllerNodes() ([]corev1.Node, error) {
 		return nil, err
 	}
 	return nodeList.Items, nil
-}
-
-func (r *ReconcileManager) getNodes(selector labels.Selector) ([]corev1.Node, error) {
-	nodes := &corev1.NodeList{}
-	listOpts := client.ListOptions{LabelSelector: selector}
-	if err := r.client.List(context.Background(), nodes, &listOpts); err != nil {
-		return nil, err
-	}
-	return nodes.Items, nil
 }
 
 func (r *ReconcileManager) getReplicas(nodes []corev1.Node) int32 {

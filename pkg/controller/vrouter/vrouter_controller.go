@@ -456,7 +456,7 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 
 	// check reconcile after the check IsActiveOnControllers to allow set it if masters are ready
 	// but some workers are not
-	if reconcileAgain == true {
+	if reconcileAgain {
 		reqLogger.Info("Update Status")
 		if err := r.Client.Status().Update(context.TODO(), instance); err != nil {
 			reqLogger.Error(err, "Update Status")

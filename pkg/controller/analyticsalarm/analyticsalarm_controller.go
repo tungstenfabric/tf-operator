@@ -237,8 +237,8 @@ func (r *ReconcileAnalyticsAlarm) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, err
 	}
 
-	statefulSet := &appsv1.StatefulSet{}
-	if statefulSet, err = r.GetSTS(request, instance, reqLogger); err != nil {
+	statefulSet, err := r.GetSTS(request, instance, reqLogger)
+	if err != nil {
 		return reconcile.Result{}, nil
 	}
 	if err = v1alpha1.EnsureServiceAccount(&statefulSet.Spec.Template.Spec,
@@ -434,8 +434,8 @@ func (r *ReconcileAnalyticsAlarm) GetSTS(request reconcile.Request, instance *v1
 			_, TPok := secret.Data["truststorePassword"]
 			if !KPok || !TPok {
 				secret.Data = map[string][]byte{
-					"keystorePassword":   []byte(randomstring.RandString{10}.Generate()),
-					"truststorePassword": []byte(randomstring.RandString{10}.Generate()),
+					"keystorePassword":   []byte(randomstring.RandString{Size: 10}.Generate()),
+					"truststorePassword": []byte(randomstring.RandString{Size: 10}.Generate()),
 				}
 				if err = r.Client.Update(context.TODO(), secret); err != nil {
 					reqLogger.Error(err, "Cannot update secret")

@@ -50,18 +50,6 @@ var zookeeperCM = &corev1.ConfigMap{
 	},
 }
 
-var zookeeperSecret = &corev1.Secret{
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "zookeeper1-secret",
-		Namespace: "test-ns",
-	},
-	Data: map[string][]byte{
-		"user":     []byte("test_user"),
-		"password": []byte("test_password"),
-		"vhost":    []byte("vhost0"),
-	},
-}
-
 func TestZookeeperConfigMapWithDefaultValues(t *testing.T) {
 	scheme, err := SchemeBuilder.Build()
 	require.NoError(t, err, "Failed to build scheme")
@@ -74,7 +62,7 @@ func TestZookeeperConfigMapWithDefaultValues(t *testing.T) {
 			Namespace: "test-ns",
 		},
 	}
-	zookeeper.InstanceConfiguration(zookeeperRequest, "zookeeper1-zookeeper-configmap", zookeeperPodList, cl)
+	_ = zookeeper.InstanceConfiguration(zookeeperRequest, "zookeeper1-zookeeper-configmap", zookeeperPodList, cl)
 
 	var zookeeperConfigMap = &corev1.ConfigMap{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "zookeeper1-zookeeper-configmap", Namespace: "test-ns"}, zookeeperConfigMap), "Error while gathering zookeeper config map")
@@ -104,7 +92,7 @@ func TestZookeeperConfigMapWithCustomValues(t *testing.T) {
 			},
 		},
 	}
-	zookeeper.InstanceConfiguration(zookeeperRequest, "zookeeper1-zookeeper-configmap", zookeeperPodList, cl)
+	_ = zookeeper.InstanceConfiguration(zookeeperRequest, "zookeeper1-zookeeper-configmap", zookeeperPodList, cl)
 
 	var zookeeperConfigMap = &corev1.ConfigMap{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "zookeeper1-zookeeper-configmap", Namespace: "test-ns"}, zookeeperConfigMap), "Error while gathering zookeeper config map")

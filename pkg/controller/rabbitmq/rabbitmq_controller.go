@@ -278,7 +278,7 @@ func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Resu
 	if instance.Spec.ServiceConfiguration.Vhost != "" {
 		vhost = instance.Spec.ServiceConfiguration.Vhost
 	} else {
-		vhost = randomstring.RandString{6}.Generate()
+		vhost = randomstring.RandString{Size: 6}.Generate()
 	}
 
 	secretPassword := []byte(password)

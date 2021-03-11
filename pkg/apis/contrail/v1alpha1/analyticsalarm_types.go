@@ -193,8 +193,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 		return err
 	}
 
-	var redisServerSpaceSeparatedList string
-	redisServerSpaceSeparatedList = strings.Join(podIPList, ":6379 ") + ":6379"
+	redisServerSpaceSeparatedList := strings.Join(podIPList, ":6379 ") + ":6379"
 
 	var data = make(map[string]string)
 	for _, pod := range podList {

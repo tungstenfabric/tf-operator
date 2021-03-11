@@ -64,7 +64,7 @@ var webuiSecret = &corev1.Secret{
 
 var webuiControl = &Control{
 	ObjectMeta: metav1.ObjectMeta{
-		Name: "control1",
+		Name:      "control1",
 		Namespace: "test-ns",
 	},
 	Status: ControlStatus{
@@ -77,7 +77,7 @@ var webuiControl = &Control{
 
 var webuiCassandra = &Cassandra{
 	ObjectMeta: metav1.ObjectMeta{
-		Name: "cassandra1",
+		Name:      "cassandra1",
 		Namespace: "test-ns",
 	},
 	Status: CassandraStatus{
@@ -90,7 +90,7 @@ var webuiCassandra = &Cassandra{
 
 var webuiConfig = &Config{
 	ObjectMeta: metav1.ObjectMeta{
-		Name: "config1",
+		Name:      "config1",
 		Namespace: "test-ns",
 	},
 	Status: ConfigStatus{
@@ -101,29 +101,15 @@ var webuiConfig = &Config{
 	},
 }
 
-var webuiAnalytics = &Analytics{
-	ObjectMeta: metav1.ObjectMeta{
-		Name: "analytics1",
-		Namespace: "test-ns",
-	},
-	Status: AnalyticsStatus{
-		Nodes: map[string]string{
-			"pod1": "1.1.1.1",
-			"pod2": "2.2.2.2",
-		},
-	},
-}
-
 var authTestPort = 9999
 var authTestPassword = "test-pass"
-
 
 func TestWebuiConfigMapWithDefaultValues(t *testing.T) {
 	scheme, err := SchemeBuilder.Build()
 	require.NoError(t, err, "Failed to build scheme")
 	require.NoError(t, corev1.SchemeBuilder.AddToScheme(scheme), "Failed to add CoreV1 into scheme")
 
-	cl := fake.NewFakeClientWithScheme(scheme, webuiCM, webuiSecret, webuiAnalytics, webuiCassandra, webuiConfig, webuiControl)
+	cl := fake.NewFakeClientWithScheme(scheme, webuiCM, webuiSecret, webuiCassandra, webuiConfig, webuiControl)
 	webui := Webui{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "webui1",
@@ -134,20 +120,19 @@ func TestWebuiConfigMapWithDefaultValues(t *testing.T) {
 				AuthParameters: &AuthParameters{
 					AuthMode: "keystone",
 					KeystoneAuthParameters: &KeystoneAuthParameters{
-						AuthProtocol: "https",
-						Address: "7.7.7.7",
-						Port: &authTestPort,
-						AdminPassword: &authTestPassword,
-						AdminUsername: "user",
-						UserDomainName: "test-user-domain.org",
+						AuthProtocol:      "https",
+						Address:           "7.7.7.7",
+						Port:              &authTestPort,
+						AdminPassword:     &authTestPassword,
+						AdminUsername:     "user",
+						UserDomainName:    "test-user-domain.org",
 						ProjectDomainName: "test-project-domain.org",
 					},
 				},
 			},
 			ServiceConfiguration: WebuiConfiguration{
-				ConfigInstance: "config1",
-				AnalyticsInstance: "analytics1",
-				ControlInstance: "control1",
+				ConfigInstance:    "config1",
+				ControlInstance:   "control1",
 				CassandraInstance: "cassandra1",
 			},
 		},
@@ -173,7 +158,7 @@ func TestWebuiConfigMapWithCustomValues(t *testing.T) {
 	require.NoError(t, err, "Failed to build scheme")
 	require.NoError(t, corev1.SchemeBuilder.AddToScheme(scheme), "Failed to add CoreV1 into scheme")
 
-	cl := fake.NewFakeClientWithScheme(scheme, webuiCM, webuiSecret, webuiAnalytics, webuiCassandra, webuiConfig, webuiControl)
+	cl := fake.NewFakeClientWithScheme(scheme, webuiCM, webuiSecret, webuiCassandra, webuiConfig, webuiControl)
 	webui := Webui{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "webui1",
@@ -185,20 +170,19 @@ func TestWebuiConfigMapWithCustomValues(t *testing.T) {
 				AuthParameters: &AuthParameters{
 					AuthMode: "keystone",
 					KeystoneAuthParameters: &KeystoneAuthParameters{
-						AuthProtocol: "https",
-						Address: "7.7.7.7",
-						Port: &authTestPort,
-						AdminPassword: &authTestPassword,
-						AdminUsername: "user",
-						UserDomainName: "test-user-domain.org",
+						AuthProtocol:      "https",
+						Address:           "7.7.7.7",
+						Port:              &authTestPort,
+						AdminPassword:     &authTestPassword,
+						AdminUsername:     "user",
+						UserDomainName:    "test-user-domain.org",
 						ProjectDomainName: "test-project-domain.org",
 					},
 				},
 			},
 			ServiceConfiguration: WebuiConfiguration{
-				ConfigInstance: "config1",
-				AnalyticsInstance: "analytics1",
-				ControlInstance: "control1",
+				ConfigInstance:    "config1",
+				ControlInstance:   "control1",
 				CassandraInstance: "cassandra1",
 			},
 		},
