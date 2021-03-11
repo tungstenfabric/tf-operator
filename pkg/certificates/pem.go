@@ -23,7 +23,7 @@ func getAndDecodePem(data map[string][]byte, key string) (*pem.Block, error) {
 
 func encodeInPemFormat(buff []byte, pemType string) ([]byte, error) {
 	pemFormatBuffer := new(bytes.Buffer)
-	pem.Encode(pemFormatBuffer, &pem.Block{
+	_ = pem.Encode(pemFormatBuffer, &pem.Block{
 		Type:  pemType,
 		Bytes: buff,
 	})

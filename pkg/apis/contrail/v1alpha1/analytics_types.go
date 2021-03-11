@@ -185,8 +185,7 @@ func (c *Analytics) InstanceConfiguration(configMapName string,
 	zookeeperEndpointListCommaSeparated := configtemplates.JoinListWithSeparator(zookeeperEndpointList, ",")
 	zookeeperEndpointListSpaceSpearated := configtemplates.JoinListWithSeparator(zookeeperEndpointList, " ")
 
-	var redisServerSpaceSeparatedList string
-	redisServerSpaceSeparatedList = strings.Join(podIPList, ":6379 ") + ":6379"
+	redisServerSpaceSeparatedList := strings.Join(podIPList, ":6379 ") + ":6379"
 
 	var data = make(map[string]string)
 	for _, pod := range podList {

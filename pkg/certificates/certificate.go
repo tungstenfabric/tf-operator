@@ -87,7 +87,7 @@ func (r *Certificate) createCertificateForPod(subject CertificateSubject, secret
 		return fmt.Errorf("failed to sign certificate for %s, %s: %w", subject.hostname, subject.name, err)
 	}
 
-	certPrivKeyPem, err := encodeInPemFormat(x509.MarshalPKCS1PrivateKey(privateKey), privateKeyPemType)
+	certPrivKeyPem, _ := encodeInPemFormat(x509.MarshalPKCS1PrivateKey(privateKey), privateKeyPemType)
 	secret.Data[serverPrivateKeyFileName(subject.ip)] = certPrivKeyPem
 	secret.Data[serverCertificateFileName(subject.ip)] = certBytes
 	secret.Data["status-"+subject.ip] = []byte("Approved")

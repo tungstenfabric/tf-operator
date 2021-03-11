@@ -105,41 +105,12 @@ func (c *AnalyticsDB) InstanceConfiguration(configMapName string,
 		return err
 	}
 
-	rabbitmqNodesInformation, err := NewRabbitmqClusterConfiguration(
-		c.Spec.ServiceConfiguration.RabbitmqInstance, request.Namespace, client)
-	if err != nil {
-		return err
-	}
-
 	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(c.Spec.ServiceConfiguration.AnalyticsInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}
 
-	var rabbitmqSecretUser string
-	var rabbitmqSecretPassword string
-	var rabbitmqSecretVhost string
-	if rabbitmqNodesInformation.Secret != "" {
-		rabbitmqSecret := &corev1.Secret{}
-		err = client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqNodesInformation.Secret, Namespace: request.Namespace}, rabbitmqSecret)
-		if err != nil {
-			return err
-		}
-		rabbitmqSecretUser = string(rabbitmqSecret.Data["user"])
-		rabbitmqSecretPassword = string(rabbitmqSecret.Data["password"])
-		rabbitmqSecretVhost = string(rabbitmqSecret.Data["vhost"])
-	}
-
 	analyticsdbConfig := c.ConfigurationParameters()
-	if rabbitmqSecretUser == "" {
-		rabbitmqSecretUser = analyticsdbConfig.RabbitmqUser
-	}
-	if rabbitmqSecretPassword == "" {
-		rabbitmqSecretPassword = analyticsdbConfig.RabbitmqPassword
-	}
-	if rabbitmqSecretVhost == "" {
-		rabbitmqSecretVhost = analyticsdbConfig.RabbitmqVhost
-	}
 	var apiServerList string
 	var podIPList []string
 	for _, pod := range podList {
@@ -153,8 +124,7 @@ func (c *AnalyticsDB) InstanceConfiguration(configMapName string,
 	collectorEndpointList := configtemplates.EndpointList(analyticsNodesInformation.CollectorServerIPList, analyticsNodesInformation.CollectorPort)
 	collectorEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(collectorEndpointList, " ")
 
-	var redisServerSpaceSeparatedList string
-	redisServerSpaceSeparatedList = strings.Join(podIPList, ":6379 ") + ":6379"
+	redisServerSpaceSeparatedList := strings.Join(podIPList, ":6379 ") + ":6379"
 
 	var data = make(map[string]string)
 	for _, pod := range podList {

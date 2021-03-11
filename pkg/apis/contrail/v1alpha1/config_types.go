@@ -181,7 +181,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 	if rabbitmqSecretVhost == "" {
 		rabbitmqSecretVhost = configConfig.RabbitmqVhost
 	}
-	var analyticsServerList, apiServerList, apiServerSpaceSeparatedList string
+	var analyticsServerList, apiServerList string
 	var podIPList []string
 	for _, pod := range podList {
 		podIPList = append(podIPList, pod.Status.PodIP)
@@ -190,8 +190,6 @@ func (c *Config) InstanceConfiguration(configMapName string,
 	sort.SliceStable(podIPList, func(i, j int) bool { return podIPList[i] < podIPList[j] })
 
 	apiServerList = strings.Join(podIPList, ",")
-	apiServerSpaceSeparatedList = strings.Join(podIPList, ":"+strconv.Itoa(*configConfig.APIPort)+" ")
-	apiServerSpaceSeparatedList = apiServerSpaceSeparatedList + ":" + strconv.Itoa(*configConfig.APIPort)
 	analyticsServerList = strings.Join(analyticsNodesInformation.AnalyticsServerIPList, ",")
 	analyticsEndpointList := configtemplates.EndpointList(analyticsNodesInformation.AnalyticsServerIPList, analyticsNodesInformation.AnalyticsServerPort)
 	analyticsEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(analyticsEndpointList, " ")
