@@ -150,6 +150,18 @@ func GetDaemonset(cniCfg *v1alpha1.CNIConfig, contrailStatusImage, cloudOrchestr
 						Name:      "host-usr-bin",
 						MountPath: "/host/usr/bin",
 					},
+					{
+						Name:      "host-sysctl",
+						MountPath: "/etc/sysctl.d",
+					},
+					{
+						Name:      "var-run",
+						MountPath: "/var/run",
+					},
+					{
+						Name:      "dev",
+						MountPath: "/dev",
+					},
 				},
 				SecurityContext: &core.SecurityContext{
 					Privileged: &trueVal,
@@ -249,6 +261,14 @@ func GetDaemonset(cniCfg *v1alpha1.CNIConfig, contrailStatusImage, cloudOrchestr
 			VolumeSource: core.VolumeSource{
 				HostPath: &core.HostPathVolumeSource{
 					Path: "/var/lib/contrail",
+				},
+			},
+		},
+		{
+			Name: "host-sysctl",
+			VolumeSource: core.VolumeSource{
+				HostPath: &core.HostPathVolumeSource{
+					Path: "/etc/sysctl.d",
 				},
 			},
 		},
