@@ -65,6 +65,7 @@ type AgentStatus struct {
 	Status          AgentServiceStatus `json:"status,omitempty"`
 	ControlNodes    string             `json:"controlNodes,omitempty"`
 	ConfigNodes     string             `json:"configNodes,omitempty"`
+	AnalyticsNodes     string          `json:"analyticsNodes,omitempty"`
 	EncryptedParams string             `json:"encryptedParams,omitempty"`
 }
 
@@ -214,8 +215,9 @@ type VrouterConfiguration struct {
 // VrouterNodesConfiguration is the static configuration for vrouter.
 // +k8s:openapi-gen=true
 type VrouterNodesConfiguration struct {
-	ControlNodesConfiguration *ControlClusterConfiguration `json:"controlNodesConfiguration,omitempty"`
-	ConfigNodesConfiguration  *ConfigClusterConfiguration  `json:"configNodesConfiguration,omitempty"`
+	ControlNodesConfiguration    *ControlClusterConfiguration   `json:"controlNodesConfiguration,omitempty"`
+	ConfigNodesConfiguration     *ConfigClusterConfiguration    `json:"configNodesConfiguration,omitempty"`
+	AnalyticsNodesConfiguration  *AnalyticsClusterConfiguration `json:"analyticsNodesConfiguration,omitempty"`
 }
 
 // VrouterList contains a list of Vrouter.
@@ -669,8 +671,9 @@ func (c *Vrouter) GetNodesByLabels(clnt client.Client, labels client.MatchingLab
 
 // ClusterParams Agent cluster params
 type ClusterParams struct {
-	ConfigNodes  string
-	ControlNodes string
+	AnalyticsNodes string
+	ConfigNodes    string
+	ControlNodes   string
 }
 
 // GetControlNodes returns control nodes list (str comma separated)
@@ -682,6 +685,12 @@ func (c *Vrouter) GetControlNodes(clnt client.Client) string {
 // GetConfigNodes returns config nodes list (str comma separated)
 func (c *Vrouter) GetConfigNodes(clnt client.Client) string {
 	ips, _ := c.GetNodesByLabels(clnt, client.MatchingLabels{"contrail_manager": "config"})
+	return ips
+}
+
+// GetAnalyticsNodes returns analytics nodes list (str comma separated)
+func (c *Vrouter) GetAnalyticsNodes(clnt client.Client) string {
+	ips, _ := c.GetNodesByLabels(clnt, client.MatchingLabels{"contrail_manager": "analytics"})
 	return ips
 }
 
@@ -885,7 +894,7 @@ func (c *Vrouter) UpdateAgentConfigMapForPod(vrouterPod *VrouterPod,
 func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouterPod *VrouterPod, configMap *corev1.ConfigMap, clnt client.Client) (bool, error) {
 
 	log := vrouter_log.WithName("UpdateAgent").WithValues("nodeName", nodeName)
-	clusterParams := ClusterParams{ConfigNodes: c.GetConfigNodes(clnt), ControlNodes: c.GetControlNodes(clnt)}
+	clusterParams := ClusterParams{ConfigNodes: c.GetConfigNodes(clnt), ControlNodes: c.GetControlNodes(clnt), AnalyticsNodes: c.GetAnalyticsNodes(clnt)}
 	log.Info("UpdateAgent start", "clusterParams", clusterParams)
 	params, err := c.GetParamsEnv(clnt, &clusterParams)
 	if err != nil {
@@ -967,6 +976,7 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 
 	agentStatus.ConfigNodes = clusterParams.ConfigNodes
 	agentStatus.ControlNodes = clusterParams.ControlNodes
+	agentStatus.AnalyticsNodes = clusterParams.AnalyticsNodes
 
 	needReconcile := agentStatus.Status != "Ready"
 	agentStatus.Status = "Ready"

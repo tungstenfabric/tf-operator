@@ -59,6 +59,7 @@ type AnalyticsAlarmConfiguration struct {
 	CassandraInstance              string       `json:"cassandraInstance,omitempty"`
 	ZookeeperInstance              string       `json:"zookeeperInstance,omitempty"`
 	RabbitmqInstance               string       `json:"rabbitmqInstance,omitempty"`
+	AnalyticsInstance              string       `json:"analyticsInstance,omitempty"`
 	ConfigInstance                 string       `json:"configInstance,omitempty"`
 	LogFilePath                    string       `json:"logFilePath,omitempty"`
 	LogLevel                       string       `json:"logLevel,omitempty"`
@@ -126,6 +127,10 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 	if err != nil {
 		return err
 	}
+	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(c.Spec.ServiceConfiguration.AnalyticsInstance, request.Namespace, client)
+	if err != nil {
+		return err
+	}
 
 	var rabbitmqSecretUser string
 	var rabbitmqSecretPassword string
@@ -150,9 +155,9 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 	sort.Strings(configDbEndpointList)
 	configDbEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(configDbEndpointList, " ")
 
-	configCollectorEndpointList := configtemplates.EndpointList(configNodesInformation.CollectorServerIPList, configNodesInformation.CollectorPort)
-	sort.Strings(configCollectorEndpointList)
-	configCollectorEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(configCollectorEndpointList, " ")
+	collectorEndpointList := configtemplates.EndpointList(analyticsNodesInformation.CollectorServerIPList, analyticsNodesInformation.CollectorPort)
+	sort.Strings(collectorEndpointList)
+	collectorEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(collectorEndpointList, " ")
 
 	configApiEndpointList := configtemplates.EndpointList(configNodesInformation.APIServerIPList, configNodesInformation.APIServerPort)
 	sort.Strings(configApiEndpointList)
@@ -231,7 +236,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 			Hostname:                 hostname,
 			ListenAddress:            podIP,
 			InstrospectListenAddress: instrospectListenAddress,
-			CollectorServers:         configCollectorEndpointListSpaceSeparated,
+			CollectorServers:         collectorEndpointListSpaceSeparated,
 			ZookeeperServers:         zookeeperEndpointListSpaceSeparated,
 			ConfigServers:            configApiIPEndpointListSpaceSeparated,
 			ConfigDbServerList:       configDbEndpointListSpaceSeparated,
@@ -309,7 +314,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 			CassandraPort:            strconv.Itoa(cassandraNodesInformation.CQLPort),
 			CassandraJmxPort:         strconv.Itoa(cassandraNodesInformation.JMXPort),
 			CAFilePath:               certificates.SignerCAFilepath,
-			CollectorServerList:      configCollectorEndpointListSpaceSeparated,
+			CollectorServerList:      collectorEndpointListSpaceSeparated,
 			// TODO: move to params
 			LogLevel: "SYS_DEBUG",
 		})

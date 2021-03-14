@@ -66,35 +66,24 @@ type ConfigSpec struct {
 // ConfigConfiguration is the Spec for the Config API.
 // +k8s:openapi-gen=true
 type ConfigConfiguration struct {
-	Containers                  []*Container `json:"containers,omitempty"`
-	APIPort                     *int         `json:"apiPort,omitempty"`
-	AnalyticsPort               *int         `json:"analyticsPort,omitempty"`
-	CollectorPort               *int         `json:"collectorPort,omitempty"`
-	ApiIntrospectPort           *int         `json:"apiIntrospectPort,omitempty"`
-	SchemaIntrospectPort        *int         `json:"schemaIntrospectPort,omitempty"`
-	DeviceManagerIntrospectPort *int         `json:"deviceManagerIntrospectPort,omitempty"`
-	SvcMonitorIntrospectPort    *int         `json:"svcMonitorIntrospectPort,omitempty"`
-	AnalyticsApiIntrospectPort  *int         `json:"analyticsIntrospectPort,omitempty"`
-	CollectorIntrospectPort     *int         `json:"collectorIntrospectPort,omitempty"`
-	CassandraInstance           string       `json:"cassandraInstance,omitempty"`
-	ZookeeperInstance           string       `json:"zookeeperInstance,omitempty"`
-	RabbitmqInstance            string       `json:"rabbitmqInstance,omitempty"`
-	RabbitmqUser                string       `json:"rabbitmqUser,omitempty"`
-	RabbitmqPassword            string       `json:"rabbitmqPassword,omitempty"`
-	RabbitmqVhost               string       `json:"rabbitmqVhost,omitempty"`
-	LogLevel                    string       `json:"logLevel,omitempty"`
-	AAAMode                     AAAMode      `json:"aaaMode,omitempty"`
-	Storage                     Storage      `json:"storage,omitempty"`
-	FabricMgmtIP                string       `json:"fabricMgmtIP,omitempty"`
-	// Time (in hours) that the analytics object and log data stays in the Cassandra database. Defaults to 48 hours.
-	AnalyticsDataTTL *int `json:"analyticsDataTTL,omitempty"`
-	// Time (in hours) the analytics config data entering the collector stays in the Cassandra database. Defaults to 2160 hours.
-	AnalyticsConfigAuditTTL *int `json:"analyticsConfigAuditTTL,omitempty"`
-	// Time to live (TTL) for statistics data in hours. Defaults to 4 hours.
-	AnalyticsStatisticsTTL *int `json:"analyticsStatisticsTTL,omitempty"`
-	// Time to live (TTL) for flow data in hours. Defaults to 2 hours.
-	AnalyticsFlowTTL       *int                    `json:"analyticsFlowTTL,omitempty"`
-	LinklocalServiceConfig *LinklocalServiceConfig `json:"linklocalServiceConfig,omitempty"`
+	Containers                  []*Container            `json:"containers,omitempty"`
+	APIPort                     *int                    `json:"apiPort,omitempty"`
+	ApiIntrospectPort           *int                    `json:"apiIntrospectPort,omitempty"`
+	SchemaIntrospectPort        *int                    `json:"schemaIntrospectPort,omitempty"`
+	DeviceManagerIntrospectPort *int                    `json:"deviceManagerIntrospectPort,omitempty"`
+	SvcMonitorIntrospectPort    *int                    `json:"svcMonitorIntrospectPort,omitempty"`
+	AnalyticsInstance           string                  `json:"analyticsInstance,omitempty"`
+	CassandraInstance           string                  `json:"cassandraInstance,omitempty"`
+	ZookeeperInstance           string                  `json:"zookeeperInstance,omitempty"`
+	RabbitmqInstance            string                  `json:"rabbitmqInstance,omitempty"`
+	RabbitmqUser                string                  `json:"rabbitmqUser,omitempty"`
+	RabbitmqPassword            string                  `json:"rabbitmqPassword,omitempty"`
+	RabbitmqVhost               string                  `json:"rabbitmqVhost,omitempty"`
+	LogLevel                    string                  `json:"logLevel,omitempty"`
+	AAAMode                     AAAMode                 `json:"aaaMode,omitempty"`
+	Storage                     Storage                 `json:"storage,omitempty"`
+	FabricMgmtIP                string                  `json:"fabricMgmtIP,omitempty"`
+	LinklocalServiceConfig      *LinklocalServiceConfig `json:"linklocalServiceConfig,omitempty"`
 }
 
 // LinklocalServiceConfig is the Spec for link local coniguration
@@ -162,6 +151,12 @@ func (c *Config) InstanceConfiguration(configMapName string,
 		return err
 	}
 
+	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(
+		c.Spec.ServiceConfiguration.AnalyticsInstance, request.Namespace, client)
+	if err != nil {
+		return err
+	}
+
 	var rabbitmqSecretUser string
 	var rabbitmqSecretPassword string
 	var rabbitmqSecretVhost string
@@ -186,8 +181,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 	if rabbitmqSecretVhost == "" {
 		rabbitmqSecretVhost = configConfig.RabbitmqVhost
 	}
-	var collectorServerList, analyticsServerList, apiServerList, analyticsServerSpaceSeparatedList,
-		apiServerSpaceSeparatedList, redisServerSpaceSeparatedList string
+	var analyticsServerList, apiServerList, apiServerSpaceSeparatedList string
 	var podIPList []string
 	for _, pod := range podList {
 		podIPList = append(podIPList, pod.Status.PodIP)
@@ -195,25 +189,20 @@ func (c *Config) InstanceConfiguration(configMapName string,
 	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
 	sort.SliceStable(podIPList, func(i, j int) bool { return podIPList[i] < podIPList[j] })
 
-	collectorServerList = strings.Join(podIPList, ":"+strconv.Itoa(*configConfig.CollectorPort)+" ")
-	collectorServerList = collectorServerList + ":" + strconv.Itoa(*configConfig.CollectorPort)
-	analyticsServerList = strings.Join(podIPList, ",")
 	apiServerList = strings.Join(podIPList, ",")
-	analyticsServerSpaceSeparatedList = strings.Join(podIPList, ":"+strconv.Itoa(*configConfig.AnalyticsPort)+" ")
-	analyticsServerSpaceSeparatedList = analyticsServerSpaceSeparatedList + ":" + strconv.Itoa(*configConfig.AnalyticsPort)
 	apiServerSpaceSeparatedList = strings.Join(podIPList, ":"+strconv.Itoa(*configConfig.APIPort)+" ")
 	apiServerSpaceSeparatedList = apiServerSpaceSeparatedList + ":" + strconv.Itoa(*configConfig.APIPort)
-	redisServerSpaceSeparatedList = strings.Join(podIPList, ":6379 ") + ":6379"
+	analyticsServerList = strings.Join(analyticsNodesInformation.AnalyticsServerIPList, ",")
+	analyticsEndpointList := configtemplates.EndpointList(analyticsNodesInformation.AnalyticsServerIPList, analyticsNodesInformation.AnalyticsServerPort)
+	analyticsEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(analyticsEndpointList, " ")
+	collectorEndpointList := configtemplates.EndpointList(analyticsNodesInformation.CollectorServerIPList, analyticsNodesInformation.CollectorPort)
+	collectorEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(collectorEndpointList, " ")
 	cassandraEndpointList := configtemplates.EndpointList(cassandraNodesInformation.ServerIPList, cassandraNodesInformation.Port)
 	cassandraEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(cassandraEndpointList, " ")
-	cassandraCQLEndpointList := configtemplates.EndpointList(cassandraNodesInformation.ServerIPList, cassandraNodesInformation.CQLPort)
-	cassandraCQLEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(cassandraCQLEndpointList, " ")
 	rabbitMqSSLEndpointList := configtemplates.EndpointList(rabbitmqNodesInformation.ServerIPList, rabbitmqNodesInformation.Port)
-	rabbitmqSSLEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(rabbitMqSSLEndpointList, " ")
 	rabbitmqSSLEndpointListCommaSeparated := configtemplates.JoinListWithSeparator(rabbitMqSSLEndpointList, ",")
 	zookeeperEndpointList := configtemplates.EndpointList(zookeeperNodesInformation.ServerIPList, zookeeperNodesInformation.ClientPort)
 	zookeeperEndpointListCommaSeparated := configtemplates.JoinListWithSeparator(zookeeperEndpointList, ",")
-	zookeeperEndpointListSpaceSpearated := configtemplates.JoinListWithSeparator(zookeeperEndpointList, " ")
 
 	var data = make(map[string]string)
 	for _, pod := range podList {
@@ -247,7 +236,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			CassandraServerList:      cassandraEndpointListSpaceSeparated,
 			ZookeeperServerList:      zookeeperEndpointListCommaSeparated,
 			RabbitmqServerList:       rabbitmqSSLEndpointListCommaSeparated,
-			CollectorServerList:      collectorServerList,
+			CollectorServerList:      collectorEndpointListSpaceSeparated,
 			RabbitmqUser:             rabbitmqSecretUser,
 			RabbitmqPassword:         rabbitmqSecretPassword,
 			RabbitmqVhost:            rabbitmqSecretVhost,
@@ -321,7 +310,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			CassandraServerList:         cassandraEndpointListSpaceSeparated,
 			ZookeeperServerList:         zookeeperEndpointListCommaSeparated,
 			RabbitmqServerList:          rabbitmqSSLEndpointListCommaSeparated,
-			CollectorServerList:         collectorServerList,
+			CollectorServerList:         collectorEndpointListSpaceSeparated,
 			RabbitmqUser:                rabbitmqSecretUser,
 			RabbitmqPassword:            rabbitmqSecretPassword,
 			RabbitmqVhost:               rabbitmqSecretVhost,
@@ -342,7 +331,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			CAFilePath          string
 		}{
 			PodIP:               podIP,
-			CollectorServerList: collectorServerList,
+			CollectorServerList: collectorEndpointListSpaceSeparated,
 			LogLevel:            configConfig.LogLevel,
 			CAFilePath:          certificates.SignerCAFilepath,
 		})
@@ -408,7 +397,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			CassandraServerList:      cassandraEndpointListSpaceSeparated,
 			ZookeeperServerList:      zookeeperEndpointListCommaSeparated,
 			RabbitmqServerList:       rabbitmqSSLEndpointListCommaSeparated,
-			CollectorServerList:      collectorServerList,
+			CollectorServerList:      collectorEndpointListSpaceSeparated,
 			RabbitmqUser:             rabbitmqSecretUser,
 			RabbitmqPassword:         rabbitmqSecretPassword,
 			RabbitmqVhost:            rabbitmqSecretVhost,
@@ -444,11 +433,11 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			InstrospectListenAddress: instrospectListenAddress,
 			SvcMonitorIntrospectPort: strconv.Itoa(*configConfig.SvcMonitorIntrospectPort),
 			ApiServerList:            apiServerList,
-			AnalyticsServerList:      analyticsServerSpaceSeparatedList,
+			AnalyticsServerList:      analyticsEndpointListSpaceSeparated,
 			CassandraServerList:      cassandraEndpointListSpaceSeparated,
 			ZookeeperServerList:      zookeeperEndpointListCommaSeparated,
 			RabbitmqServerList:       rabbitmqSSLEndpointListCommaSeparated,
-			CollectorServerList:      collectorServerList,
+			CollectorServerList:      collectorEndpointListSpaceSeparated,
 			RabbitmqUser:             rabbitmqSecretUser,
 			RabbitmqPassword:         rabbitmqSecretPassword,
 			RabbitmqVhost:            rabbitmqSecretVhost,
@@ -460,124 +449,6 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			panic(err)
 		}
 		data["servicemonitor."+podIP] = configServicemonitorConfigBuffer.String()
-
-		var configAnalyticsapiConfigBuffer bytes.Buffer
-		err = configtemplates.ConfigAnalyticsapiConfig.Execute(&configAnalyticsapiConfigBuffer, struct {
-			PodIP                      string
-			ListenAddress              string
-			InstrospectListenAddress   string
-			AnalyticsApiIntrospectPort string
-			ApiServerList              string
-			AnalyticsServerList        string
-			CassandraServerList        string
-			ZookeeperServerList        string
-			RabbitmqServerList         string
-			CollectorServerList        string
-			RedisServerList            string
-			RabbitmqUser               string
-			RabbitmqPassword           string
-			RabbitmqVhost              string
-			AuthMode                   string
-			AAAMode                    AAAMode
-			CAFilePath                 string
-			LogLevel                   string
-		}{
-			PodIP:                      podIP,
-			ListenAddress:              podIP,
-			InstrospectListenAddress:   instrospectListenAddress,
-			AnalyticsApiIntrospectPort: strconv.Itoa(*configConfig.AnalyticsApiIntrospectPort),
-			ApiServerList:              apiServerSpaceSeparatedList,
-			AnalyticsServerList:        analyticsServerSpaceSeparatedList,
-			CassandraServerList:        cassandraEndpointListSpaceSeparated,
-			ZookeeperServerList:        zookeeperEndpointListSpaceSpearated,
-			RabbitmqServerList:         rabbitmqSSLEndpointListCommaSeparated,
-			CollectorServerList:        collectorServerList,
-			RedisServerList:            redisServerSpaceSeparatedList,
-			RabbitmqUser:               rabbitmqSecretUser,
-			RabbitmqPassword:           rabbitmqSecretPassword,
-			RabbitmqVhost:              rabbitmqSecretVhost,
-			AAAMode:                    configConfig.AAAMode,
-			CAFilePath:                 certificates.SignerCAFilepath,
-			LogLevel:                   configConfig.LogLevel,
-		})
-		if err != nil {
-			panic(err)
-		}
-		data["analyticsapi."+podIP] = configAnalyticsapiConfigBuffer.String()
-
-		var configCollectorConfigBuffer bytes.Buffer
-		err = configtemplates.ConfigCollectorConfig.Execute(&configCollectorConfigBuffer, struct {
-			Hostname                 string
-			PodIP                    string
-			ListenAddress            string
-			InstrospectListenAddress string
-			CollectorIntrospectPort  string
-			ApiServerList            string
-			CassandraServerList      string
-			ZookeeperServerList      string
-			RabbitmqServerList       string
-			RabbitmqUser             string
-			RabbitmqPassword         string
-			RabbitmqVhost            string
-			LogLevel                 string
-			CAFilePath               string
-			AnalyticsDataTTL         string
-			AnalyticsConfigAuditTTL  string
-			AnalyticsStatisticsTTL   string
-			AnalyticsFlowTTL         string
-		}{
-			Hostname:                 hostname,
-			PodIP:                    podIP,
-			ListenAddress:            podIP,
-			InstrospectListenAddress: instrospectListenAddress,
-			CollectorIntrospectPort:  strconv.Itoa(*configConfig.CollectorIntrospectPort),
-			ApiServerList:            apiServerSpaceSeparatedList,
-			CassandraServerList:      cassandraCQLEndpointListSpaceSeparated,
-			ZookeeperServerList:      zookeeperEndpointListCommaSeparated,
-			RabbitmqServerList:       rabbitmqSSLEndpointListSpaceSeparated,
-			RabbitmqUser:             rabbitmqSecretUser,
-			RabbitmqPassword:         rabbitmqSecretPassword,
-			RabbitmqVhost:            rabbitmqSecretVhost,
-			LogLevel:                 configConfig.LogLevel,
-			CAFilePath:               certificates.SignerCAFilepath,
-			AnalyticsDataTTL:         strconv.Itoa(*configConfig.AnalyticsDataTTL),
-			AnalyticsConfigAuditTTL:  strconv.Itoa(*configConfig.AnalyticsConfigAuditTTL),
-			AnalyticsStatisticsTTL:   strconv.Itoa(*configConfig.AnalyticsStatisticsTTL),
-			AnalyticsFlowTTL:         strconv.Itoa(*configConfig.AnalyticsFlowTTL),
-		})
-		if err != nil {
-			panic(err)
-		}
-		data["collector."+podIP] = configCollectorConfigBuffer.String()
-
-		var configQueryEngineConfigBuffer bytes.Buffer
-		err = configtemplates.ConfigQueryEngineConfig.Execute(&configQueryEngineConfigBuffer, struct {
-			Hostname                 string
-			PodIP                    string
-			ListenAddress            string
-			InstrospectListenAddress string
-			CassandraServerList      string
-			CollectorServerList      string
-			RedisServerList          string
-			CAFilePath               string
-			AnalyticsDataTTL         string
-			LogLevel                 string
-		}{
-			Hostname:                 hostname,
-			PodIP:                    podIP,
-			ListenAddress:            podIP,
-			InstrospectListenAddress: instrospectListenAddress,
-			CassandraServerList:      cassandraCQLEndpointListSpaceSeparated,
-			CollectorServerList:      collectorServerList,
-			RedisServerList:          redisServerSpaceSeparatedList,
-			CAFilePath:               certificates.SignerCAFilepath,
-			AnalyticsDataTTL:         strconv.Itoa(*configConfig.AnalyticsDataTTL),
-			LogLevel:                 configConfig.LogLevel,
-		})
-		if err != nil {
-			panic(err)
-		}
-		data["queryengine."+podIP] = configQueryEngineConfigBuffer.String()
 
 		var configNodemanagerconfigConfigBuffer bytes.Buffer
 		err = configtemplates.ConfigNodemanagerConfigConfig.Execute(&configNodemanagerconfigConfigBuffer, struct {
@@ -595,7 +466,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			PodIP:                    podIP,
 			ListenAddress:            podIP,
 			InstrospectListenAddress: instrospectListenAddress,
-			CollectorServerList:      collectorServerList,
+			CollectorServerList:      collectorEndpointListSpaceSeparated,
 			CassandraPort:            strconv.Itoa(cassandraNodesInformation.CQLPort),
 			CassandraJmxPort:         strconv.Itoa(cassandraNodesInformation.JMXPort),
 			CAFilePath:               certificates.SignerCAFilepath,
@@ -607,48 +478,6 @@ func (c *Config) InstanceConfiguration(configMapName string,
 		data["config-nodemgr.conf."+podIP] = configNodemanagerconfigConfigBuffer.String()
 		// empty env as no db tracking
 		data["config-nodemgr.env."+podIP] = ""
-
-		var configNodemanageranalyticsConfigBuffer bytes.Buffer
-		err = configtemplates.ConfigNodemanagerAnalyticsConfig.Execute(&configNodemanageranalyticsConfigBuffer, struct {
-			Hostname                 string
-			PodIP                    string
-			ListenAddress            string
-			InstrospectListenAddress string
-			CollectorServerList      string
-			CassandraPort            string
-			CassandraJmxPort         string
-			CAFilePath               string
-			LogLevel                 string
-		}{
-			Hostname:                 hostname,
-			PodIP:                    podIP,
-			ListenAddress:            podIP,
-			InstrospectListenAddress: instrospectListenAddress,
-			CollectorServerList:      collectorServerList,
-			CassandraPort:            strconv.Itoa(cassandraNodesInformation.CQLPort),
-			CassandraJmxPort:         strconv.Itoa(cassandraNodesInformation.JMXPort),
-			CAFilePath:               certificates.SignerCAFilepath,
-			LogLevel:                 configConfig.LogLevel,
-		})
-		if err != nil {
-			panic(err)
-		}
-		data["analytics-nodemgr.conf."+podIP] = configNodemanageranalyticsConfigBuffer.String()
-		// empty env as no db tracking
-		data["analytics-nodemgr.env."+podIP] = ""
-
-		var configStunnelConfigBuffer bytes.Buffer
-		err = configtemplates.ConfigStunnelConfig.Execute(&configStunnelConfigBuffer, struct {
-			RedisListenAddress string
-			RedisServerPort    string
-		}{
-			RedisListenAddress: podIP,
-			RedisServerPort:    "6379",
-		})
-		if err != nil {
-			panic(err)
-		}
-		data["stunnel."+podIP] = configStunnelConfigBuffer.String()
 	}
 
 	configMapInstanceDynamicConfig.Data = data
@@ -656,8 +485,6 @@ func (c *Config) InstanceConfiguration(configMapName string,
 	// update with nodemanager runner
 	nmr := GetNodemanagerRunner()
 	configMapInstanceDynamicConfig.Data["config-nodemanager-runner.sh"] = nmr
-	// TODO: till not splitted to different entities
-	configMapInstanceDynamicConfig.Data["analytics-nodemanager-runner.sh"] = nmr
 
 	// update with provisioner configs
 	UpdateProvisionerConfigMapData("config-provisioner", apiServerList, configMapInstanceDynamicConfig)
@@ -767,8 +594,6 @@ func (c *Config) IsActive(name string, namespace string, client client.Client) b
 func (c *Config) ConfigurationParameters() ConfigConfiguration {
 	configConfiguration := ConfigConfiguration{}
 	var apiPort int
-	var analyticsPort int
-	var collectorPort int
 	var rabbitmqUser string
 	var rabbitmqPassword string
 	var rabbitmqVhost string
@@ -786,20 +611,6 @@ func (c *Config) ConfigurationParameters() ConfigConfiguration {
 		apiPort = ConfigApiPort
 	}
 	configConfiguration.APIPort = &apiPort
-
-	if c.Spec.ServiceConfiguration.AnalyticsPort != nil {
-		analyticsPort = *c.Spec.ServiceConfiguration.AnalyticsPort
-	} else {
-		analyticsPort = AnalyticsApiPort
-	}
-	configConfiguration.AnalyticsPort = &analyticsPort
-
-	if c.Spec.ServiceConfiguration.CollectorPort != nil {
-		collectorPort = *c.Spec.ServiceConfiguration.CollectorPort
-	} else {
-		collectorPort = CollectorPort
-	}
-	configConfiguration.CollectorPort = &collectorPort
 
 	var apiIntrospectPort int
 	if c.Spec.ServiceConfiguration.ApiIntrospectPort != nil {
@@ -833,22 +644,6 @@ func (c *Config) ConfigurationParameters() ConfigConfiguration {
 	}
 	configConfiguration.SvcMonitorIntrospectPort = &svcMonitorIntrospectPort
 
-	var analyticsApiIntrospectPort int
-	if c.Spec.ServiceConfiguration.AnalyticsApiIntrospectPort != nil {
-		analyticsApiIntrospectPort = *c.Spec.ServiceConfiguration.AnalyticsApiIntrospectPort
-	} else {
-		analyticsApiIntrospectPort = AnalyticsApiIntrospectPort
-	}
-	configConfiguration.AnalyticsApiIntrospectPort = &analyticsApiIntrospectPort
-
-	var collectorIntrospectPort int
-	if c.Spec.ServiceConfiguration.CollectorIntrospectPort != nil {
-		collectorIntrospectPort = *c.Spec.ServiceConfiguration.CollectorIntrospectPort
-	} else {
-		collectorIntrospectPort = CollectorIntrospectPort
-	}
-	configConfiguration.CollectorIntrospectPort = &collectorIntrospectPort
-
 	if c.Spec.ServiceConfiguration.RabbitmqUser != "" {
 		rabbitmqUser = c.Spec.ServiceConfiguration.RabbitmqUser
 	} else {
@@ -879,37 +674,6 @@ func (c *Config) ConfigurationParameters() ConfigConfiguration {
 		}
 	}
 
-	var analyticsDataTTL int
-	if c.Spec.ServiceConfiguration.AnalyticsDataTTL != nil {
-		analyticsDataTTL = *c.Spec.ServiceConfiguration.AnalyticsDataTTL
-	} else {
-		analyticsDataTTL = AnalyticsDataTTL
-	}
-	configConfiguration.AnalyticsDataTTL = &analyticsDataTTL
-
-	var analyticsConfigAuditTTL int
-	if c.Spec.ServiceConfiguration.AnalyticsConfigAuditTTL != nil {
-		analyticsConfigAuditTTL = *c.Spec.ServiceConfiguration.AnalyticsConfigAuditTTL
-	} else {
-		analyticsConfigAuditTTL = AnalyticsConfigAuditTTL
-	}
-	configConfiguration.AnalyticsConfigAuditTTL = &analyticsConfigAuditTTL
-
-	var analyticsStatisticsTTL int
-	if c.Spec.ServiceConfiguration.AnalyticsStatisticsTTL != nil {
-		analyticsStatisticsTTL = *c.Spec.ServiceConfiguration.AnalyticsStatisticsTTL
-	} else {
-		analyticsStatisticsTTL = AnalyticsStatisticsTTL
-	}
-	configConfiguration.AnalyticsStatisticsTTL = &analyticsStatisticsTTL
-
-	var analyticsFlowTTL int
-	if c.Spec.ServiceConfiguration.AnalyticsFlowTTL != nil {
-		analyticsFlowTTL = *c.Spec.ServiceConfiguration.AnalyticsFlowTTL
-	} else {
-		analyticsFlowTTL = AnalyticsFlowTTL
-	}
-	configConfiguration.AnalyticsFlowTTL = &analyticsFlowTTL
 
 	if c.Spec.ServiceConfiguration.LinklocalServiceConfig != nil {
 		configConfiguration.LinklocalServiceConfig = c.Spec.ServiceConfiguration.LinklocalServiceConfig
@@ -932,7 +696,6 @@ func (c *Config) ConfigurationParameters() ConfigConfiguration {
 	}
 
 	return configConfiguration
-
 }
 
 // SetEndpointInStatus updates Endpoint in status

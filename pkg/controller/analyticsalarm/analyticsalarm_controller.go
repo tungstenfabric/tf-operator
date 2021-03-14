@@ -211,17 +211,19 @@ func (r *ReconcileAnalyticsAlarm) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, nil
 	}
 
-	// Wait until cassandra, zookeeper, rabbitmq and config be active
+	// Wait until cassandra, zookeeper, rabbitmq, config and analytics be active
 	cassandraInstance := v1alpha1.Cassandra{}
 	zookeeperInstance := v1alpha1.Zookeeper{}
 	rabbitmqInstance := v1alpha1.Rabbitmq{}
 	configInstance := v1alpha1.Config{}
+	analyticsInstance := v1alpha1.Analytics{}
 	cassandraActive := cassandraInstance.IsActive(instance.Spec.ServiceConfiguration.CassandraInstance, request.Namespace, r.Client)
 	zookeeperActive := zookeeperInstance.IsActive(instance.Spec.ServiceConfiguration.ZookeeperInstance, request.Namespace, r.Client)
 	rabbitmqActive := rabbitmqInstance.IsActive(instance.Spec.ServiceConfiguration.RabbitmqInstance, request.Namespace, r.Client)
 	configActive := configInstance.IsActive(instance.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, r.Client)
-	if !cassandraActive || !zookeeperActive || !rabbitmqActive || !configActive {
-		reqLogger.Info("Dependencies not ready", "db", cassandraActive, "zk", zookeeperActive, "rmq", rabbitmqActive, "api", configActive)
+	analyticsActive := analyticsInstance.IsActive(instance.Spec.ServiceConfiguration.AnalyticsInstance, request.Namespace, r.Client)
+	if !cassandraActive || !zookeeperActive || !rabbitmqActive || !configActive || !analyticsActive {
+		reqLogger.Info("Dependencies not ready", "db", cassandraActive, "zk", zookeeperActive, "rmq", rabbitmqActive, "api", configActive, "analytics", analyticsActive)
 		return reconcile.Result{}, nil
 	}
 

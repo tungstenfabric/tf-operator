@@ -860,6 +860,53 @@ func NewRabbitmqClusterConfiguration(name, namespace string, client client.Clien
 	return clusterConfig, nil
 }
 
+// NewAnalyticsClusterConfiguration gets a struct containing various representations of Analytics nodes string.
+func NewAnalyticsClusterConfiguration(name, namespace string, client client.Client) (AnalyticsClusterConfiguration, error) {
+	instance := &Analytics{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, instance)
+	if err != nil {
+		return AnalyticsClusterConfiguration{}, err
+	}
+	nodes := []string{}
+	if instance.Status.Nodes != nil {
+		for _, ip := range instance.Status.Nodes {
+			nodes = append(nodes, ip)
+		}
+		sort.SliceStable(nodes, func(i, j int) bool { return nodes[i] < nodes[j] })
+	}
+	config := instance.ConfigurationParameters()
+	clusterConfig := AnalyticsClusterConfiguration{
+		AnalyticsServerIPList: nodes,
+		AnalyticsServerPort:   *config.AnalyticsPort,
+		AnalyticsDataTTL:      *config.AnalyticsDataTTL,
+		CollectorServerIPList: nodes,
+		CollectorPort:         *config.CollectorPort,
+	}
+	return clusterConfig, nil
+}
+
+// NewAnalyticsDBClusterConfiguration gets a struct containing various representations of AnalyticsDB nodes string.
+func NewAnalyticsDBClusterConfiguration(name, namespace string, client client.Client) (AnalyticsDBClusterConfiguration, error) {
+	instance := &AnalyticsDB{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, instance)
+	if err != nil {
+		return AnalyticsDBClusterConfiguration{}, err
+	}
+	nodes := []string{}
+	if instance.Status.Nodes != nil {
+		for _, ip := range instance.Status.Nodes {
+			nodes = append(nodes, ip)
+		}
+		sort.SliceStable(nodes, func(i, j int) bool { return nodes[i] < nodes[j] })
+	}
+	config := instance.ConfigurationParameters()
+	clusterConfig := AnalyticsDBClusterConfiguration{
+		AnalyticsDBServerIPList: nodes,
+		AnalyticsDBServerPort:   *config.AnalyticsdbPort,
+	}
+	return clusterConfig, nil
+}
+
 // NewConfigClusterConfiguration gets a struct containing various representations of Config nodes string.
 func NewConfigClusterConfiguration(name, namespace string, client client.Client) (ConfigClusterConfiguration, error) {
 	instance := &Config{}
@@ -878,24 +925,54 @@ func NewConfigClusterConfiguration(name, namespace string, client client.Client)
 	clusterConfig := ConfigClusterConfiguration{
 		APIServerPort:   *config.APIPort,
 		APIServerIPList: nodes,
-		// TODO: till not splited
-		AnalyticsServerIPList: nodes,
-		AnalyticsServerPort:   *config.AnalyticsPort,
-		CollectorServerIPList: nodes,
-		CollectorPort:         *config.CollectorPort,
 	}
 	return clusterConfig, nil
+}
+
+// AnalyticsConfiguration  stores all information about service's endpoints
+// under the Contrail Analytics
+type AnalyticsClusterConfiguration struct {
+	AnalyticsServerPort   int                `json:"analyticsServerPort,omitempty"`
+	AnalyticsServerIPList []string           `json:"analyticsServerIPList,omitempty"`
+	AnalyticsDataTTL      int                `json:"analyticsDataTTL,omitempty"`
+	CollectorPort         int                `json:"collectorPort,omitempty"`
+	CollectorServerIPList []string           `json:"collectorServerIPList,omitempty"`
+}
+
+// AnalyticsDBConfiguration  stores all information about service's endpoints
+// under the Contrail AnalyticsDB
+type AnalyticsDBClusterConfiguration struct {
+	AnalyticsDBServerPort   int       `json:"analyticsdbServerPort,omitempty"`
+	AnalyticsDBServerIPList []string  `json:"analyticsdbServerIPList,omitempty"`
 }
 
 // ConfigClusterConfiguration  stores all information about service's endpoints
 // under the Contrail Config
 type ConfigClusterConfiguration struct {
-	APIServerPort         int      `json:"apiServerPort,omitempty"`
-	APIServerIPList       []string `json:"apiServerIPList,omitempty"`
-	AnalyticsServerPort   int      `json:"analyticsServerPort,omitempty"`
-	AnalyticsServerIPList []string `json:"analyticsServerIPList,omitempty"`
-	CollectorPort         int      `json:"collectorPort,omitempty"`
-	CollectorServerIPList []string `json:"collectorServerIPList,omitempty"`
+	APIServerPort         int                `json:"apiServerPort,omitempty"`
+	APIServerIPList       []string           `json:"apiServerIPList,omitempty"`
+}
+
+// FillWithDefaultValues sets the default port values if they are set to the
+// zero value
+func (c *AnalyticsClusterConfiguration) FillWithDefaultValues() {
+	if c.AnalyticsServerPort == 0 {
+		c.AnalyticsServerPort = AnalyticsApiPort
+	}
+	if c.AnalyticsDataTTL == 0 {
+		c.AnalyticsDataTTL = AnalyticsDataTTL
+	}
+	if c.CollectorPort == 0 {
+		c.CollectorPort = CollectorPort
+	}
+}
+
+// FillWithDefaultValues sets the default port values if they are set to the
+// zero value
+func (c *AnalyticsDBClusterConfiguration) FillWithDefaultValues() {
+	if c.AnalyticsDBServerPort == 0 {
+		c.AnalyticsDBServerPort = AnalyticsdbPort
+	}
 }
 
 // FillWithDefaultValues sets the default port values if they are set to the
@@ -903,12 +980,6 @@ type ConfigClusterConfiguration struct {
 func (c *ConfigClusterConfiguration) FillWithDefaultValues() {
 	if c.APIServerPort == 0 {
 		c.APIServerPort = ConfigApiPort
-	}
-	if c.AnalyticsServerPort == 0 {
-		c.AnalyticsServerPort = AnalyticsApiPort
-	}
-	if c.CollectorPort == 0 {
-		c.CollectorPort = CollectorPort
 	}
 }
 

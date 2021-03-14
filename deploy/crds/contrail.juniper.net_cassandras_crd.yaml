@@ -195,6 +195,10 @@ spec:
                   type: string
                 configInstance:
                   type: string
+                analyticsInstance:
+                  type: string
+                analyticsdbInstance:
+                  type: string
                 containers:
                   items:
                     description: Container defines name, image and command.

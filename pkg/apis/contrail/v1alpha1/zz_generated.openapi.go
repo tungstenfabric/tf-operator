@@ -12,6 +12,14 @@ import (
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
 		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.BGPPeer":                     schema_pkg_apis_contrail_v1alpha1_BGPPeer(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Analytics":                   schema_pkg_apis_contrail_v1alpha1_Analytics(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsConfiguration":      schema_pkg_apis_contrail_v1alpha1_AnalyticsConfiguration(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsSpec":               schema_pkg_apis_contrail_v1alpha1_AnalyticsSpec(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsStatus":             schema_pkg_apis_contrail_v1alpha1_AnalyticsStatus(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsDB":                 schema_pkg_apis_contrail_v1alpha1_AnalyticsDB(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsDBConfiguration":    schema_pkg_apis_contrail_v1alpha1_AnalyticsDBConfiguration(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsDBSpec":             schema_pkg_apis_contrail_v1alpha1_AnalyticsDBSpec(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsDBStatus":           schema_pkg_apis_contrail_v1alpha1_AnalyticsDBStatus(ref),
 		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsAlarm":              schema_pkg_apis_contrail_v1alpha1_AnalyticsAlarm(ref),
 		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsAlarmConfiguration": schema_pkg_apis_contrail_v1alpha1_AnalyticsAlarmConfiguration(ref),
 		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsAlarmSpec":          schema_pkg_apis_contrail_v1alpha1_AnalyticsAlarmSpec(ref),
@@ -89,6 +97,446 @@ func schema_pkg_apis_contrail_v1alpha1_BGPPeer(ref common.ReferenceCallback) com
 				Required: []string{"Up", "Number"},
 			},
 		},
+	}
+}
+
+func schema_pkg_apis_contrail_v1alpha1_Analytics(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Analytics is the Schema for the analyticss API.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_pkg_apis_contrail_v1alpha1_AnalyticsConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "AnalyticsConfiguration is the Spec for the analytics API.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"containers": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Container"),
+									},
+								},
+							},
+						},
+					},
+					"analyticsDataTTL": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int32",
+						},
+					},
+					"analyticsPort": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int32",
+						},
+					},
+					"collectorPort": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int32",
+						},
+					},
+					"analyticsMonitorIntrospectPort": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int32",
+						},
+					},
+					"collectorMonitorIntrospectPort": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int32",
+						},
+					},
+					"cassandraInstance": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"zookeeperInstance": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"rabbitmqInstance": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"nodeManager": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"boolean"},
+							Format: "",
+						},
+					},
+					"rabbitmqUser": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"rabbitmqPassword": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"rabbitmqVhost": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"logLevel": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"authMode": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"aaaMode": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"storage": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Storage"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Container", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Storage"},
+	}
+}
+
+func schema_pkg_apis_contrail_v1alpha1_AnalyticsSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "AnalyticsSpec is the Spec for the analytics API.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"commonConfiguration": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration"),
+						},
+					},
+					"serviceConfiguration": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsConfiguration"),
+						},
+					},
+				},
+				Required: []string{"commonConfiguration", "serviceConfiguration"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsConfiguration"},
+	}
+}
+
+func schema_pkg_apis_contrail_v1alpha1_AnalyticsStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"active": {
+						SchemaProps: spec.SchemaProps{
+							Description: "INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run \"operator-sdk generate k8s\" to regenerate code after modifying this file Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"nodes": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"configChanged": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"boolean"},
+							Format: "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_pkg_apis_contrail_v1alpha1_AnalyticsDB(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "AnalyticsDB is the Schema for the AnalyticsDB API.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsDBSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsDBStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsDBSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsDBStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_pkg_apis_contrail_v1alpha1_AnalyticsDBConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "AnalyticsDBConfiguration is the Spec for the cassandras API.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"containers": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Container"),
+									},
+								},
+							},
+						},
+					},
+					"analyticsdbPort": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int32",
+						},
+					},
+					"analyticsdbMonitorIntrospectPort": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int32",
+						},
+					},
+					"analyticsInstance": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"cassandraInstance": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"zookeeperInstance": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"rabbitmqInstance": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"nodeManager": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"boolean"},
+							Format: "",
+						},
+					},
+					"rabbitmqUser": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"rabbitmqPassword": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"rabbitmqVhost": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"logLevel": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"storage": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Storage"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Container", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Storage"},
+	}
+}
+
+func schema_pkg_apis_contrail_v1alpha1_AnalyticsDBSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "AnalyticsDBSpec is the Spec for the AnalyticsDB API.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"commonConfiguration": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration"),
+						},
+					},
+					"serviceConfiguration": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsDBConfiguration"),
+						},
+					},
+				},
+				Required: []string{"commonConfiguration", "serviceConfiguration"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsDBConfiguration"},
+	}
+}
+
+func schema_pkg_apis_contrail_v1alpha1_AnalyticsDBStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"active": {
+						SchemaProps: spec.SchemaProps{
+							Description: "INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run \"operator-sdk generate k8s\" to regenerate code after modifying this file Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"nodes": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"configChanged": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"boolean"},
+							Format: "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
 	}
 }
 
@@ -816,18 +1264,6 @@ func schema_pkg_apis_contrail_v1alpha1_ConfigConfiguration(ref common.ReferenceC
 							Format: "int32",
 						},
 					},
-					"analyticsPort": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int32",
-						},
-					},
-					"collectorPort": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int32",
-						},
-					},
 					"apiIntrospectPort": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"integer"},
@@ -852,18 +1288,6 @@ func schema_pkg_apis_contrail_v1alpha1_ConfigConfiguration(ref common.ReferenceC
 							Format: "int32",
 						},
 					},
-					"analyticsMonitorIntrospectPort": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int32",
-						},
-					},
-					"collectorMonitorIntrospectPort": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int32",
-						},
-					},
 					"cassandraInstance": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
@@ -871,6 +1295,12 @@ func schema_pkg_apis_contrail_v1alpha1_ConfigConfiguration(ref common.ReferenceC
 						},
 					},
 					"zookeeperInstance": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"analyticsInstance": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
 							Format: "",
@@ -1725,6 +2155,18 @@ func schema_pkg_apis_contrail_v1alpha1_ManagerStatus(ref common.ReferenceCallbac
 				Description: "ManagerStatus defines the observed state of Manager.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
+					"analytics": {
+						SchemaProps: spec.SchemaProps{
+							Description: "INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run \"operator-sdk generate k8s\" to regenerate code after modifying this file Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html",
+							Ref:         ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ServiceStatus"),
+						},
+					},
+					"analyticsdb": {
+						SchemaProps: spec.SchemaProps{
+							Description: "INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run \"operator-sdk generate k8s\" to regenerate code after modifying this file Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html",
+							Ref:         ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ServiceStatus"),
+						},
+					},
 					"analyticSnmp": {
 						SchemaProps: spec.SchemaProps{
 							Description: "INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run \"operator-sdk generate k8s\" to regenerate code after modifying this file Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html",
@@ -2061,6 +2503,16 @@ func schema_pkg_apis_contrail_v1alpha1_Services(ref common.ReferenceCallback) co
 				Description: "Services defines the desired state of Services.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
+					"analytics": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Analytics"),
+						},
+					},
+					"analyticsdb": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsDB"),
+						},
+					},
 					"analyticsSnmp": {
 						SchemaProps: spec.SchemaProps{
 							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsSnmp"),
@@ -2466,6 +2918,12 @@ func schema_pkg_apis_contrail_v1alpha1_WebuiConfiguration(ref common.ReferenceCa
 									},
 								},
 							},
+						},
+					},
+					"analyticsInstance": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
 						},
 					},
 					"configInstance": {

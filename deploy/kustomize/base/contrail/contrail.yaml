@@ -9,6 +9,56 @@ spec:
     hostNetwork: true
     replicas: 1
   services:
+    analytics:
+      metadata:
+        labels:
+          contrail_cluster: cluster1
+        name: analytics1
+      spec:
+        commonConfiguration:
+          nodeSelector:
+            node-role.kubernetes.io/master: ""
+        serviceConfiguration:
+          logLevel: SYS_DEBUG
+          zookeeperInstance: zookeeper1
+          cassandraInstance: cassandra1
+          rabbitmqInstance: rabbitmq1
+          configInstance: config1
+          containers:
+          - name: redis
+            image: contrail-external-redis
+          - name: stunnel
+            image: contrail-external-stunnel
+          - name: analyticsapi
+            image: contrail-analytics-api
+          - name: collector
+            image: contrail-analytics-collector
+          - name: nodemanager
+            image: contrail-nodemgr
+          - name: provisioner
+            image: contrail-provisioner
+    analyticsdb:
+      metadata:
+        labels:
+          contrail_cluster: cluster1
+        name: analyticsdb1
+      spec:
+        commonConfiguration:
+          nodeSelector:
+            node-role.kubernetes.io/master: ""
+        serviceConfiguration:
+          logLevel: SYS_DEBUG
+          analyticsInstance: analytics1
+          zookeeperInstance: zookeeper1
+          cassandraInstance: cassandra1
+          rabbitmqInstance: rabbitmq1
+          containers:
+          - name: queryengine
+            image: contrail-analytics-query-engine
+          - name: nodemanager
+            image: contrail-nodemgr
+          - name: provisioner
+            image: contrail-provisioner
     analyticsSnmp:
       metadata:
         labels:
@@ -24,6 +74,7 @@ spec:
           cassandraInstance: cassandra1
           rabbitmqInstance: rabbitmq1
           configInstance: config1
+          analyticsInstance: analytics1
           containers:
           - name: nodemanager
             image: contrail-nodemgr
@@ -48,9 +99,8 @@ spec:
           cassandraInstance: cassandra1
           rabbitmqInstance: rabbitmq1
           configInstance: config1
+          analyticsInstance: analytics1
           containers:
-          - name: init
-            image: python
           - name: nodemanager
             image: contrail-nodemgr
           - name: provisioner
@@ -70,6 +120,7 @@ spec:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
           configInstance: config1
+          analyticsInstance: analytics1
           containers:
           - name: cassandra
             image: contrail-external-cassandra
@@ -91,11 +142,8 @@ spec:
           zookeeperInstance: zookeeper1
           cassandraInstance: cassandra1
           rabbitmqInstance: rabbitmq1
+          analyticsInstance: analytics1
           containers:
-          - name: redis
-            image: contrail-external-redis
-          - name: stunnel
-            image: contrail-external-stunnel
           - name: api
             image: contrail-controller-config-api
           - name: devicemanager
@@ -106,19 +154,9 @@ spec:
             image: contrail-controller-config-schema
           - name: servicemonitor
             image: contrail-controller-config-svcmonitor
-          - name: nodemanagerconfig
+          - name: nodemanager
             image: contrail-nodemgr
-          - name: provisionerconfig
-            image: contrail-provisioner
-          - name: analyticsapi
-            image: contrail-analytics-api
-          - name: collector
-            image: contrail-analytics-collector
-          - name: queryengine
-            image: contrail-analytics-query-engine
-          - name: nodemanageranalytics
-            image: contrail-nodemgr
-          - name: provisioneranalytics
+          - name: provisioner
             image: contrail-provisioner
     controls:
     - metadata:
@@ -134,6 +172,7 @@ spec:
           cassandraInstance: cassandra1
           rabbitmqInstance: rabbitmq1
           configInstance: config1
+          analyticsInstance: analytics1
           logLevel: SYS_DEBUG
           containers:
           - name: control
@@ -161,6 +200,7 @@ spec:
           cassandraInstance: cassandra1
           rabbitmqInstance: rabbitmq1
           configInstance: config1
+          analyticsInstance: analytics1
           ipFabricForwarding: false
           ipFabricSnat: true
           hostNetworkService: true
@@ -219,6 +259,7 @@ spec:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
           configInstance: config1
+          analyticsInstance: analytics1
           controlInstance: control1
           cassandraInstance: cassandra1
           logLevel: SYS_DEBUG

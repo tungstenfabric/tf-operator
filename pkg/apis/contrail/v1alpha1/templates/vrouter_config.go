@@ -45,7 +45,7 @@ VROUTER_ENCRYPTION=false
 #TODO uncomment parameters to export after debug
 CONTROL_NODES="{{ .ClusterParams.ControlNodes }}"
 CONFIG_NODES="{{ .ClusterParams.ConfigNodes }}"
-ANALYTICS_NODES="{{ .ClusterParams.ConfigNodes }}"
+ANALYTICS_NODES="{{ .ClusterParams.AnalyticsNodes }}"
 
 # Cloud Orchestration
 CLOUD_ORCHESTRATOR="{{ .ServiceConfig.CloudOrchestrator }}"

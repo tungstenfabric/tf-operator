@@ -27,6 +27,8 @@ type ManagerSpec struct {
 type Services struct {
 	AnalyticsSnmp  *AnalyticsSnmp        `json:"analyticsSnmp,omitempty"`
 	AnalyticsAlarm *AnalyticsAlarm       `json:"analyticsAlarm,omitempty"`
+	Analytics      *Analytics            `json:"analytics,omitempty"`
+	AnalyticsDB    *AnalyticsDB          `json:"analyticsdb,omitempty"`
 	Config         *Config               `json:"config,omitempty"`
 	Controls       []*Control            `json:"controls,omitempty"`
 	Kubemanagers   []*KubemanagerService `json:"kubemanagers,omitempty"`
@@ -120,6 +122,8 @@ type ManagerStatus struct {
 	// Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html
 	AnalyticsSnmp  *ServiceStatus   `json:"analyticsSnmp,omitempty"`
 	AnalyticsAlarm *ServiceStatus   `json:"analyticsAlarm,omitempty"`
+	Analytics      *ServiceStatus   `json:"analytics,omitempty"`
+	AnalyticsDB    *ServiceStatus   `json:"analyticsdb,omitempty"`
 	Config         *ServiceStatus   `json:"config,omitempty"`
 	Controls       []*ServiceStatus `json:"controls,omitempty"`
 	Kubemanagers   []*ServiceStatus `json:"kubemanagers,omitempty"`

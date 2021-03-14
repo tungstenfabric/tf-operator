@@ -396,6 +396,8 @@ spec:
               items:
                 description: AgentStatus is the Status of the agent.
                 properties:
+                  analyticsNodes:
+                    type: string
                   configNodes:
                     type: string
                   controlNodes:

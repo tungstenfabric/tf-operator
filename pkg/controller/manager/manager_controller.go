@@ -29,6 +29,8 @@ import (
 var log = logf.Log.WithName("controller_manager")
 
 var resourcesList = []runtime.Object{
+	&v1alpha1.Analytics{},
+	&v1alpha1.AnalyticsDB{},
 	&v1alpha1.AnalyticsSnmp{},
 	&v1alpha1.AnalyticsAlarm{},
 	&v1alpha1.Cassandra{},
@@ -188,6 +190,14 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 		log.Error(err, "processWebui")
 	}
 
+	if err := r.processAnalytics(instance, replicas, nodesHostAliases); err != nil {
+		log.Error(err, "processAnalytics")
+	}
+
+	if err := r.processAnalyticsDB(instance, replicas, nodesHostAliases); err != nil {
+		log.Error(err, "processAnalyticsDB")
+	}
+
 	if err := r.processAnalyticsSnmp(instance, replicas); err != nil {
 		log.Error(err, "processAnalyticsSnmp")
 	}
@@ -265,6 +275,94 @@ func (r *ReconcileManager) getNodesHostAliases(nodes []corev1.Node) []corev1.Hos
 	}
 
 	return hostAliases
+}
+
+func (r *ReconcileManager) processAnalytics(manager *v1alpha1.Manager, replicas int32, hostAliases []corev1.HostAlias) error {
+	if manager.Spec.Services.Analytics == nil {
+		if manager.Status.Analytics != nil {
+			oldConfig := &v1alpha1.Analytics{}
+			oldConfig.ObjectMeta = v1.ObjectMeta{
+				Namespace: manager.Namespace,
+				Name:      *manager.Status.Analytics.Name,
+				Labels: map[string]string{
+					"contrail_cluster": manager.Name,
+				},
+			}
+			err := r.client.Delete(context.TODO(), oldConfig)
+			if err != nil && !errors.IsNotFound(err) {
+				return err
+			}
+			manager.Status.Analytics = nil
+		}
+		return nil
+	}
+
+	analytics := &v1alpha1.Analytics{}
+	analytics.ObjectMeta = manager.Spec.Services.Analytics.ObjectMeta
+	analytics.ObjectMeta.Namespace = manager.Namespace
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, analytics, func() error {
+		analytics.Spec = manager.Spec.Services.Analytics.Spec
+		analytics.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, analytics.Spec.CommonConfiguration)
+		if analytics.Spec.CommonConfiguration.Replicas == nil {
+			analytics.Spec.CommonConfiguration.Replicas = &replicas
+		}
+		if len(analytics.Spec.CommonConfiguration.HostAliases) == 0 {
+			analytics.Spec.CommonConfiguration.HostAliases = hostAliases
+		}
+		return controllerutil.SetControllerReference(manager, analytics, r.scheme)
+	})
+	if err != nil {
+		return err
+	}
+	status := &v1alpha1.ServiceStatus{}
+	status.Name = &analytics.Name
+	status.Active = analytics.Status.Active
+	manager.Status.Analytics = status
+	return nil
+}
+
+func (r *ReconcileManager) processAnalyticsDB(manager *v1alpha1.Manager, replicas int32, hostAliases []corev1.HostAlias) error {
+	if manager.Spec.Services.AnalyticsDB == nil {
+		if manager.Status.AnalyticsDB != nil {
+			oldConfig := &v1alpha1.AnalyticsDB{}
+			oldConfig.ObjectMeta = v1.ObjectMeta{
+				Namespace: manager.Namespace,
+				Name:      *manager.Status.AnalyticsDB.Name,
+				Labels: map[string]string{
+					"contrail_cluster": manager.Name,
+				},
+			}
+			err := r.client.Delete(context.TODO(), oldConfig)
+			if err != nil && !errors.IsNotFound(err) {
+				return err
+			}
+			manager.Status.AnalyticsDB = nil
+		}
+		return nil
+	}
+
+	analyticsdb := &v1alpha1.AnalyticsDB{}
+	analyticsdb.ObjectMeta = manager.Spec.Services.AnalyticsDB.ObjectMeta
+	analyticsdb.ObjectMeta.Namespace = manager.Namespace
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, analyticsdb, func() error {
+		analyticsdb.Spec = manager.Spec.Services.AnalyticsDB.Spec
+		analyticsdb.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, analyticsdb.Spec.CommonConfiguration)
+		if analyticsdb.Spec.CommonConfiguration.Replicas == nil {
+			analyticsdb.Spec.CommonConfiguration.Replicas = &replicas
+		}
+		if len(analyticsdb.Spec.CommonConfiguration.HostAliases) == 0 {
+			analyticsdb.Spec.CommonConfiguration.HostAliases = hostAliases
+		}
+		return controllerutil.SetControllerReference(manager, analyticsdb, r.scheme)
+	})
+	if err != nil {
+		return err
+	}
+	status := &v1alpha1.ServiceStatus{}
+	status.Name = &analyticsdb.Name
+	status.Active = analyticsdb.Status.Active
+	manager.Status.AnalyticsDB = status
+	return nil
 }
 
 func (r *ReconcileManager) processAnalyticsSnmp(manager *v1alpha1.Manager, replicas int32) error {
