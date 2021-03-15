@@ -86,6 +86,10 @@ type PodConfiguration struct {
 	// Use 0.0.0.0 for isntrospection ports
 	// +optional
 	IntrospectListenAll *bool `json:"introspectListenAll,omitempty"`
+	// Allow node-init container to tune sysctl options
+	// (for all deployers except opneshift it is done by node-init, in openshift - machineconfig)
+	// +optional
+	TuneSysctl *bool `json:"tuneSysctl,omitempty"`
 	// AuthParameters auth parameters
 	// +optional
 	AuthParameters *AuthParameters `json:"authParameters,omitempty"`
@@ -932,25 +936,25 @@ func NewConfigClusterConfiguration(name, namespace string, client client.Client)
 // AnalyticsConfiguration  stores all information about service's endpoints
 // under the Contrail Analytics
 type AnalyticsClusterConfiguration struct {
-	AnalyticsServerPort   int                `json:"analyticsServerPort,omitempty"`
-	AnalyticsServerIPList []string           `json:"analyticsServerIPList,omitempty"`
-	AnalyticsDataTTL      int                `json:"analyticsDataTTL,omitempty"`
-	CollectorPort         int                `json:"collectorPort,omitempty"`
-	CollectorServerIPList []string           `json:"collectorServerIPList,omitempty"`
+	AnalyticsServerPort   int      `json:"analyticsServerPort,omitempty"`
+	AnalyticsServerIPList []string `json:"analyticsServerIPList,omitempty"`
+	AnalyticsDataTTL      int      `json:"analyticsDataTTL,omitempty"`
+	CollectorPort         int      `json:"collectorPort,omitempty"`
+	CollectorServerIPList []string `json:"collectorServerIPList,omitempty"`
 }
 
 // AnalyticsDBConfiguration  stores all information about service's endpoints
 // under the Contrail AnalyticsDB
 type AnalyticsDBClusterConfiguration struct {
-	AnalyticsDBServerPort   int       `json:"analyticsdbServerPort,omitempty"`
-	AnalyticsDBServerIPList []string  `json:"analyticsdbServerIPList,omitempty"`
+	AnalyticsDBServerPort   int      `json:"analyticsdbServerPort,omitempty"`
+	AnalyticsDBServerIPList []string `json:"analyticsdbServerIPList,omitempty"`
 }
 
 // ConfigClusterConfiguration  stores all information about service's endpoints
 // under the Contrail Config
 type ConfigClusterConfiguration struct {
-	APIServerPort         int                `json:"apiServerPort,omitempty"`
-	APIServerIPList       []string           `json:"apiServerIPList,omitempty"`
+	APIServerPort   int      `json:"apiServerPort,omitempty"`
+	APIServerIPList []string `json:"apiServerIPList,omitempty"`
 }
 
 // FillWithDefaultValues sets the default port values if they are set to the
