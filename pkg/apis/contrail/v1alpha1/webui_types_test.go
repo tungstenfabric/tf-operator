@@ -62,19 +62,97 @@ var webuiSecret = &corev1.Secret{
 	},
 }
 
-func TestwebuiConfigMapWithDefaultValues(t *testing.T) {
+var webuiControl = &Control{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "control1",
+		Namespace: "test-ns",
+	},
+	Status: ControlStatus{
+		Nodes: map[string]string{
+			"pod1": "1.1.1.1",
+			"pod2": "2.2.2.2",
+		},
+	},
+}
+
+var webuiCassandra = &Cassandra{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "cassandra1",
+		Namespace: "test-ns",
+	},
+	Status: CassandraStatus{
+		Nodes: map[string]string{
+			"pod1": "1.1.1.1",
+			"pod2": "2.2.2.2",
+		},
+	},
+}
+
+var webuiConfig = &Config{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "config1",
+		Namespace: "test-ns",
+	},
+	Status: ConfigStatus{
+		Nodes: map[string]string{
+			"pod1": "1.1.1.1",
+			"pod2": "2.2.2.2",
+		},
+	},
+}
+
+var webuiAnalytics = &Analytics{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "analytics1",
+		Namespace: "test-ns",
+	},
+	Status: AnalyticsStatus{
+		Nodes: map[string]string{
+			"pod1": "1.1.1.1",
+			"pod2": "2.2.2.2",
+		},
+	},
+}
+
+var authTestPort = 9999
+var authTestPassword = "test-pass"
+
+
+func TestWebuiConfigMapWithDefaultValues(t *testing.T) {
 	scheme, err := SchemeBuilder.Build()
 	require.NoError(t, err, "Failed to build scheme")
 	require.NoError(t, corev1.SchemeBuilder.AddToScheme(scheme), "Failed to add CoreV1 into scheme")
 
-	cl := fake.NewFakeClientWithScheme(scheme, rabbitmqCM, rabbitmqRunnerCM, rabbitmqSecret)
+	cl := fake.NewFakeClientWithScheme(scheme, webuiCM, webuiSecret, webuiAnalytics, webuiCassandra, webuiConfig, webuiControl)
 	webui := Webui{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "webui1",
 			Namespace: "test-ns",
 		},
+		Spec: WebuiSpec{
+			CommonConfiguration: PodConfiguration{
+				AuthParameters: &AuthParameters{
+					AuthMode: "keystone",
+					KeystoneAuthParameters: &KeystoneAuthParameters{
+						AuthProtocol: "https",
+						Address: "7.7.7.7",
+						Port: &authTestPort,
+						AdminPassword: &authTestPassword,
+						AdminUsername: "user",
+						UserDomainName: "test-user-domain.org",
+						ProjectDomainName: "test-project-domain.org",
+					},
+				},
+			},
+			ServiceConfiguration: WebuiConfiguration{
+				ConfigInstance: "config1",
+				AnalyticsInstance: "analytics1",
+				ControlInstance: "control1",
+				CassandraInstance: "cassandra1",
+			},
+		},
 	}
-	webui.InstanceConfiguration(webuiRequest, webuiPodList, cl)
+	require.NoError(t, webui.InstanceConfiguration(webuiRequest, webuiPodList, cl))
 
 	var webuiConfigMap = &corev1.ConfigMap{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "webui1-webui-configmap", Namespace: "test-ns"}, webuiConfigMap), "Error while gathering webui config map")
@@ -90,12 +168,12 @@ func TestwebuiConfigMapWithDefaultValues(t *testing.T) {
 	assert.Equal(t, "info", webuiConfig.Section("").Key("config.logs.level").String())
 }
 
-func TestwebuiConfigMapWithCustomValues(t *testing.T) {
+func TestWebuiConfigMapWithCustomValues(t *testing.T) {
 	scheme, err := SchemeBuilder.Build()
 	require.NoError(t, err, "Failed to build scheme")
 	require.NoError(t, corev1.SchemeBuilder.AddToScheme(scheme), "Failed to add CoreV1 into scheme")
 
-	cl := fake.NewFakeClientWithScheme(scheme, rabbitmqCM, rabbitmqRunnerCM, rabbitmqSecret)
+	cl := fake.NewFakeClientWithScheme(scheme, webuiCM, webuiSecret, webuiAnalytics, webuiCassandra, webuiConfig, webuiControl)
 	webui := Webui{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "webui1",
@@ -104,10 +182,28 @@ func TestwebuiConfigMapWithCustomValues(t *testing.T) {
 		Spec: WebuiSpec{
 			CommonConfiguration: PodConfiguration{
 				LogLevel: "debug",
+				AuthParameters: &AuthParameters{
+					AuthMode: "keystone",
+					KeystoneAuthParameters: &KeystoneAuthParameters{
+						AuthProtocol: "https",
+						Address: "7.7.7.7",
+						Port: &authTestPort,
+						AdminPassword: &authTestPassword,
+						AdminUsername: "user",
+						UserDomainName: "test-user-domain.org",
+						ProjectDomainName: "test-project-domain.org",
+					},
+				},
+			},
+			ServiceConfiguration: WebuiConfiguration{
+				ConfigInstance: "config1",
+				AnalyticsInstance: "analytics1",
+				ControlInstance: "control1",
+				CassandraInstance: "cassandra1",
 			},
 		},
 	}
-	webui.InstanceConfiguration(webuiRequest, webuiPodList, cl)
+	require.NoError(t, webui.InstanceConfiguration(webuiRequest, webuiPodList, cl))
 
 	var webuiConfigMap = &corev1.ConfigMap{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "webui1-webui-configmap", Namespace: "test-ns"}, webuiConfigMap), "Error while gathering webui config map")

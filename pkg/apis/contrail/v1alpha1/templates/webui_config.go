@@ -5,10 +5,7 @@ import (
 )
 
 // WebuiWebConfig is the template of the Webui Web service configuration.
-var WebuiWebConfig = template.Must(template.New("").Funcs(tfFuncs).Parse(`/*
-* Copyright (c) 2014 Juniper Networks, Inc. All rights reserved.
-*/
-var config = {};
+var WebuiWebConfig = template.Must(template.New("").Funcs(tfFuncs).Parse(`var config = {};
 
 config.orchestration = {};
 config.orchestration.Manager = "{{ .Manager }}";
