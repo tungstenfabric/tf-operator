@@ -8,6 +8,7 @@ spec:
   commonConfiguration:
 {%- if DEPLOYER is defined and DEPLOYER == "openshift" %}
     useKubeadmConfig: false
+    tuneSysctl: false
     clusterConfig:
       clusterName: {{ KUBERNETES_CLUSTER_NAME | default("test") }}
       networking:

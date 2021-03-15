@@ -175,6 +175,11 @@ spec:
                         type: string
                     type: object
                   type: array
+                tuneSysctl:
+                  description: Allow node-init container to tune sysctl options (for
+                    all deployers except opneshift it is done by node-init, in openshift
+                    - machineconfig)
+                  type: boolean
                 useKubeadmConfig:
                   description: Read cluster parameters from kubeadm config map
                   type: boolean
@@ -344,6 +349,11 @@ spec:
                                     type: string
                                 type: object
                               type: array
+                            tuneSysctl:
+                              description: Allow node-init container to tune sysctl
+                                options (for all deployers except opneshift it is
+                                done by node-init, in openshift - machineconfig)
+                              type: boolean
                           type: object
                         serviceConfiguration:
                           description: AnalyticsAlarmConfiguration is the Spec for
@@ -565,6 +575,11 @@ spec:
                                     type: string
                                 type: object
                               type: array
+                            tuneSysctl:
+                              description: Allow node-init container to tune sysctl
+                                options (for all deployers except opneshift it is
+                                done by node-init, in openshift - machineconfig)
+                              type: boolean
                           type: object
                         serviceConfiguration:
                           description: AnalyticsSnmpConfiguration is the Spec for
@@ -795,6 +810,11 @@ spec:
                                       type: string
                                   type: object
                                 type: array
+                              tuneSysctl:
+                                description: Allow node-init container to tune sysctl
+                                  options (for all deployers except opneshift it is
+                                  done by node-init, in openshift - machineconfig)
+                                type: boolean
                             type: object
                           serviceConfiguration:
                             description: CassandraConfiguration is the Spec for the
@@ -1063,6 +1083,11 @@ spec:
                                     type: string
                                 type: object
                               type: array
+                            tuneSysctl:
+                              description: Allow node-init container to tune sysctl
+                                options (for all deployers except opneshift it is
+                                done by node-init, in openshift - machineconfig)
+                              type: boolean
                           type: object
                         serviceConfiguration:
                           description: ConfigConfiguration is the Spec for the Config
@@ -1346,6 +1371,11 @@ spec:
                                       type: string
                                   type: object
                                 type: array
+                              tuneSysctl:
+                                description: Allow node-init container to tune sysctl
+                                  options (for all deployers except opneshift it is
+                                  done by node-init, in openshift - machineconfig)
+                                type: boolean
                             type: object
                           serviceConfiguration:
                             description: ControlConfiguration is the Spec for the
@@ -1627,6 +1657,11 @@ spec:
                                       type: string
                                   type: object
                                 type: array
+                              tuneSysctl:
+                                description: Allow node-init container to tune sysctl
+                                  options (for all deployers except opneshift it is
+                                  done by node-init, in openshift - machineconfig)
+                                type: boolean
                             type: object
                           serviceConfiguration:
                             description: KubemanagerServiceConfiguration is the Spec
@@ -1862,6 +1897,11 @@ spec:
                                     type: string
                                 type: object
                               type: array
+                            tuneSysctl:
+                              description: Allow node-init container to tune sysctl
+                                options (for all deployers except opneshift it is
+                                done by node-init, in openshift - machineconfig)
+                              type: boolean
                           type: object
                         serviceConfiguration:
                           description: RabbitmqConfiguration is the Spec for the cassandras
@@ -2095,6 +2135,11 @@ spec:
                                       type: string
                                   type: object
                                 type: array
+                              tuneSysctl:
+                                description: Allow node-init container to tune sysctl
+                                  options (for all deployers except opneshift it is
+                                  done by node-init, in openshift - machineconfig)
+                                type: boolean
                             type: object
                           serviceConfiguration:
                             description: VrouterManagerServiceConfiguration defines
@@ -2478,6 +2523,11 @@ spec:
                                     type: string
                                 type: object
                               type: array
+                            tuneSysctl:
+                              description: Allow node-init container to tune sysctl
+                                options (for all deployers except opneshift it is
+                                done by node-init, in openshift - machineconfig)
+                              type: boolean
                           type: object
                         serviceConfiguration:
                           description: WebuiConfiguration is the Spec for the cassandras
@@ -2710,6 +2760,11 @@ spec:
                                       type: string
                                   type: object
                                 type: array
+                              tuneSysctl:
+                                description: Allow node-init container to tune sysctl
+                                  options (for all deployers except opneshift it is
+                                  done by node-init, in openshift - machineconfig)
+                                type: boolean
                             type: object
                           serviceConfiguration:
                             description: ZookeeperConfiguration is the Spec for the

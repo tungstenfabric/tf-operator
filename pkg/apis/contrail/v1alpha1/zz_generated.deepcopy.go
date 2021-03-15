@@ -1463,6 +1463,11 @@ func (in *ManagerConfiguration) DeepCopyInto(out *ManagerConfiguration) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.TuneSysctl != nil {
+		in, out := &in.TuneSysctl, &out.TuneSysctl
+		*out = new(bool)
+		**out = **in
+	}
 	if in.ClusterConfig != nil {
 		in, out := &in.ClusterConfig, &out.ClusterConfig
 		*out = new(KubernetesClusterConfig)
