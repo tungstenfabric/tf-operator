@@ -86,6 +86,10 @@ type PodConfiguration struct {
 	// Use 0.0.0.0 for isntrospection ports
 	// +optional
 	IntrospectListenAll *bool `json:"introspectListenAll,omitempty"`
+	// Allow node-init container to tune sysctl options
+	// (for all deployers except opneshift it is done by node-init, in openshift - machineconfig)
+	// +optional
+	TuneSysctl *bool `json:"tuneSysctl,omitempty"`
 	// AuthParameters auth parameters
 	// +optional
 	AuthParameters *AuthParameters `json:"authParameters,omitempty"`

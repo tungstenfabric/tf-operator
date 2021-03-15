@@ -10,7 +10,7 @@ import (
 )
 
 //GetDaemonset returns DaemonSet object for vRouter
-func GetDaemonset(cniCfg *v1alpha1.CNIConfig, contrailStatusImage, cloudOrchestrator string) *apps.DaemonSet {
+func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, contrailStatusImage, cloudOrchestrator string) *apps.DaemonSet {
 	var labelsMountPermission int32 = 0644
 	var trueVal = true
 
@@ -140,29 +140,33 @@ func GetDaemonset(cniCfg *v1alpha1.CNIConfig, contrailStatusImage, cloudOrchestr
 				Value: contrailStatusImage,
 			},
 		)
+		podInitContainerMounts := []core.VolumeMount{
+			{
+				Name:      "host-usr-bin",
+				MountPath: "/host/usr/bin",
+			},
+			{
+				Name:      "var-run",
+				MountPath: "/var/run",
+			},
+			{
+				Name:      "dev",
+				MountPath: "/dev",
+			},
+		}
+		if c.Spec.CommonConfiguration.TuneSysctl != nil && *c.Spec.CommonConfiguration.TuneSysctl {
+			podInitContainerMounts = append(podInitContainerMounts,
+				core.VolumeMount{
+					Name:      "host-sysctl",
+					MountPath: "/etc/sysctl.d",
+				})
+		}
 		podInitContainers = append(podInitContainers,
 			core.Container{
-				Name:  "nodeinit",
-				Image: "tungstenfabric/contrail-node-init:latest",
-				Env:   envListNodeInit,
-				VolumeMounts: []core.VolumeMount{
-					{
-						Name:      "host-usr-bin",
-						MountPath: "/host/usr/bin",
-					},
-					{
-						Name:      "host-sysctl",
-						MountPath: "/etc/sysctl.d",
-					},
-					{
-						Name:      "var-run",
-						MountPath: "/var/run",
-					},
-					{
-						Name:      "dev",
-						MountPath: "/dev",
-					},
-				},
+				Name:         "nodeinit",
+				Image:        "tungstenfabric/contrail-node-init:latest",
+				Env:          envListNodeInit,
+				VolumeMounts: podInitContainerMounts,
 				SecurityContext: &core.SecurityContext{
 					Privileged: &trueVal,
 				},
@@ -265,14 +269,6 @@ func GetDaemonset(cniCfg *v1alpha1.CNIConfig, contrailStatusImage, cloudOrchestr
 			},
 		},
 		{
-			Name: "host-sysctl",
-			VolumeSource: core.VolumeSource{
-				HostPath: &core.HostPathVolumeSource{
-					Path: "/etc/sysctl.d",
-				},
-			},
-		},
-		{
 			Name: "lib-modules",
 			VolumeSource: core.VolumeSource{
 				HostPath: &core.HostPathVolumeSource{
@@ -353,7 +349,17 @@ func GetDaemonset(cniCfg *v1alpha1.CNIConfig, contrailStatusImage, cloudOrchestr
 			},
 		},
 	}
-
+	if c.Spec.CommonConfiguration.TuneSysctl != nil && *c.Spec.CommonConfiguration.TuneSysctl {
+		podVolumes = append(podVolumes,
+			core.Volume{
+				Name: "host-sysctl",
+				VolumeSource: core.VolumeSource{
+					HostPath: &core.HostPathVolumeSource{
+						Path: "/etc/sysctl.d",
+					},
+				},
+			})
+	}
 	var podTolerations = []core.Toleration{
 		{
 			Operator: "Exists",

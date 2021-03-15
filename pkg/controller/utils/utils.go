@@ -341,6 +341,14 @@ func MergeCommonConfiguration(manager v1alpha1.ManagerConfiguration,
 	if instance.IntrospectListenAll == nil && manager.IntrospectListenAll != nil {
 		instance.IntrospectListenAll = manager.IntrospectListenAll
 	}
+	if instance.TuneSysctl == nil {
+		if manager.TuneSysctl != nil {
+			instance.TuneSysctl = manager.TuneSysctl
+		} else {
+			trueVal := true
+			instance.TuneSysctl = &trueVal
+		}
+	}
 	if instance.AuthParameters == nil && manager.AuthParameters != nil {
 		instance.AuthParameters = manager.AuthParameters
 	}

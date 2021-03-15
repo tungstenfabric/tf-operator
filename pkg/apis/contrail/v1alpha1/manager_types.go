@@ -99,6 +99,10 @@ type ManagerConfiguration struct {
 	// Read cluster parameters from kubeadm config map
 	// +optional
 	UseKubeadmConfig *bool `json:"useKubeadmConfig,omitempty"`
+	// Allow node-init container to tune sysctl options
+	// (for all deployers except opneshift it is done by node-init, in openshift - machineconfig)
+	// +optional
+	TuneSysctl *bool `json:"tuneSysctl,omitempty"`
 	// Kubernetes Cluster Configuration
 	// +optional
 	ClusterConfig *KubernetesClusterConfig `json:"clusterConfig,omitempty"`
