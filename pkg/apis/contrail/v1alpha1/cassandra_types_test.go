@@ -79,6 +79,27 @@ var config = &Config{
 	},
 }
 
+var analyticsPort = 8086
+
+var cassandraAnalytics = &Analytics{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "analytics1",
+		Namespace: "test-ns",
+	},
+	Spec: AnalyticsSpec{
+		ServiceConfiguration: AnalyticsConfiguration{
+			AnalyticsPort: &analyticsPort,
+		},
+	},
+	Status: AnalyticsStatus{
+		Nodes: map[string]string{
+			"pod1": "1.1.1.1",
+			"pod2": "2.2.2.2",
+		},
+	},
+
+}
+
 type CassandraParamsStruct struct {
 	ConcurrentReads                  int    `yaml:"concurrent_reads"`
 	ConcurrentWrites                 int    `yaml:"concurrent_writes"`
@@ -95,7 +116,7 @@ func TestCassandraConfigMapsWithDefaultValues(t *testing.T) {
 	require.NoError(t, err, "Failed to build scheme")
 	require.NoError(t, corev1.SchemeBuilder.AddToScheme(scheme), "Failed to add CoreV1 into scheme")
 
-	cl := fake.NewFakeClientWithScheme(scheme, cassandraCM, cassandraSecret, config)
+	cl := fake.NewFakeClientWithScheme(scheme, cassandraCM, cassandraSecret, config, cassandraAnalytics)
 	cassandra := Cassandra{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "cassandra1",
@@ -109,6 +130,7 @@ func TestCassandraConfigMapsWithDefaultValues(t *testing.T) {
 			},
 			ServiceConfiguration: CassandraConfiguration{
 				ConfigInstance: "config1",
+				AnalyticsInstance: "analytics1",
 			},
 		},
 	}
@@ -202,7 +224,7 @@ func TestCassandraConfigMapsWithCustomValues(t *testing.T) {
 	require.NoError(t, corev1.SchemeBuilder.AddToScheme(scheme), "Failed to add CoreV1 into scheme")
 
 	var keystoneTestPort = 7777
-	cl := fake.NewFakeClientWithScheme(scheme, cassandraCM, cassandraSecret, config)
+	cl := fake.NewFakeClientWithScheme(scheme, cassandraCM, cassandraSecret, config, cassandraAnalytics)
 	cassandra := Cassandra{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "cassandra1",
@@ -222,6 +244,7 @@ func TestCassandraConfigMapsWithCustomValues(t *testing.T) {
 			},
 			ServiceConfiguration: CassandraConfiguration{
 				ConfigInstance: "config1",
+				AnalyticsInstance: "analytics1",
 				CassandraParameters: CassandraConfigParameters{
 					CompactionThroughputMbPerSec:     22,
 					ConcurrentReads:                  33,
