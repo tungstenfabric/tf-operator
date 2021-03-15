@@ -162,11 +162,18 @@ spec:
                         type: string
                     type: object
                   type: array
+                tuneSysctl:
+                  description: Allow node-init container to tune sysctl options (for
+                    all deployers except opneshift it is done by node-init, in openshift
+                    - machineconfig)
+                  type: boolean
               type: object
             serviceConfiguration:
               description: KubemanagerServiceConfiguration is the Spec for the kubemanagers
                 API.
               properties:
+                analyticsInstance:
+                  type: string
                 cassandraInstance:
                   type: string
                 cloudOrchestrator:
@@ -176,8 +183,6 @@ spec:
                 clusterRoleBinding:
                   type: string
                 configInstance:
-                  type: string
-                analyticsInstance:
                   type: string
                 containers:
                   items:

@@ -233,6 +233,7 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 	daemonSet := GetDaemonset(
+		instance,
 		&kcc.Networking.CNIConfig,
 		instance.Spec.ServiceConfiguration.ContrailStatusImage,
 		vcp.CloudOrchestrator)

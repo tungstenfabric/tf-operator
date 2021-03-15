@@ -178,15 +178,20 @@ spec:
                         type: string
                     type: object
                   type: array
+                tuneSysctl:
+                  description: Allow node-init container to tune sysctl options (for
+                    all deployers except opneshift it is done by node-init, in openshift
+                    - machineconfig)
+                  type: boolean
               type: object
             serviceConfiguration:
               description: WebuiConfiguration is the Spec for the cassandras API.
               properties:
+                analyticsInstance:
+                  type: string
                 cassandraInstance:
                   type: string
                 configInstance:
-                  type: string
-                analyticsInstance:
                   type: string
                 containers:
                   items:
