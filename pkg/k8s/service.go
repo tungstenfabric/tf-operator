@@ -40,7 +40,7 @@ func (s *Service) EnsureExists() error {
 		},
 	}
 	_, err := controllerutil.CreateOrUpdate(context.Background(), s.client, &s.svc, func() error {
-		portToNodePortMap := make(map[int32]int32, 0)
+		portToNodePortMap := make(map[int32]int32)
 		for _, p := range s.svc.Spec.Ports {
 			for port := range s.ports {
 				if p.Port == port {

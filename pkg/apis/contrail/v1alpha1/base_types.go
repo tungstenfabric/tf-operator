@@ -1220,7 +1220,7 @@ func RestartServices(srvList map[*corev1.Pod][]string, clnt client.Client, log l
 // EncryptString returns sha
 func EncryptString(str string) string {
 	h := sha1.New()
-	io.WriteString(h, str)
+	_, _ = io.WriteString(h, str)
 	key := hex.EncodeToString(h.Sum(nil))
 	return string(key)
 }
