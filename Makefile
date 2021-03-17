@@ -31,7 +31,7 @@ modules:
 
 .PHONY: generate
 generate: $(CONTROLLER_GEN)
-	$(CONTROLLER_GEN) object paths="./pkg/apis/contrail/v1alpha1/..."
+	$(CONTROLLER_GEN) object paths="./pkg/apis/tf/v1alpha1/..."
 
 .PHONY: clean
 clean:

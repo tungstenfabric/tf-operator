@@ -14,7 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1/templates"
+	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -351,7 +351,7 @@ func (c *Rabbitmq) ConfigurationParameters() {
 	var erlangCookie = RabbitmqErlangCookie
 	var vhost = RabbitmqVhost
 	var user = RabbitmqUser
-	var password =RabbitmqPassword
+	var password = RabbitmqPassword
 	var secret = c.GetName() + "-secret"
 	var partHandling = RabbitmqClusterPartitionHandling
 	var mirredQueueMode = RabbitmqMirroredQueueMode

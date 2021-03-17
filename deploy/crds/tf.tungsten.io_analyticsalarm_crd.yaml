@@ -1,24 +1,24 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: analyticssnmp.contrail.juniper.net
+  name: analyticsalarm.tf.tungsten.io
 spec:
   additionalPrinterColumns:
   - JSONPath: .status.active
     name: Active
     type: boolean
-  group: contrail.juniper.net
+  group: tf.tungsten.io
   names:
-    kind: AnalyticsSnmp
-    listKind: AnalyticsSnmpList
-    plural: analyticssnmp
-    singular: analyticssnmp
+    kind: AnalyticsAlarm
+    listKind: AnalyticsAlarmList
+    plural: analyticsalarm
+    singular: analyticsalarm
   scope: Namespaced
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
-      description: AnalyticsSnmp is the Schema for the Analytics SNMP API.
+      description: AnalyticsAlarm is the Schema for the Analytics Alarm API.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -33,7 +33,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: AnalyticsSnmpSpec is the Spec for the Analytics SNMP API.
+          description: AnalyticsAlarmSpec is the Spec for the Analytics Alarm API.
           properties:
             commonConfiguration:
               description: PodConfiguration is the common services struct.
@@ -173,9 +173,17 @@ spec:
                   type: boolean
               type: object
             serviceConfiguration:
-              description: AnalyticsSnmpConfiguration is the Spec for the Analytics
-                SNMP API.
+              description: AnalyticsAlarmConfiguration is the Spec for the Analytics
+                Alarm API.
               properties:
+                alarmgenIntrospectListenPort:
+                  type: integer
+                alarmgenLogFileName:
+                  type: string
+                alarmgenPartitions:
+                  type: integer
+                alarmgenRedisAggregateDbOffset:
+                  type: integer
                 analyticsInstance:
                   type: string
                 cassandraInstance:
@@ -204,20 +212,6 @@ spec:
                   type: string
                 rabbitmqInstance:
                   type: string
-                snmpCollectorFastScanFrequency:
-                  type: integer
-                snmpCollectorIntrospectListenPort:
-                  type: integer
-                snmpCollectorLogFileName:
-                  type: string
-                snmpCollectorScanFrequency:
-                  type: integer
-                topologyIntrospectListenPort:
-                  type: integer
-                topologyLogFileName:
-                  type: string
-                topologySnmpFrequency:
-                  type: integer
                 zookeeperInstance:
                   type: string
               type: object
@@ -225,7 +219,8 @@ spec:
           - serviceConfiguration
           type: object
         status:
-          description: AnalyticsSnmpStatus is the Status for the Analytics SNMP API.
+          description: AnalyticsAlarmStatus is the Status for the Analytics Alarm
+            API.
           properties:
             active:
               type: boolean

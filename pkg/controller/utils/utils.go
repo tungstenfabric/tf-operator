@@ -8,7 +8,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1"
+	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
 )
 
 var log = logf.Log.WithName("utils")
@@ -16,19 +16,19 @@ var reqLogger = log.WithValues()
 
 // const defines the Group constants.
 const (
-	ANALYTICS      = "Analytics.contrail.juniper.net"
-	ANALYTICSDB    = "AnalyticsDB.contrail.juniper.net"
-	ANALYTICSSNMP  = "AnalyticsSnmp.contrail.juniper.net"
-	ANALYTICSALARM = "AnalyticsAlarm.contrail.juniper.net"
-	CASSANDRA      = "Cassandra.contrail.juniper.net"
-	ZOOKEEPER      = "Zookeeper.contrail.juniper.net"
-	RABBITMQ       = "Rabbitmq.contrail.juniper.net"
-	CONFIG         = "Config.contrail.juniper.net"
-	CONTROL        = "Control.contrail.juniper.net"
-	WEBUI          = "Webui.contrail.juniper.net"
-	VROUTER        = "Vrouter.contrail.juniper.net"
-	KUBEMANAGER    = "Kubemanager.contrail.juniper.net"
-	MANAGER        = "Manager.contrail.juniper.net"
+	ANALYTICS      = "Analytics.tf.tungsten.io"
+	ANALYTICSDB    = "AnalyticsDB.tf.tungsten.io"
+	ANALYTICSSNMP  = "AnalyticsSnmp.tf.tungsten.io"
+	ANALYTICSALARM = "AnalyticsAlarm.tf.tungsten.io"
+	CASSANDRA      = "Cassandra.tf.tungsten.io"
+	ZOOKEEPER      = "Zookeeper.tf.tungsten.io"
+	RABBITMQ       = "Rabbitmq.tf.tungsten.io"
+	CONFIG         = "Config.tf.tungsten.io"
+	CONTROL        = "Control.tf.tungsten.io"
+	WEBUI          = "Webui.tf.tungsten.io"
+	VROUTER        = "Vrouter.tf.tungsten.io"
+	KUBEMANAGER    = "Kubemanager.tf.tungsten.io"
+	MANAGER        = "Manager.tf.tungsten.io"
 	REPLICASET     = "ReplicaSet.apps"
 	DEPLOYMENT     = "Deployment.apps"
 )
