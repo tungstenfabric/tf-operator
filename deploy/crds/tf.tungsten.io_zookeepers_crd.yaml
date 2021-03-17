@@ -1,20 +1,20 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: kubemanagers.contrail.juniper.net
+  name: zookeepers.tf.tungsten.io
 spec:
-  group: contrail.juniper.net
+  group: tf.tungsten.io
   names:
-    kind: Kubemanager
-    listKind: KubemanagerList
-    plural: kubemanagers
-    singular: kubemanager
+    kind: Zookeeper
+    listKind: ZookeeperList
+    plural: zookeepers
+    singular: zookeeper
   scope: Namespaced
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
-      description: Kubemanager is the Schema for the kubemanagers API.
+      description: Zookeeper is the Schema for the zookeepers API.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -29,7 +29,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: KubemanagerSpec is the Spec for the kubemanagers API.
+          description: ZookeeperSpec is the Spec for the zookeepers API.
           properties:
             commonConfiguration:
               description: PodConfiguration is the common services struct.
@@ -169,19 +169,14 @@ spec:
                   type: boolean
               type: object
             serviceConfiguration:
-              description: KubemanagerServiceConfiguration is the Spec for the kubemanagers
-                API.
+              description: ZookeeperConfiguration is the Spec for the zookeepers API.
               properties:
-                cassandraInstance:
-                  type: string
-                cloudOrchestrator:
-                  type: string
-                clusterRole:
-                  type: string
-                clusterRoleBinding:
-                  type: string
-                configInstance:
-                  type: string
+                adminEnabled:
+                  type: boolean
+                adminPort:
+                  type: integer
+                clientPort:
+                  type: integer
                 containers:
                   items:
                     description: Container defines name, image and command.
@@ -196,64 +191,37 @@ spec:
                         type: string
                     type: object
                   type: array
-                hostNetworkService:
-                  type: boolean
-                ipFabricForwarding:
-                  type: boolean
-                ipFabricSnat:
-                  type: boolean
-                ipFabricSubnets:
-                  type: string
-                kubernetesAPIPort:
+                electionPort:
                   type: integer
-                kubernetesAPISSLPort:
+                serverPort:
                   type: integer
-                kubernetesAPIServer:
-                  type: string
-                kubernetesClusterName:
-                  type: string
-                kubernetesTokenFile:
-                  type: string
-                logLevel:
-                  type: string
-                podSubnet:
-                  type: string
-                publicFIPPool:
-                  type: string
-                rabbitmqInstance:
-                  type: string
-                rabbitmqPassword:
-                  type: string
-                rabbitmqUser:
-                  type: string
-                rabbitmqVhost:
-                  type: string
-                secretName:
-                  type: string
-                serviceAccount:
-                  type: string
-                serviceSubnet:
-                  type: string
-                zookeeperInstance:
-                  type: string
+                storage:
+                  properties:
+                    path:
+                      type: string
+                    size:
+                      pattern: ^([0-9]+)([KMGTPE]i)?$
+                      type: string
+                  type: object
               type: object
           required:
           - serviceConfiguration
           type: object
         status:
-          description: KubemanagerStatus is the Status for the kubemanagers API.
+          description: ZookeeperStatus defines the status of the zookeeper object.
           properties:
             active:
-              description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
-                of cluster Important: Run "operator-sdk generate k8s" to regenerate
-                code after modifying this file Add custom validation using kubebuilder
-                tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html'
-              type: boolean
-            configChanged:
               type: boolean
             nodes:
               additionalProperties:
                 type: string
+              type: object
+            ports:
+              description: ZookeeperStatusPorts defines the status of the ports of
+                the zookeeper object.
+              properties:
+                clientPort:
+                  type: string
               type: object
           type: object
       type: object

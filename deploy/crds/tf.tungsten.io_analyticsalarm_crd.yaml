@@ -1,20 +1,24 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: zookeepers.contrail.juniper.net
+  name: analyticsalarm.tf.tungsten.io
 spec:
-  group: contrail.juniper.net
+  additionalPrinterColumns:
+  - JSONPath: .status.active
+    name: Active
+    type: boolean
+  group: tf.tungsten.io
   names:
-    kind: Zookeeper
-    listKind: ZookeeperList
-    plural: zookeepers
-    singular: zookeeper
+    kind: AnalyticsAlarm
+    listKind: AnalyticsAlarmList
+    plural: analyticsalarm
+    singular: analyticsalarm
   scope: Namespaced
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
-      description: Zookeeper is the Schema for the zookeepers API.
+      description: AnalyticsAlarm is the Schema for the Analytics Alarm API.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -29,7 +33,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: ZookeeperSpec is the Spec for the zookeepers API.
+          description: AnalyticsAlarmSpec is the Spec for the Analytics Alarm API.
           properties:
             commonConfiguration:
               description: PodConfiguration is the common services struct.
@@ -169,14 +173,21 @@ spec:
                   type: boolean
               type: object
             serviceConfiguration:
-              description: ZookeeperConfiguration is the Spec for the zookeepers API.
+              description: AnalyticsAlarmConfiguration is the Spec for the Analytics
+                Alarm API.
               properties:
-                adminEnabled:
-                  type: boolean
-                adminPort:
+                alarmgenIntrospectListenPort:
                   type: integer
-                clientPort:
+                alarmgenLogFileName:
+                  type: string
+                alarmgenPartitions:
                   type: integer
+                alarmgenRedisAggregateDbOffset:
+                  type: integer
+                cassandraInstance:
+                  type: string
+                configInstance:
+                  type: string
                 containers:
                   items:
                     description: Container defines name, image and command.
@@ -191,37 +202,31 @@ spec:
                         type: string
                     type: object
                   type: array
-                electionPort:
-                  type: integer
-                serverPort:
-                  type: integer
-                storage:
-                  properties:
-                    path:
-                      type: string
-                    size:
-                      pattern: ^([0-9]+)([KMGTPE]i)?$
-                      type: string
-                  type: object
+                logFilePath:
+                  type: string
+                logLevel:
+                  type: string
+                logLocal:
+                  type: string
+                rabbitmqInstance:
+                  type: string
+                zookeeperInstance:
+                  type: string
               type: object
           required:
           - serviceConfiguration
           type: object
         status:
-          description: ZookeeperStatus defines the status of the zookeeper object.
+          description: AnalyticsAlarmStatus is the Status for the Analytics Alarm
+            API.
           properties:
             active:
+              type: boolean
+            configChanged:
               type: boolean
             nodes:
               additionalProperties:
                 type: string
-              type: object
-            ports:
-              description: ZookeeperStatusPorts defines the status of the ports of
-                the zookeeper object.
-              properties:
-                clientPort:
-                  type: string
               type: object
           type: object
       type: object

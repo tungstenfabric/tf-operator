@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1"
+	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
 	"github.com/tungstenfabric/tf-operator/pkg/randomstring"
 
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"

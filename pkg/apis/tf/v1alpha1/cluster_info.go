@@ -64,7 +64,7 @@ func getManager(client client.Client) (Manager, error) {
 	// Get manager manifest
 	ul := &unstructured.UnstructuredList{}
 	ul.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "contrail.juniper.net",
+		Group:   "tf.tungsten.io",
 		Kind:    "ManagerList",
 		Version: "v1alpha1",
 	})
@@ -78,7 +78,7 @@ func getManager(client client.Client) (Manager, error) {
 
 	u := &unstructured.Unstructured{}
 	u.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "contrail.juniper.net",
+		Group:   "tf.tungsten.io",
 		Kind:    "Manager",
 		Version: "v1alpha1",
 	})

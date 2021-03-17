@@ -7,7 +7,7 @@ import (
 	core "k8s.io/api/core/v1"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1"
+	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
 )
 
 // GetSTS create default StatefulSet Rabbitmq object

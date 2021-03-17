@@ -1,20 +1,20 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: vrouters.contrail.juniper.net
+  name: rabbitmqs.tf.tungsten.io
 spec:
-  group: contrail.juniper.net
+  group: tf.tungsten.io
   names:
-    kind: Vrouter
-    listKind: VrouterList
-    plural: vrouters
-    singular: vrouter
+    kind: Rabbitmq
+    listKind: RabbitmqList
+    plural: rabbitmqs
+    singular: rabbitmq
   scope: Namespaced
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
-      description: Vrouter is the Schema for the vrouters API.
+      description: Rabbitmq is the Schema for the rabbitmqs API.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -29,7 +29,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: VrouterSpec is the Spec for the vrouter API.
+          description: RabbitmqSpec is the Spec for the cassandras API.
           properties:
             commonConfiguration:
               description: PodConfiguration is the common services struct.
@@ -169,34 +169,10 @@ spec:
                   type: boolean
               type: object
             serviceConfiguration:
-              description: VrouterConfiguration is the Spec for the vrouter API.
+              description: RabbitmqConfiguration is the Spec for the cassandras API.
               properties:
-                agentMode:
-                  description: vRouter
+                clusterPartitionHandling:
                   type: string
-                barbicanPassword:
-                  type: string
-                barbicanTenantName:
-                  description: Openstack
-                  type: string
-                barbicanUser:
-                  type: string
-                cloudOrchestrator:
-                  description: New params for vrouter configuration
-                  type: string
-                clusterRole:
-                  type: string
-                clusterRoleBinding:
-                  type: string
-                collectorPort:
-                  type: string
-                configApiPort:
-                  description: Config
-                  type: string
-                configApiServerCaCertfile:
-                  type: string
-                configApiSslEnable:
-                  type: boolean
                 containers:
                   items:
                     description: Container defines name, image and command.
@@ -211,218 +187,63 @@ spec:
                         type: string
                     type: object
                   type: array
-                contrailStatusImage:
-                  description: What is it doing? VrouterEncryption   bool              `json:"vrouterEncryption,omitempty"`
-                    What is it doing?
-                  type: string
-                distribution:
-                  type: string
-                dnsServerPort:
-                  description: DNS
-                  type: string
-                dpdkUioDriver:
-                  description: Host
-                  type: string
-                envVariablesConfig:
-                  additionalProperties:
-                    type: string
-                  description: What is it doing?
+                ctlDistPorts:
+                  description: CTLDistPortsConfig is confgiuration for RabbitMQ ports
+                    (previously inet_dist_listen range)
+                  properties:
+                    max:
+                      type: integer
+                    min:
+                      type: integer
                   type: object
-                fabricSntHashTableSize:
+                erlangCookie:
                   type: string
-                gateway:
+                mirroredQueueMode:
+                  enum:
+                  - exactly
+                  - all
+                  - nodes
                   type: string
-                hugePages1G:
+                password:
+                  type: string
+                port:
                   type: integer
-                hugePages2M:
-                  description: HugePages
-                  type: integer
-                hypervisorType:
+                secret:
                   type: string
-                introspectListenAll:
-                  description: Introspect
-                  type: boolean
-                introspectSslEnable:
-                  type: boolean
-                k8sToken:
-                  description: Kubernetes
+                tcpListenOptions:
+                  description: TCPListenOptionsConfig is configuration for RabbitMQ
+                    TCP listen
+                  properties:
+                    backlog:
+                      type: integer
+                    exitOnClose:
+                      type: boolean
+                    lingerOn:
+                      type: boolean
+                    lingerTimeout:
+                      type: integer
+                    nodelay:
+                      type: boolean
+                  type: object
+                user:
                   type: string
-                k8sTokenFile:
-                  type: string
-                keystoneAuthAdminPassword:
-                  type: string
-                keystoneAuthAdminPort:
-                  description: Keystone authentication
-                  type: string
-                keystoneAuthCaCertfile:
-                  type: string
-                keystoneAuthCertfile:
-                  type: string
-                keystoneAuthHost:
-                  type: string
-                keystoneAuthInsecure:
-                  type: boolean
-                keystoneAuthKeyfile:
-                  type: string
-                keystoneAuthProjectDomainName:
-                  type: string
-                keystoneAuthProto:
-                  type: string
-                keystoneAuthRegionName:
-                  type: string
-                keystoneAuthUrlTokens:
-                  type: string
-                keystoneAuthUrlVersion:
-                  type: string
-                keystoneAuthUserDomainName:
-                  type: string
-                kubernetesApiPort:
-                  type: string
-                kubernetesApiSecurePort:
-                  type: string
-                kubernetesPodSubnet:
-                  type: string
-                logDir:
-                  description: Logging
-                  type: string
-                logLevel:
-                  type: string
-                logLocal:
-                  type: integer
-                metaDataSecret:
-                  type: string
-                metadataProxySecret:
-                  description: Metadata
-                  type: string
-                metadataSslCaCertfile:
-                  type: string
-                metadataSslCertType:
-                  type: string
-                metadataSslCertfile:
-                  type: string
-                metadataSslEnable:
-                  type: string
-                metadataSslKeyfile:
-                  type: string
-                physicalInterface:
-                  type: string
-                priorityBandwidth:
-                  type: string
-                priorityId:
-                  type: string
-                priorityScheduling:
-                  type: string
-                priorityTagging:
-                  type: boolean
-                qosDefHwQueue:
-                  type: boolean
-                qosLogicalQueues:
-                  type: string
-                qosQueueId:
-                  type: string
-                requiredKernelVrouterEncryption:
-                  type: string
-                sampleDestination:
-                  type: string
-                sandeshCaCertfile:
-                  description: Sandesh
-                  type: string
-                sandeshCertfile:
-                  type: string
-                sandeshKeyfile:
-                  type: string
-                sandeshSslEnable:
-                  type: boolean
-                serverCaCertfile:
-                  description: Server SSL
-                  type: string
-                serverCertfile:
-                  type: string
-                serverKeyfile:
-                  type: string
-                serviceAccount:
-                  type: string
-                sloDestination:
-                  type: string
-                sriovPhysicalInterface:
-                  type: string
-                sriovPhysicalNetwork:
-                  type: string
-                sriovVf:
-                  type: string
-                sslEnable:
-                  type: boolean
-                sslInsecure:
-                  type: boolean
-                statsCollectorDestinationPath:
-                  description: Collector
-                  type: string
-                subclaster:
-                  description: XMPP
-                  type: string
-                tsnAgentMode:
-                  description: TSN
-                  type: string
-                vrouterCryptInterface:
-                  type: string
-                vrouterDecryptInterface:
-                  type: string
-                vrouterDecryptKey:
-                  type: string
-                vrouterEncryption:
-                  type: boolean
-                vrouterGateway:
-                  type: string
-                xmmpSslEnable:
-                  type: boolean
-                xmppServerCaCertfile:
-                  type: string
-                xmppServerCertfile:
-                  type: string
-                xmppServerKeyfile:
-                  type: string
-                xmppServerPort:
+                vhost:
                   type: string
               type: object
           required:
           - serviceConfiguration
           type: object
         status:
-          description: 'VrouterStatus is the Status for vrouter API. TODO: after update
-            to controllter-tool v0.4 rework AgentStatus to make it map instead of
-            [] for performance (https://github.com/operator-framework/operator-sdk/issues/2485
-            https://github.com/kubernetes-sigs/controller-tools/pull/317)'
+          description: RabbitmqStatus +k8s:openapi-gen=true
           properties:
             active:
               type: boolean
-            activeOnControllers:
-              type: boolean
-            agents:
-              items:
-                description: AgentStatus is the Status of the agent.
-                properties:
-                  configNodes:
-                    type: string
-                  controlNodes:
-                    type: string
-                  encryptedParams:
-                    type: string
-                  name:
-                    type: string
-                  status:
-                    description: 'AgentServiceStatus is the status value: Starting,
-                      Ready, Updating'
-                    type: string
-                type: object
-              type: array
             nodes:
               additionalProperties:
                 type: string
-              description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
-                of cluster Important: Run "operator-sdk generate k8s" to regenerate
-                code after modifying this file Add custom validation using kubebuilder
-                tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html'
               type: object
+            secret:
+              type: string
           type: object
       type: object
   version: v1alpha1

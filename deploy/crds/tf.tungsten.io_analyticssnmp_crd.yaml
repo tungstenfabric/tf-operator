@@ -1,20 +1,24 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: rabbitmqs.contrail.juniper.net
+  name: analyticssnmp.tf.tungsten.io
 spec:
-  group: contrail.juniper.net
+  additionalPrinterColumns:
+  - JSONPath: .status.active
+    name: Active
+    type: boolean
+  group: tf.tungsten.io
   names:
-    kind: Rabbitmq
-    listKind: RabbitmqList
-    plural: rabbitmqs
-    singular: rabbitmq
+    kind: AnalyticsSnmp
+    listKind: AnalyticsSnmpList
+    plural: analyticssnmp
+    singular: analyticssnmp
   scope: Namespaced
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
-      description: Rabbitmq is the Schema for the rabbitmqs API.
+      description: AnalyticsSnmp is the Schema for the Analytics SNMP API.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -29,7 +33,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: RabbitmqSpec is the Spec for the cassandras API.
+          description: AnalyticsSnmpSpec is the Spec for the Analytics SNMP API.
           properties:
             commonConfiguration:
               description: PodConfiguration is the common services struct.
@@ -169,9 +173,12 @@ spec:
                   type: boolean
               type: object
             serviceConfiguration:
-              description: RabbitmqConfiguration is the Spec for the cassandras API.
+              description: AnalyticsSnmpConfiguration is the Spec for the Analytics
+                SNMP API.
               properties:
-                clusterPartitionHandling:
+                cassandraInstance:
+                  type: string
+                configInstance:
                   type: string
                 containers:
                   items:
@@ -187,63 +194,45 @@ spec:
                         type: string
                     type: object
                   type: array
-                ctlDistPorts:
-                  description: CTLDistPortsConfig is confgiuration for RabbitMQ ports
-                    (previously inet_dist_listen range)
-                  properties:
-                    max:
-                      type: integer
-                    min:
-                      type: integer
-                  type: object
-                erlangCookie:
+                logFilePath:
                   type: string
-                mirroredQueueMode:
-                  enum:
-                  - exactly
-                  - all
-                  - nodes
+                logLevel:
                   type: string
-                password:
+                logLocal:
                   type: string
-                port:
+                rabbitmqInstance:
+                  type: string
+                snmpCollectorFastScanFrequency:
                   type: integer
-                secret:
+                snmpCollectorIntrospectListenPort:
+                  type: integer
+                snmpCollectorLogFileName:
                   type: string
-                tcpListenOptions:
-                  description: TCPListenOptionsConfig is configuration for RabbitMQ
-                    TCP listen
-                  properties:
-                    backlog:
-                      type: integer
-                    exitOnClose:
-                      type: boolean
-                    lingerOn:
-                      type: boolean
-                    lingerTimeout:
-                      type: integer
-                    nodelay:
-                      type: boolean
-                  type: object
-                user:
+                snmpCollectorScanFrequency:
+                  type: integer
+                topologyIntrospectListenPort:
+                  type: integer
+                topologyLogFileName:
                   type: string
-                vhost:
+                topologySnmpFrequency:
+                  type: integer
+                zookeeperInstance:
                   type: string
               type: object
           required:
           - serviceConfiguration
           type: object
         status:
-          description: RabbitmqStatus +k8s:openapi-gen=true
+          description: AnalyticsSnmpStatus is the Status for the Analytics SNMP API.
           properties:
             active:
+              type: boolean
+            configChanged:
               type: boolean
             nodes:
               additionalProperties:
                 type: string
               type: object
-            secret:
-              type: string
           type: object
       type: object
   version: v1alpha1

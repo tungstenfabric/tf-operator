@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1/templates"
+	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -93,7 +93,7 @@ type VrouterConfiguration struct {
 	// What is it doing?
 	// VrouterEncryption   bool              `json:"vrouterEncryption,omitempty"`
 	// What is it doing?
-	ContrailStatusImage string `json:"contrailStatusImage,omitempty"`
+	StatusImage string `json:"statusImage,omitempty"`
 	// What is it doing?
 	EnvVariablesConfig map[string]string `json:"envVariablesConfig,omitempty"`
 	ControlInstance    string            `json:"controlInstance,omitempty"`

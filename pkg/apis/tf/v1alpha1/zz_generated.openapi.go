@@ -11,63 +11,63 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.BGPPeer":                     schema_pkg_apis_contrail_v1alpha1_BGPPeer(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsAlarm":              schema_pkg_apis_contrail_v1alpha1_AnalyticsAlarm(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsAlarmConfiguration": schema_pkg_apis_contrail_v1alpha1_AnalyticsAlarmConfiguration(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsAlarmSpec":          schema_pkg_apis_contrail_v1alpha1_AnalyticsAlarmSpec(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsAlarmStatus":        schema_pkg_apis_contrail_v1alpha1_AnalyticsAlarmStatus(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsSnmp":               schema_pkg_apis_contrail_v1alpha1_AnalyticsSnmp(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsSnmpConfiguration":  schema_pkg_apis_contrail_v1alpha1_AnalyticsSnmpConfiguration(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsSnmpSpec":           schema_pkg_apis_contrail_v1alpha1_AnalyticsSnmpSpec(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsSnmpStatus":         schema_pkg_apis_contrail_v1alpha1_AnalyticsSnmpStatus(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Cassandra":                   schema_pkg_apis_contrail_v1alpha1_Cassandra(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.CassandraConfiguration":      schema_pkg_apis_contrail_v1alpha1_CassandraConfiguration(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.CassandraSpec":               schema_pkg_apis_contrail_v1alpha1_CassandraSpec(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.CassandraStatus":             schema_pkg_apis_contrail_v1alpha1_CassandraStatus(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration":            schema_pkg_apis_contrail_v1alpha1_CommonConfiguration(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Config":                      schema_pkg_apis_contrail_v1alpha1_Config(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ConfigConfiguration":         schema_pkg_apis_contrail_v1alpha1_ConfigConfiguration(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ConfigSpec":                  schema_pkg_apis_contrail_v1alpha1_ConfigSpec(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ConfigStatus":                schema_pkg_apis_contrail_v1alpha1_ConfigStatus(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Connection":                  schema_pkg_apis_contrail_v1alpha1_Connection(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Container":                   schema_pkg_apis_contrail_v1alpha1_Container(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Control":                     schema_pkg_apis_contrail_v1alpha1_Control(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ControlConfiguration":        schema_pkg_apis_contrail_v1alpha1_ControlConfiguration(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ControlServiceStatus":        schema_pkg_apis_contrail_v1alpha1_ControlServiceStatus(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ControlSpec":                 schema_pkg_apis_contrail_v1alpha1_ControlSpec(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ControlStatus":               schema_pkg_apis_contrail_v1alpha1_ControlStatus(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.CrdStatus":                   schema_pkg_apis_contrail_v1alpha1_CrdStatus(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Kubemanager":                 schema_pkg_apis_contrail_v1alpha1_Kubemanager(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.KubemanagerConfiguration":    schema_pkg_apis_contrail_v1alpha1_KubemanagerConfiguration(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.KubemanagerSpec":             schema_pkg_apis_contrail_v1alpha1_KubemanagerSpec(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.KubemanagerStatus":           schema_pkg_apis_contrail_v1alpha1_KubemanagerStatus(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Manager":                     schema_pkg_apis_contrail_v1alpha1_Manager(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ManagerSpec":                 schema_pkg_apis_contrail_v1alpha1_ManagerSpec(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ManagerStatus":               schema_pkg_apis_contrail_v1alpha1_ManagerStatus(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Rabbitmq":                    schema_pkg_apis_contrail_v1alpha1_Rabbitmq(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.RabbitmqConfiguration":       schema_pkg_apis_contrail_v1alpha1_RabbitmqConfiguration(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.RabbitmqSpec":                schema_pkg_apis_contrail_v1alpha1_RabbitmqSpec(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.RabbitmqStatus":              schema_pkg_apis_contrail_v1alpha1_RabbitmqStatus(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ServiceStatus":               schema_pkg_apis_contrail_v1alpha1_ServiceStatus(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Services":                    schema_pkg_apis_contrail_v1alpha1_Services(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.StaticRoutes":                schema_pkg_apis_contrail_v1alpha1_StaticRoutes(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Status":                      schema_pkg_apis_contrail_v1alpha1_Status(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Vrouter":                     schema_pkg_apis_contrail_v1alpha1_Vrouter(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.VrouterConfiguration":        schema_pkg_apis_contrail_v1alpha1_VrouterConfiguration(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.VrouterSpec":                 schema_pkg_apis_contrail_v1alpha1_VrouterSpec(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.VrouterStatus":               schema_pkg_apis_contrail_v1alpha1_VrouterStatus(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Webui":                       schema_pkg_apis_contrail_v1alpha1_Webui(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.WebuiConfiguration":          schema_pkg_apis_contrail_v1alpha1_WebuiConfiguration(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.WebuiSpec":                   schema_pkg_apis_contrail_v1alpha1_WebuiSpec(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.WebuiStatus":                 schema_pkg_apis_contrail_v1alpha1_WebuiStatus(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Zookeeper":                   schema_pkg_apis_contrail_v1alpha1_Zookeeper(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ZookeeperConfiguration":      schema_pkg_apis_contrail_v1alpha1_ZookeeperConfiguration(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ZookeeperSpec":               schema_pkg_apis_contrail_v1alpha1_ZookeeperSpec(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ZookeeperStatus":             schema_pkg_apis_contrail_v1alpha1_ZookeeperStatus(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.BGPPeer":                     schema_pkg_apis_tf_v1alpha1_BGPPeer(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsAlarm":              schema_pkg_apis_tf_v1alpha1_AnalyticsAlarm(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsAlarmConfiguration": schema_pkg_apis_tf_v1alpha1_AnalyticsAlarmConfiguration(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsAlarmSpec":          schema_pkg_apis_tf_v1alpha1_AnalyticsAlarmSpec(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsAlarmStatus":        schema_pkg_apis_tf_v1alpha1_AnalyticsAlarmStatus(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsSnmp":               schema_pkg_apis_tf_v1alpha1_AnalyticsSnmp(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsSnmpConfiguration":  schema_pkg_apis_tf_v1alpha1_AnalyticsSnmpConfiguration(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsSnmpSpec":           schema_pkg_apis_tf_v1alpha1_AnalyticsSnmpSpec(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsSnmpStatus":         schema_pkg_apis_tf_v1alpha1_AnalyticsSnmpStatus(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Cassandra":                   schema_pkg_apis_tf_v1alpha1_Cassandra(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.CassandraConfiguration":      schema_pkg_apis_tf_v1alpha1_CassandraConfiguration(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.CassandraSpec":               schema_pkg_apis_tf_v1alpha1_CassandraSpec(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.CassandraStatus":             schema_pkg_apis_tf_v1alpha1_CassandraStatus(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration":            schema_pkg_apis_tf_v1alpha1_CommonConfiguration(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Config":                      schema_pkg_apis_tf_v1alpha1_Config(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ConfigConfiguration":         schema_pkg_apis_tf_v1alpha1_ConfigConfiguration(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ConfigSpec":                  schema_pkg_apis_tf_v1alpha1_ConfigSpec(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ConfigStatus":                schema_pkg_apis_tf_v1alpha1_ConfigStatus(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Connection":                  schema_pkg_apis_tf_v1alpha1_Connection(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Container":                   schema_pkg_apis_tf_v1alpha1_Container(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Control":                     schema_pkg_apis_tf_v1alpha1_Control(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ControlConfiguration":        schema_pkg_apis_tf_v1alpha1_ControlConfiguration(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ControlServiceStatus":        schema_pkg_apis_tf_v1alpha1_ControlServiceStatus(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ControlSpec":                 schema_pkg_apis_tf_v1alpha1_ControlSpec(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ControlStatus":               schema_pkg_apis_tf_v1alpha1_ControlStatus(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.CrdStatus":                   schema_pkg_apis_tf_v1alpha1_CrdStatus(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Kubemanager":                 schema_pkg_apis_tf_v1alpha1_Kubemanager(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.KubemanagerConfiguration":    schema_pkg_apis_tf_v1alpha1_KubemanagerConfiguration(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.KubemanagerSpec":             schema_pkg_apis_tf_v1alpha1_KubemanagerSpec(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.KubemanagerStatus":           schema_pkg_apis_tf_v1alpha1_KubemanagerStatus(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Manager":                     schema_pkg_apis_tf_v1alpha1_Manager(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ManagerSpec":                 schema_pkg_apis_tf_v1alpha1_ManagerSpec(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ManagerStatus":               schema_pkg_apis_tf_v1alpha1_ManagerStatus(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Rabbitmq":                    schema_pkg_apis_tf_v1alpha1_Rabbitmq(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.RabbitmqConfiguration":       schema_pkg_apis_tf_v1alpha1_RabbitmqConfiguration(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.RabbitmqSpec":                schema_pkg_apis_tf_v1alpha1_RabbitmqSpec(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.RabbitmqStatus":              schema_pkg_apis_tf_v1alpha1_RabbitmqStatus(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ServiceStatus":               schema_pkg_apis_tf_v1alpha1_ServiceStatus(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Services":                    schema_pkg_apis_tf_v1alpha1_Services(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.StaticRoutes":                schema_pkg_apis_tf_v1alpha1_StaticRoutes(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Status":                      schema_pkg_apis_tf_v1alpha1_Status(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Vrouter":                     schema_pkg_apis_tf_v1alpha1_Vrouter(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.VrouterConfiguration":        schema_pkg_apis_tf_v1alpha1_VrouterConfiguration(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.VrouterSpec":                 schema_pkg_apis_tf_v1alpha1_VrouterSpec(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.VrouterStatus":               schema_pkg_apis_tf_v1alpha1_VrouterStatus(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Webui":                       schema_pkg_apis_tf_v1alpha1_Webui(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.WebuiConfiguration":          schema_pkg_apis_tf_v1alpha1_WebuiConfiguration(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.WebuiSpec":                   schema_pkg_apis_tf_v1alpha1_WebuiSpec(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.WebuiStatus":                 schema_pkg_apis_tf_v1alpha1_WebuiStatus(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Zookeeper":                   schema_pkg_apis_tf_v1alpha1_Zookeeper(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ZookeeperConfiguration":      schema_pkg_apis_tf_v1alpha1_ZookeeperConfiguration(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ZookeeperSpec":               schema_pkg_apis_tf_v1alpha1_ZookeeperSpec(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ZookeeperStatus":             schema_pkg_apis_tf_v1alpha1_ZookeeperStatus(ref),
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_BGPPeer(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_BGPPeer(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -92,7 +92,7 @@ func schema_pkg_apis_contrail_v1alpha1_BGPPeer(ref common.ReferenceCallback) com
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_AnalyticsSnmp(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_AnalyticsSnmp(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -120,23 +120,23 @@ func schema_pkg_apis_contrail_v1alpha1_AnalyticsSnmp(ref common.ReferenceCallbac
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsSnmpSpec"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsSnmpSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsSnmpStatus"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsSnmpStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsSnmpSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsSnmpStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsSnmpSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsSnmpStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_AnalyticsSnmpConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_AnalyticsSnmpConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -149,7 +149,7 @@ func schema_pkg_apis_contrail_v1alpha1_AnalyticsSnmpConfiguration(ref common.Ref
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Container"),
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Container"),
 									},
 								},
 							},
@@ -231,11 +231,11 @@ func schema_pkg_apis_contrail_v1alpha1_AnalyticsSnmpConfiguration(ref common.Ref
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Container", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Storage"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Container", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Storage"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_AnalyticsSnmpSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_AnalyticsSnmpSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -244,12 +244,12 @@ func schema_pkg_apis_contrail_v1alpha1_AnalyticsSnmpSpec(ref common.ReferenceCal
 				Properties: map[string]spec.Schema{
 					"commonConfiguration": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration"),
 						},
 					},
 					"serviceConfiguration": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsSnmpConfiguration"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsSnmpConfiguration"),
 						},
 					},
 				},
@@ -257,11 +257,11 @@ func schema_pkg_apis_contrail_v1alpha1_AnalyticsSnmpSpec(ref common.ReferenceCal
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsSnmpConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsSnmpConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_AnalyticsSnmpStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_AnalyticsSnmpStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -278,11 +278,11 @@ func schema_pkg_apis_contrail_v1alpha1_AnalyticsSnmpStatus(ref common.ReferenceC
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsSnmpStatusPorts"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsSnmpStatusPorts"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_AnalyticsAlarm(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_AnalyticsAlarm(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -310,23 +310,23 @@ func schema_pkg_apis_contrail_v1alpha1_AnalyticsAlarm(ref common.ReferenceCallba
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsAlarmSpec"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsAlarmSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsAlarmStatus"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsAlarmStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsAlarmSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsAlarmStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsAlarmSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsAlarmStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_AnalyticsAlarmConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_AnalyticsAlarmConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -339,7 +339,7 @@ func schema_pkg_apis_contrail_v1alpha1_AnalyticsAlarmConfiguration(ref common.Re
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Container"),
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Container"),
 									},
 								},
 							},
@@ -403,11 +403,11 @@ func schema_pkg_apis_contrail_v1alpha1_AnalyticsAlarmConfiguration(ref common.Re
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Container", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Storage"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Container", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Storage"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_AnalyticsAlarmSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_AnalyticsAlarmSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -416,12 +416,12 @@ func schema_pkg_apis_contrail_v1alpha1_AnalyticsAlarmSpec(ref common.ReferenceCa
 				Properties: map[string]spec.Schema{
 					"commonConfiguration": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration"),
 						},
 					},
 					"serviceConfiguration": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsAlarmConfiguration"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsAlarmConfiguration"),
 						},
 					},
 				},
@@ -429,11 +429,11 @@ func schema_pkg_apis_contrail_v1alpha1_AnalyticsAlarmSpec(ref common.ReferenceCa
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsAlarmConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsAlarmConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_AnalyticsAlarmStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_AnalyticsAlarmStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -450,11 +450,11 @@ func schema_pkg_apis_contrail_v1alpha1_AnalyticsAlarmStatus(ref common.Reference
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsAlarmStatusPorts"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsAlarmStatusPorts"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_Cassandra(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_Cassandra(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -482,23 +482,23 @@ func schema_pkg_apis_contrail_v1alpha1_Cassandra(ref common.ReferenceCallback) c
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.CassandraSpec"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.CassandraSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.CassandraStatus"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.CassandraStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.CassandraSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.CassandraStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.CassandraSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.CassandraStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_CassandraConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_CassandraConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -511,7 +511,7 @@ func schema_pkg_apis_contrail_v1alpha1_CassandraConfiguration(ref common.Referen
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Container"),
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Container"),
 									},
 								},
 							},
@@ -579,7 +579,7 @@ func schema_pkg_apis_contrail_v1alpha1_CassandraConfiguration(ref common.Referen
 					},
 					"storage": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Storage"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Storage"),
 						},
 					},
 					"minimumDiskGB": {
@@ -592,11 +592,11 @@ func schema_pkg_apis_contrail_v1alpha1_CassandraConfiguration(ref common.Referen
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Container", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Storage"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Container", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Storage"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_CassandraSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_CassandraSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -605,12 +605,12 @@ func schema_pkg_apis_contrail_v1alpha1_CassandraSpec(ref common.ReferenceCallbac
 				Properties: map[string]spec.Schema{
 					"commonConfiguration": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration"),
 						},
 					},
 					"serviceConfiguration": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.CassandraConfiguration"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.CassandraConfiguration"),
 						},
 					},
 				},
@@ -618,11 +618,11 @@ func schema_pkg_apis_contrail_v1alpha1_CassandraSpec(ref common.ReferenceCallbac
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.CassandraConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.CassandraConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_CassandraStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_CassandraStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -651,18 +651,18 @@ func schema_pkg_apis_contrail_v1alpha1_CassandraStatus(ref common.ReferenceCallb
 					},
 					"ports": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.CassandraStatusPorts"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.CassandraStatusPorts"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.CassandraStatusPorts"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.CassandraStatusPorts"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_CommonConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_CommonConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -747,7 +747,7 @@ func schema_pkg_apis_contrail_v1alpha1_CommonConfiguration(ref common.ReferenceC
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_Config(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_Config(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -775,23 +775,23 @@ func schema_pkg_apis_contrail_v1alpha1_Config(ref common.ReferenceCallback) comm
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ConfigSpec"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ConfigSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ConfigStatus"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ConfigStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ConfigSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ConfigStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ConfigSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ConfigStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_ConfigConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_ConfigConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -804,7 +804,7 @@ func schema_pkg_apis_contrail_v1alpha1_ConfigConfiguration(ref common.ReferenceC
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Container"),
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Container"),
 									},
 								},
 							},
@@ -926,7 +926,7 @@ func schema_pkg_apis_contrail_v1alpha1_ConfigConfiguration(ref common.ReferenceC
 					},
 					"storage": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Storage"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Storage"),
 						},
 					},
 					"fabricMgmtIP": {
@@ -939,11 +939,11 @@ func schema_pkg_apis_contrail_v1alpha1_ConfigConfiguration(ref common.ReferenceC
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Container", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Storage"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Container", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Storage"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_ConfigSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_ConfigSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -952,12 +952,12 @@ func schema_pkg_apis_contrail_v1alpha1_ConfigSpec(ref common.ReferenceCallback) 
 				Properties: map[string]spec.Schema{
 					"commonConfiguration": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration"),
 						},
 					},
 					"serviceConfiguration": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ConfigConfiguration"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ConfigConfiguration"),
 						},
 					},
 				},
@@ -965,11 +965,11 @@ func schema_pkg_apis_contrail_v1alpha1_ConfigSpec(ref common.ReferenceCallback) 
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ConfigConfiguration"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ConfigConfiguration"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_ConfigStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_ConfigStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1009,7 +1009,7 @@ func schema_pkg_apis_contrail_v1alpha1_ConfigStatus(ref common.ReferenceCallback
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_Connection(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_Connection(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1053,7 +1053,7 @@ func schema_pkg_apis_contrail_v1alpha1_Connection(ref common.ReferenceCallback) 
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_Container(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_Container(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1091,7 +1091,7 @@ func schema_pkg_apis_contrail_v1alpha1_Container(ref common.ReferenceCallback) c
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_Control(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_Control(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1119,23 +1119,23 @@ func schema_pkg_apis_contrail_v1alpha1_Control(ref common.ReferenceCallback) com
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ControlSpec"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ControlSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ControlStatus"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ControlStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ControlSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ControlStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ControlSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ControlStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_ControlConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_ControlConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1148,7 +1148,7 @@ func schema_pkg_apis_contrail_v1alpha1_ControlConfiguration(ref common.Reference
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Container"),
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Container"),
 									},
 								},
 							},
@@ -1218,11 +1218,11 @@ func schema_pkg_apis_contrail_v1alpha1_ControlConfiguration(ref common.Reference
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Container"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Container"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_ControlServiceStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_ControlServiceStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1234,7 +1234,7 @@ func schema_pkg_apis_contrail_v1alpha1_ControlServiceStatus(ref common.Reference
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Connection"),
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Connection"),
 									},
 								},
 							},
@@ -1254,12 +1254,12 @@ func schema_pkg_apis_contrail_v1alpha1_ControlServiceStatus(ref common.Reference
 					},
 					"StaticRoutes": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.StaticRoutes"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.StaticRoutes"),
 						},
 					},
 					"BGPPeer": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.BGPPeer"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.BGPPeer"),
 						},
 					},
 					"State": {
@@ -1273,11 +1273,11 @@ func schema_pkg_apis_contrail_v1alpha1_ControlServiceStatus(ref common.Reference
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.BGPPeer", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Connection", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.StaticRoutes"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.BGPPeer", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Connection", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.StaticRoutes"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_ControlSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_ControlSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1286,12 +1286,12 @@ func schema_pkg_apis_contrail_v1alpha1_ControlSpec(ref common.ReferenceCallback)
 				Properties: map[string]spec.Schema{
 					"commonConfiguration": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration"),
 						},
 					},
 					"serviceConfiguration": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ControlConfiguration"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ControlConfiguration"),
 						},
 					},
 				},
@@ -1299,11 +1299,11 @@ func schema_pkg_apis_contrail_v1alpha1_ControlSpec(ref common.ReferenceCallback)
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ControlConfiguration"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ControlConfiguration"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_ControlStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_ControlStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1331,7 +1331,7 @@ func schema_pkg_apis_contrail_v1alpha1_ControlStatus(ref common.ReferenceCallbac
 					},
 					"ports": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ControlStatusPorts"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ControlStatusPorts"),
 						},
 					},
 					"serviceStatus": {
@@ -1341,7 +1341,7 @@ func schema_pkg_apis_contrail_v1alpha1_ControlStatus(ref common.ReferenceCallbac
 								Allows: true,
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ControlServiceStatus"),
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ControlServiceStatus"),
 									},
 								},
 							},
@@ -1351,11 +1351,11 @@ func schema_pkg_apis_contrail_v1alpha1_ControlStatus(ref common.ReferenceCallbac
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ControlServiceStatus", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ControlStatusPorts"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ControlServiceStatus", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ControlStatusPorts"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_CrdStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_CrdStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1380,7 +1380,7 @@ func schema_pkg_apis_contrail_v1alpha1_CrdStatus(ref common.ReferenceCallback) c
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_Kubemanager(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_Kubemanager(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1408,23 +1408,23 @@ func schema_pkg_apis_contrail_v1alpha1_Kubemanager(ref common.ReferenceCallback)
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.KubemanagerSpec"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.KubemanagerSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.KubemanagerStatus"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.KubemanagerStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.KubemanagerSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.KubemanagerStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.KubemanagerSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.KubemanagerStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_KubemanagerConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_KubemanagerConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1437,7 +1437,7 @@ func schema_pkg_apis_contrail_v1alpha1_KubemanagerConfiguration(ref common.Refer
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Container"),
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Container"),
 									},
 								},
 							},
@@ -1579,11 +1579,11 @@ func schema_pkg_apis_contrail_v1alpha1_KubemanagerConfiguration(ref common.Refer
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Container"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Container"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_KubemanagerSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_KubemanagerSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1592,12 +1592,12 @@ func schema_pkg_apis_contrail_v1alpha1_KubemanagerSpec(ref common.ReferenceCallb
 				Properties: map[string]spec.Schema{
 					"commonConfiguration": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration"),
 						},
 					},
 					"serviceConfiguration": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.KubemanagerConfiguration"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.KubemanagerConfiguration"),
 						},
 					},
 				},
@@ -1605,11 +1605,11 @@ func schema_pkg_apis_contrail_v1alpha1_KubemanagerSpec(ref common.ReferenceCallb
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.KubemanagerConfiguration"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.KubemanagerConfiguration"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_KubemanagerStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_KubemanagerStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1648,7 +1648,7 @@ func schema_pkg_apis_contrail_v1alpha1_KubemanagerStatus(ref common.ReferenceCal
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_Manager(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_Manager(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1676,23 +1676,23 @@ func schema_pkg_apis_contrail_v1alpha1_Manager(ref common.ReferenceCallback) com
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ManagerSpec"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ManagerSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ManagerStatus"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ManagerStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ManagerSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ManagerStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ManagerSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ManagerStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_ManagerSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_ManagerSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1702,23 +1702,23 @@ func schema_pkg_apis_contrail_v1alpha1_ManagerSpec(ref common.ReferenceCallback)
 					"commonConfiguration": {
 						SchemaProps: spec.SchemaProps{
 							Description: "INSERT ADDITIONAL SPEC FIELDS - desired state of cluster Important: Run \"operator-sdk generate k8s\" to regenerate code after modifying this file Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html",
-							Ref:         ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration"),
+							Ref:         ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration"),
 						},
 					},
 					"services": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Services"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Services"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Services"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Services"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_ManagerStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_ManagerStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1728,19 +1728,19 @@ func schema_pkg_apis_contrail_v1alpha1_ManagerStatus(ref common.ReferenceCallbac
 					"analyticSnmp": {
 						SchemaProps: spec.SchemaProps{
 							Description: "INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run \"operator-sdk generate k8s\" to regenerate code after modifying this file Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html",
-							Ref:         ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ServiceStatus"),
+							Ref:         ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ServiceStatus"),
 						},
 					},
 					"analyticAlarm": {
 						SchemaProps: spec.SchemaProps{
 							Description: "INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run \"operator-sdk generate k8s\" to regenerate code after modifying this file Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html",
-							Ref:         ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ServiceStatus"),
+							Ref:         ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ServiceStatus"),
 						},
 					},
 					"config": {
 						SchemaProps: spec.SchemaProps{
 							Description: "INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run \"operator-sdk generate k8s\" to regenerate code after modifying this file Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html",
-							Ref:         ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ServiceStatus"),
+							Ref:         ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ServiceStatus"),
 						},
 					},
 					"controls": {
@@ -1749,7 +1749,7 @@ func schema_pkg_apis_contrail_v1alpha1_ManagerStatus(ref common.ReferenceCallbac
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ServiceStatus"),
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ServiceStatus"),
 									},
 								},
 							},
@@ -1761,7 +1761,7 @@ func schema_pkg_apis_contrail_v1alpha1_ManagerStatus(ref common.ReferenceCallbac
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ServiceStatus"),
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ServiceStatus"),
 									},
 								},
 							},
@@ -1769,7 +1769,7 @@ func schema_pkg_apis_contrail_v1alpha1_ManagerStatus(ref common.ReferenceCallbac
 					},
 					"webui": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ServiceStatus"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ServiceStatus"),
 						},
 					},
 					"vrouters": {
@@ -1778,7 +1778,7 @@ func schema_pkg_apis_contrail_v1alpha1_ManagerStatus(ref common.ReferenceCallbac
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ServiceStatus"),
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ServiceStatus"),
 									},
 								},
 							},
@@ -1790,7 +1790,7 @@ func schema_pkg_apis_contrail_v1alpha1_ManagerStatus(ref common.ReferenceCallbac
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ServiceStatus"),
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ServiceStatus"),
 									},
 								},
 							},
@@ -1802,7 +1802,7 @@ func schema_pkg_apis_contrail_v1alpha1_ManagerStatus(ref common.ReferenceCallbac
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ServiceStatus"),
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ServiceStatus"),
 									},
 								},
 							},
@@ -1810,7 +1810,7 @@ func schema_pkg_apis_contrail_v1alpha1_ManagerStatus(ref common.ReferenceCallbac
 					},
 					"rabbitmq": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ServiceStatus"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ServiceStatus"),
 						},
 					},
 					"crdStatus": {
@@ -1819,7 +1819,7 @@ func schema_pkg_apis_contrail_v1alpha1_ManagerStatus(ref common.ReferenceCallbac
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.CrdStatus"),
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.CrdStatus"),
 									},
 								},
 							},
@@ -1837,7 +1837,7 @@ func schema_pkg_apis_contrail_v1alpha1_ManagerStatus(ref common.ReferenceCallbac
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ManagerCondition"),
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ManagerCondition"),
 									},
 								},
 							},
@@ -1847,11 +1847,11 @@ func schema_pkg_apis_contrail_v1alpha1_ManagerStatus(ref common.ReferenceCallbac
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.CrdStatus", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ManagerCondition", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ServiceStatus"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.CrdStatus", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ManagerCondition", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ServiceStatus"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_Rabbitmq(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_Rabbitmq(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1879,23 +1879,23 @@ func schema_pkg_apis_contrail_v1alpha1_Rabbitmq(ref common.ReferenceCallback) co
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.RabbitmqSpec"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.RabbitmqSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.RabbitmqStatus"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.RabbitmqStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.RabbitmqSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.RabbitmqStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.RabbitmqSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.RabbitmqStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_RabbitmqConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_RabbitmqConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1908,7 +1908,7 @@ func schema_pkg_apis_contrail_v1alpha1_RabbitmqConfiguration(ref common.Referenc
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Container"),
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Container"),
 									},
 								},
 							},
@@ -1954,11 +1954,11 @@ func schema_pkg_apis_contrail_v1alpha1_RabbitmqConfiguration(ref common.Referenc
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Container"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Container"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_RabbitmqSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_RabbitmqSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1967,12 +1967,12 @@ func schema_pkg_apis_contrail_v1alpha1_RabbitmqSpec(ref common.ReferenceCallback
 				Properties: map[string]spec.Schema{
 					"commonConfiguration": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration"),
 						},
 					},
 					"serviceConfiguration": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.RabbitmqConfiguration"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.RabbitmqConfiguration"),
 						},
 					},
 				},
@@ -1980,11 +1980,11 @@ func schema_pkg_apis_contrail_v1alpha1_RabbitmqSpec(ref common.ReferenceCallback
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.RabbitmqConfiguration"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.RabbitmqConfiguration"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_RabbitmqStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_RabbitmqStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2023,7 +2023,7 @@ func schema_pkg_apis_contrail_v1alpha1_RabbitmqStatus(ref common.ReferenceCallba
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_ServiceStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_ServiceStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2054,7 +2054,7 @@ func schema_pkg_apis_contrail_v1alpha1_ServiceStatus(ref common.ReferenceCallbac
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_Services(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_Services(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2063,17 +2063,17 @@ func schema_pkg_apis_contrail_v1alpha1_Services(ref common.ReferenceCallback) co
 				Properties: map[string]spec.Schema{
 					"analyticsSnmp": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsSnmp"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsSnmp"),
 						},
 					},
 					"analyticsAlarm": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsAlarm"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsAlarm"),
 						},
 					},
 					"config": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Config"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Config"),
 						},
 					},
 					"controls": {
@@ -2082,7 +2082,7 @@ func schema_pkg_apis_contrail_v1alpha1_Services(ref common.ReferenceCallback) co
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Control"),
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Control"),
 									},
 								},
 							},
@@ -2094,7 +2094,7 @@ func schema_pkg_apis_contrail_v1alpha1_Services(ref common.ReferenceCallback) co
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Kubemanager"),
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Kubemanager"),
 									},
 								},
 							},
@@ -2102,7 +2102,7 @@ func schema_pkg_apis_contrail_v1alpha1_Services(ref common.ReferenceCallback) co
 					},
 					"webui": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Webui"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Webui"),
 						},
 					},
 					"vrouters": {
@@ -2111,7 +2111,7 @@ func schema_pkg_apis_contrail_v1alpha1_Services(ref common.ReferenceCallback) co
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Vrouter"),
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Vrouter"),
 									},
 								},
 							},
@@ -2123,7 +2123,7 @@ func schema_pkg_apis_contrail_v1alpha1_Services(ref common.ReferenceCallback) co
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Cassandra"),
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Cassandra"),
 									},
 								},
 							},
@@ -2135,7 +2135,7 @@ func schema_pkg_apis_contrail_v1alpha1_Services(ref common.ReferenceCallback) co
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Zookeeper"),
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Zookeeper"),
 									},
 								},
 							},
@@ -2143,18 +2143,18 @@ func schema_pkg_apis_contrail_v1alpha1_Services(ref common.ReferenceCallback) co
 					},
 					"rabbitmq": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Rabbitmq"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Rabbitmq"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsSnmp", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.AnalyticsAlarm", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Cassandra", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Config", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Control", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Keystone", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Kubemanager", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Rabbitmq", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Vrouter", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Webui", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Zookeeper"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsSnmp", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsAlarm", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Cassandra", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Config", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Control", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Keystone", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Kubemanager", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Rabbitmq", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Vrouter", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Webui", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Zookeeper"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_StaticRoutes(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_StaticRoutes(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2179,7 +2179,7 @@ func schema_pkg_apis_contrail_v1alpha1_StaticRoutes(ref common.ReferenceCallback
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_Status(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_Status(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2227,7 +2227,7 @@ func schema_pkg_apis_contrail_v1alpha1_Status(ref common.ReferenceCallback) comm
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_Vrouter(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_Vrouter(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2255,23 +2255,23 @@ func schema_pkg_apis_contrail_v1alpha1_Vrouter(ref common.ReferenceCallback) com
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.VrouterSpec"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.VrouterSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.VrouterStatus"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.VrouterStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.VrouterSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.VrouterStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.VrouterSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.VrouterStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_VrouterConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_VrouterConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2284,7 +2284,7 @@ func schema_pkg_apis_contrail_v1alpha1_VrouterConfiguration(ref common.Reference
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Container"),
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Container"),
 									},
 								},
 							},
@@ -2336,11 +2336,11 @@ func schema_pkg_apis_contrail_v1alpha1_VrouterConfiguration(ref common.Reference
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Container"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Container"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_VrouterSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_VrouterSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2349,12 +2349,12 @@ func schema_pkg_apis_contrail_v1alpha1_VrouterSpec(ref common.ReferenceCallback)
 				Properties: map[string]spec.Schema{
 					"commonConfiguration": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration"),
 						},
 					},
 					"serviceConfiguration": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.VrouterConfiguration"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.VrouterConfiguration"),
 						},
 					},
 				},
@@ -2362,11 +2362,11 @@ func schema_pkg_apis_contrail_v1alpha1_VrouterSpec(ref common.ReferenceCallback)
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.VrouterConfiguration"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.VrouterConfiguration"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_VrouterStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_VrouterStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2405,7 +2405,7 @@ func schema_pkg_apis_contrail_v1alpha1_VrouterStatus(ref common.ReferenceCallbac
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_Webui(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_Webui(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2433,23 +2433,23 @@ func schema_pkg_apis_contrail_v1alpha1_Webui(ref common.ReferenceCallback) commo
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.WebuiSpec"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.WebuiSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.WebuiStatus"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.WebuiStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.WebuiSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.WebuiStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.WebuiSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.WebuiStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_WebuiConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_WebuiConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2462,7 +2462,7 @@ func schema_pkg_apis_contrail_v1alpha1_WebuiConfiguration(ref common.ReferenceCa
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Container"),
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Container"),
 									},
 								},
 							},
@@ -2490,11 +2490,11 @@ func schema_pkg_apis_contrail_v1alpha1_WebuiConfiguration(ref common.ReferenceCa
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Container"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Container"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_WebuiSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_WebuiSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2503,12 +2503,12 @@ func schema_pkg_apis_contrail_v1alpha1_WebuiSpec(ref common.ReferenceCallback) c
 				Properties: map[string]spec.Schema{
 					"commonConfiguration": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration"),
 						},
 					},
 					"serviceConfiguration": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.WebuiConfiguration"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.WebuiConfiguration"),
 						},
 					},
 				},
@@ -2516,11 +2516,11 @@ func schema_pkg_apis_contrail_v1alpha1_WebuiSpec(ref common.ReferenceCallback) c
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.WebuiConfiguration"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.WebuiConfiguration"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_WebuiStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_WebuiStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2553,7 +2553,7 @@ func schema_pkg_apis_contrail_v1alpha1_WebuiStatus(ref common.ReferenceCallback)
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_Zookeeper(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_Zookeeper(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2581,23 +2581,23 @@ func schema_pkg_apis_contrail_v1alpha1_Zookeeper(ref common.ReferenceCallback) c
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ZookeeperSpec"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ZookeeperSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ZookeeperStatus"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ZookeeperStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ZookeeperSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ZookeeperStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ZookeeperSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ZookeeperStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_ZookeeperConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_ZookeeperConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2610,7 +2610,7 @@ func schema_pkg_apis_contrail_v1alpha1_ZookeeperConfiguration(ref common.Referen
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Container"),
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Container"),
 									},
 								},
 							},
@@ -2636,18 +2636,18 @@ func schema_pkg_apis_contrail_v1alpha1_ZookeeperConfiguration(ref common.Referen
 					},
 					"storage": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Storage"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Storage"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Container", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.Storage"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Container", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Storage"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_ZookeeperSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_ZookeeperSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2656,12 +2656,12 @@ func schema_pkg_apis_contrail_v1alpha1_ZookeeperSpec(ref common.ReferenceCallbac
 				Properties: map[string]spec.Schema{
 					"commonConfiguration": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration"),
 						},
 					},
 					"serviceConfiguration": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ZookeeperConfiguration"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ZookeeperConfiguration"),
 						},
 					},
 				},
@@ -2669,11 +2669,11 @@ func schema_pkg_apis_contrail_v1alpha1_ZookeeperSpec(ref common.ReferenceCallbac
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.PodConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ZookeeperConfiguration"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ZookeeperConfiguration"},
 	}
 }
 
-func schema_pkg_apis_contrail_v1alpha1_ZookeeperStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_ZookeeperStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2703,13 +2703,13 @@ func schema_pkg_apis_contrail_v1alpha1_ZookeeperStatus(ref common.ReferenceCallb
 					},
 					"ports": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ZookeeperStatusPorts"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ZookeeperStatusPorts"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1.ZookeeperStatusPorts"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ZookeeperStatusPorts"},
 	}
 }

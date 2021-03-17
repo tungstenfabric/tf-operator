@@ -1,7 +1,7 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: webuis.contrail.juniper.net
+  name: configs.tf.tungsten.io
 spec:
   additionalPrinterColumns:
   - JSONPath: .status.replicas
@@ -19,18 +19,18 @@ spec:
   - JSONPath: .status.active
     name: Active
     type: boolean
-  group: contrail.juniper.net
+  group: tf.tungsten.io
   names:
-    kind: Webui
-    listKind: WebuiList
-    plural: webuis
-    singular: webui
+    kind: Config
+    listKind: ConfigList
+    plural: configs
+    singular: config
   scope: Namespaced
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
-      description: Webui is the Schema for the webuis API.
+      description: Config is the Schema for the configs API.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -45,7 +45,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: WebuiSpec is the Spec for the cassandras API.
+          description: ConfigSpec is the Spec for the Config API.
           properties:
             commonConfiguration:
               description: PodConfiguration is the common services struct.
@@ -185,12 +185,45 @@ spec:
                   type: boolean
               type: object
             serviceConfiguration:
-              description: WebuiConfiguration is the Spec for the cassandras API.
+              description: ConfigConfiguration is the Spec for the Config API.
               properties:
+                aaaMode:
+                  description: AAAMode aaa mode
+                  enum:
+                  - noauth
+                  - rbac
+                  type: string
+                analyticsConfigAuditTTL:
+                  description: Time (in hours) the analytics config data entering
+                    the collector stays in the Cassandra database. Defaults to 2160
+                    hours.
+                  type: integer
+                analyticsDataTTL:
+                  description: Time (in hours) that the analytics object and log data
+                    stays in the Cassandra database. Defaults to 48 hours.
+                  type: integer
+                analyticsFlowTTL:
+                  description: Time to live (TTL) for flow data in hours. Defaults
+                    to 2 hours.
+                  type: integer
+                analyticsIntrospectPort:
+                  type: integer
+                analyticsPort:
+                  type: integer
+                analyticsStatisticsTTL:
+                  description: Time to live (TTL) for statistics data in hours. Defaults
+                    to 4 hours.
+                  type: integer
+                apiIntrospectPort:
+                  type: integer
+                apiPort:
+                  type: integer
                 cassandraInstance:
                   type: string
-                configInstance:
-                  type: string
+                collectorIntrospectPort:
+                  type: integer
+                collectorPort:
+                  type: integer
                 containers:
                   items:
                     description: Container defines name, image and command.
@@ -205,47 +238,64 @@ spec:
                         type: string
                     type: object
                   type: array
-                controlInstance:
+                deviceManagerIntrospectPort:
+                  type: integer
+                fabricMgmtIP:
+                  type: string
+                linklocalServiceConfig:
+                  description: LinklocalServiceConfig is the Spec for link local coniguration
+                  properties:
+                    ip:
+                      type: string
+                    ipFabricServiceHost:
+                      type: string
+                    ipFabricServicePort:
+                      type: integer
+                    name:
+                      type: string
+                    port:
+                      type: integer
+                  type: object
+                logLevel:
+                  type: string
+                rabbitmqInstance:
+                  type: string
+                rabbitmqPassword:
+                  type: string
+                rabbitmqUser:
+                  type: string
+                rabbitmqVhost:
+                  type: string
+                schemaIntrospectPort:
+                  type: integer
+                storage:
+                  properties:
+                    path:
+                      type: string
+                    size:
+                      pattern: ^([0-9]+)([KMGTPE]i)?$
+                      type: string
+                  type: object
+                svcMonitorIntrospectPort:
+                  type: integer
+                zookeeperInstance:
                   type: string
               type: object
           required:
           - serviceConfiguration
           type: object
         status:
+          description: ConfigStatus status of Config
           properties:
             active:
+              type: boolean
+            configChanged:
               type: boolean
             endpoint:
               type: string
             nodes:
               additionalProperties:
                 type: string
-              type: object
-            ports:
-              properties:
-                webUIHttpPort:
-                  type: integer
-                webUIHttpsPort:
-                  type: integer
-              type: object
-            readyReplicas:
-              format: int32
-              type: integer
-            replicas:
-              format: int32
-              type: integer
-            serviceStatus:
-              additionalProperties:
-                additionalProperties:
-                  properties:
-                    moduleName:
-                      type: string
-                    state:
-                      type: string
-                  required:
-                  - state
-                  type: object
-                type: object
               type: object
           type: object
       type: object

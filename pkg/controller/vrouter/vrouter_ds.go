@@ -1,7 +1,7 @@
 package vrouter
 
 import (
-	"github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1"
+	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	apps "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
@@ -10,7 +10,7 @@ import (
 )
 
 //GetDaemonset returns DaemonSet object for vRouter
-func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, contrailStatusImage, cloudOrchestrator string) *apps.DaemonSet {
+func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, statusImage, cloudOrchestrator string) *apps.DaemonSet {
 	var labelsMountPermission int32 = 0644
 	var trueVal = true
 
@@ -121,7 +121,7 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, contrailStatu
 		},
 	}
 
-	if contrailStatusImage != "" {
+	if statusImage != "" {
 		envListNodeInit := append(envList,
 			corev1.EnvVar{
 				Name:  "SERVER_CA_CERTFILE",
@@ -137,7 +137,7 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, contrailStatu
 			},
 			core.EnvVar{
 				Name:  "CONTRAIL_STATUS_IMAGE",
-				Value: contrailStatusImage,
+				Value: statusImage,
 			},
 		)
 		podInitContainerMounts := []core.VolumeMount{
@@ -175,7 +175,7 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, contrailStatu
 			// is not available w/o image secret
 			core.Container{
 				Name:    "nodeinit-status-prefetch",
-				Image:   contrailStatusImage,
+				Image:   statusImage,
 				Command: []string{"sh", "-c", "exit 0"},
 			},
 		)

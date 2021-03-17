@@ -71,7 +71,7 @@ func main() {
 		Namespace:               namespace,
 		MetricsBindAddress:      "0",
 		LeaderElection:          true,
-		LeaderElectionID:        "contrail-manager-lock",
+		LeaderElectionID:        "tf-manager-lock",
 		LeaderElectionNamespace: namespace,
 	})
 	if err != nil {
