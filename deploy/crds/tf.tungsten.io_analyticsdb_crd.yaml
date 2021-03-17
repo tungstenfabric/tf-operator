@@ -1,20 +1,36 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: vrouters.contrail.juniper.net
+  name: analyticsdb.tf.tungsten.io
 spec:
-  group: contrail.juniper.net
+  additionalPrinterColumns:
+  - JSONPath: .status.replicas
+    name: Replicas
+    type: integer
+  - JSONPath: .status.readyReplicas
+    name: Ready_Replicas
+    type: integer
+  - JSONPath: .status.endpoint
+    name: Endpoint
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
+  - JSONPath: .status.active
+    name: Active
+    type: boolean
+  group: tf.tungsten.io
   names:
-    kind: Vrouter
-    listKind: VrouterList
-    plural: vrouters
-    singular: vrouter
+    kind: AnalyticsDB
+    listKind: AnalyticsDBList
+    plural: analyticsdb
+    singular: analyticsdb
   scope: Namespaced
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
-      description: Vrouter is the Schema for the vrouters API.
+      description: AnalyticsDB is the Schema for the analyticsdb API.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -29,7 +45,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: VrouterSpec is the Spec for the vrouter API.
+          description: AnalyticsDBSpec is the Spec for the AnalyticsDB API.
           properties:
             commonConfiguration:
               description: PodConfiguration is the common services struct.
@@ -169,34 +185,17 @@ spec:
                   type: boolean
               type: object
             serviceConfiguration:
-              description: VrouterConfiguration is the Spec for the vrouter API.
+              description: AnalyticsDBConfiguration is the Spec for the AnalyticsDB
+                API.
               properties:
-                agentMode:
-                  description: vRouter
+                analyticsInstance:
                   type: string
-                barbicanPassword:
+                analyticsdbIntrospectPort:
+                  type: integer
+                analyticsdbPort:
+                  type: integer
+                cassandraInstance:
                   type: string
-                barbicanTenantName:
-                  description: Openstack
-                  type: string
-                barbicanUser:
-                  type: string
-                cloudOrchestrator:
-                  description: New params for vrouter configuration
-                  type: string
-                clusterRole:
-                  type: string
-                clusterRoleBinding:
-                  type: string
-                collectorPort:
-                  type: string
-                configApiPort:
-                  description: Config
-                  type: string
-                configApiServerCaCertfile:
-                  type: string
-                configApiSslEnable:
-                  type: boolean
                 containers:
                   items:
                     description: Container defines name, image and command.
@@ -211,219 +210,42 @@ spec:
                         type: string
                     type: object
                   type: array
-                contrailStatusImage:
-                  description: What is it doing? VrouterEncryption   bool              `json:"vrouterEncryption,omitempty"`
-                    What is it doing?
-                  type: string
-                distribution:
-                  type: string
-                dnsServerPort:
-                  description: DNS
-                  type: string
-                dpdkUioDriver:
-                  description: Host
-                  type: string
-                envVariablesConfig:
-                  additionalProperties:
-                    type: string
-                  description: What is it doing?
-                  type: object
-                fabricSntHashTableSize:
-                  type: string
-                gateway:
-                  type: string
-                hugePages1G:
-                  type: integer
-                hugePages2M:
-                  description: HugePages
-                  type: integer
-                hypervisorType:
-                  type: string
-                introspectListenAll:
-                  description: Introspect
-                  type: boolean
-                introspectSslEnable:
-                  type: boolean
-                k8sToken:
-                  description: Kubernetes
-                  type: string
-                k8sTokenFile:
-                  type: string
-                keystoneAuthAdminPassword:
-                  type: string
-                keystoneAuthAdminPort:
-                  description: Keystone authentication
-                  type: string
-                keystoneAuthCaCertfile:
-                  type: string
-                keystoneAuthCertfile:
-                  type: string
-                keystoneAuthHost:
-                  type: string
-                keystoneAuthInsecure:
-                  type: boolean
-                keystoneAuthKeyfile:
-                  type: string
-                keystoneAuthProjectDomainName:
-                  type: string
-                keystoneAuthProto:
-                  type: string
-                keystoneAuthRegionName:
-                  type: string
-                keystoneAuthUrlTokens:
-                  type: string
-                keystoneAuthUrlVersion:
-                  type: string
-                keystoneAuthUserDomainName:
-                  type: string
-                kubernetesApiPort:
-                  type: string
-                kubernetesApiSecurePort:
-                  type: string
-                kubernetesPodSubnet:
-                  type: string
-                logDir:
-                  description: Logging
-                  type: string
                 logLevel:
                   type: string
-                logLocal:
-                  type: integer
-                metaDataSecret:
+                rabbitmqInstance:
                   type: string
-                metadataProxySecret:
-                  description: Metadata
+                rabbitmqPassword:
                   type: string
-                metadataSslCaCertfile:
+                rabbitmqUser:
                   type: string
-                metadataSslCertType:
+                rabbitmqVhost:
                   type: string
-                metadataSslCertfile:
-                  type: string
-                metadataSslEnable:
-                  type: string
-                metadataSslKeyfile:
-                  type: string
-                physicalInterface:
-                  type: string
-                priorityBandwidth:
-                  type: string
-                priorityId:
-                  type: string
-                priorityScheduling:
-                  type: string
-                priorityTagging:
-                  type: boolean
-                qosDefHwQueue:
-                  type: boolean
-                qosLogicalQueues:
-                  type: string
-                qosQueueId:
-                  type: string
-                requiredKernelVrouterEncryption:
-                  type: string
-                sampleDestination:
-                  type: string
-                sandeshCaCertfile:
-                  description: Sandesh
-                  type: string
-                sandeshCertfile:
-                  type: string
-                sandeshKeyfile:
-                  type: string
-                sandeshSslEnable:
-                  type: boolean
-                serverCaCertfile:
-                  description: Server SSL
-                  type: string
-                serverCertfile:
-                  type: string
-                serverKeyfile:
-                  type: string
-                serviceAccount:
-                  type: string
-                sloDestination:
-                  type: string
-                sriovPhysicalInterface:
-                  type: string
-                sriovPhysicalNetwork:
-                  type: string
-                sriovVf:
-                  type: string
-                sslEnable:
-                  type: boolean
-                sslInsecure:
-                  type: boolean
-                statsCollectorDestinationPath:
-                  description: Collector
-                  type: string
-                subclaster:
-                  description: XMPP
-                  type: string
-                tsnAgentMode:
-                  description: TSN
-                  type: string
-                vrouterCryptInterface:
-                  type: string
-                vrouterDecryptInterface:
-                  type: string
-                vrouterDecryptKey:
-                  type: string
-                vrouterEncryption:
-                  type: boolean
-                vrouterGateway:
-                  type: string
-                xmmpSslEnable:
-                  type: boolean
-                xmppServerCaCertfile:
-                  type: string
-                xmppServerCertfile:
-                  type: string
-                xmppServerKeyfile:
-                  type: string
-                xmppServerPort:
+                storage:
+                  properties:
+                    path:
+                      type: string
+                    size:
+                      pattern: ^([0-9]+)([KMGTPE]i)?$
+                      type: string
+                  type: object
+                zookeeperInstance:
                   type: string
               type: object
           required:
           - serviceConfiguration
           type: object
         status:
-          description: 'VrouterStatus is the Status for vrouter API. TODO: after update
-            to controllter-tool v0.4 rework AgentStatus to make it map instead of
-            [] for performance (https://github.com/operator-framework/operator-sdk/issues/2485
-            https://github.com/kubernetes-sigs/controller-tools/pull/317)'
+          description: AnalyticsDBStatus status of AnalyticsDB
           properties:
             active:
               type: boolean
-            activeOnControllers:
+            configChanged:
               type: boolean
-            agents:
-              items:
-                description: AgentStatus is the Status of the agent.
-                properties:
-                  analyticsNodes:
-                    type: string
-                  configNodes:
-                    type: string
-                  controlNodes:
-                    type: string
-                  encryptedParams:
-                    type: string
-                  name:
-                    type: string
-                  status:
-                    description: 'AgentServiceStatus is the status value: Starting,
-                      Ready, Updating'
-                    type: string
-                type: object
-              type: array
+            endpoint:
+              type: string
             nodes:
               additionalProperties:
                 type: string
-              description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
-                of cluster Important: Run "operator-sdk generate k8s" to regenerate
-                code after modifying this file Add custom validation using kubebuilder
-                tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html'
               type: object
           type: object
       type: object

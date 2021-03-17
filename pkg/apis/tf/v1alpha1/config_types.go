@@ -16,7 +16,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1/templates"
+	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 )
 
@@ -671,7 +671,6 @@ func (c *Config) ConfigurationParameters() ConfigConfiguration {
 			configConfiguration.AAAMode = AAAModeRBAC
 		}
 	}
-
 
 	if c.Spec.ServiceConfiguration.LinklocalServiceConfig != nil {
 		configConfiguration.LinklocalServiceConfig = c.Spec.ServiceConfiguration.LinklocalServiceConfig

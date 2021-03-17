@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1/templates"
+	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 )
 
@@ -44,36 +44,36 @@ type Analytics struct {
 // AnalyticsSpec is the Spec for the Analytics API.
 // +k8s:openapi-gen=true
 type AnalyticsSpec struct {
-	CommonConfiguration  PodConfiguration    `json:"commonConfiguration,omitempty"`
+	CommonConfiguration  PodConfiguration       `json:"commonConfiguration,omitempty"`
 	ServiceConfiguration AnalyticsConfiguration `json:"serviceConfiguration"`
 }
 
 // AnalyticsConfiguration is the Spec for the Analytics API.
 // +k8s:openapi-gen=true
 type AnalyticsConfiguration struct {
-	Containers                  []*Container       `json:"containers,omitempty"`
-	AnalyticsPort               *int               `json:"analyticsPort,omitempty"`
-	CollectorPort               *int               `json:"collectorPort,omitempty"`
-	AnalyticsApiIntrospectPort  *int               `json:"analyticsIntrospectPort,omitempty"`
-	CollectorIntrospectPort     *int               `json:"collectorIntrospectPort,omitempty"`
-	ConfigInstance              string             `json:"configInstance,omitempty"`
-	CassandraInstance           string             `json:"cassandraInstance,omitempty"`
-	ZookeeperInstance           string             `json:"zookeeperInstance,omitempty"`
-	RabbitmqInstance            string             `json:"rabbitmqInstance,omitempty"`
-	RabbitmqUser                string             `json:"rabbitmqUser,omitempty"`
-	RabbitmqPassword            string             `json:"rabbitmqPassword,omitempty"`
-	RabbitmqVhost               string             `json:"rabbitmqVhost,omitempty"`
-	LogLevel                    string             `json:"logLevel,omitempty"`
-	AAAMode                     AAAMode            `json:"aaaMode,omitempty"`
-	Storage                     Storage            `json:"storage,omitempty"`
+	Containers                 []*Container `json:"containers,omitempty"`
+	AnalyticsPort              *int         `json:"analyticsPort,omitempty"`
+	CollectorPort              *int         `json:"collectorPort,omitempty"`
+	AnalyticsApiIntrospectPort *int         `json:"analyticsIntrospectPort,omitempty"`
+	CollectorIntrospectPort    *int         `json:"collectorIntrospectPort,omitempty"`
+	ConfigInstance             string       `json:"configInstance,omitempty"`
+	CassandraInstance          string       `json:"cassandraInstance,omitempty"`
+	ZookeeperInstance          string       `json:"zookeeperInstance,omitempty"`
+	RabbitmqInstance           string       `json:"rabbitmqInstance,omitempty"`
+	RabbitmqUser               string       `json:"rabbitmqUser,omitempty"`
+	RabbitmqPassword           string       `json:"rabbitmqPassword,omitempty"`
+	RabbitmqVhost              string       `json:"rabbitmqVhost,omitempty"`
+	LogLevel                   string       `json:"logLevel,omitempty"`
+	AAAMode                    AAAMode      `json:"aaaMode,omitempty"`
+	Storage                    Storage      `json:"storage,omitempty"`
 	// Time (in hours) that the analytics object and log data stays in the Cassandra database. Defaults to 48 hours.
-	AnalyticsDataTTL            *int               `json:"analyticsDataTTL,omitempty"`
+	AnalyticsDataTTL *int `json:"analyticsDataTTL,omitempty"`
 	// Time (in hours) the analytics config data entering the collector stays in the Cassandra database. Defaults to 2160 hours.
-	AnalyticsConfigAuditTTL     *int               `json:"analyticsConfigAuditTTL,omitempty"`
+	AnalyticsConfigAuditTTL *int `json:"analyticsConfigAuditTTL,omitempty"`
 	// Time to live (TTL) for statistics data in hours. Defaults to 4 hours.
-	AnalyticsStatisticsTTL      *int               `json:"analyticsStatisticsTTL,omitempty"`
+	AnalyticsStatisticsTTL *int `json:"analyticsStatisticsTTL,omitempty"`
 	// Time to live (TTL) for flow data in hours. Defaults to 2 hours.
-	AnalyticsFlowTTL            *int               `json:"analyticsFlowTTL,omitempty"`
+	AnalyticsFlowTTL *int `json:"analyticsFlowTTL,omitempty"`
 }
 
 // AnalyticsStatus status of Analytics
@@ -354,15 +354,15 @@ func (c *Analytics) InstanceConfiguration(configMapName string,
 		// TODO: commonize for all services
 		var vncApiBuffer bytes.Buffer
 		err = configtemplates.AnalyticsVncConfig.Execute(&vncApiBuffer, struct {
-			ConfigNodes            string
-			ConfigApiPort          string
-			CAFilePath             string
-			AuthMode			   AuthenticationMode
+			ConfigNodes   string
+			ConfigApiPort string
+			CAFilePath    string
+			AuthMode      AuthenticationMode
 		}{
-			ConfigNodes:            apiServerIPListCommaSeparated,
-			ConfigApiPort:          strconv.Itoa(configNodesInformation.APIServerPort),
-			CAFilePath:             certificates.SignerCAFilepath,
-			AuthMode:  			    c.Spec.CommonConfiguration.AuthParameters.AuthMode,
+			ConfigNodes:   apiServerIPListCommaSeparated,
+			ConfigApiPort: strconv.Itoa(configNodesInformation.APIServerPort),
+			CAFilePath:    certificates.SignerCAFilepath,
+			AuthMode:      c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 		})
 		if err != nil {
 			panic(err)

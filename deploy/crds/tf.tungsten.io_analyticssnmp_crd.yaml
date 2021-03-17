@@ -1,20 +1,24 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: controls.contrail.juniper.net
+  name: analyticssnmp.tf.tungsten.io
 spec:
-  group: contrail.juniper.net
+  additionalPrinterColumns:
+  - JSONPath: .status.active
+    name: Active
+    type: boolean
+  group: tf.tungsten.io
   names:
-    kind: Control
-    listKind: ControlList
-    plural: controls
-    singular: control
+    kind: AnalyticsSnmp
+    listKind: AnalyticsSnmpList
+    plural: analyticssnmp
+    singular: analyticssnmp
   scope: Namespaced
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
-      description: Control is the Schema for the controls API.
+      description: AnalyticsSnmp is the Schema for the Analytics SNMP API.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -29,7 +33,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: ControlSpec is the Spec for the controls API.
+          description: AnalyticsSnmpSpec is the Spec for the Analytics SNMP API.
           properties:
             commonConfiguration:
               description: PodConfiguration is the common services struct.
@@ -169,14 +173,11 @@ spec:
                   type: boolean
               type: object
             serviceConfiguration:
-              description: ControlConfiguration is the Spec for the controls API.
+              description: AnalyticsSnmpConfiguration is the Spec for the Analytics
+                SNMP API.
               properties:
                 analyticsInstance:
                   type: string
-                asnNumber:
-                  type: integer
-                bgpPort:
-                  type: integer
                 cassandraInstance:
                   type: string
                 configInstance:
@@ -195,35 +196,36 @@ spec:
                         type: string
                     type: object
                   type: array
-                dataSubnet:
-                  description: DataSubnet allow to set alternative network in which
-                    control, nodemanager and dns services will listen. Local pod address
-                    from this subnet will be discovered and used both in configuration
-                    for hostip directive and provision script.
-                  pattern: ^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\/(3[0-2]|2[0-9]|1[0-9]|[0-9]))$
+                logFilePath:
                   type: string
-                dnsIntrospectPort:
-                  type: integer
-                dnsPort:
-                  type: integer
                 logLevel:
+                  type: string
+                logLocal:
                   type: string
                 rabbitmqInstance:
                   type: string
-                rabbitmqPassword:
-                  type: string
-                rabbitmqUser:
-                  type: string
-                rabbitmqVhost:
-                  type: string
-                xmppPort:
+                snmpCollectorFastScanFrequency:
                   type: integer
+                snmpCollectorIntrospectListenPort:
+                  type: integer
+                snmpCollectorLogFileName:
+                  type: string
+                snmpCollectorScanFrequency:
+                  type: integer
+                topologyIntrospectListenPort:
+                  type: integer
+                topologyLogFileName:
+                  type: string
+                topologySnmpFrequency:
+                  type: integer
+                zookeeperInstance:
+                  type: string
               type: object
           required:
           - serviceConfiguration
           type: object
         status:
-          description: ControlStatus defines the observed state of Control.
+          description: AnalyticsSnmpStatus is the Status for the Analytics SNMP API.
           properties:
             active:
               type: boolean
@@ -232,64 +234,6 @@ spec:
             nodes:
               additionalProperties:
                 type: string
-              type: object
-            ports:
-              description: ControlStatusPorts status of connection ports
-              properties:
-                asnNumber:
-                  type: string
-                bgpPort:
-                  type: string
-                dnsIntrospectPort:
-                  type: string
-                dnsPort:
-                  type: string
-                xmppPort:
-                  type: string
-              type: object
-            serviceStatus:
-              additionalProperties:
-                description: ControlServiceStatus status of control
-                properties:
-                  bgpPeer:
-                    description: BGPPeer bgp peer status
-                    properties:
-                      number:
-                        type: string
-                      up:
-                        type: string
-                    type: object
-                  connections:
-                    items:
-                      description: Connection connection status
-                      properties:
-                        name:
-                          type: string
-                        nodes:
-                          items:
-                            type: string
-                          type: array
-                        status:
-                          type: string
-                        type:
-                          type: string
-                      type: object
-                    type: array
-                  numberOfRoutingInstances:
-                    type: string
-                  numberOfXMPPPeers:
-                    type: string
-                  state:
-                    type: string
-                  staticRoutes:
-                    description: StaticRoutes statuic routes
-                    properties:
-                      down:
-                        type: string
-                      number:
-                        type: string
-                    type: object
-                type: object
               type: object
           type: object
       type: object

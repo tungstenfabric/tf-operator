@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1/templates"
+	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -51,7 +51,7 @@ type WebuiSpec struct {
 // +k8s:openapi-gen=true
 type WebuiConfiguration struct {
 	ConfigInstance    string       `json:"configInstance,omitempty"`
-	AnalyticsInstance  string       `json:"analyticsInstance,omitempty"`
+	AnalyticsInstance string       `json:"analyticsInstance,omitempty"`
 	ControlInstance   string       `json:"controlInstance,omitempty"`
 	CassandraInstance string       `json:"cassandraInstance,omitempty"`
 	Containers        []*Container `json:"containers,omitempty"`

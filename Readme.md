@@ -65,7 +65,7 @@ export KEYSTONE_AUTH_ADMIN_PASSWORD="<password>"
 ## Deploy TF cluster with operator
 ```bash
 kubectl apply -f ./tf-operator/deploy/crds/
-kubectl wait crds --for=condition=Established --timeout=2m managers.contrail.juniper.net
+kubectl wait crds --for=condition=Established --timeout=2m managers.tf.tungsten.io
 kubectl apply -k ./tf-operator/deploy/kustomize/operator/templates/
 kubectl apply -k ./tf-operator/deploy/kustomize/contrail/templates/
 ```

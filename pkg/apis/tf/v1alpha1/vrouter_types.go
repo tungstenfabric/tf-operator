@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1/templates"
+	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -65,7 +65,7 @@ type AgentStatus struct {
 	Status          AgentServiceStatus `json:"status,omitempty"`
 	ControlNodes    string             `json:"controlNodes,omitempty"`
 	ConfigNodes     string             `json:"configNodes,omitempty"`
-	AnalyticsNodes     string          `json:"analyticsNodes,omitempty"`
+	AnalyticsNodes  string             `json:"analyticsNodes,omitempty"`
 	EncryptedParams string             `json:"encryptedParams,omitempty"`
 }
 
@@ -94,7 +94,7 @@ type VrouterConfiguration struct {
 	// What is it doing?
 	// VrouterEncryption   bool              `json:"vrouterEncryption,omitempty"`
 	// What is it doing?
-	ContrailStatusImage string `json:"contrailStatusImage,omitempty"`
+	StatusImage string `json:"statusImage,omitempty"`
 	// What is it doing?
 	EnvVariablesConfig map[string]string `json:"envVariablesConfig,omitempty"`
 	ControlInstance    string            `json:"controlInstance,omitempty"`
@@ -216,9 +216,9 @@ type VrouterConfiguration struct {
 // VrouterNodesConfiguration is the static configuration for vrouter.
 // +k8s:openapi-gen=true
 type VrouterNodesConfiguration struct {
-	ControlNodesConfiguration    *ControlClusterConfiguration   `json:"controlNodesConfiguration,omitempty"`
-	ConfigNodesConfiguration     *ConfigClusterConfiguration    `json:"configNodesConfiguration,omitempty"`
-	AnalyticsNodesConfiguration  *AnalyticsClusterConfiguration `json:"analyticsNodesConfiguration,omitempty"`
+	ControlNodesConfiguration   *ControlClusterConfiguration   `json:"controlNodesConfiguration,omitempty"`
+	ConfigNodesConfiguration    *ConfigClusterConfiguration    `json:"configNodesConfiguration,omitempty"`
+	AnalyticsNodesConfiguration *AnalyticsClusterConfiguration `json:"analyticsNodesConfiguration,omitempty"`
 }
 
 // VrouterList contains a list of Vrouter.

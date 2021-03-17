@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/contrail/v1alpha1/templates"
+	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 )
 
@@ -23,7 +23,6 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 
 // AnalyticsDB is the Schema for the analyticsdb API.
 // +k8s:openapi-gen=true
@@ -45,25 +44,25 @@ type AnalyticsDB struct {
 // AnalyticsDBSpec is the Spec for the AnalyticsDB API.
 // +k8s:openapi-gen=true
 type AnalyticsDBSpec struct {
-	CommonConfiguration  PodConfiguration    `json:"commonConfiguration,omitempty"`
+	CommonConfiguration  PodConfiguration         `json:"commonConfiguration,omitempty"`
 	ServiceConfiguration AnalyticsDBConfiguration `json:"serviceConfiguration"`
 }
 
 // AnalyticsDBConfiguration is the Spec for the AnalyticsDB API.
 // +k8s:openapi-gen=true
 type AnalyticsDBConfiguration struct {
-	AnalyticsdbPort             *int               `json:"analyticsdbPort,omitempty"`
-	AnalyticsdbIntrospectPort   *int               `json:"analyticsdbIntrospectPort,omitempty"`
-	Containers                  []*Container       `json:"containers,omitempty"`
-	AnalyticsInstance           string             `json:"analyticsInstance,omitempty"`
-	CassandraInstance           string             `json:"cassandraInstance,omitempty"`
-	ZookeeperInstance           string             `json:"zookeeperInstance,omitempty"`
-	RabbitmqInstance            string             `json:"rabbitmqInstance,omitempty"`
-	RabbitmqUser                string             `json:"rabbitmqUser,omitempty"`
-	RabbitmqPassword            string             `json:"rabbitmqPassword,omitempty"`
-	RabbitmqVhost               string             `json:"rabbitmqVhost,omitempty"`
-	LogLevel                    string             `json:"logLevel,omitempty"`
-	Storage                     Storage            `json:"storage,omitempty"`
+	AnalyticsdbPort           *int         `json:"analyticsdbPort,omitempty"`
+	AnalyticsdbIntrospectPort *int         `json:"analyticsdbIntrospectPort,omitempty"`
+	Containers                []*Container `json:"containers,omitempty"`
+	AnalyticsInstance         string       `json:"analyticsInstance,omitempty"`
+	CassandraInstance         string       `json:"cassandraInstance,omitempty"`
+	ZookeeperInstance         string       `json:"zookeeperInstance,omitempty"`
+	RabbitmqInstance          string       `json:"rabbitmqInstance,omitempty"`
+	RabbitmqUser              string       `json:"rabbitmqUser,omitempty"`
+	RabbitmqPassword          string       `json:"rabbitmqPassword,omitempty"`
+	RabbitmqVhost             string       `json:"rabbitmqVhost,omitempty"`
+	LogLevel                  string       `json:"logLevel,omitempty"`
+	Storage                   Storage      `json:"storage,omitempty"`
 }
 
 // AnalyticsDBStatus status of AnalyticsDB

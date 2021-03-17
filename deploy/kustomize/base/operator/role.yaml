@@ -43,7 +43,7 @@ rules:
   verbs:
   - update
 - apiGroups:
-  - contrail.juniper.net
+  - tf.tungsten.io
   resources:
   - '*'
   verbs:
