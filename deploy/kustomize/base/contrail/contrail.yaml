@@ -48,6 +48,7 @@ spec:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
           logLevel: SYS_DEBUG
+          configInstance: config1
           analyticsInstance: analytics1
           zookeeperInstance: zookeeper1
           cassandraInstance: cassandra1
