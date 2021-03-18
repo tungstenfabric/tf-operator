@@ -267,6 +267,23 @@ func ConfigActiveChange() predicate.Funcs {
 	}
 }
 
+// AnalyticsActiveChange returns predicate function based on group kind.
+func AnalyticsActiveChange() predicate.Funcs {
+	return predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			oldAnalytics, ok := e.ObjectOld.(*v1alpha1.Analytics)
+			if !ok {
+				reqLogger.Info("type conversion mismatch")
+			}
+			newAnalytics, ok := e.ObjectNew.(*v1alpha1.Analytics)
+			if !ok {
+				reqLogger.Info("type conversion mismatch")
+			}
+			return statusChange(oldAnalytics.Status.Active, newAnalytics.Status.Active)
+		},
+	}
+}
+
 // VrouterActiveChange returns predicate function based on group kind.
 func VrouterActiveChange() predicate.Funcs {
 	return predicate.Funcs{

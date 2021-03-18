@@ -151,6 +151,20 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	srcConfig := &source.Kind{Type: &v1alpha1.Config{}}
+	configHandler := resourceHandler(mgr.GetClient())
+	predConfigSizeChange := utils.ConfigActiveChange()
+	if err = c.Watch(srcConfig, configHandler, predConfigSizeChange); err != nil {
+		return err
+	}
+
+	srcAnalytics := &source.Kind{Type: &v1alpha1.Analytics{}}
+	analyticsHandler := resourceHandler(mgr.GetClient())
+	predAnalyticsSizeChange := utils.AnalyticsActiveChange()
+	if err = c.Watch(srcAnalytics, analyticsHandler, predAnalyticsSizeChange); err != nil {
+		return err
+	}
+
 	srcSTS := &source.Kind{Type: &appsv1.StatefulSet{}}
 	stsHandler := &handler.EnqueueRequestForOwner{
 		IsController: true,
@@ -186,6 +200,8 @@ func (r *ReconcileAnalyticsDB) Reconcile(request reconcile.Request) (reconcile.R
 	cassandraInstance := &v1alpha1.Cassandra{}
 	zookeeperInstance := &v1alpha1.Zookeeper{}
 	rabbitmqInstance := &v1alpha1.Rabbitmq{}
+	configInstance := v1alpha1.Config{}
+	analyticsInstance := v1alpha1.Analytics{}
 
 	if err := r.Client.Get(context.TODO(), request.NamespacedName, instance); err != nil && errors.IsNotFound(err) {
 		reqLogger.Error(err, "Failed to get analyticsdb obj")
@@ -200,8 +216,10 @@ func (r *ReconcileAnalyticsDB) Reconcile(request reconcile.Request) (reconcile.R
 	cassandraActive := cassandraInstance.IsActive(instance.Spec.ServiceConfiguration.CassandraInstance, request.Namespace, r.Client)
 	zookeeperActive := zookeeperInstance.IsActive(instance.Spec.ServiceConfiguration.ZookeeperInstance, request.Namespace, r.Client)
 	rabbitmqActive := rabbitmqInstance.IsActive(instance.Spec.ServiceConfiguration.RabbitmqInstance, request.Namespace, r.Client)
-	if !cassandraActive || !rabbitmqActive || !zookeeperActive {
-		reqLogger.Info("Dependencies not ready", "db", cassandraActive, "zk", zookeeperActive, "rmq", rabbitmqActive)
+	configActive := configInstance.IsActive(instance.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, r.Client)
+	analyticsActive := analyticsInstance.IsActive(instance.Spec.ServiceConfiguration.AnalyticsInstance, request.Namespace, r.Client)
+	if !cassandraActive || !zookeeperActive || !rabbitmqActive || !configActive || !analyticsActive {
+		reqLogger.Info("Dependencies not ready", "db", cassandraActive, "zk", zookeeperActive, "rmq", rabbitmqActive, "api", configActive, "analytics", configActive)
 		return reconcile.Result{}, nil
 	}
 

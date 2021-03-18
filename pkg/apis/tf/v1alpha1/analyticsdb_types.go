@@ -54,6 +54,7 @@ type AnalyticsDBConfiguration struct {
 	AnalyticsdbPort           *int         `json:"analyticsdbPort,omitempty"`
 	AnalyticsdbIntrospectPort *int         `json:"analyticsdbIntrospectPort,omitempty"`
 	Containers                []*Container `json:"containers,omitempty"`
+	ConfigInstance            string       `json:"configInstance,omitempty"`
 	AnalyticsInstance         string       `json:"analyticsInstance,omitempty"`
 	CassandraInstance         string       `json:"cassandraInstance,omitempty"`
 	ZookeeperInstance         string       `json:"zookeeperInstance,omitempty"`

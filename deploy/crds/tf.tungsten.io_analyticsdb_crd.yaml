@@ -196,6 +196,8 @@ spec:
                   type: integer
                 cassandraInstance:
                   type: string
+                configInstance:
+                  type: string
                 containers:
                   items:
                     description: Container defines name, image and command.
