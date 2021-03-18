@@ -13,6 +13,7 @@ function wait_file() {
   echo "INFO: $(date): wait for $src"
   while [ ! -e $src ] ; do sleep 1; done
   echo "INFO: $(date): wait for $src completed"
+  cat $src
 }
 
 function link_file() {
@@ -24,6 +25,7 @@ function link_file() {
     echo "INFO: $(date): link $src => $dst"
     mkdir -p $ddir
     ln -sf $src $dst
+    md5sum $dst | awk '{print($1)}' > $dst.md5sum
   fi
 }
 
