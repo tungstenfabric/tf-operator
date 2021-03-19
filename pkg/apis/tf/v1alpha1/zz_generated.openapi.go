@@ -1461,12 +1461,6 @@ func schema_pkg_apis_tf_v1alpha1_KubemanagerConfiguration(ref common.ReferenceCa
 							Format: "",
 						},
 					},
-					"useKubeadmConfig": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"boolean"},
-							Format: "",
-						},
-					},
 					"serviceAccount": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
