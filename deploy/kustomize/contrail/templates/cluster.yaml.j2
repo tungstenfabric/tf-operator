@@ -1,3 +1,4 @@
+{%- if DEPLOYER is defined and DEPLOYER == "openshift" %}
 ---
 apiVersion: tf.tungsten.io/v1alpha1
 kind: Manager
@@ -6,8 +7,6 @@ metadata:
   namespace: tf
 spec:
   commonConfiguration:
-{%- if DEPLOYER is defined and DEPLOYER == "openshift" %}
-    useKubeadmConfig: false
     tuneSysctl: false
     clusterConfig:
       clusterName: {{ KUBERNETES_CLUSTER_NAME | default("test") }}
@@ -18,6 +17,4 @@ spec:
         cniConfig:
           configPath: {{ KUBERNETES_CNI_CONFIG_PATH | default("/etc/kubernetes/cni") }}
           binaryPath: {{ KUBERNETES_CNI_BINARY_PATH | default("/var/lib/cni/bin") }}
-{%- else %}
-    useKubeadmConfig: true
 {%- endif -%}

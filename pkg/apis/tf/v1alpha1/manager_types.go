@@ -98,9 +98,6 @@ type ManagerConfiguration struct {
 	// AuthParameters auth parameters
 	// +optional
 	AuthParameters *AuthParameters `json:"authParameters,omitempty"`
-	// Read cluster parameters from kubeadm config map
-	// +optional
-	UseKubeadmConfig *bool `json:"useKubeadmConfig,omitempty"`
 	// Allow node-init container to tune sysctl options
 	// (for all deployers except opneshift it is done by node-init, in openshift - machineconfig)
 	// +optional

@@ -180,9 +180,6 @@ spec:
                     all deployers except opneshift it is done by node-init, in openshift
                     - machineconfig)
                   type: boolean
-                useKubeadmConfig:
-                  description: Read cluster parameters from kubeadm config map
-                  type: boolean
               type: object
             services:
               description: Services defines the desired state of Services.

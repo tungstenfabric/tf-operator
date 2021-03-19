@@ -1775,11 +1775,6 @@ func (in *ManagerConfiguration) DeepCopyInto(out *ManagerConfiguration) {
 		in, out := &in.AuthParameters, &out.AuthParameters
 		(*in).DeepCopyInto(*out)
 	}
-	if in.UseKubeadmConfig != nil {
-		in, out := &in.UseKubeadmConfig, &out.UseKubeadmConfig
-		*out = new(bool)
-		**out = **in
-	}
 	if in.TuneSysctl != nil {
 		in, out := &in.TuneSysctl, &out.TuneSysctl
 		*out = new(bool)
@@ -2551,7 +2546,7 @@ func (in *VrouterNodesConfiguration) DeepCopyInto(out *VrouterNodesConfiguration
 		*out = new(ConfigClusterConfiguration)
 		(*in).DeepCopyInto(*out)
 	}
-	return
+
 	if in.AnalyticsNodesConfiguration != nil {
 		in, out := &in.AnalyticsNodesConfiguration, &out.AnalyticsNodesConfiguration
 		*out = new(AnalyticsClusterConfiguration)
