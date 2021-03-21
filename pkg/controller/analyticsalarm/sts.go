@@ -14,13 +14,13 @@ metadata:
 spec:
   selector:
     matchLabels:
-      contrail_manager: analyticsalarm
+      tf_manager: analyticsalarm
   serviceName: "analyticsalarm"
   replicas: 1
   template:
     metadata:
       labels:
-        contrail_manager: analyticsalarm
+        tf_manager: analyticsalarm
     spec:
       dnsPolicy: ClusterFirstWithHostNet
       hostNetwork: true

@@ -120,7 +120,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to PODs.
-	serviceMap := map[string]string{"contrail_manager": "vrouter"}
+	serviceMap := map[string]string{"tf_manager": "vrouter"}
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
 	podHandler := resourceHandler(mgr.GetClient())
 
@@ -129,7 +129,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	serviceMap = map[string]string{"contrail_manager": "control"}
+	serviceMap = map[string]string{"tf_manager": "control"}
 	predPhaseChanges := utils.PodPhaseChanges(serviceMap)
 	if err = c.Watch(srcPod, podHandler, predPhaseChanges); err != nil {
 		return err

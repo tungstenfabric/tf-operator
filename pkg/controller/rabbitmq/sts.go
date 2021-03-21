@@ -139,8 +139,8 @@ func GetSTS(instance *v1alpha1.Rabbitmq) *apps.StatefulSet {
 	var stsTemplate = core.PodTemplateSpec{
 		ObjectMeta: meta.ObjectMeta{
 			Labels: map[string]string{
-				"app":              "rabbitmq",
-				"contrail_manager": "rabbitmq",
+				"app":        "rabbitmq",
+				"tf_manager": "rabbitmq",
 			},
 		},
 		Spec: podSpec,

@@ -21,7 +21,7 @@ spec:
     metadata:
       labels:
         app: analyticssnmp
-        contrail_manager: analyticssnmp
+        tf_manager: analyticssnmp
     spec:
       dnsPolicy: ClusterFirstWithHostNet
       hostNetwork: true

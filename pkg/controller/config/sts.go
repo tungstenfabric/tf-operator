@@ -20,7 +20,7 @@ spec:
     metadata:
       labels:
         app: config
-        contrail_manager: config
+        tf_manager: config
     spec:
       dnsPolicy: ClusterFirstWithHostNet
       hostNetwork: true

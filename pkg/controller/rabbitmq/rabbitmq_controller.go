@@ -113,7 +113,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	serviceMap := map[string]string{"contrail_manager": "rabbitmq"}
+	serviceMap := map[string]string{"tf_manager": "rabbitmq"}
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
 	podHandler := resourceHandler(mgr.GetClient())
 	predPodIPChange := utils.PodIPChange(serviceMap)

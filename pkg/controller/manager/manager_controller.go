@@ -275,7 +275,7 @@ func (r *ReconcileManager) processAnalytics(manager *v1alpha1.Manager, replicas 
 				Namespace: manager.Namespace,
 				Name:      *manager.Status.Analytics.Name,
 				Labels: map[string]string{
-					"contrail_cluster": manager.Name,
+					"tf_cluster": manager.Name,
 				},
 			}
 			err := r.client.Delete(context.TODO(), oldConfig)
@@ -319,7 +319,7 @@ func (r *ReconcileManager) processAnalyticsDB(manager *v1alpha1.Manager, replica
 				Namespace: manager.Namespace,
 				Name:      *manager.Status.AnalyticsDB.Name,
 				Labels: map[string]string{
-					"contrail_cluster": manager.Name,
+					"tf_cluster": manager.Name,
 				},
 			}
 			err := r.client.Delete(context.TODO(), oldConfig)
@@ -363,7 +363,7 @@ func (r *ReconcileManager) processAnalyticsSnmp(manager *v1alpha1.Manager, repli
 				Namespace: manager.Namespace,
 				Name:      *manager.Status.AnalyticsSnmp.Name,
 				Labels: map[string]string{
-					"contrail_cluster": manager.Name,
+					"tf_cluster": manager.Name,
 				},
 			}
 			err := r.client.Delete(context.TODO(), oldAnalyticsSnmp)
@@ -404,7 +404,7 @@ func (r *ReconcileManager) processAnalyticsAlarm(manager *v1alpha1.Manager, repl
 				Namespace: manager.Namespace,
 				Name:      *manager.Status.AnalyticsAlarm.Name,
 				Labels: map[string]string{
-					"contrail_cluster": manager.Name,
+					"tf_cluster": manager.Name,
 				},
 			}
 			err := r.client.Delete(context.TODO(), oldAnalyticsAlarm)
@@ -452,7 +452,7 @@ func (r *ReconcileManager) processZookeepers(manager *v1alpha1.Manager, replicas
 				Namespace: manager.Namespace,
 				Name:      *existingZookeeper.Name,
 				Labels: map[string]string{
-					"contrail_cluster": manager.Name,
+					"tf_cluster": manager.Name,
 				},
 			}
 			err := r.client.Delete(context.TODO(), oldZookeeper)
@@ -507,7 +507,7 @@ func (r *ReconcileManager) processCassandras(manager *v1alpha1.Manager, replicas
 				Namespace: manager.Namespace,
 				Name:      *existingCassandra.Name,
 				Labels: map[string]string{
-					"contrail_cluster": manager.Name,
+					"tf_cluster": manager.Name,
 				},
 			}
 			err := r.client.Delete(context.TODO(), oldCassandra)
@@ -560,7 +560,7 @@ func (r *ReconcileManager) processWebui(manager *v1alpha1.Manager, replicas int3
 				Namespace: manager.Namespace,
 				Name:      *manager.Status.Webui.Name,
 				Labels: map[string]string{
-					"contrail_cluster": manager.Name,
+					"tf_cluster": manager.Name,
 				},
 			}
 			err := r.client.Delete(context.TODO(), oldWebUI)
@@ -605,7 +605,7 @@ func (r *ReconcileManager) processConfig(manager *v1alpha1.Manager, replicas int
 				Namespace: manager.Namespace,
 				Name:      *manager.Status.Config.Name,
 				Labels: map[string]string{
-					"contrail_cluster": manager.Name,
+					"tf_cluster": manager.Name,
 				},
 			}
 			err := r.client.Delete(context.TODO(), oldConfig)
@@ -660,7 +660,7 @@ func (r *ReconcileManager) processKubemanagers(manager *v1alpha1.Manager, replic
 				Namespace: manager.Namespace,
 				Name:      *existingKubemanager.Name,
 				Labels: map[string]string{
-					"contrail_cluster": manager.Name,
+					"tf_cluster": manager.Name,
 				},
 			}
 			err := r.client.Delete(context.TODO(), oldKubemanager)
@@ -716,7 +716,7 @@ func (r *ReconcileManager) processControls(manager *v1alpha1.Manager, replicas i
 				Namespace: manager.Namespace,
 				Name:      *existingControl.Name,
 				Labels: map[string]string{
-					"contrail_cluster": manager.Name,
+					"tf_cluster": manager.Name,
 				},
 			}
 			err := r.client.Delete(context.TODO(), oldControl)
@@ -764,7 +764,7 @@ func (r *ReconcileManager) processRabbitMQ(manager *v1alpha1.Manager, replicas i
 				Namespace: manager.Namespace,
 				Name:      *manager.Status.Rabbitmq.Name,
 				Labels: map[string]string{
-					"contrail_cluster": manager.Name,
+					"tf_cluster": manager.Name,
 				},
 			}
 			err := r.client.Delete(context.TODO(), oldRabbitMQ)
@@ -816,7 +816,7 @@ func (r *ReconcileManager) processVRouters(manager *v1alpha1.Manager, replicas i
 				Namespace: manager.Namespace,
 				Name:      *existingVRouter.Name,
 				Labels: map[string]string{
-					"contrail_cluster": manager.Name,
+					"tf_cluster": manager.Name,
 				},
 			}
 			err := r.client.Delete(context.TODO(), oldVRouter)

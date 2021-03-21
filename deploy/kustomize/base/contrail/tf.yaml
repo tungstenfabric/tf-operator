@@ -3,7 +3,7 @@ apiVersion: tf.tungsten.io/v1alpha1
 kind: Manager
 metadata:
   name: cluster1
-  namespace: contrail
+  namespace: tf
 spec:
   commonConfiguration:
     hostNetwork: true
@@ -12,7 +12,7 @@ spec:
     analytics:
       metadata:
         labels:
-          contrail_cluster: cluster1
+          tf_cluster: cluster1
         name: analytics1
       spec:
         commonConfiguration:
@@ -40,7 +40,7 @@ spec:
     analyticsdb:
       metadata:
         labels:
-          contrail_cluster: cluster1
+          tf_cluster: cluster1
         name: analyticsdb1
       spec:
         commonConfiguration:
@@ -63,7 +63,7 @@ spec:
     analyticsSnmp:
       metadata:
         labels:
-          contrail_cluster: cluster1
+          tf_cluster: cluster1
         name: analyticssnmp1
       spec:
         commonConfiguration:
@@ -88,7 +88,7 @@ spec:
     analyticsAlarm:
       metadata:
         labels:
-          contrail_cluster: cluster1
+          tf_cluster: cluster1
         name: analyticsalarm1
       spec:
         commonConfiguration:
@@ -113,7 +113,7 @@ spec:
     cassandras:
     - metadata:
         labels:
-          contrail_cluster: cluster1
+          tf_cluster: cluster1
         name: cassandra1
       spec:
         commonConfiguration:
@@ -132,7 +132,7 @@ spec:
     config:
       metadata:
         labels:
-          contrail_cluster: cluster1
+          tf_cluster: cluster1
         name: config1
       spec:
         commonConfiguration:
@@ -162,7 +162,7 @@ spec:
     controls:
     - metadata:
         labels:
-          contrail_cluster: cluster1
+          tf_cluster: cluster1
           control_role: master
         name: control1
       spec:
@@ -189,7 +189,7 @@ spec:
     kubemanagers:
     - metadata:
         labels:
-          contrail_cluster: cluster1
+          tf_cluster: cluster1
         name: kubemanager1
       spec:
         commonConfiguration:
@@ -212,7 +212,7 @@ spec:
     rabbitmq:
       metadata:
         labels:
-          contrail_cluster: cluster1
+          tf_cluster: cluster1
         name: rabbitmq1
       spec:
         commonConfiguration:
@@ -226,7 +226,7 @@ spec:
     vrouters:
     - metadata:
         labels:
-          contrail_cluster: cluster1
+          tf_cluster: cluster1
         name: vrouter1
       spec:
         serviceConfiguration:
@@ -251,7 +251,7 @@ spec:
     webui:
       metadata:
         labels:
-          contrail_cluster: cluster1
+          tf_cluster: cluster1
         name: webui1
       spec:
         commonConfiguration:
@@ -273,7 +273,7 @@ spec:
     zookeepers:
     - metadata:
         labels:
-          contrail_cluster: cluster1
+          tf_cluster: cluster1
         name: zookeeper1
       spec:
         commonConfiguration:

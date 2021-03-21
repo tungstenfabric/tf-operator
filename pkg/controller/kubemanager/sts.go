@@ -97,8 +97,8 @@ func GetSTS() *apps.StatefulSet {
 	var stsTemplate = core.PodTemplateSpec{
 		ObjectMeta: meta.ObjectMeta{
 			Labels: map[string]string{
-				"app":              "kubemanager",
-				"contrail_manager": "kubemanager",
+				"app":        "kubemanager",
+				"tf_manager": "kubemanager",
 			},
 		},
 		Spec: podSpec,

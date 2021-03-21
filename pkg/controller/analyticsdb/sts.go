@@ -20,7 +20,7 @@ spec:
     metadata:
       labels:
         app: analyticsdb
-        contrail_manager: analyticsdb
+        tf_manager: analyticsdb
     spec:
       dnsPolicy: ClusterFirstWithHostNet
       hostNetwork: true

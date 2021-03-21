@@ -52,8 +52,8 @@ func (s *Secret) createNewOrGetExistingSecret() (*core.Secret, error) {
 				Name:      s.name,
 				Namespace: s.owner.GetNamespace(),
 				Labels: map[string]string{
-					"contrail_manager": s.ownerType,
-					s.ownerType:        s.owner.GetName(),
+					"tf_manager": s.ownerType,
+					s.ownerType:  s.owner.GetName(),
 				},
 			},
 			Data: make(map[string][]byte),

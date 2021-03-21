@@ -21,7 +21,7 @@ spec:
       labels:
         app: zookeeper
         zookeeper_cr: zookeeper
-        contrail_manager: zookeeper
+        tf_manager: zookeeper
     spec:
       dnsPolicy: ClusterFirstWithHostNet
       hostNetwork: true
