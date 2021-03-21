@@ -8,7 +8,7 @@ apiVersion: tf.tungsten.io/v1alpha1
 kind: Manager
 metadata:
   name: cluster1
-  namespace: contrail
+  namespace: tf
 spec:
   commonConfiguration:
     replicas: {{ CONTRAIL_REPLICAS | default(1) }}

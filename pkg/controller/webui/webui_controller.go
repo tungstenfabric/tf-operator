@@ -120,7 +120,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	serviceMap := map[string]string{"contrail_manager": "webui"}
+	serviceMap := map[string]string{"tf_manager": "webui"}
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
 	podHandler := resourceHandler(mgr.GetClient())
 	predPodIPChange := utils.PodIPChange(serviceMap)
@@ -518,7 +518,7 @@ func (r *ReconcileWebui) updateServiceStatus(cr *v1alpha1.Webui) error {
 
 func (r *ReconcileWebui) listWebUIPods(webUIName string) ([]corev1.Pod, error) {
 	pods := &corev1.PodList{}
-	labelSelector := labels.SelectorFromSet(map[string]string{"contrail_manager": "webui", "webui": webUIName})
+	labelSelector := labels.SelectorFromSet(map[string]string{"tf_manager": "webui", "webui": webUIName})
 	listOpts := client.ListOptions{LabelSelector: labelSelector}
 	if err := r.Client.List(context.TODO(), pods, &listOpts); err != nil {
 		log.Error(err, "listWebUIPods failed")

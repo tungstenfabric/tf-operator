@@ -117,7 +117,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to PODs.
-	serviceMap := map[string]string{"contrail_manager": "cassandra"}
+	serviceMap := map[string]string{"tf_manager": "cassandra"}
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
 	podHandler := resourceHandler(mgr.GetClient())
 	predPodIPChange := utils.PodIPChange(serviceMap)

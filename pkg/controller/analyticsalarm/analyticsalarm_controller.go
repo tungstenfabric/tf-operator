@@ -121,7 +121,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err = c.Watch(&source.Kind{Type: &v1alpha1.AnalyticsAlarm{}}, &handler.EnqueueRequestForObject{}); err != nil {
 		return err
 	}
-	serviceMap := map[string]string{"contrail_manager": instanceType}
+	serviceMap := map[string]string{"tf_manager": instanceType}
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
 	podHandler := resourceHandler(mgr.GetClient())
 	predPodIPChange := utils.PodIPChange(serviceMap)

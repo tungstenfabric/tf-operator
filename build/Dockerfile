@@ -1,8 +1,8 @@
 FROM registry.access.redhat.com/ubi7/ubi-minimal:latest
 
-ENV OPERATOR=/usr/local/bin/contrail-operator \
-    USER_UID=1001 \
-    USER_NAME=contrail-operator
+ENV OPERATOR=/usr/local/bin/tf-operator \
+    USER_UID=1999 \
+    USER_NAME=tf-operator
 
 # install operator binary
 COPY build/_output/bin/tf-operator ${OPERATOR}

@@ -393,7 +393,7 @@ func CreateConfigMap(configMapName string,
 	// TODO: Bug. If config map exists without labels and references, they won't be updated
 	configMap.SetName(configMapName)
 	configMap.SetNamespace(request.Namespace)
-	configMap.SetLabels(map[string]string{"contrail_manager": instanceType,
+	configMap.SetLabels(map[string]string{"tf_manager": instanceType,
 		instanceType: request.Name})
 	configMap.Data = make(map[string]string)
 	if err = controllerutil.SetControllerReference(object, configMap, scheme); err != nil {
@@ -418,7 +418,7 @@ func CreateSecret(secretName string,
 		if k8serrors.IsNotFound(err) {
 			secret.SetName(secretName)
 			secret.SetNamespace(request.Namespace)
-			secret.SetLabels(map[string]string{"contrail_manager": instanceType,
+			secret.SetLabels(map[string]string{"tf_manager": instanceType,
 				instanceType: request.Name})
 			var data = make(map[string][]byte)
 			secret.Data = data
@@ -452,7 +452,7 @@ func PrepareSTS(sts *appsv1.StatefulSet,
 	name := baseName + "-statefulset"
 	sts.SetName(name)
 	sts.SetNamespace(request.Namespace)
-	labels := map[string]string{"contrail_manager": instanceType, instanceType: request.Name}
+	labels := map[string]string{"tf_manager": instanceType, instanceType: request.Name}
 	sts.SetLabels(labels)
 	sts.Spec.Selector.MatchLabels = labels
 	sts.Spec.Template.SetLabels(labels)
@@ -742,7 +742,7 @@ func PodIPListAndIPMapFromInstance(instanceType string,
 	request reconcile.Request,
 	clnt client.Client) ([]corev1.Pod, map[string]string, error) {
 
-	labelSelector := labels.SelectorFromSet(map[string]string{"contrail_manager": instanceType,
+	labelSelector := labels.SelectorFromSet(map[string]string{"tf_manager": instanceType,
 		instanceType: request.Name})
 	listOps := &client.ListOptions{Namespace: request.Namespace, LabelSelector: labelSelector}
 	allPods := &corev1.PodList{}

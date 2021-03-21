@@ -278,11 +278,11 @@ func (c *Vrouter) PrepareDaemonSet(ds *appsv1.DaemonSet,
 	SetDSCommonConfiguration(ds, commonConfiguration)
 	ds.SetName(request.Name + "-" + instanceType + "-daemonset")
 	ds.SetNamespace(request.Namespace)
-	ds.SetLabels(map[string]string{"contrail_manager": instanceType,
+	ds.SetLabels(map[string]string{"tf_manager": instanceType,
 		instanceType: request.Name})
-	ds.Spec.Selector.MatchLabels = map[string]string{"contrail_manager": instanceType,
+	ds.Spec.Selector.MatchLabels = map[string]string{"tf_manager": instanceType,
 		instanceType: request.Name}
-	ds.Spec.Template.SetLabels(map[string]string{"contrail_manager": instanceType,
+	ds.Spec.Template.SetLabels(map[string]string{"tf_manager": instanceType,
 		instanceType: request.Name})
 	ds.Spec.Template.Spec.Affinity = &corev1.Affinity{
 		PodAntiAffinity: &corev1.PodAntiAffinity{
@@ -695,7 +695,7 @@ func (c *Vrouter) GetControlNodes(clnt client.Client) (string, error) {
 
 // GetConfigNodes returns config nodes list (str comma separated)
 func (c *Vrouter) GetConfigNodes(clnt client.Client) string {
-	ips, _ := c.GetNodesByLabels(clnt, client.MatchingLabels{"contrail_manager": "config"})
+	ips, _ := c.GetNodesByLabels(clnt, client.MatchingLabels{"tf_manager": "config"})
 	return ips
 }
 

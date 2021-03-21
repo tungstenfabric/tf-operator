@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: tf-operator
-  namespace: contrail
+  namespace: tf
 spec:
   replicas: 1
   selector:
@@ -14,7 +14,7 @@ spec:
       labels:
         name: tf-operator
     spec:
-      serviceAccountName: contrail-operator
+      serviceAccountName: tf-operator
       dnsPolicy: ClusterFirstWithHostNet
       hostNetwork: true
       nodeSelector:

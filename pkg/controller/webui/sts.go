@@ -20,7 +20,7 @@ spec:
     metadata:
       labels:
         app: webui
-        contrail_manager: webui
+        tf_manager: webui
     spec:
       dnsPolicy: ClusterFirstWithHostNet
       hostNetwork: true

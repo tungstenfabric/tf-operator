@@ -25,7 +25,7 @@ spec:
       labels:
         app: cassandra
         cassandra_cr: cassandra
-        contrail_manager: cassandra
+        tf_manager: cassandra
     spec:
       dnsPolicy: ClusterFirstWithHostNet
       hostNetwork: true

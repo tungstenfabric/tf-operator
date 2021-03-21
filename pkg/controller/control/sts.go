@@ -20,7 +20,7 @@ spec:
     metadata:
       labels:
         app: control
-        contrail_manager: control
+        tf_manager: control
     spec:
       securityContext:
         fsGroup: 1999
