@@ -119,3 +119,6 @@ docker push $target
 
 # Documentation
 [Tungsten Fabric Operator official documentation](https://docs.tungsten.io/en/latest/tungsten-fabric-operator/index.html)
+
+
+# [Generate operator bundle](deploy/bundle/Readme.md)
