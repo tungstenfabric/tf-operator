@@ -35,7 +35,7 @@ import (
 )
 
 var log = logf.Log.WithName("controller_zookeeper")
-var restartTime, _ = time.ParseDuration("1s")
+var restartTime, _ = time.ParseDuration("3s")
 var requeueReconcile = reconcile.Result{Requeue: true, RequeueAfter: restartTime}
 
 func resourceHandler(myclient client.Client) handler.Funcs {
@@ -262,13 +262,15 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 
 	if created, err := instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil || created {
 		if err != nil {
+			reqLogger.Error(err, "Failed to create the stateful set.")
 			return reconcile.Result{}, err
 		}
 		return requeueReconcile, err
 	}
 
 	if updated, err := instance.UpdateSTS(statefulSet, instanceType, request, r.Client); err != nil || updated {
-		if err != nil {
+		if err != nil && !v1alpha1.IsOKForRequeque(err) {
+			reqLogger.Error(err, "Failed to update the stateful set.")
 			return reconcile.Result{}, err
 		}
 		return requeueReconcile, nil
@@ -276,17 +278,28 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 
 	podIPList, podIPMap, err := instance.PodIPListAndIPMapFromInstance(instanceType, request, r.Client)
 	if err != nil {
+		reqLogger.Error(err, "Failed to get pod ip list from instance.")
 		return reconcile.Result{}, err
+	}
+	if updated, err := v1alpha1.UpdatePodsAnnotations(podIPList, r.Client); updated || err != nil {
+		if err != nil && !v1alpha1.IsOKForRequeque(err) {
+			reqLogger.Error(err, "Failed to update pods annotations.")
+			return reconcile.Result{}, err
+		}
+		return requeueReconcile, nil
 	}
 
 	if len(podIPList) > 0 {
 		if err = instance.InstanceConfiguration(request, configMapName, podIPList, r.Client); err != nil {
+			reqLogger.Error(err, "Failed to configurate instance.")
 			return reconcile.Result{}, err
 		}
 		if err := r.ensureCertificatesExist(instance, podIPList, instanceType); err != nil {
+			reqLogger.Error(err, "Failed to ensure certificates exist.")
 			return reconcile.Result{}, err
 		}
 		if err = instance.SetPodsToReady(podIPList, r.Client); err != nil {
+			reqLogger.Error(err, "Failed to set pods to ready.")
 			return reconcile.Result{}, err
 		}
 
@@ -324,12 +337,17 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 			}
 		}
 
-		if err = instance.ManageNodeStatus(podIPMap, r.Client); err != nil {
-			return reconcile.Result{}, err
+		if updated, err := instance.ManageNodeStatus(podIPMap, r.Client); err != nil || updated {
+			if err != nil && !v1alpha1.IsOKForRequeque(err) {
+				reqLogger.Error(err, "Failed to manage node status")
+				return reconcile.Result{}, err
+			}
+			return requeueReconcile, nil
 		}
 	}
 
 	if err = r.ensurePodDisruptionBudgetExists(instance); err != nil {
+		reqLogger.Error(err, "Failed to ensure pod disruption budget exists.")
 		return reconcile.Result{}, err
 	}
 
@@ -338,6 +356,10 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 		instance.Status.Active = &active
 	}
 	if err = instance.SetInstanceActive(r.Client, instance.Status.Active, statefulSet, request); err != nil {
+		if v1alpha1.IsOKForRequeque(err) {
+			return requeueReconcile, nil
+		}
+		reqLogger.Error(err, "Failed to set instance active.")
 		return reconcile.Result{}, err
 	}
 	return reconcile.Result{}, nil

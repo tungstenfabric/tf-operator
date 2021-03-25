@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"bytes"
 	"context"
+	"reflect"
 	"sort"
 	"strconv"
 
@@ -446,7 +447,7 @@ func (c *Control) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, reques
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *Control) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance(instanceType, &c.Spec.CommonConfiguration, request, reconcileClient)
+	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient)
 }
 
 func retrieveDataIPs(pod corev1.Pod) []string {
@@ -468,21 +469,38 @@ func (c *Control) SetInstanceActive(client client.Client, activeStatus *bool, st
 	return SetInstanceActive(client, activeStatus, sts, request, c)
 }
 
-// ManageNodeStatus updates the Control node status
 func (c *Control) ManageNodeStatus(podNameIPMap map[string]string,
-	client client.Client) error {
-	c.Status.Nodes = podNameIPMap
-	controlConfig := c.ConfigurationParameters()
-	c.Status.Ports.BGPPort = strconv.Itoa(*controlConfig.BGPPort)
-	c.Status.Ports.ASNNumber = strconv.Itoa(*controlConfig.ASNNumber)
-	c.Status.Ports.XMPPPort = strconv.Itoa(*controlConfig.XMPPPort)
-	c.Status.Ports.DNSPort = strconv.Itoa(*controlConfig.DNSPort)
-	c.Status.Ports.DNSIntrospectPort = strconv.Itoa(*controlConfig.DNSIntrospectPort)
-	err := client.Status().Update(context.TODO(), c)
-	if err != nil {
-		return err
+	client client.Client) (updated bool, err error) {
+	updated = false
+	err = nil
+
+	config := c.ConfigurationParameters()
+	bgpPort := strconv.Itoa(*config.BGPPort)
+	asnNumber := strconv.Itoa(*config.ASNNumber)
+	xmppPort := strconv.Itoa(*config.XMPPPort)
+	dnsPort := strconv.Itoa(*config.DNSPort)
+	dnsIntrospectPort := strconv.Itoa(*config.DNSIntrospectPort)
+	if bgpPort == c.Status.Ports.BGPPort &&
+		asnNumber == c.Status.Ports.ASNNumber &&
+		xmppPort == c.Status.Ports.XMPPPort &&
+		dnsPort == c.Status.Ports.DNSPort &&
+		dnsIntrospectPort == c.Status.Ports.DNSIntrospectPort &&
+		reflect.DeepEqual(c.Status.Nodes, podNameIPMap) {
+		return
 	}
-	return nil
+
+	c.Status.Ports.BGPPort = bgpPort
+	c.Status.Ports.ASNNumber = asnNumber
+	c.Status.Ports.XMPPPort = xmppPort
+	c.Status.Ports.DNSPort = dnsPort
+	c.Status.Ports.DNSIntrospectPort = dnsIntrospectPort
+	c.Status.Nodes = podNameIPMap
+	if err = client.Status().Update(context.TODO(), c); err != nil {
+		return
+	}
+
+	updated = true
+	return
 }
 
 // ConfigurationParameters makes ControlConfiguration

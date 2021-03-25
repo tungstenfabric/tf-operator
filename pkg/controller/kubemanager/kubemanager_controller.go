@@ -31,7 +31,7 @@ import (
 )
 
 var log = logf.Log.WithName("controller_kubemanager")
-var restartTime, _ = time.ParseDuration("1s")
+var restartTime, _ = time.ParseDuration("3s")
 var requeueReconcile = reconcile.Result{Requeue: true, RequeueAfter: restartTime}
 
 func resourceHandler(myclient client.Client) handler.Funcs {
@@ -329,6 +329,14 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 		reqLogger.Error(err, "PodIPListAndIPMapFromInstance failed")
 		return reconcile.Result{}, err
 	}
+	if updated, err := v1alpha1.UpdatePodsAnnotations(podIPList, r.Client); updated || err != nil {
+		if err != nil && !v1alpha1.IsOKForRequeque(err) {
+			reqLogger.Error(err, "Failed to update pods annotations.")
+			return reconcile.Result{}, err
+		}
+		return requeueReconcile, nil
+	}
+
 	if len(podIPList) > 0 {
 
 		if err = instance.InstanceConfiguration(request, podIPList, r.Client); err != nil {
@@ -346,9 +354,12 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 			return reconcile.Result{}, err
 		}
 
-		if err = instance.ManageNodeStatus(podIPMap, r.Client); err != nil {
-			reqLogger.Error(err, "ManageNodeStatus failed")
-			return reconcile.Result{}, err
+		if updated, err := instance.ManageNodeStatus(podIPMap, r.Client); err != nil || updated {
+			if err != nil && !v1alpha1.IsOKForRequeque(err) {
+				reqLogger.Error(err, "Failed to manage node status")
+				return reconcile.Result{}, err
+			}
+			return requeueReconcile, nil
 		}
 	}
 
@@ -359,13 +370,14 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 	beforeCheck := *instance.Status.ConfigChanged
 	newConfigMap := &corev1.ConfigMap{}
 	if err = r.Client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: request.Namespace}, newConfigMap); err != nil {
+		reqLogger.Error(err, "Failed to get the config map.")
 		return reconcile.Result{}, err
 	}
 	*instance.Status.ConfigChanged = !reflect.DeepEqual(configMap.Data, newConfigMap.Data)
 
 	if *instance.Status.ConfigChanged {
 		reqLogger.Info("Update StatefulSet: ConfigChanged")
-		if err := r.Client.Update(context.TODO(), statefulSet); err != nil {
+		if err := r.Client.Update(context.TODO(), statefulSet); err != nil && !v1alpha1.IsOKForRequeque(err) {
 			reqLogger.Error(err, "Update StatefulSet failed")
 			return reconcile.Result{}, err
 		}
@@ -374,7 +386,7 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 
 	if beforeCheck != *instance.Status.ConfigChanged {
 		reqLogger.Info("Update Status: ConfigChanged")
-		if err := r.Client.Status().Update(context.TODO(), instance); err != nil {
+		if err := r.Client.Status().Update(context.TODO(), instance); err != nil && !v1alpha1.IsOKForRequeque(err) {
 			reqLogger.Error(err, "Update Status failed")
 			return reconcile.Result{}, err
 		}
@@ -383,6 +395,9 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 
 	instance.Status.Active = &falseVal
 	if err = instance.SetInstanceActive(r.Client, instance.Status.Active, statefulSet, request); err != nil {
+		if v1alpha1.IsOKForRequeque(err) {
+			return requeueReconcile, nil
+		}
 		reqLogger.Error(err, "SetInstanceActive failed")
 		return reconcile.Result{}, err
 	}
