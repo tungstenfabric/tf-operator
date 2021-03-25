@@ -346,24 +346,12 @@ func (c *AnalyticsSnmp) PodsCertSubjects(domain string, podList []corev1.Pod) []
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *AnalyticsSnmp) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance(instanceType, &c.Spec.CommonConfiguration, request, reconcileClient)
+	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient)
 }
 
 // SetInstanceActive sets instance to active.
 func (c *AnalyticsSnmp) SetInstanceActive(client client.Client, activeStatus *bool, sts *appsv1.StatefulSet, request reconcile.Request) error {
 	return SetInstanceActive(client, activeStatus, sts, request, c)
-}
-
-// ManageNodeStatus add nodes to status
-func (c *AnalyticsSnmp) ManageNodeStatus(podNameIPMap map[string]string,
-	client client.Client) error {
-
-	c.Status.Nodes = podNameIPMap
-	err := client.Status().Update(context.TODO(), c)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 // CommonStartupScript prepare common run service script

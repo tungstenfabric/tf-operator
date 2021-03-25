@@ -33,7 +33,7 @@ var instanceType = "analyticssnmp"
 
 // Log is a default logger for AnalyticsSnmp
 var log = logf.Log.WithName("controller_" + instanceType)
-var restartTime, _ = time.ParseDuration("1s")
+var restartTime, _ = time.ParseDuration("3s")
 var requeueReconcile = reconcile.Result{Requeue: true, RequeueAfter: restartTime}
 
 func resourceHandler(myclient client.Client) handler.Funcs {
@@ -266,6 +266,13 @@ func (r *ReconcileAnalyticsSnmp) Reconcile(request reconcile.Request) (reconcile
 		reqLogger.Error(err, "Pod list not found")
 		return reconcile.Result{}, err
 	}
+	if updated, err := v1alpha1.UpdatePodsAnnotations(podIPList, r.Client); updated || err != nil {
+		if err != nil && !v1alpha1.IsOKForRequeque(err) {
+			reqLogger.Error(err, "Failed to update pods annotations.")
+			return reconcile.Result{}, err
+		}
+		return requeueReconcile, nil
+	}
 
 	if len(podIPMap) > 0 {
 
@@ -297,7 +304,7 @@ func (r *ReconcileAnalyticsSnmp) Reconcile(request reconcile.Request) (reconcile
 
 	if *instance.Status.ConfigChanged {
 		reqLogger.Info("Update StatefulSet: ConfigChanged")
-		if err := r.Client.Update(context.TODO(), statefulSet); err != nil {
+		if err := r.Client.Update(context.TODO(), statefulSet); err != nil && !v1alpha1.IsOKForRequeque(err) {
 			reqLogger.Error(err, "Update StatefulSet failed")
 			return reconcile.Result{}, err
 		}
@@ -306,7 +313,7 @@ func (r *ReconcileAnalyticsSnmp) Reconcile(request reconcile.Request) (reconcile
 
 	if beforeCheck != *instance.Status.ConfigChanged {
 		reqLogger.Info("Update Status: ConfigChanged")
-		if err := r.Client.Status().Update(context.TODO(), instance); err != nil {
+		if err := r.Client.Status().Update(context.TODO(), instance); err != nil && !v1alpha1.IsOKForRequeque(err) {
 			reqLogger.Error(err, "Update Status failed")
 			return reconcile.Result{}, err
 		}
@@ -315,6 +322,10 @@ func (r *ReconcileAnalyticsSnmp) Reconcile(request reconcile.Request) (reconcile
 
 	instance.Status.Active = &falseVal
 	if err = instance.SetInstanceActive(r.Client, instance.Status.Active, statefulSet, request); err != nil {
+		if v1alpha1.IsOKForRequeque(err) {
+			reqLogger.Info("SetInstanceActive failed, and reconcile is restarting.")
+			return requeueReconcile, nil
+		}
 		reqLogger.Error(err, "SetInstanceActive failed")
 		return reconcile.Result{}, err
 	}

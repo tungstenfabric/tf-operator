@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"bytes"
 	"context"
+	"reflect"
 	"sort"
 	"strconv"
 
@@ -220,7 +221,7 @@ func (c *Zookeeper) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, requ
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *Zookeeper) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance(instanceType, &c.Spec.CommonConfiguration, request, reconcileClient)
+	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient)
 }
 
 // SetInstanceActive sets the Cassandra instance to active.
@@ -228,17 +229,25 @@ func (c *Zookeeper) SetInstanceActive(client client.Client, activeStatus *bool, 
 	return SetInstanceActive(client, activeStatus, sts, request, c)
 }
 
-// ManageNodeStatus manages the status of the Cassandra nodes.
-func (c *Zookeeper) ManageNodeStatus(podNameIPMap map[string]string,
-	client client.Client) error {
-	c.Status.Nodes = podNameIPMap
-	zookeeperConfig := c.ConfigurationParameters()
-	c.Status.Ports.ClientPort = strconv.Itoa(*zookeeperConfig.ClientPort)
-	err := client.Status().Update(context.TODO(), c)
-	if err != nil {
-		return err
+func (c *Zookeeper) ManageNodeStatus(podeNameIPMap map[string]string,
+	client client.Client) (updated bool, err error) {
+	updated = false
+	err = nil
+
+	config := c.ConfigurationParameters()
+	clientPort := strconv.Itoa(*config.ClientPort)
+	if clientPort == c.Status.Ports.ClientPort && reflect.DeepEqual(c.Status.Nodes, podeNameIPMap) {
+		return
 	}
-	return nil
+
+	c.Status.Ports.ClientPort = clientPort
+	c.Status.Nodes = podeNameIPMap
+	if err = client.Status().Update(context.TODO(), c); err != nil {
+		return
+	}
+
+	updated = true
+	return
 }
 
 // ConfigurationParameters sets the default for the configuration parameters.

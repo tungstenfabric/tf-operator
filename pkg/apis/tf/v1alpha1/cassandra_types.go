@@ -375,7 +375,7 @@ func (c *Cassandra) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, requ
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *Cassandra) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance(instanceType, &c.Spec.CommonConfiguration, request, reconcileClient)
+	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient)
 }
 
 //PodsCertSubjects gets list of Cassandra pods certificate subjets which can be passed to the certificate API

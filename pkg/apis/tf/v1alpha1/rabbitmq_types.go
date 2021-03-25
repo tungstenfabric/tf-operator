@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"reflect"
 	"sort"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -320,7 +321,7 @@ func (c *Rabbitmq) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, reque
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *Rabbitmq) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance(instanceType, &c.Spec.CommonConfiguration, request, reconcileClient)
+	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient)
 }
 
 //PodsCertSubjects gets list of Rabbitmq pods certificate subjets which can be passed to the certificate API
@@ -335,15 +336,24 @@ func (c *Rabbitmq) SetInstanceActive(client client.Client, activeStatus *bool, s
 }
 
 func (c *Rabbitmq) ManageNodeStatus(podNameIPMap map[string]string,
-	client client.Client) error {
-	c.Status.Nodes = podNameIPMap
+	client client.Client) (updated bool, err error) {
+	updated = false
+	err = nil
+
 	c.ConfigurationParameters()
-	c.Status.Secret = c.Spec.ServiceConfiguration.Secret
-	err := client.Status().Update(context.TODO(), c)
-	if err != nil {
-		return err
+	secret := c.Spec.ServiceConfiguration.Secret
+	if secret == c.Status.Secret && reflect.DeepEqual(c.Status.Nodes, podNameIPMap) {
+		return
 	}
-	return nil
+
+	c.Status.Secret = secret
+	c.Status.Nodes = podNameIPMap
+	if err = client.Status().Update(context.TODO(), c); err != nil {
+		return
+	}
+
+	updated = true
+	return
 }
 
 func (c *Rabbitmq) ConfigurationParameters() {

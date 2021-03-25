@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -457,7 +458,7 @@ func (c *Vrouter) SetInstanceActive(client client.Client, activeStatus *bool, ds
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *Vrouter) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance(instanceType, &c.Spec.CommonConfiguration, request, reconcileClient)
+	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient)
 }
 
 //PodsCertSubjects gets list of Vrouter pods certificate subjets which can be passed to the certificate API
@@ -499,15 +500,23 @@ func (c *Vrouter) SetPodsToReady(podIPList []corev1.Pod, client client.Client) e
 	return SetPodsToReady(podIPList, client)
 }
 
-// ManageNodeStatus manages nodes status
+// ManageNodeStatus updates nodes map
 func (c *Vrouter) ManageNodeStatus(podNameIPMap map[string]string,
-	client client.Client) error {
-	c.Status.Nodes = podNameIPMap
-	err := client.Status().Update(context.TODO(), c)
-	if err != nil {
-		return err
+	client client.Client) (updated bool, err error) {
+	updated = false
+	err = nil
+
+	if reflect.DeepEqual(c.Status.Nodes, podNameIPMap) {
+		return
 	}
-	return nil
+
+	c.Status.Nodes = podNameIPMap
+	if err = client.Status().Update(context.TODO(), c); err != nil {
+		return
+	}
+
+	updated = true
+	return
 }
 
 // VrouterConfigurationParameters is a method for gathering data used in rendering vRouter configuration

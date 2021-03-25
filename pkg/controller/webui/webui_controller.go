@@ -30,7 +30,7 @@ import (
 )
 
 var log = logf.Log.WithName("controller_webui")
-var restartTime, _ = time.ParseDuration("1s")
+var restartTime, _ = time.ParseDuration("3s")
 var requeueReconcile = reconcile.Result{Requeue: true, RequeueAfter: restartTime}
 
 func resourceHandler(myclient client.Client) handler.Funcs {
@@ -429,13 +429,15 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 
 	if created, err := instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil || created {
 		if err != nil {
+			reqLogger.Error(err, "Failed to create the stateful set.")
 			return reconcile.Result{}, err
 		}
 		return requeueReconcile, err
 	}
 
 	if updated, err := instance.UpdateSTS(statefulSet, instanceType, request, r.Client); err != nil || updated {
-		if err != nil {
+		if err != nil && !v1alpha1.IsOKForRequeque(err) {
+			reqLogger.Error(err, "Failed to update the stateful set.")
 			return reconcile.Result{}, err
 		}
 		return requeueReconcile, nil
@@ -446,6 +448,14 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 		log.Error(err, "PodIPListAndIPMapFromInstance failed")
 		return reconcile.Result{}, err
 	}
+	if updated, err := v1alpha1.UpdatePodsAnnotations(podIPList, r.Client); updated || err != nil {
+		if err != nil && !v1alpha1.IsOKForRequeque(err) {
+			reqLogger.Error(err, "Failed to update pods annotations.")
+			return reconcile.Result{}, err
+		}
+		return requeueReconcile, nil
+	}
+
 	if len(podIPList) > 0 {
 		if err = instance.InstanceConfiguration(request, podIPList, r.Client); err != nil {
 			log.Error(err, "InstanceConfiguration failed")
@@ -462,14 +472,20 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 			return reconcile.Result{}, err
 		}
 
-		if err = instance.ManageNodeStatus(podIPMap, r.Client); err != nil {
-			log.Error(err, "ManageNodeStatus failed")
-			return reconcile.Result{}, err
+		if updated, err := instance.ManageNodeStatus(podIPMap, r.Client); err != nil || updated {
+			if err != nil && !v1alpha1.IsOKForRequeque(err) {
+				reqLogger.Error(err, "Failed to manage node status")
+				return reconcile.Result{}, err
+			}
+			return requeueReconcile, nil
 		}
 	}
 
 	if err = r.updateStatus(instance, statefulSet, webuiService.ClusterIP()); err != nil {
-		log.Error(err, "updateStatus failed")
+		if v1alpha1.IsOKForRequeque(err) {
+			return requeueReconcile, nil
+		}
+		log.Error(err, "Failed to update status.")
 		return reconcile.Result{}, err
 	}
 

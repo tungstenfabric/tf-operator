@@ -31,7 +31,7 @@ import (
 )
 
 var log = logf.Log.WithName("controller_cassandra")
-var restartTime, _ = time.ParseDuration("1s")
+var restartTime, _ = time.ParseDuration("3s")
 var requeueReconcile = reconcile.Result{Requeue: true, RequeueAfter: restartTime}
 
 func resourceHandler(myclient client.Client) handler.Funcs {
@@ -322,6 +322,7 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	// Create statefulset if it doesn't exist
 	if created, err := instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil || created {
 		if err != nil {
+			reqLogger.Error(err, "Failed to create the stateful set.")
 			return reconcile.Result{}, err
 		}
 		return requeueReconcile, err
@@ -329,7 +330,8 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 
 	// Update StatefulSet if replicas or images changed
 	if updated, err := instance.UpdateSTS(statefulSet, instanceType, request, r.Client); err != nil || updated {
-		if err != nil {
+		if err != nil && !v1alpha1.IsOKForRequeque(err) {
+			reqLogger.Error(err, "Failed to update the stateful set.")
 			return reconcile.Result{}, err
 		}
 		return requeueReconcile, nil
@@ -340,6 +342,14 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	if err != nil {
 		return reconcile.Result{}, err
 	}
+	if updated, err := v1alpha1.UpdatePodsAnnotations(podList, r.Client); updated || err != nil {
+		if err != nil && !v1alpha1.IsOKForRequeque(err) {
+			reqLogger.Error(err, "Failed to update pods annotations.")
+			return reconcile.Result{}, err
+		}
+		return requeueReconcile, nil
+	}
+
 	if err := r.ensureCertificatesExist(instance, podList, clusterIP, instanceType); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -391,7 +401,7 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	}
 	if instance.UpdateStatus(cassandraConfig, podIPMap, currentSTS) || beforeCheck {
 		reqLogger.Info("Update Status")
-		if err = r.Client.Status().Update(context.TODO(), instance); err != nil {
+		if err = r.Client.Status().Update(context.TODO(), instance); err != nil && !v1alpha1.IsOKForRequeque(err) {
 			reqLogger.Error(err, "Update Status failed")
 		}
 		requeu = true
