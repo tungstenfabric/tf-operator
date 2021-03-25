@@ -7,7 +7,6 @@ metadata:
 spec:
   commonConfiguration:
     hostNetwork: true
-    replicas: 1
   services:
     analyticsSnmp:
       metadata:
