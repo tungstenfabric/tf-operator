@@ -2470,6 +2470,11 @@ func (in *VrouterConfiguration) DeepCopyInto(out *VrouterConfiguration) {
 			(*out)[key] = val
 		}
 	}
+	if in.CniMTU != nil {
+		in, out := &in.CniMTU, &out.CniMTU
+		*out = new(int)
+		**out = **in
+	}
 	return
 }
 

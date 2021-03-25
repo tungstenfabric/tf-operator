@@ -188,6 +188,9 @@ spec:
                   type: string
                 clusterRoleBinding:
                   type: string
+                cniMTU:
+                  description: CniMTU - mtu for virtual tap devices
+                  type: integer
                 collectorPort:
                   type: string
                 configApiPort:

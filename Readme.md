@@ -61,6 +61,12 @@ export KEYSTONE_AUTH_ADMIN_PASSWORD="<password>"
 ./tf-operator/contrib/render_manifests.sh
 ```
 
+## Set CNI MTU
+```bash
+export CNI_MTU=1450
+# ... other options
+./tf-operator/contrib/render_manifests.sh
+```
 
 ## Deploy TF cluster with operator
 ```bash

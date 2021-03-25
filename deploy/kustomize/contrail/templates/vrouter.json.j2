@@ -10,4 +10,12 @@
     "path": "/spec/services/vrouters/0/spec/serviceConfiguration/statusImage",
     "value": "{{ CONTAINER_REGISTRY }}/contrail-status:{{ CONTRAIL_CONTAINER_TAG }}"
   }
+{%- if CNI_MTU is defined and CNI_MTU != "" -%}
+  ,{
+    "op": "replace",
+    "path": "/spec/services/vrouters/0/spec/serviceConfiguration/cniMTU",
+    "value": {{ CNI_MTU }}
+  }
+{%- endif -%}
+
 ]
