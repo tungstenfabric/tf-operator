@@ -210,6 +210,9 @@ type VrouterConfiguration struct {
 	// HugePages
 	HugePages2M *int `json:"hugePages2M,omitempty"`
 	HugePages1G *int `json:"hugePages1G,omitempty"`
+
+	// CniMTU - mtu for virtual tap devices
+	CniMTU *int `json:"cniMTU,omitempty"`
 }
 
 // VrouterNodesConfiguration is the static configuration for vrouter.
@@ -838,8 +841,10 @@ func (c *Vrouter) GetCNIConfig(client client.Client, request reconcile.Request) 
 	var contrailCNIBuffer bytes.Buffer
 	err = configtemplates.ContrailCNIConfig.Execute(&contrailCNIBuffer, struct {
 		KubernetesClusterName string
+		MTU                   *int
 	}{
 		KubernetesClusterName: cfg.ClusterName,
+		MTU:                   c.Spec.ServiceConfiguration.CniMTU,
 	})
 	if err != nil {
 		panic(err)

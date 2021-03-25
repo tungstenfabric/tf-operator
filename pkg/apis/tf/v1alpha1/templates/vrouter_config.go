@@ -374,11 +374,15 @@ var ContrailCNIConfig = template.Must(template.New("").Parse(`{
       "meta-plugin"   : "multus",
       "vrouter-ip"    : "127.0.0.1",
       "vrouter-port"  : 9091,
+{{ if .MTU }}
+      "mtu"           : {{ .MTU }},
+{{ end }}
       "config-dir"    : "/var/lib/contrail/ports/vm",
       "poll-timeout"  : 5,
       "poll-retries"  : 15,
       "log-file"      : "/var/log/contrail/cni/opencontrail.log",
       "log-level"     : "4"
+
   },
   "name": "contrail-k8s-cni",
   "type": "contrail-k8s-cni"
