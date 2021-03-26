@@ -2,13 +2,19 @@
 # 
 ```bash
 cd tf-operator
-mdkir .bundle
+mkdir .bundle
 CONTRAIL_REPLICAS=3 CONTAINER_REGISTRY=docker.io/tungstenfabric CONTRAIL_CONTAINER_TAG=R2011 ./contrib/render_manifests.sh
 kubectl kustomize deploy/kustomize/operator/templates/ > .bundle/tf-operator.yaml
 kubectl kustomize deploy/kustomize/contrail/templates/ > .bundle/tf-core.yaml
 operator-sdk generate csv --crd-dir deploy/crds --deploy-dir .bundle --output-dir .bundle
 operator-sdk bundle create --verbose -d .bundle/manifests --channels R2011 --default-channel R2011 --generate-only --package tf-operator -o deploy/bundle
-mv bundle.Dockerfile deploy/bundle/
-sed -i 's/deploy\/bundle\///g' deploy/bundle/bundle.Dockerfile
-rm -rf .bundle
+sed 's/deploy\/bundle\///g' bundle.Dockerfile > deploy/bundle/bundle.Dockerfile
+rm -rf .bundle bundle.Dockerfile
+sed -i 's/capabilities: .*/capabilities: Seamless Upgrades/g' deploy/bundle/manifests/tf-operator.clusterserviceversion.yaml
+
+# edit deploy/bundle/manifests/tf-operator.clusterserviceversion.yaml
+# - installModes  - set true for OwnNamespace, others - false
+# - version       - set version
+# - keywords      - tf, tungsten, tungstenfabric
+# - maintainers   - 
 ```
