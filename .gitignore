@@ -7,4 +7,6 @@ build/_output/
 deploy/local_operator.yaml
 main
 .idea
+.deploy
+.bundle
 __pycache__
