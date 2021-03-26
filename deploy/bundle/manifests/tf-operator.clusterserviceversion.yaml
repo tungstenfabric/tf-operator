@@ -434,8 +434,12 @@ metadata:
           }
         }
       ]
-    capabilities: Basic Install
-  name: tf-operator.v
+    capabilities: Seamless Upgrades
+    containerImage: 'docker.io/tungstenfabric/tf-operator:R2011'
+    certified: 'false'
+    description: TF Operator enables TF SDN deployment
+    repository: https://github.com/tungstenfabric/tf-operator
+  name: tf-operator.v2011.1.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -594,14 +598,16 @@ spec:
   installModes:
   - supported: true
     type: OwnNamespace
-  - supported: true
+  - supported: false
     type: SingleNamespace
   - supported: false
     type: MultiNamespace
-  - supported: true
+  - supported: false
     type: AllNamespaces
   keywords:
-  - ""
+  - "tf"
+  - "tungsten"
+  - "tungstenfabric"
   maintainers:
   - {}
   maturity: alpha
