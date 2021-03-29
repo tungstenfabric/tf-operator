@@ -13,6 +13,20 @@ function link_file() {
   ln -sf $src $dst
 }
 
+function test_in_cluster() {
+  if local status=$(rabbitmqctl cluster_status --node $1 --formatter json) ; then
+    echo "$status" | python -c "$(cat <<SCRIPT
+import sys, json
+x=json.load(sys.stdin)
+for i in filter(lambda j: j == "$2", x.get("nodes", {}).get("disc", [])):
+  print(i)
+SCRIPT
+)"
+  return
+  fi
+  return 1
+}
+
 mkdir -p /etc/rabbitmq
 link_file rabbitmq.conf.${POD_IP} rabbitmq.conf
 link_file rabbitmq-env.conf.${POD_IP} rabbitmq-env.conf
@@ -26,6 +40,7 @@ source /etc/rabbitmq/rabbitmq-common.env
 mkdir -p /var/lib/rabbitmq /var/log/rabbitmq
 echo $RABBITMQ_ERLANG_COOKIE > /var/lib/rabbitmq/.erlang.cookie
 set -x
+set -m
 chmod 0600 /var/lib/rabbitmq/.erlang.cookie
 touch /var/run/rabbitmq.pid
 chown -R rabbitmq:rabbitmq /var/lib/rabbitmq /var/log/rabbitmq /var/run/rabbitmq.pid /etc/rabbitmq
@@ -34,20 +49,55 @@ bootstrap_node="rabbit@$(cat /etc/rabbitmq/0)"
 if [[ "$RABBITMQ_NODENAME" == "$bootstrap_node" ]] ; then
   rabbitmq-server
 else
+  rpid=""
   while true ; do
-    rabbitmqctl --node $RABBITMQ_NODENAME shutdown || true
-    rabbitmq-server -detached || exit 1
-    while true; do
-      rabbitmqctl --node $bootstrap_node ping && rabbitmqctl --node $RABBITMQ_NODENAME ping && break
+    date
+    rabbitmqctl --node $RABBITMQ_NODENAME shutdown
+    if [ -n "$rpid" ] && kill -0 $rpid 2>/dev/null ; then
+      kill -9 $rpid
+      wait $rpid
+    fi
+    rabbitmq-server &
+    rpid=$!
+    kill -0 $rpid || continue
+
+    # NB. working ping doesn't mean the process is able to report status
+    while ! rabbitmqctl --node $RABBITMQ_NODENAME ping ; do
+      sleep $(( 5 + $RANDOM % 5 ))
+      date
+    done  
+    sleep $(( 5 + $RANDOM % 5 ))
+
+    in_cluster=""
+    for i in {1..5} ; do
+      if in_cluster=$(test_in_cluster $RABBITMQ_NODENAME $bootstrap_node) ; then
+        break
+      fi
+      sleep $(( 5 + $RANDOM % 5 ))
+      date
     done
-    sleep $(( $RANDOM % 5 ))
-    rabbitmqctl --node $RABBITMQ_NODENAME stop_app || continue
+    if [ -n "$in_cluster" ] ; then
+      # alrady in cluster
+      break
+    fi
+
+    # need to re-join
+    # stop app
+    rabbitmqctl --node $RABBITMQ_NODENAME stop_app
+    # wait main bootstrap node
+    while ! rabbitmqctl --node $bootstrap_node ping ; do
+      sleep $(( 5 + $RANDOM % 5 ))
+      date
+    done
+    sleep $(( 5 + $RANDOM % 5 ))
     rabbitmqctl --node $bootstrap_node forget_cluster_node $RABBITMQ_NODENAME
+    rabbitmqctl --node $RABBITMQ_NODENAME reset
     rabbitmqctl --node $RABBITMQ_NODENAME join_cluster $bootstrap_node || continue
+    rabbitmqctl --node $RABBITMQ_NODENAME start_app || continue
     break
   done
-  rabbitmqctl --node $RABBITMQ_NODENAME shutdown
-  rabbitmq-server
+  jobs
+  fg
 fi
 `))
 
