@@ -1,8 +1,4 @@
-{%- if CONTRAIL_REPLICAS is not defined -%}
-{%- if CONTROLLER_NODES is defined and CONTROLLER_NODES|length -%}
-{%- set CONTRAIL_REPLICAS = " ".join(CONTROLLER_NODES.split(",")).split()|length -%}
-{%- endif -%}
-{%- endif -%}
+{%- if CONTRAIL_REPLICAS is defined -%}
 ---
 apiVersion: tf.tungsten.io/v1alpha1
 kind: Manager
@@ -12,3 +8,4 @@ metadata:
 spec:
   commonConfiguration:
     replicas: {{ CONTRAIL_REPLICAS | default(1) }}
+{%- endif -%}
