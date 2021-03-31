@@ -1458,11 +1458,6 @@ func (in *ManagerConfiguration) DeepCopyInto(out *ManagerConfiguration) {
 		in, out := &in.AuthParameters, &out.AuthParameters
 		(*in).DeepCopyInto(*out)
 	}
-	if in.UseKubeadmConfig != nil {
-		in, out := &in.UseKubeadmConfig, &out.UseKubeadmConfig
-		*out = new(bool)
-		**out = **in
-	}
 	if in.TuneSysctl != nil {
 		in, out := &in.TuneSysctl, &out.TuneSysctl
 		*out = new(bool)

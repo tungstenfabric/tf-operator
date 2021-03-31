@@ -8,6 +8,8 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -96,83 +98,219 @@ func getManager(client client.Client) (Manager, error) {
 	return mngr, err
 }
 
-// ClusterParameters get kube params from manager config or requsts kubeadm cluster configmap
-func ClusterParameters(client client.Client) (*KubernetesClusterConfig, error) {
-
-	mngr, err := getManager(client)
+func yamlToStruct(yamlString string, structPointer interface{}) error {
+	jsonData, err := yaml.YAMLToJSON([]byte(yamlString))
 	if err != nil {
-		clusterInfoLog.Info(fmt.Sprintf("Error DefaultUnstructuredConverter %v", err))
+		clusterInfoLog.Error(err, "YAMLToJSON failed", "jsonData", jsonData)
+		return err
+	}
+
+	if err = yaml.Unmarshal([]byte(jsonData), structPointer); err != nil {
+		clusterInfoLog.Error(err, "Unmarshal failed", "jsonData", jsonData)
+		return err
+	}
+
+	return nil
+}
+
+var getConfigMapFromOtherNamespace = func(name string, namespace string) (*v1.ConfigMap, error) {
+	// getConfigMapFromOtherNamespace use requests to k8s api. Thats why we
+	// create it as a variable to have an ability to mock it in the unit tests.
+
+	config, err := k8s.GetClientConfig()
+	if err != nil {
+		clusterInfoLog.Error(err, "GetClientConfig failed")
 		return nil, err
 	}
-	useKubeadmConfig := KubernetesUseKubeadm
-	if mngr.Spec.CommonConfiguration.UseKubeadmConfig != nil {
-		useKubeadmConfig = *mngr.Spec.CommonConfiguration.UseKubeadmConfig
+
+	clientset, err := k8s.GetClientsetFromConfig(config)
+	if err != nil {
+		clusterInfoLog.Error(err, "GetClientsetFromConfig failed")
+		return nil, err
 	}
 
-	clusterConfigMap := KubernetesClusterConfig{}
-	if useKubeadmConfig {
-		// ===
-		// TODO: by some reason client from reconcile cannot read othe namespaces, so get common client
-		// kcm := &corev1.ConfigMap{}
-		// err := client.Get(context.TODO(), types.NamespacedName{Name: "kubeadm-config", Namespace: "kube-system"}, kcm)
-		config, err := k8s.GetClientConfig()
-		if err != nil {
-			clusterInfoLog.Error(err, "GetClientConfig failed")
-			return nil, err
+	configMap, err := clientset.CoreV1().ConfigMaps(namespace).Get(name, metav1.GetOptions{})
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			clusterInfoLog.Error(err, fmt.Sprintf("CoreV1.ConfigMaps failed to get %v", name))
 		}
-		clientset, err := k8s.GetClientsetFromConfig(config)
-		if err != nil {
-			clusterInfoLog.Error(err, "GetClientsetFromConfig failed")
-			return nil, err
-		}
-		kcm, err := clientset.CoreV1().ConfigMaps("kube-system").Get("kubeadm-config", metav1.GetOptions{})
-		if err != nil {
-			clusterInfoLog.Error(err, "CoreV1.ConfigMaps failed to get kubeadm-config")
-			return nil, err
-		}
-		// ====
-
-		jsonData, err := yaml.YAMLToJSON([]byte(kcm.Data["ClusterConfiguration"]))
-		if err != nil {
-			clusterInfoLog.Error(err, "YAMLToJSON failed", "jsonData", jsonData)
-			return nil, err
-		}
-		err = yaml.Unmarshal([]byte(jsonData), &clusterConfigMap)
-		if err != nil {
-			clusterInfoLog.Error(err, "Unmarshal failed", "jsonData", jsonData)
-			return nil, err
-		}
-		// TODO: for now use default paths for k8s
-		clusterConfigMap.Networking.CNIConfig = CNIConfig{ConfigPath: CNIConfigPath, BinaryPath: CNIBinaryPath}
-		return &clusterConfigMap, err
+		return nil, err
 	}
 
-	if mngr.Spec.CommonConfiguration.ClusterConfig != nil {
-		clusterConfigMap = *mngr.Spec.CommonConfiguration.ClusterConfig
+	return configMap, nil
+}
+
+func (to *KubernetesClusterConfig) replaceFields(from KubernetesClusterConfig) *KubernetesClusterConfig {
+	if from.ClusterName != "" {
+		to.ClusterName = from.ClusterName
 	}
-	if clusterConfigMap.ClusterName == "" {
-		clusterConfigMap.ClusterName = KubernetesClusterName
+	if from.Networking.DNSDomain != "" {
+		to.Networking.DNSDomain = from.Networking.DNSDomain
 	}
-	if clusterConfigMap.Networking.DNSDomain == "" {
-		clusterConfigMap.Networking.DNSDomain = KubernetesClusterName
+	if from.Networking.PodSubnet != "" {
+		to.Networking.PodSubnet = from.Networking.PodSubnet
 	}
-	if clusterConfigMap.Networking.PodSubnet == "" {
-		clusterConfigMap.Networking.PodSubnet = KubernetesPodSubnet
+	if from.Networking.ServiceSubnet != "" {
+		to.Networking.ServiceSubnet = from.Networking.ServiceSubnet
 	}
-	if clusterConfigMap.Networking.ServiceSubnet == "" {
-		clusterConfigMap.Networking.ServiceSubnet = KubernetesServiceSubnet
+	if from.Networking.CNIConfig.ConfigPath != "" {
+		to.Networking.CNIConfig.ConfigPath = from.Networking.CNIConfig.ConfigPath
 	}
-	if clusterConfigMap.Networking.CNIConfig.ConfigPath == "" {
-		clusterConfigMap.Networking.CNIConfig.ConfigPath = CNIConfigPath
+	if from.Networking.CNIConfig.BinaryPath != "" {
+		to.Networking.CNIConfig.BinaryPath = from.Networking.CNIConfig.BinaryPath
 	}
-	if clusterConfigMap.Networking.CNIConfig.BinaryPath == "" {
-		clusterConfigMap.Networking.CNIConfig.BinaryPath = CNIBinaryPath
+
+	if from.ControlPlaneEndpoint != "" {
+		to.ControlPlaneEndpoint = from.ControlPlaneEndpoint
 	}
-	if clusterConfigMap.ControlPlaneEndpoint == "" {
-		clusterConfigMap.ControlPlaneEndpoint = "api." + clusterConfigMap.ClusterName + "." +
-			clusterConfigMap.Networking.DNSDomain + ":" + strconv.Itoa(KubernetesApiSSLPort)
+
+	return to
+}
+
+func (c *KubernetesClusterConfig) fillWithDefaultValues() {
+	c.ClusterName = KubernetesClusterName
+	c.Networking.DNSDomain = KubernetesDNSDomainName
+	c.Networking.PodSubnet = KubernetesPodSubnet
+	c.Networking.ServiceSubnet = KubernetesServiceSubnet
+	c.Networking.CNIConfig.ConfigPath = CNIConfigPath
+	c.Networking.CNIConfig.BinaryPath = CNIBinaryPath
+}
+
+func (c *KubernetesClusterConfig) fillWithKubeadmConfigMap() error {
+	kubeadmConfigMap, err := getConfigMapFromOtherNamespace("kubeadm-config", "kube-system")
+	if err != nil {
+		// Which config map is used for containing parameters depends on method of deployment.
+		// So, there is only one system config map at a time: kubeadm or cluster.
+		// Thats why it's ok to be not found.
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		clusterInfoLog.Error(err, "Failed to fill with kubeadm config map.")
+		return err
 	}
-	return &clusterConfigMap, err
+
+	yamlString := kubeadmConfigMap.Data["ClusterConfiguration"]
+	if err = yamlToStruct(yamlString, c); err != nil {
+		clusterInfoLog.Error(err, "Failed to yamlToStruct for kubeadmConfig ClusterConfiguration")
+	}
+
+	if c.ControlPlaneEndpoint != "" {
+		return nil
+	}
+
+	var clusterStatusStruct struct {
+		ApiEndpoints map[string]struct {
+			AdvertiseAddress string
+			BindPort         *int
+		}
+	}
+
+	yamlString = kubeadmConfigMap.Data["ClusterStatus"]
+	if err = yamlToStruct(yamlString, &clusterStatusStruct); err != nil {
+		clusterInfoLog.Error(err, "Failed to yamlToStruct for kubeadmConfig CluserStatus")
+		return err
+	}
+
+	if clusterStatusStruct.ApiEndpoints == nil {
+		return nil
+	}
+
+	for _, val := range clusterStatusStruct.ApiEndpoints {
+		if val.AdvertiseAddress != "" && val.BindPort != nil {
+			c.ControlPlaneEndpoint = fmt.Sprintf("%v:%v", val.AdvertiseAddress, *val.BindPort)
+			return nil
+		}
+	}
+	return nil
+}
+
+func (c *KubernetesClusterConfig) fillWithClusterConfigMap() error {
+	clusterConfigMap, err := getConfigMapFromOtherNamespace("cluster-config-v1", "kube-system")
+	if err != nil {
+		// Which config map is used for containing parameters depends on method of deployment.
+		// So, there is only one system config map at a time: kubeadm or cluster.
+		// Thats why it's ok to be not found.
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		clusterInfoLog.Error(err, "Failed to fill with cluster config map.")
+		return err
+	}
+
+	yamlString := clusterConfigMap.Data["install-config"]
+	var clusterConfigStruct struct {
+		BaseDomain string
+		Metadata   struct {
+			Name string
+		}
+		Networking struct {
+			ClusterNetwork []struct {
+				Cidr       string
+				HostPrefix string
+			}
+			ServiceNetwork []string
+		}
+	}
+	if err := yamlToStruct(yamlString, &clusterConfigStruct); err != nil {
+		return err
+	}
+
+	c.ClusterName = clusterConfigStruct.Metadata.Name
+	c.Networking.DNSDomain = clusterConfigStruct.BaseDomain
+	if len(clusterConfigStruct.Networking.ClusterNetwork) > 0 {
+		c.Networking.PodSubnet = clusterConfigStruct.Networking.ClusterNetwork[0].Cidr
+	}
+	if len(clusterConfigStruct.Networking.ServiceNetwork) > 0 {
+		c.Networking.ServiceSubnet = clusterConfigStruct.Networking.ServiceNetwork[0]
+	}
+
+	return nil
+}
+
+func (c *KubernetesClusterConfig) fillWithManagerConfiguration(client client.Client) error {
+	manager, err := getManager(client)
+	if err != nil {
+		clusterInfoLog.Info(fmt.Sprintf("Error DefaultUnstructuredConverter %v", err))
+		return err
+	}
+
+	managerClusterConfig := manager.Spec.CommonConfiguration.ClusterConfig
+	if managerClusterConfig != nil {
+		*c = *managerClusterConfig
+	}
+	return nil
+}
+
+// ClusterParameters returns cluster configuration, merged from manager configuration and system configmaps
+func ClusterParameters(client client.Client) (*KubernetesClusterConfig, error) {
+	var defaultConfig, kubeadmConfig, clusterConfig, managerConfig KubernetesClusterConfig
+
+	defaultConfig.fillWithDefaultValues()
+
+	if err := kubeadmConfig.fillWithKubeadmConfigMap(); err != nil {
+		return nil, err
+	}
+
+	if err := clusterConfig.fillWithClusterConfigMap(); err != nil {
+		return nil, err
+	}
+
+	if err := managerConfig.fillWithManagerConfiguration(client); err != nil {
+		return nil, err
+	}
+
+	resultConfig := defaultConfig.replaceFields(kubeadmConfig).
+		replaceFields(clusterConfig).replaceFields(managerConfig)
+
+	if resultConfig.ControlPlaneEndpoint == "" {
+		resultConfig.ControlPlaneEndpoint = fmt.Sprintf("api.%v.%v:%v",
+			resultConfig.ClusterName,
+			resultConfig.Networking.DNSDomain,
+			strconv.Itoa(KubernetesApiSSLPort),
+		)
+	}
+
+	return resultConfig, nil
 }
 
 // KubernetesAPISSLPort gathers SSL Port from Kubernetes Cluster via kubeadm-config ConfigMap
