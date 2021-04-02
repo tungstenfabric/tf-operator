@@ -90,23 +90,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	clusterRegex := *clusterName + "-*"
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String(*region)},
-	)
+	sess, err := session.NewSession(&aws.Config{Region: aws.String(*region)})
 	if err != nil {
 		log.Fatal("Couldn't create new session to AWS region: ", region, "\n", err)
 		os.Exit(1)
 	}
 
 	svc := ec2.New(sess)
-	tagValueString := "tag-value"
+	log.Print("Lookup VPC ", *clusterName, " in region ", *region)
 	vpc, err := svc.DescribeVpcs(&ec2.DescribeVpcsInput{
 		Filters: []*ec2.Filter{
 			{
-				Name: &tagValueString,
+				Name: aws.String("tag-value"),
 				Values: []*string{
-					&clusterRegex,
+					aws.String(*clusterName + "-*"),
 				},
 			},
 		},
@@ -117,18 +114,17 @@ func main() {
 	}
 
 	if len(vpc.Vpcs) != 1 {
-		log.Fatal("Unable to get VPCs - there's ", len(vpc.Vpcs), " VPCs (should be 1)")
+		log.Fatal("Unable to get VPCs - there's ", len(vpc.Vpcs), " VPCs (should be 1): ", vpc.Vpcs)
 		os.Exit(1)
 	}
+	log.Print("Found VPC: ", vpc.Vpcs[0])
 
-	vpcID := *vpc.Vpcs[0].VpcId
-	vpcIdstring := "vpc-id"
 	result, err := svc.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
 		Filters: []*ec2.Filter{
 			{
-				Name: &vpcIdstring,
+				Name: aws.String("vpc-id"),
 				Values: []*string{
-					&vpcID,
+					vpc.Vpcs[0].VpcId,
 				},
 			},
 		},
@@ -144,7 +140,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Print("Security Group:")
 	for _, group := range result.SecurityGroups {
 		if *group.GroupName == "default" {
 			continue
@@ -154,6 +149,6 @@ func main() {
 			log.Fatal("Unable to set rules for security groups, ", *group.GroupName, "\nError: ", err)
 			os.Exit(1)
 		}
-		log.Print("Rules added for scurity group: ", *group.GroupName)
+		log.Print("Rules added for security group: ", *group.GroupName)
 	}
 }
