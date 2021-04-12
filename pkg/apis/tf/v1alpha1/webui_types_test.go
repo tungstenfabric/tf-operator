@@ -64,7 +64,7 @@ var webuiSecret = &corev1.Secret{
 
 var webuiControl = &Control{
 	ObjectMeta: metav1.ObjectMeta{
-		Name: "control1",
+		Name:      "control1",
 		Namespace: "test-ns",
 	},
 	Status: ControlStatus{
@@ -77,7 +77,7 @@ var webuiControl = &Control{
 
 var webuiCassandra = &Cassandra{
 	ObjectMeta: metav1.ObjectMeta{
-		Name: "cassandra1",
+		Name:      "configdb1",
 		Namespace: "test-ns",
 	},
 	Status: CassandraStatus{
@@ -90,7 +90,7 @@ var webuiCassandra = &Cassandra{
 
 var webuiConfig = &Config{
 	ObjectMeta: metav1.ObjectMeta{
-		Name: "config1",
+		Name:      "config1",
 		Namespace: "test-ns",
 	},
 	Status: ConfigStatus{
@@ -103,7 +103,7 @@ var webuiConfig = &Config{
 
 var webuiAnalytics = &Analytics{
 	ObjectMeta: metav1.ObjectMeta{
-		Name: "analytics1",
+		Name:      "analytics1",
 		Namespace: "test-ns",
 	},
 	Status: AnalyticsStatus{
@@ -116,7 +116,6 @@ var webuiAnalytics = &Analytics{
 
 var authTestPort = 9999
 var authTestPassword = "test-pass"
-
 
 func TestWebuiConfigMapWithDefaultValues(t *testing.T) {
 	scheme, err := SchemeBuilder.Build()
@@ -134,21 +133,21 @@ func TestWebuiConfigMapWithDefaultValues(t *testing.T) {
 				AuthParameters: &AuthParameters{
 					AuthMode: "keystone",
 					KeystoneAuthParameters: &KeystoneAuthParameters{
-						AuthProtocol: "https",
-						Address: "7.7.7.7",
-						Port: &authTestPort,
-						AdminPassword: &authTestPassword,
-						AdminUsername: "user",
-						UserDomainName: "test-user-domain.org",
+						AuthProtocol:      "https",
+						Address:           "7.7.7.7",
+						Port:              &authTestPort,
+						AdminPassword:     &authTestPassword,
+						AdminUsername:     "user",
+						UserDomainName:    "test-user-domain.org",
 						ProjectDomainName: "test-project-domain.org",
 					},
 				},
 			},
 			ServiceConfiguration: WebuiConfiguration{
-				ConfigInstance: "config1",
+				ConfigInstance:    "config1",
 				AnalyticsInstance: "analytics1",
-				ControlInstance: "control1",
-				CassandraInstance: "cassandra1",
+				ControlInstance:   "control1",
+				CassandraInstance: "configdb1",
 			},
 		},
 	}
@@ -185,21 +184,21 @@ func TestWebuiConfigMapWithCustomValues(t *testing.T) {
 				AuthParameters: &AuthParameters{
 					AuthMode: "keystone",
 					KeystoneAuthParameters: &KeystoneAuthParameters{
-						AuthProtocol: "https",
-						Address: "7.7.7.7",
-						Port: &authTestPort,
-						AdminPassword: &authTestPassword,
-						AdminUsername: "user",
-						UserDomainName: "test-user-domain.org",
+						AuthProtocol:      "https",
+						Address:           "7.7.7.7",
+						Port:              &authTestPort,
+						AdminPassword:     &authTestPassword,
+						AdminUsername:     "user",
+						UserDomainName:    "test-user-domain.org",
 						ProjectDomainName: "test-project-domain.org",
 					},
 				},
 			},
 			ServiceConfiguration: WebuiConfiguration{
-				ConfigInstance: "config1",
+				ConfigInstance:    "config1",
 				AnalyticsInstance: "analytics1",
-				ControlInstance: "control1",
-				CassandraInstance: "cassandra1",
+				ControlInstance:   "control1",
+				CassandraInstance: "configdb1",
 			},
 		},
 	}
