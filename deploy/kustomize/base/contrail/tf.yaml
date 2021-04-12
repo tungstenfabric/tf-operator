@@ -20,7 +20,7 @@ spec:
         serviceConfiguration:
           logLevel: SYS_DEBUG
           zookeeperInstance: zookeeper1
-          cassandraInstance: cassandra1
+          cassandraInstance: configdb1
           rabbitmqInstance: rabbitmq1
           configInstance: config1
           containers:
@@ -50,7 +50,7 @@ spec:
           configInstance: config1
           analyticsInstance: analytics1
           zookeeperInstance: zookeeper1
-          cassandraInstance: cassandra1
+          cassandraInstance: configdb1
           rabbitmqInstance: rabbitmq1
           containers:
           - name: queryengine
@@ -71,7 +71,7 @@ spec:
         serviceConfiguration:
           logLevel: SYS_DEBUG
           zookeeperInstance: zookeeper1
-          cassandraInstance: cassandra1
+          cassandraInstance: configdb1
           rabbitmqInstance: rabbitmq1
           configInstance: config1
           analyticsInstance: analytics1
@@ -96,7 +96,7 @@ spec:
         serviceConfiguration:
           logLevel: SYS_DEBUG
           zookeeperInstance: zookeeper1
-          cassandraInstance: cassandra1
+          cassandraInstance: configdb1
           rabbitmqInstance: rabbitmq1
           configInstance: config1
           analyticsInstance: analytics1
@@ -113,7 +113,7 @@ spec:
     - metadata:
         labels:
           tf_cluster: cluster1
-        name: cassandra1
+        name: configdb1
       spec:
         commonConfiguration:
           nodeSelector:
@@ -140,7 +140,7 @@ spec:
         serviceConfiguration:
           logLevel: SYS_DEBUG
           zookeeperInstance: zookeeper1
-          cassandraInstance: cassandra1
+          cassandraInstance: configdb1
           rabbitmqInstance: rabbitmq1
           analyticsInstance: analytics1
           containers:
@@ -169,7 +169,7 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
-          cassandraInstance: cassandra1
+          cassandraInstance: configdb1
           rabbitmqInstance: rabbitmq1
           configInstance: config1
           analyticsInstance: analytics1
@@ -197,7 +197,7 @@ spec:
         serviceConfiguration:
           logLevel: SYS_DEBUG
           zookeeperInstance: zookeeper1
-          cassandraInstance: cassandra1
+          cassandraInstance: configdb1
           rabbitmqInstance: rabbitmq1
           configInstance: config1
           analyticsInstance: analytics1
@@ -260,7 +260,7 @@ spec:
           configInstance: config1
           analyticsInstance: analytics1
           controlInstance: control1
-          cassandraInstance: cassandra1
+          cassandraInstance: configdb1
           logLevel: SYS_DEBUG
           containers:
           - name: redis

@@ -102,11 +102,11 @@ spec:
               fieldPath: metadata.annotations['hostname']
       volumes:
       - hostPath:
-          path: /var/log/contrail/cassandra
+          path: /var/log/contrail/config-database
           type: ""
         name: cassandra-logs
       - hostPath:
-          path: /var/lib/contrail/cassandra
+          path: /var/lib/contrail/config-database
           type: ""
         name: cassandra-data
       - downwardAPI:

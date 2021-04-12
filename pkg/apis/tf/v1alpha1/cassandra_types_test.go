@@ -39,14 +39,14 @@ var cassandraPodList = []corev1.Pod{
 
 var cassandraRequest = reconcile.Request{
 	NamespacedName: types.NamespacedName{
-		Name:      "cassandra1",
+		Name:      "configdb1",
 		Namespace: "test-ns",
 	},
 }
 
 var cassandraCM = &corev1.ConfigMap{
 	ObjectMeta: metav1.ObjectMeta{
-		Name:      "cassandra1-cassandra-configmap",
+		Name:      "configdb1-cassandra-configmap",
 		Namespace: "test-ns",
 	},
 	Data: map[string]string{"": ""},
@@ -54,7 +54,7 @@ var cassandraCM = &corev1.ConfigMap{
 
 var cassandraSecret = &corev1.Secret{
 	ObjectMeta: metav1.ObjectMeta{
-		Name:      "cassandra1-secret",
+		Name:      "configdb1-secret",
 		Namespace: "test-ns",
 	},
 	Data: map[string][]byte{
@@ -83,7 +83,7 @@ var analyticsPort = 8086
 
 var cassandraAnalytics = &Analytics{
 	ObjectMeta: metav1.ObjectMeta{
-		Name: "analytics1",
+		Name:      "analytics1",
 		Namespace: "test-ns",
 	},
 	Spec: AnalyticsSpec{
@@ -97,7 +97,6 @@ var cassandraAnalytics = &Analytics{
 			"pod2": "2.2.2.2",
 		},
 	},
-
 }
 
 type CassandraParamsStruct struct {
@@ -119,7 +118,7 @@ func TestCassandraConfigMapsWithDefaultValues(t *testing.T) {
 	cl := fake.NewFakeClientWithScheme(scheme, cassandraCM, cassandraSecret, config, cassandraAnalytics)
 	cassandra := Cassandra{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cassandra1",
+			Name:      "configdb1",
 			Namespace: "test-ns",
 		},
 		Spec: CassandraSpec{
@@ -129,7 +128,7 @@ func TestCassandraConfigMapsWithDefaultValues(t *testing.T) {
 				},
 			},
 			ServiceConfiguration: CassandraConfiguration{
-				ConfigInstance: "config1",
+				ConfigInstance:    "config1",
 				AnalyticsInstance: "analytics1",
 			},
 		},
@@ -138,7 +137,7 @@ func TestCassandraConfigMapsWithDefaultValues(t *testing.T) {
 	require.NoError(t, cassandra.InstanceConfiguration(cassandraRequest, cassandraPodList, cl))
 
 	var cassandraConfigMap = &corev1.ConfigMap{}
-	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "cassandra1-cassandra-configmap", Namespace: "test-ns"}, cassandraConfigMap), "Error while gathering cassandra config map")
+	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "configdb1-cassandra-configmap", Namespace: "test-ns"}, cassandraConfigMap), "Error while gathering cassandra config map")
 
 	var cassandraConfig CassandraParamsStruct
 	err = yaml.Unmarshal([]byte(cassandraConfigMap.Data["cassandra.1.1.1.1.yaml"]), &cassandraConfig)
@@ -227,7 +226,7 @@ func TestCassandraConfigMapsWithCustomValues(t *testing.T) {
 	cl := fake.NewFakeClientWithScheme(scheme, cassandraCM, cassandraSecret, config, cassandraAnalytics)
 	cassandra := Cassandra{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cassandra1",
+			Name:      "configdb1",
 			Namespace: "test-ns",
 		},
 		Spec: CassandraSpec{
@@ -243,7 +242,7 @@ func TestCassandraConfigMapsWithCustomValues(t *testing.T) {
 				},
 			},
 			ServiceConfiguration: CassandraConfiguration{
-				ConfigInstance: "config1",
+				ConfigInstance:    "config1",
 				AnalyticsInstance: "analytics1",
 				CassandraParameters: CassandraConfigParameters{
 					CompactionThroughputMbPerSec:     22,
@@ -262,7 +261,7 @@ func TestCassandraConfigMapsWithCustomValues(t *testing.T) {
 	require.NoError(t, cassandra.InstanceConfiguration(cassandraRequest, cassandraPodList, cl))
 
 	var cassandraConfigMap = &corev1.ConfigMap{}
-	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "cassandra1-cassandra-configmap", Namespace: "test-ns"}, cassandraConfigMap), "Error while gathering cassandra config map")
+	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "configdb1-cassandra-configmap", Namespace: "test-ns"}, cassandraConfigMap), "Error while gathering cassandra config map")
 
 	var cassandraConfig CassandraParamsStruct
 	err = yaml.Unmarshal([]byte(cassandraConfigMap.Data["cassandra.1.1.1.1.yaml"]), &cassandraConfig)
