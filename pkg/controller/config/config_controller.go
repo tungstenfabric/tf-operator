@@ -30,7 +30,7 @@ import (
 
 var log = logf.Log.WithName("controller_config")
 
-var restartTime, _ = time.ParseDuration("1s")
+var restartTime, _ = time.ParseDuration("3s")
 var requeueReconcile = reconcile.Result{Requeue: true, RequeueAfter: restartTime}
 
 func resourceHandler(myclient client.Client) handler.Funcs {
@@ -443,13 +443,15 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 
 	if created, err := instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil || created {
 		if err != nil {
+			reqLogger.Error(err, "Failed to create the stateful set.")
 			return reconcile.Result{}, err
 		}
-		return requeueReconcile, err
+		return requeueReconcile, nil
 	}
 
 	if updated, err := instance.UpdateSTS(statefulSet, instanceType, request, r.Client); err != nil || updated {
-		if err != nil {
+		if err != nil && !v1alpha1.IsOKForRequeque(err) {
+			reqLogger.Error(err, "Failed to update the stateful set.")
 			return reconcile.Result{}, err
 		}
 		return requeueReconcile, nil
@@ -459,6 +461,14 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 	if err != nil {
 		return reconcile.Result{}, err
 	}
+	if updated, err := v1alpha1.UpdatePodsAnnotations(podIPList, r.Client); updated || err != nil {
+		if err != nil && !v1alpha1.IsOKForRequeque(err) {
+			reqLogger.Error(err, "Failed to update pods annotations.")
+			return reconcile.Result{}, err
+		}
+		return requeueReconcile, nil
+	}
+
 	if len(podIPMap) > 0 {
 		if err := r.ensureCertificatesExist(instance, podIPList, instanceType); err != nil {
 			reqLogger.Error(err, "Failed to ensure CertificatesExist")
@@ -475,9 +485,12 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 			return reconcile.Result{}, err
 		}
 
-		if err = instance.ManageNodeStatus(podIPMap, r.Client); err != nil {
-			reqLogger.Error(err, "Failed manager node status")
-			return reconcile.Result{}, err
+		if updated, err := instance.ManageNodeStatus(podIPMap, r.Client); err != nil || updated {
+			if err != nil && !v1alpha1.IsOKForRequeque(err) {
+				reqLogger.Error(err, "Failed to manage node status")
+				return reconcile.Result{}, err
+			}
+			return requeueReconcile, nil
 		}
 	}
 
@@ -499,7 +512,7 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 
 	if *instance.Status.ConfigChanged {
 		reqLogger.Info("Update StatefulSet: ConfigChanged")
-		if err := r.Client.Update(context.TODO(), statefulSet); err != nil {
+		if err := r.Client.Update(context.TODO(), statefulSet); err != nil && !v1alpha1.IsOKForRequeque(err) {
 			reqLogger.Error(err, "Update StatefulSet failed")
 			return reconcile.Result{}, err
 		}
@@ -508,7 +521,7 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 
 	if beforeCheck != *instance.Status.ConfigChanged {
 		reqLogger.Info("Update Status: ConfigChanged")
-		if err := r.Client.Status().Update(context.TODO(), instance); err != nil {
+		if err := r.Client.Status().Update(context.TODO(), instance); err != nil && !v1alpha1.IsOKForRequeque(err) {
 			reqLogger.Error(err, "Update Status failed")
 			return reconcile.Result{}, err
 		}
@@ -517,6 +530,10 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 
 	instance.Status.Active = &falseVal
 	if err = instance.SetInstanceActive(r.Client, instance.Status.Active, statefulSet, request); err != nil {
+		if v1alpha1.IsOKForRequeque(err) {
+			reqLogger.Info("Failed to set instance active, and reconcile is restarting.")
+			return requeueReconcile, nil
+		}
 		reqLogger.Error(err, "Failed to set instance active")
 		return reconcile.Result{}, err
 	}

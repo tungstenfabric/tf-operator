@@ -2,6 +2,7 @@ package manager
 
 import (
 	"context"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -26,6 +27,8 @@ import (
 )
 
 var log = logf.Log.WithName("controller_manager")
+var restartTime, _ = time.ParseDuration("3s")
+var requeueReconcile = reconcile.Result{Requeue: true, RequeueAfter: restartTime}
 
 var resourcesList = []runtime.Object{
 	&v1alpha1.Analytics{},
@@ -161,57 +164,117 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
+	var requeueErr error = nil
 	if err := r.processVRouters(instance, replicas); err != nil {
+		if v1alpha1.IsOKForRequeque(err) {
+			log.Info("Failed to processVRouters, future rereconcile")
+			requeueErr = err
+		}
 		log.Error(err, "processVRouters")
 	}
 
 	if err := r.processRabbitMQ(instance, replicas); err != nil {
+		if v1alpha1.IsOKForRequeque(err) {
+			log.Info("Failed to processRabbitMQ, future rereconcile")
+			requeueErr = err
+		}
 		log.Error(err, "processRabbitMQ")
 	}
 
 	if err := r.processCassandras(instance, replicas, nodesHostAliases); err != nil {
+		if v1alpha1.IsOKForRequeque(err) {
+			log.Info("Failed to processCassandras, future rereconcile")
+			requeueErr = err
+		}
 		log.Error(err, "processCassandras")
 	}
 
 	if err := r.processZookeepers(instance, replicas); err != nil {
+		if v1alpha1.IsOKForRequeque(err) {
+			log.Info("Failed to processZookeepers, future rereconcile")
+			requeueErr = err
+		}
 		log.Error(err, "processZookeepers")
 	}
 
 	if err := r.processControls(instance, replicas); err != nil {
+		if v1alpha1.IsOKForRequeque(err) {
+			log.Info("Failed to processControls, future rereconcile")
+			requeueErr = err
+		}
 		log.Error(err, "processControls")
 	}
 
 	if err := r.processConfig(instance, replicas, nodesHostAliases); err != nil {
+		if v1alpha1.IsOKForRequeque(err) {
+			log.Info("Failed to processConfig, future rereconcile")
+			requeueErr = err
+		}
 		log.Error(err, "processConfig")
 	}
 
 	if err := r.processWebui(instance, replicas); err != nil {
+		if v1alpha1.IsOKForRequeque(err) {
+			log.Info("Failed to processWebui, future rereconcile")
+			requeueErr = err
+		}
 		log.Error(err, "processWebui")
 	}
 
 	if err := r.processAnalytics(instance, replicas, nodesHostAliases); err != nil {
+		if v1alpha1.IsOKForRequeque(err) {
+			log.Info("Failed to processAnalytics, future rereconcile")
+			requeueErr = err
+		}
 		log.Error(err, "processAnalytics")
 	}
 
 	if err := r.processAnalyticsDB(instance, replicas, nodesHostAliases); err != nil {
+		if v1alpha1.IsOKForRequeque(err) {
+			log.Info("Failed to processAnalyticsDB, future rereconcile")
+			requeueErr = err
+		}
 		log.Error(err, "processAnalyticsDB")
 	}
 
 	if err := r.processAnalyticsSnmp(instance, replicas); err != nil {
+		if v1alpha1.IsOKForRequeque(err) {
+			log.Info("Failed to processAnalyticsSnmp, future rereconcile")
+			requeueErr = err
+		}
 		log.Error(err, "processAnalyticsSnmp")
 	}
 
 	if err := r.processAnalyticsAlarm(instance, replicas); err != nil {
+		if v1alpha1.IsOKForRequeque(err) {
+			log.Info("Failed to processAnalyticsAlarm, future rereconcile")
+			requeueErr = err
+		}
 		log.Error(err, "processAnalyticsAlarm")
 	}
 
 	if err := r.processKubemanagers(instance, replicas); err != nil {
+		if v1alpha1.IsOKForRequeque(err) {
+			log.Info("Failed to processKubemanagers, future rereconcile")
+			requeueErr = err
+		}
 		log.Error(err, "processKubemanagers")
 	}
 
 	r.setConditions(instance)
+	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
+		if v1alpha1.IsOKForRequeque(err) {
+			log.Info("Failed to update status, and reconcile is restarting.")
+			return requeueReconcile, nil
+		}
+		return reconcile.Result{}, err
+	}
 
-	return reconcile.Result{}, r.client.Status().Update(context.TODO(), instance)
+	if requeueErr != nil {
+		return requeueReconcile, nil
+	}
+
+	return reconcile.Result{}, nil
 }
 
 func (r *ReconcileManager) setConditions(manager *v1alpha1.Manager) {

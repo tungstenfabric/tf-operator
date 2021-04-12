@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -23,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/go-logr/logr"
@@ -719,26 +721,54 @@ func getPodsHostname(c client.Client, pod *corev1.Pod) (string, error) {
 	return "", errors.New("couldn't get pods hostname")
 }
 
-func updateAnnotations(pod *corev1.Pod, client client.Client) error {
+// UpdateAnnotations add hostname to annotation for pod.
+func UpdatePodAnnotations(pod *corev1.Pod, client client.Client) (updated bool, err error) {
+	updated = false
+	err = nil
+
 	annotationMap := pod.GetAnnotations()
 	if annotationMap == nil {
 		annotationMap = make(map[string]string)
 	}
+
 	hostname, err := getPodsHostname(client, pod)
 	if err != nil {
-		return err
+		return
 	}
-	annotationMap["hostname"] = hostname
-	pod.SetAnnotations(annotationMap)
-	if err = client.Update(context.TODO(), pod); err != nil {
-		return err
+
+	hostnameFromAnnotation, ok := annotationMap["hostname"]
+	if !ok || hostnameFromAnnotation != hostname {
+		annotationMap["hostname"] = hostname
+		pod.SetAnnotations(annotationMap)
+		if err = client.Update(context.TODO(), pod); err != nil {
+			return
+		}
+		updated = true
+		return
 	}
-	return nil
+	return
+}
+
+// UpdatePodsAnnotations add hostname to annotations for pods in list.
+func UpdatePodsAnnotations(podList []corev1.Pod, client client.Client) (updated bool, err error) {
+	updated = false
+	err = nil
+
+	for _, pod := range podList {
+		_updated, _err := UpdatePodAnnotations(&pod, client)
+		if _err != nil {
+			updated = _updated
+			err = _err
+			return
+		}
+		updated = updated || _updated
+	}
+
+	return
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func PodIPListAndIPMapFromInstance(instanceType string,
-	commonConfiguration *PodConfiguration,
 	request reconcile.Request,
 	clnt client.Client) ([]corev1.Pod, map[string]string, error) {
 
@@ -757,9 +787,6 @@ func PodIPListAndIPMapFromInstance(instanceType string,
 		pod := &allPods.Items[idx]
 		if pod.Status.PodIP == "" || (pod.Status.Phase != "Running" && pod.Status.Phase != "Pending") {
 			continue
-		}
-		if err = updateAnnotations(pod, clnt); err != nil {
-			return nil, nil, err
 		}
 		podNameIPMap[pod.Name] = pod.Status.PodIP
 		podList = append(podList, *pod)
@@ -1513,4 +1540,18 @@ func DefaultSecurityContext(podSpec *corev1.PodSpec) {
 			c.SecurityContext.RunAsGroup = &rootid
 		}
 	}
+}
+
+// IsOKForRequeque works for errors from request for update, and returns true if
+// the error occurs from time to time due to asynchronous requests and is
+// treated by restarting the reconciliation. Note that such a solution is
+// suitable only if the update of the same object is not launched twice or more
+// times in the same reconciliation.
+func IsOKForRequeque(err error) bool {
+	regexpString := "Operation cannot be fulfilled on .*: the object has been modified; please apply your changes to the latest version and try again"
+	if isMatch, _ := regexp.Match(regexpString, []byte(err.Error())); isMatch {
+		logf.Log.WithName("ok_for_requeque_error_found").Info(err.Error())
+		return true
+	}
+	return false
 }

@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"bytes"
 	"context"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -269,7 +270,7 @@ func (c *AnalyticsDB) SetInstanceActive(client client.Client, activeStatus *bool
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *AnalyticsDB) PodIPListAndIPMapFromInstance(request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance("analyticsdb", &c.Spec.CommonConfiguration, request, reconcileClient)
+	return PodIPListAndIPMapFromInstance("analyticsdb", request, reconcileClient)
 }
 
 //PodsCertSubjects gets list of AnalyticsDB pods certificate subjets which can be passed to the certificate API
@@ -283,13 +284,22 @@ func (c *AnalyticsDB) SetPodsToReady(podIPList []corev1.Pod, client client.Clien
 }
 
 // ManageNodeStatus updates nodes in status
-func (c *AnalyticsDB) ManageNodeStatus(podNameIPMap map[string]string, client client.Client) error {
-	c.Status.Nodes = podNameIPMap
-	err := client.Status().Update(context.TODO(), c)
-	if err != nil {
-		return err
+func (c *AnalyticsDB) ManageNodeStatus(podNameIPMap map[string]string,
+	client client.Client) (updated bool, err error) {
+	updated = false
+	err = nil
+
+	if reflect.DeepEqual(c.Status.Nodes, podNameIPMap) {
+		return
 	}
-	return nil
+
+	c.Status.Nodes = podNameIPMap
+	if err = client.Status().Update(context.TODO(), c); err != nil {
+		return
+	}
+
+	updated = true
+	return
 }
 
 // IsActive returns true if instance is active

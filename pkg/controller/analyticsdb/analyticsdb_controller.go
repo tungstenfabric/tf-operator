@@ -29,7 +29,7 @@ import (
 
 var log = logf.Log.WithName("controller_analyticsdb")
 
-var restartTime, _ = time.ParseDuration("1s")
+var restartTime, _ = time.ParseDuration("3s")
 var requeueReconcile = reconcile.Result{Requeue: true, RequeueAfter: restartTime}
 
 func resourceHandler(myclient client.Client) handler.Funcs {
@@ -350,7 +350,15 @@ func (r *ReconcileAnalyticsDB) Reconcile(request reconcile.Request) (reconcile.R
 
 	podIPList, podIPMap, err := instance.PodIPListAndIPMapFromInstance(request, r.Client)
 	if err != nil {
+		reqLogger.Error(err, "Failed to get pod ip list from instance.")
 		return reconcile.Result{}, err
+	}
+	if updated, err := v1alpha1.UpdatePodsAnnotations(podIPList, r.Client); updated || err != nil {
+		if err != nil && !v1alpha1.IsOKForRequeque(err) {
+			reqLogger.Error(err, "Failed to update pods annotations.")
+			return reconcile.Result{}, err
+		}
+		return requeueReconcile, nil
 	}
 	if len(podIPMap) > 0 {
 		if err := r.ensureCertificatesExist(instance, podIPList, instanceType); err != nil {
@@ -368,15 +376,21 @@ func (r *ReconcileAnalyticsDB) Reconcile(request reconcile.Request) (reconcile.R
 			return reconcile.Result{}, err
 		}
 
-		if err = instance.ManageNodeStatus(podIPMap, r.Client); err != nil {
-			reqLogger.Error(err, "Failed manager node status")
-			return reconcile.Result{}, err
+		if updated, err := instance.ManageNodeStatus(podIPMap, r.Client); err != nil || updated {
+			if err != nil && !v1alpha1.IsOKForRequeque(err) {
+				reqLogger.Error(err, "Failed to manage node status")
+				return reconcile.Result{}, err
+			}
+			return requeueReconcile, nil
 		}
 	}
 
-	if err = instance.SetEndpointInStatus(r.Client, analyticsdbService.ClusterIP()); err != nil {
-		reqLogger.Error(err, "Failed to set endpointIn status")
-		return reconcile.Result{}, err
+	if instance.Status.Endpoint != analyticsdbService.ClusterIP() {
+		if err = instance.SetEndpointInStatus(r.Client, analyticsdbService.ClusterIP()); err != nil && !v1alpha1.IsOKForRequeque(err) {
+			reqLogger.Error(err, "Failed to set endpointIn status")
+			return reconcile.Result{}, err
+		}
+		return requeueReconcile, nil
 	}
 
 	falseVal := false
@@ -392,7 +406,7 @@ func (r *ReconcileAnalyticsDB) Reconcile(request reconcile.Request) (reconcile.R
 
 	if *instance.Status.ConfigChanged {
 		reqLogger.Info("Update StatefulSet: ConfigChanged")
-		if err := r.Client.Update(context.TODO(), statefulSet); err != nil {
+		if err := r.Client.Update(context.TODO(), statefulSet); err != nil && !v1alpha1.IsOKForRequeque(err) {
 			reqLogger.Error(err, "Update StatefulSet failed")
 			return reconcile.Result{}, err
 		}
@@ -401,7 +415,7 @@ func (r *ReconcileAnalyticsDB) Reconcile(request reconcile.Request) (reconcile.R
 
 	if beforeCheck != *instance.Status.ConfigChanged {
 		reqLogger.Info("Update Status: ConfigChanged")
-		if err := r.Client.Status().Update(context.TODO(), instance); err != nil {
+		if err := r.Client.Status().Update(context.TODO(), instance); err != nil && !v1alpha1.IsOKForRequeque(err) {
 			reqLogger.Error(err, "Update Status failed")
 			return reconcile.Result{}, err
 		}
@@ -410,6 +424,10 @@ func (r *ReconcileAnalyticsDB) Reconcile(request reconcile.Request) (reconcile.R
 
 	instance.Status.Active = &falseVal
 	if err = instance.SetInstanceActive(r.Client, instance.Status.Active, statefulSet, request); err != nil {
+		if v1alpha1.IsOKForRequeque(err) {
+			reqLogger.Info("Failed to set instance active, and reconcile is restarting.")
+			return requeueReconcile, nil
+		}
 		reqLogger.Error(err, "Failed to set instance active")
 		return reconcile.Result{}, err
 	}
