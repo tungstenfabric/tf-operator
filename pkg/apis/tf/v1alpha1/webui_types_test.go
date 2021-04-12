@@ -77,7 +77,7 @@ var webuiControl = &Control{
 
 var webuiCassandra = &Cassandra{
 	ObjectMeta: metav1.ObjectMeta{
-		Name:      "cassandra1",
+		Name:      "configdb1",
 		Namespace: "test-ns",
 	},
 	Status: CassandraStatus{
@@ -133,7 +133,7 @@ func TestWebuiConfigMapWithDefaultValues(t *testing.T) {
 			ServiceConfiguration: WebuiConfiguration{
 				ConfigInstance:    "config1",
 				ControlInstance:   "control1",
-				CassandraInstance: "cassandra1",
+				CassandraInstance: "configdb1",
 			},
 		},
 	}
@@ -183,7 +183,7 @@ func TestWebuiConfigMapWithCustomValues(t *testing.T) {
 			ServiceConfiguration: WebuiConfiguration{
 				ConfigInstance:    "config1",
 				ControlInstance:   "control1",
-				CassandraInstance: "cassandra1",
+				CassandraInstance: "configdb1",
 			},
 		},
 	}
