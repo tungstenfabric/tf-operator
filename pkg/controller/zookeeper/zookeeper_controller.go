@@ -2,9 +2,6 @@ package zookeeper
 
 import (
 	"context"
-	"fmt"
-	"sort"
-	"strconv"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -197,8 +194,6 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 
 	instance.AddSecretVolumesToIntendedSTS(statefulSet, map[string]string{secretCertificates.Name: request.Name + "-secret-certificates"})
 
-	zookeeperDefaultConfiguration := instance.ConfigurationParameters()
-
 	for idx := range statefulSet.Spec.Template.Spec.Containers {
 
 		container := &statefulSet.Spec.Template.Spec.Containers[idx]
@@ -276,7 +271,7 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 		return requeueReconcile, nil
 	}
 
-	podIPList, podIPMap, err := instance.PodIPListAndIPMapFromInstance(instanceType, request, r.Client)
+	podIPList, _, err := instance.PodIPListAndIPMapFromInstance(instanceType, request, r.Client)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get pod ip list from instance.")
 		return reconcile.Result{}, err
@@ -302,44 +297,9 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 			reqLogger.Error(err, "Failed to set pods to ready.")
 			return reconcile.Result{}, err
 		}
-
-		pods := make([]corev1.Pod, len(podIPList))
-		copy(pods, podIPList)
-		sort.SliceStable(pods, func(i, j int) bool { return pods[i].Name < pods[j].Name })
-
-		var found *corev1.Pod
-		for _, pod := range pods {
-			ip, ok := instance.Status.Nodes[pod.Name]
-			if !ok || ip != pod.Status.PodIP {
-				found = &pod
-			}
-			if found != nil {
-				break
-			}
-		}
-
-		if found != nil && len(pods) > 1 {
-			myidString := found.Name[len(found.Name)-1:]
-			myidInt, err := strconv.Atoi(myidString)
+		if requeueNeeded, err := instance.ManageNodeStatus(podIPList, r.Client); err != nil || requeueNeeded {
 			if err != nil {
-				return reconcile.Result{}, err
-			}
-
-			serverDef := fmt.Sprintf("server.%d=%s:%s;%s:2181",
-				myidInt+1, found.Status.PodIP,
-				strconv.Itoa(*zookeeperDefaultConfiguration.ElectionPort)+":"+strconv.Itoa(*zookeeperDefaultConfiguration.ServerPort),
-				found.Status.PodIP)
-			runScript := fmt.Sprintf("zkCli.sh -server %s reconfig -add \"%s\"", found.Status.PodIP, serverDef)
-			command := []string{"bash", "-c", runScript, serverDef}
-			if sout, serr, err := v1alpha1.ExecCmdInContainer(found, "zookeeper", command); err != nil {
-				reqLogger.Error(err, "Zookeeper reconfig failed", "out", sout, "err", serr)
-				return requeueReconcile, err
-			}
-		}
-
-		if updated, err := instance.ManageNodeStatus(podIPMap, r.Client); err != nil || updated {
-			if err != nil && !v1alpha1.IsOKForRequeque(err) {
-				reqLogger.Error(err, "Failed to manage node status")
+				reqLogger.Error(err, "Failed to manage node status.")
 				return reconcile.Result{}, err
 			}
 			return requeueReconcile, nil
