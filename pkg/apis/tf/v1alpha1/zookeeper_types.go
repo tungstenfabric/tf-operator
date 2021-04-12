@@ -3,7 +3,9 @@ package v1alpha1
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"reflect"
+	"regexp"
 	"sort"
 	"strconv"
 
@@ -11,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
@@ -79,6 +82,8 @@ type ZookeeperList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Zookeeper `json:"items"`
 }
+
+var zookeeperLog = logf.Log.WithName("controller_zookeeper")
 
 func init() {
 	SchemeBuilder.Register(&Zookeeper{}, &ZookeeperList{})
@@ -229,24 +234,87 @@ func (c *Zookeeper) SetInstanceActive(client client.Client, activeStatus *bool, 
 	return SetInstanceActive(client, activeStatus, sts, request, c)
 }
 
-func (c *Zookeeper) ManageNodeStatus(podeNameIPMap map[string]string,
-	client client.Client) (updated bool, err error) {
-	updated = false
+// ZookeeperPod is a pod with zookeper service. It is an inheritor of corev1.Pod.
+type zookeeperPod struct {
+	Pod *corev1.Pod
+}
+
+// ExecToZookeeperContainer execute command on zookeeper container.
+func (zp *zookeeperPod) execToZookeeperContainer(command []string) (stdout, stderr string, err error) {
+	stdout, stderr, err = ExecToContainer(zp.Pod, "zookeeper", command, nil)
+	return
+}
+
+// getPodId returns number of the pod from name, where pod name is `<zookeeper_sts_name>-<number_of_pod>`.
+func getPodId(pod *corev1.Pod) (id int, err error) {
+	name := pod.ObjectMeta.Name
+
+	re := regexp.MustCompile(`\d+$`)
+	id, err = strconv.Atoi(re.FindString(name))
+	return
+}
+
+// Registrate registrates pod in the cluster.
+func (zp *zookeeperPod) registrate(zConfig ZookeeperConfiguration) error {
+	ip := zp.Pod.Status.PodIP
+	electionPort := *zConfig.ElectionPort
+	serverPort := *zConfig.ServerPort
+	id, err := getPodId(zp.Pod)
+	if err != nil {
+		zookeeperLog.Error(err, "Failed to get pod id for pod "+zp.Pod.ObjectMeta.Name)
+		return err
+	}
+
+	command := fmt.Sprintf("zkCli.sh -server %s reconfig -add \"server.%d=%s:%d:%d;%s:2181\"",
+		ip,
+		id+1,
+		ip,
+		electionPort,
+		serverPort,
+		ip,
+	)
+	_, _, err = zp.execToZookeeperContainer([]string{"bash", "-c", command})
+	return err
+}
+
+func (c *Zookeeper) ManageNodeStatus(podIPList []corev1.Pod,
+	client client.Client,
+) (requequeNeeded bool, err error) {
+	requequeNeeded = false
 	err = nil
 
 	config := c.ConfigurationParameters()
 	clientPort := strconv.Itoa(*config.ClientPort)
-	if clientPort == c.Status.Ports.ClientPort && reflect.DeepEqual(c.Status.Nodes, podeNameIPMap) {
-		return
+
+	nodes := make(map[string]string)
+	for _, pod := range podIPList {
+		name := pod.ObjectMeta.Name
+		ip := pod.Status.PodIP
+		zpod := zookeeperPod{&pod}
+
+		if _ip, _ok := c.Status.Nodes[name]; _ok && _ip == ip {
+			nodes[name] = ip
+			continue
+		}
+
+		if _err := zpod.registrate(config); _err == nil {
+			// Pod successfully registered
+			nodes[name] = ip
+		} else {
+			// Pod not registered
+			requequeNeeded = true
+		}
 	}
 
-	c.Status.Ports.ClientPort = clientPort
-	c.Status.Nodes = podeNameIPMap
-	if err = client.Status().Update(context.TODO(), c); err != nil {
-		return
-	}
+	if c.Status.Ports.ClientPort != clientPort || !reflect.DeepEqual(c.Status.Nodes, nodes) {
+		c.Status.Ports.ClientPort = clientPort
+		c.Status.Nodes = nodes
 
-	updated = true
+		if err = client.Status().Update(context.TODO(), c); err != nil {
+			return
+		}
+		requequeNeeded = true
+	}
 	return
 }
 
