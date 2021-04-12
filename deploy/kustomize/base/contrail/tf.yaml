@@ -20,7 +20,7 @@ spec:
         serviceConfiguration:
           logLevel: SYS_DEBUG
           zookeeperInstance: zookeeper1
-          cassandraInstance: cassandra1
+          cassandraInstance: configdb1
           rabbitmqInstance: rabbitmq1
           configInstance: config1
           containers:
@@ -44,7 +44,7 @@ spec:
         serviceConfiguration:
           logLevel: SYS_DEBUG
           zookeeperInstance: zookeeper1
-          cassandraInstance: cassandra1
+          cassandraInstance: configdb1
           rabbitmqInstance: rabbitmq1
           configInstance: config1
           containers:
@@ -62,7 +62,7 @@ spec:
     - metadata:
         labels:
           tf_cluster: cluster1
-        name: cassandra1
+        name: configdb1
       spec:
         commonConfiguration:
           nodeSelector:
@@ -88,7 +88,7 @@ spec:
         serviceConfiguration:
           logLevel: SYS_DEBUG
           zookeeperInstance: zookeeper1
-          cassandraInstance: cassandra1
+          cassandraInstance: configdb1
           rabbitmqInstance: rabbitmq1
           containers:
           - name: redis
@@ -130,7 +130,7 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
-          cassandraInstance: cassandra1
+          cassandraInstance: configdb1
           rabbitmqInstance: rabbitmq1
           configInstance: config1
           logLevel: SYS_DEBUG
@@ -157,7 +157,7 @@ spec:
         serviceConfiguration:
           logLevel: SYS_DEBUG
           zookeeperInstance: zookeeper1
-          cassandraInstance: cassandra1
+          cassandraInstance: configdb1
           rabbitmqInstance: rabbitmq1
           configInstance: config1
           ipFabricForwarding: false
@@ -218,7 +218,7 @@ spec:
         serviceConfiguration:
           configInstance: config1
           controlInstance: control1
-          cassandraInstance: cassandra1
+          cassandraInstance: configdb1
           logLevel: SYS_DEBUG
           containers:
           - name: redis

@@ -35,7 +35,7 @@ metadata:
                     }
                   },
                   "serviceConfiguration": {
-                    "cassandraInstance": "cassandra1",
+                    "cassandraInstance": "configdb1",
                     "configInstance": "config1",
                     "containers": [
                       {
@@ -79,7 +79,7 @@ metadata:
                     }
                   },
                   "serviceConfiguration": {
-                    "cassandraInstance": "cassandra1",
+                    "cassandraInstance": "configdb1",
                     "configInstance": "config1",
                     "containers": [
                       {
@@ -111,7 +111,7 @@ metadata:
                     "labels": {
                       "tf_cluster": "cluster1"
                     },
-                    "name": "cassandra1"
+                    "name": "configdb1"
                   },
                   "spec": {
                     "commonConfiguration": {
@@ -153,7 +153,7 @@ metadata:
                     }
                   },
                   "serviceConfiguration": {
-                    "cassandraInstance": "cassandra1",
+                    "cassandraInstance": "configdb1",
                     "containers": [
                       {
                         "image": "docker.io/tungstenfabric/contrail-external-redis:R2011",
@@ -234,7 +234,7 @@ metadata:
                       }
                     },
                     "serviceConfiguration": {
-                      "cassandraInstance": "cassandra1",
+                      "cassandraInstance": "configdb1",
                       "configInstance": "config1",
                       "containers": [
                         {
@@ -279,7 +279,7 @@ metadata:
                       }
                     },
                     "serviceConfiguration": {
-                      "cassandraInstance": "cassandra1",
+                      "cassandraInstance": "configdb1",
                       "configInstance": "config1",
                       "containers": [
                         {
@@ -383,7 +383,7 @@ metadata:
                     }
                   },
                   "serviceConfiguration": {
-                    "cassandraInstance": "cassandra1",
+                    "cassandraInstance": "configdb1",
                     "configInstance": "config1",
                     "containers": [
                       {
