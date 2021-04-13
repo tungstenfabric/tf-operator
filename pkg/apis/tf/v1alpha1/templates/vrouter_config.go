@@ -44,6 +44,7 @@ VROUTER_ENCRYPTION=false
 
 #TODO uncomment parameters to export after debug
 CONTROL_NODES="{{ .ClusterParams.ControlNodes }}"
+DNS_NODES="{{ .ClusterParams.ControlNodes }}"
 CONFIG_NODES="{{ .ClusterParams.ConfigNodes }}"
 ANALYTICS_NODES="{{ .ClusterParams.ConfigNodes }}"
 
@@ -146,7 +147,7 @@ SSL_ENABLE="{{ .ServiceConfig.SslEnable }}"
 #VROUTER_DECRYPT_INTERFACE="{{ .ServiceConfig.VrouterDecryptInterface }}"
 #VROUTER_DECRYPT_KEY="{{ .ServiceConfig.VrouterDecyptKey }}"
 #VROUTER_ENCRYPTION="{{ .ServiceConfig.VrouterEncryption }}"
-#VROUTER_GATEWAY="{{ .ServiceConfig.VrouterGateway }}"
+VROUTER_GATEWAY="{{ .ServiceConfig.VrouterGateway }}"
 
 # XMPP
 #SUBCLUSTER="{{ .ServiceConfig.Subclaster }}"

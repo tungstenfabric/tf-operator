@@ -353,7 +353,7 @@ func (c *AnalyticsSnmp) PodsCertSubjects(domain string, podList []corev1.Pod) []
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *AnalyticsSnmp) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient)
+	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, "")
 }
 
 // SetInstanceActive sets instance to active.

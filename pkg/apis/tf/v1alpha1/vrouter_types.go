@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"net"
 	"reflect"
 	"sort"
 	"strconv"
@@ -199,6 +200,7 @@ type VrouterConfiguration struct {
 	VrouterDecyptKey                string `json:"vrouterDecryptKey,omitempty"`
 	VrouterEncryption               *bool  `json:"vrouterEncryption,omitempty"`
 	VrouterGateway                  string `json:"vrouterGateway,omitempty"`
+	DataSubnet                      string `json:"dataSubnet,omitempty"`
 
 	// XMPP
 	Subclaster           string `json:"subclaster,omitempty"`
@@ -458,7 +460,7 @@ func (c *Vrouter) SetInstanceActive(client client.Client, activeStatus *bool, ds
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *Vrouter) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient)
+	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, "")
 }
 
 //PodsCertSubjects gets list of Vrouter pods certificate subjets which can be passed to the certificate API
@@ -699,6 +701,13 @@ func (c *Vrouter) GetControlNodes(clnt client.Client) (string, error) {
 	}
 	var ipList []string
 	for _, ip := range control.Status.Nodes {
+		cidr := c.Spec.ServiceConfiguration.DataSubnet
+		if cidr != "" {
+			_, network, _ := net.ParseCIDR(cidr)
+			if !network.Contains(net.ParseIP(ip)) {
+				continue
+			}
+		}
 		ipList = append(ipList, ip)
 	}
 	sort.Strings(ipList)

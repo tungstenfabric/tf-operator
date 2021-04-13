@@ -726,7 +726,7 @@ func (c *Config) SetInstanceActive(client client.Client, activeStatus *bool, sts
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *Config) PodIPListAndIPMapFromInstance(request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance("config", request, reconcileClient)
+	return PodIPListAndIPMapFromInstance("config", request, reconcileClient, "")
 }
 
 //PodsCertSubjects gets list of Config pods certificate subjets which can be passed to the certificate API

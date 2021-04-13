@@ -319,7 +319,7 @@ func (c *Rabbitmq) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, reque
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *Rabbitmq) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient)
+	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, "")
 }
 
 //PodsCertSubjects gets list of Rabbitmq pods certificate subjets which can be passed to the certificate API
