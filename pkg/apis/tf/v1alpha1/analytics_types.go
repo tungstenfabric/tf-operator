@@ -62,6 +62,7 @@ type AnalyticsConfiguration struct {
 	CassandraInstance          string       `json:"cassandraInstance,omitempty"`
 	ZookeeperInstance          string       `json:"zookeeperInstance,omitempty"`
 	RabbitmqInstance           string       `json:"rabbitmqInstance,omitempty"`
+	RedisInstance              string       `json:"redisInstance,omitempty"`
 	RabbitmqUser               string       `json:"rabbitmqUser,omitempty"`
 	RabbitmqPassword           string       `json:"rabbitmqPassword,omitempty"`
 	RabbitmqVhost              string       `json:"rabbitmqVhost,omitempty"`
@@ -125,6 +126,12 @@ func (c *Analytics) InstanceConfiguration(configMapName string,
 
 	zookeeperNodesInformation, err := NewZookeeperClusterConfiguration(
 		c.Spec.ServiceConfiguration.ZookeeperInstance, request.Namespace, client)
+	if err != nil {
+		return err
+	}
+
+	redisNodesInformation, err := NewRedisClusterConfiguration(
+		c.Spec.ServiceConfiguration.RedisInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}
@@ -197,7 +204,8 @@ func (c *Analytics) InstanceConfiguration(configMapName string,
 	zookeeperEndpointListCommaSeparated := configtemplates.JoinListWithSeparator(zookeeperEndpointList, ",")
 	zookeeperEndpointListSpaceSpearated := configtemplates.JoinListWithSeparator(zookeeperEndpointList, " ")
 
-	redisServerSpaceSeparatedList := strings.Join(podIPList, ":6379 ") + ":6379"
+	redisEndpointList := configtemplates.EndpointList(redisNodesInformation.ServerIPList, redisNodesInformation.ServerPort)
+	redisEndpointListSpaceSpearated := configtemplates.JoinListWithSeparator(redisEndpointList, " ")
 
 	var data = make(map[string]string)
 	for _, pod := range podList {
@@ -236,7 +244,7 @@ func (c *Analytics) InstanceConfiguration(configMapName string,
 			ZookeeperServerList:        zookeeperEndpointListSpaceSpearated,
 			RabbitmqServerList:         rabbitmqSSLEndpointListCommaSeparated,
 			CollectorServerList:        collectorServerList,
-			RedisServerList:            redisServerSpaceSeparatedList,
+			RedisServerList:            redisEndpointListSpaceSpearated,
 			RabbitmqUser:               rabbitmqSecretUser,
 			RabbitmqPassword:           rabbitmqSecretPassword,
 			RabbitmqVhost:              rabbitmqSecretVhost,
@@ -324,19 +332,6 @@ func (c *Analytics) InstanceConfiguration(configMapName string,
 		data["analytics-nodemgr.conf."+podIP] = nodemanagerBuffer.String()
 		// empty env as no db tracking
 		data["analytics-nodemgr.env."+podIP] = ""
-
-		var stunnelBuffer bytes.Buffer
-		err = configtemplates.StunnelConfig.Execute(&stunnelBuffer, struct {
-			RedisListenAddress string
-			RedisServerPort    string
-		}{
-			RedisListenAddress: podIP,
-			RedisServerPort:    "6379",
-		})
-		if err != nil {
-			panic(err)
-		}
-		data["stunnel."+podIP] = stunnelBuffer.String()
 
 		var analyticsKeystoneAuthConfBuffer bytes.Buffer
 		err = configtemplates.AnalyticsKeystoneAuthConf.Execute(&analyticsKeystoneAuthConfBuffer, struct {

@@ -41,6 +41,7 @@ var resourcesList = []runtime.Object{
 	&v1alpha1.Config{},
 	&v1alpha1.Control{},
 	&v1alpha1.Rabbitmq{},
+	&v1alpha1.Redis{},
 	&v1alpha1.Vrouter{},
 	&v1alpha1.Kubemanager{},
 	&corev1.ConfigMap{},
@@ -187,6 +188,14 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 			requeueErr = err
 		}
 		log.Error(err, "processCassandras")
+	}
+
+	if err := r.processRedis(instance, replicas, nodesHostAliases); err != nil {
+		if v1alpha1.IsOKForRequeque(err) {
+			log.Info("Failed to processRedis, future rereconcile")
+			requeueErr = err
+		}
+		log.Error(err, "processRedis")
 	}
 
 	if err := r.processZookeepers(instance, replicas); err != nil {
@@ -612,6 +621,66 @@ func (r *ReconcileManager) processCassandras(manager *v1alpha1.Manager, replicas
 		cassandraStatusList = append(cassandraStatusList, status)
 	}
 	manager.Status.Cassandras = cassandraStatusList
+	return nil
+}
+
+func (r *ReconcileManager) processRedis(manager *v1alpha1.Manager, replicas int32, hostAliases []corev1.HostAlias) error {
+	for _, existingRedis := range manager.Status.Redis {
+		found := false
+		for _, intendedRedis := range manager.Spec.Services.Redis {
+			if *existingRedis.Name == intendedRedis.Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			oldRedis := &v1alpha1.Redis{}
+			oldRedis.ObjectMeta = v1.ObjectMeta{
+				Namespace: manager.Namespace,
+				Name:      *existingRedis.Name,
+				Labels: map[string]string{
+					"tf_cluster": manager.Name,
+				},
+			}
+			err := r.client.Delete(context.TODO(), oldRedis)
+			if err != nil && !errors.IsNotFound(err) {
+				return err
+			}
+		}
+	}
+
+	if !manager.IsVrouterActiveOnControllers(r.client) {
+		return nil
+	}
+
+	redisStatusList := []*v1alpha1.ServiceStatus{}
+	for _, redisService := range manager.Spec.Services.Redis {
+		redis := &v1alpha1.Redis{}
+		redis.ObjectMeta = redisService.ObjectMeta
+		redis.ObjectMeta.Namespace = manager.Namespace
+		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, redis, func() error {
+			redis.Spec = redisService.Spec
+			if redis.Spec.ServiceConfiguration.ClusterName == "" {
+				redis.Spec.ServiceConfiguration.ClusterName = manager.GetName()
+			}
+			redis.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, redis.Spec.CommonConfiguration)
+			if redis.Spec.CommonConfiguration.Replicas == nil {
+				redis.Spec.CommonConfiguration.Replicas = &replicas
+			}
+			if len(redis.Spec.CommonConfiguration.HostAliases) == 0 {
+				redis.Spec.CommonConfiguration.HostAliases = hostAliases
+			}
+			return controllerutil.SetControllerReference(manager, redis, r.scheme)
+		})
+		if err != nil {
+			return err
+		}
+		status := &v1alpha1.ServiceStatus{}
+		status.Name = &redis.Name
+		status.Active = redis.Status.Active
+		redisStatusList = append(redisStatusList, status)
+	}
+	manager.Status.Redis = redisStatusList
 	return nil
 }
 

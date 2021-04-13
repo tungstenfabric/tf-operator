@@ -1,14 +1,17 @@
-package analytics
+package redis
 
 import (
 	"context"
 	"reflect"
 	"time"
 
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
+	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
+
+	"github.com/tungstenfabric/tf-operator/pkg/certificates"
+	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
+	"github.com/tungstenfabric/tf-operator/pkg/k8s"
+
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
@@ -16,19 +19,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
-	"github.com/tungstenfabric/tf-operator/pkg/certificates"
-	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
-	"github.com/tungstenfabric/tf-operator/pkg/k8s"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-var log = logf.Log.WithName("controller_analytics")
-
+var log = logf.Log.WithName("controller_redis")
 var restartTime, _ = time.ParseDuration("3s")
 var requeueReconcile = reconcile.Result{Requeue: true, RequeueAfter: restartTime}
 
@@ -36,7 +37,7 @@ func resourceHandler(myclient client.Client) handler.Funcs {
 	appHandler := handler.Funcs{
 		CreateFunc: func(e event.CreateEvent, q workqueue.RateLimitingInterface) {
 			listOps := &client.ListOptions{Namespace: e.Meta.GetNamespace()}
-			list := &v1alpha1.AnalyticsList{}
+			list := &v1alpha1.RedisList{}
 			err := myclient.List(context.TODO(), list, listOps)
 			if err == nil {
 				for _, app := range list.Items {
@@ -49,7 +50,7 @@ func resourceHandler(myclient client.Client) handler.Funcs {
 		},
 		UpdateFunc: func(e event.UpdateEvent, q workqueue.RateLimitingInterface) {
 			listOps := &client.ListOptions{Namespace: e.MetaNew.GetNamespace()}
-			list := &v1alpha1.AnalyticsList{}
+			list := &v1alpha1.RedisList{}
 			err := myclient.List(context.TODO(), list, listOps)
 			if err == nil {
 				for _, app := range list.Items {
@@ -62,7 +63,7 @@ func resourceHandler(myclient client.Client) handler.Funcs {
 		},
 		DeleteFunc: func(e event.DeleteEvent, q workqueue.RateLimitingInterface) {
 			listOps := &client.ListOptions{Namespace: e.Meta.GetNamespace()}
-			list := &v1alpha1.AnalyticsList{}
+			list := &v1alpha1.RedisList{}
 			err := myclient.List(context.TODO(), list, listOps)
 			if err == nil {
 				for _, app := range list.Items {
@@ -75,7 +76,7 @@ func resourceHandler(myclient client.Client) handler.Funcs {
 		},
 		GenericFunc: func(e event.GenericEvent, q workqueue.RateLimitingInterface) {
 			listOps := &client.ListOptions{Namespace: e.Meta.GetNamespace()}
-			list := &v1alpha1.AnalyticsList{}
+			list := &v1alpha1.RedisList{}
 			err := myclient.List(context.TODO(), list, listOps)
 			if err == nil {
 				for _, app := range list.Items {
@@ -90,80 +91,46 @@ func resourceHandler(myclient client.Client) handler.Funcs {
 	return appHandler
 }
 
-// Add adds the Analytics controller to the manager.
+// Add adds Redis controller to the manager.
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
 }
 
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileAnalytics{
-		Client:     mgr.GetClient(),
-		Scheme:     mgr.GetScheme(),
-		Manager:    mgr,
-		Kubernetes: k8s.New(mgr.GetClient(), mgr.GetScheme()),
-	}
+	kubernetes := k8s.New(mgr.GetClient(), mgr.GetScheme())
+	return &ReconcileRedis{Client: mgr.GetClient(), Scheme: mgr.GetScheme(), Manager: mgr, Kubernetes: kubernetes}
 }
+
+// add adds a new Controller to mgr with r as the reconcile.Reconciler.
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller.
-	c, err := controller.New("analytics-controller", mgr, controller.Options{Reconciler: r})
+
+	c, err := controller.New("redis-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
-
-	// Watch for changes to primary resource Analytics
-	if err = c.Watch(&source.Kind{Type: &v1alpha1.Analytics{}}, &handler.EnqueueRequestForObject{}); err != nil {
+	// Watch for changes to primary resource Redis.
+	if err = c.Watch(&source.Kind{Type: &v1alpha1.Redis{}},
+		&handler.EnqueueRequestForObject{}); err != nil {
 		return err
 	}
-	serviceMap := map[string]string{"tf_manager": "analytics"}
+
+	// Watch for changes to PODs.
+	serviceMap := map[string]string{"tf_manager": "redis"}
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
 	podHandler := resourceHandler(mgr.GetClient())
 	predPodIPChange := utils.PodIPChange(serviceMap)
 
-	if err = c.Watch(&source.Kind{Type: &corev1.Service{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &v1alpha1.Analytics{},
-	}); err != nil {
-		return err
-	}
-
 	if err = c.Watch(srcPod, podHandler, predPodIPChange); err != nil {
-		return err
-	}
-
-	srcCassandra := &source.Kind{Type: &v1alpha1.Cassandra{}}
-	cassandraHandler := resourceHandler(mgr.GetClient())
-	predCassandraSizeChange := utils.CassandraActiveChange()
-	if err = c.Watch(srcCassandra, cassandraHandler, predCassandraSizeChange); err != nil {
-		return err
-	}
-
-	srcRabbitmq := &source.Kind{Type: &v1alpha1.Rabbitmq{}}
-	rabbitmqHandler := resourceHandler(mgr.GetClient())
-	predRabbitmqSizeChange := utils.RabbitmqActiveChange()
-	if err = c.Watch(srcRabbitmq, rabbitmqHandler, predRabbitmqSizeChange); err != nil {
-		return err
-	}
-
-	srcZookeeper := &source.Kind{Type: &v1alpha1.Zookeeper{}}
-	zookeeperHandler := resourceHandler(mgr.GetClient())
-	predZookeeperSizeChange := utils.ZookeeperActiveChange()
-	if err = c.Watch(srcZookeeper, zookeeperHandler, predZookeeperSizeChange); err != nil {
-		return err
-	}
-
-	srcRedis := &source.Kind{Type: &v1alpha1.Redis{}}
-	redisHandler := resourceHandler(mgr.GetClient())
-	predRedisSizeChange := utils.RedisActiveChange()
-	if err = c.Watch(srcRedis, redisHandler, predRedisSizeChange); err != nil {
 		return err
 	}
 
 	srcSTS := &source.Kind{Type: &appsv1.StatefulSet{}}
 	stsHandler := &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &v1alpha1.Analytics{},
+		OwnerType:    &v1alpha1.Redis{},
 	}
-	stsPred := utils.STSStatusChange(utils.ConfigGroupKind())
+	stsPred := utils.STSStatusChange(utils.RedisGroupKind())
 	if err = c.Watch(srcSTS, stsHandler, stsPred); err != nil {
 		return err
 	}
@@ -171,11 +138,11 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-// blank assignment to verify that ReconcileCAnalytics implements reconcile.Reconciler.
-var _ reconcile.Reconciler = &ReconcileAnalytics{}
+// blank assignment to verify that ReconcileRedis implements reconcile.Reconciler.
+var _ reconcile.Reconciler = &ReconcileRedis{}
 
-// ReconcileAnalytics reconciles a Analytics object.
-type ReconcileAnalytics struct {
+// ReconcileRedis reconciles a Redis object.
+type ReconcileRedis struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver.
 	Client     client.Client
@@ -184,44 +151,16 @@ type ReconcileAnalytics struct {
 	Kubernetes *k8s.Kubernetes
 }
 
-// Reconcile reconciles Analytics
-func (r *ReconcileAnalytics) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+// Reconcile reconciles Redis
+func (r *ReconcileRedis) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Start")
-	instanceType := "analytics"
-	instance := &v1alpha1.Analytics{}
-	cassandraInstance := &v1alpha1.Cassandra{}
-	zookeeperInstance := &v1alpha1.Zookeeper{}
-	rabbitmqInstance := &v1alpha1.Rabbitmq{}
-	redisInstance := &v1alpha1.Redis{}
+	instanceType := "redis"
+	instance := &v1alpha1.Redis{}
 
 	if err := r.Client.Get(context.TODO(), request.NamespacedName, instance); err != nil && errors.IsNotFound(err) {
-		reqLogger.Error(err, "Failed to get analytics obj")
+		reqLogger.Error(err, "Failed to get redis obj")
 		return reconcile.Result{}, nil
-	}
-
-	if !instance.GetDeletionTimestamp().IsZero() {
-		reqLogger.Info("Analytics is deleting, skip reconcile")
-		return reconcile.Result{}, nil
-	}
-
-	cassandraActive := cassandraInstance.IsActive(instance.Spec.ServiceConfiguration.CassandraInstance, request.Namespace, r.Client)
-	zookeeperActive := zookeeperInstance.IsActive(instance.Spec.ServiceConfiguration.ZookeeperInstance, request.Namespace, r.Client)
-	rabbitmqActive := rabbitmqInstance.IsActive(instance.Spec.ServiceConfiguration.RabbitmqInstance, request.Namespace, r.Client)
-	redisActive := redisInstance.IsActive(instance.Spec.ServiceConfiguration.RedisInstance, request.Namespace, r.Client)
-	if !cassandraActive || !rabbitmqActive || !zookeeperActive || !redisActive {
-		reqLogger.Info("Dependencies not ready", "db", cassandraActive, "zk", zookeeperActive, "rmq", rabbitmqActive, "redis", redisActive)
-		return reconcile.Result{}, nil
-	}
-
-	servicePortsMap := map[int32]string{
-		int32(v1alpha1.AnalyticsApiPort): "analytics",
-	}
-	analyticsService := r.Kubernetes.Service(request.Name+"-"+instanceType, corev1.ServiceTypeClusterIP, servicePortsMap, instanceType, instance)
-
-	if err := analyticsService.EnsureExists(); err != nil {
-		reqLogger.Error(err, "Analytics service doesnt exist")
-		return reconcile.Result{}, err
 	}
 
 	configMapName := request.Name + "-" + instanceType + "-configmap"
@@ -297,40 +236,47 @@ func (r *ReconcileAnalytics) Reconcile(request reconcile.Request) (reconcile.Res
 
 		switch container.Name {
 
-		case "analyticsapi":
+		case "redis":
 			if container.Command == nil {
-				command := []string{"bash", "-c", instance.CommonStartupScript(
-					"exec /usr/bin/contrail-analytics-api -c /etc/contrailconfigmaps/analyticsapi.${POD_IP} -c /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP}",
-					map[string]string{
-						"analyticsapi.${POD_IP}":                "",
-						"contrail-keystone-auth.conf.${POD_IP}": "",
-						"vnc_api_lib.ini.${POD_IP}":             "vnc_api_lib.ini",
-					}),
+				command := []string{"bash", "-c",
+					"exec redis-server --lua-time-limit 15000 --dbfilename '' --bind 127.0.0.1 --port 6379",
 				}
 				container.Command = command
 			}
 
-		case "collector":
+			readinessProbe := corev1.Probe{
+				FailureThreshold: 3,
+				PeriodSeconds:    3,
+				Handler: corev1.Handler{
+					Exec: &corev1.ExecAction{
+						Command: []string{"sh", "-c", "redis-cli -h 127.0.0.1 -p 6379 ping"},
+					},
+				},
+			}
+			startupProbe := corev1.Probe{
+				FailureThreshold: 30,
+				PeriodSeconds:    3,
+				Handler: corev1.Handler{
+					Exec: &corev1.ExecAction{
+						Command: []string{"sh", "-c", "redis-cli -h 127.0.0.1 -p 6379 ping"},
+					},
+				},
+			}
+			container.ReadinessProbe = &readinessProbe
+			container.StartupProbe = &startupProbe
+
+		case "stunnel":
 			if container.Command == nil {
 				command := []string{"bash", "-c", instance.CommonStartupScript(
-					"exec /usr/bin/contrail-collector --conf_file /etc/contrailconfigmaps/collector.${POD_IP}",
+					"mkdir -p /etc/stunnel /var/run/stunnel; "+
+						"cat /etc/certificates/server-key-${POD_IP}.pem /etc/certificates/server-${POD_IP}.crt > /etc/stunnel/private.pem; "+
+						"chmod 600 /etc/stunnel/private.pem; "+
+						"exec stunnel /etc/contrailconfigmaps/stunnel.${POD_IP}",
 					map[string]string{
-						"collector.${POD_IP}":       "",
-						"vnc_api_lib.ini.${POD_IP}": "vnc_api_lib.ini",
+						"stunnel.${POD_IP}": "",
 					}),
 				}
-				container.Command = command
-			}
 
-		case "nodemanager":
-			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/analytics-nodemanager-runner.sh"}
-				container.Command = command
-			}
-
-		case "provisioner":
-			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/analytics-provisioner.sh"}
 				container.Command = command
 			}
 		}
@@ -355,7 +301,7 @@ func (r *ReconcileAnalytics) Reconcile(request reconcile.Request) (reconcile.Res
 		return requeueReconcile, nil
 	}
 
-	podIPList, podIPMap, err := instance.PodIPListAndIPMapFromInstance(request, r.Client)
+	podIPList, podIPMap, err := instance.PodIPListAndIPMapFromInstance(instanceType, request, r.Client)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get pod ip list from instance.")
 		return reconcile.Result{}, err
@@ -374,7 +320,7 @@ func (r *ReconcileAnalytics) Reconcile(request reconcile.Request) (reconcile.Res
 			return reconcile.Result{}, err
 		}
 
-		if err = instance.InstanceConfiguration(configMapName, request, podIPList, r.Client); err != nil {
+		if err = instance.InstanceConfiguration(request, podIPList, r.Client); err != nil {
 			reqLogger.Error(err, "Failed to create InstanceConfiguration")
 			return reconcile.Result{}, err
 		}
@@ -391,14 +337,6 @@ func (r *ReconcileAnalytics) Reconcile(request reconcile.Request) (reconcile.Res
 			}
 			return requeueReconcile, nil
 		}
-	}
-
-	if instance.Status.Endpoint != analyticsService.ClusterIP() {
-		if err = instance.SetEndpointInStatus(r.Client, analyticsService.ClusterIP()); err != nil && !v1alpha1.IsOKForRequeque(err) {
-			reqLogger.Error(err, "Failed to set endpointIn status")
-			return reconcile.Result{}, err
-		}
-		return requeueReconcile, nil
 	}
 
 	falseVal := false
@@ -444,7 +382,7 @@ func (r *ReconcileAnalytics) Reconcile(request reconcile.Request) (reconcile.Res
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileAnalytics) ensureCertificatesExist(instance *v1alpha1.Analytics, pods []corev1.Pod, instanceType string) error {
+func (r *ReconcileRedis) ensureCertificatesExist(instance *v1alpha1.Redis, pods []corev1.Pod, instanceType string) error {
 	domain, err := v1alpha1.ClusterDNSDomain(r.Client)
 	if err != nil {
 		return err

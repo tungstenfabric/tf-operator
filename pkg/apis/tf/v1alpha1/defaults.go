@@ -135,6 +135,7 @@ const (
 	RabbitmqHeartbeatInterval                   int    = 10
 	RabbitmqMirroredQueueMode                   string = "all"
 	RabbitmqClusterPartitionHandling            string = "autoheal"
+	RedisPort                                   int    = 6379
 	RedisSslEnable                              bool   = true
 	RedisSslCertfile                            string = "/etc/contrail/ssl/certs/server.pem"
 	RedisSslKeyfile                             string = "/etc/contrail/ssl/private/server-privkey.pem"

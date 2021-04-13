@@ -229,7 +229,7 @@ func (c *Zookeeper) PodIPListAndIPMapFromInstance(instanceType string, request r
 	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient)
 }
 
-// SetInstanceActive sets the Cassandra instance to active.
+// SetInstanceActive sets the Zookeeper instance to active.
 func (c *Zookeeper) SetInstanceActive(client client.Client, activeStatus *bool, sts *appsv1.StatefulSet, request reconcile.Request) error {
 	return SetInstanceActive(client, activeStatus, sts, request, c)
 }

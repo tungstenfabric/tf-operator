@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"sort"
 	"strconv"
-	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -60,6 +59,7 @@ type QueryEngineConfiguration struct {
 	CassandraInstance         string       `json:"analyticsCassandraInstance,omitempty"`
 	ZookeeperInstance         string       `json:"zookeeperInstance,omitempty"`
 	RabbitmqInstance          string       `json:"rabbitmqInstance,omitempty"`
+	RedisInstance             string       `json:"redisInstance,omitempty"`
 	RabbitmqUser              string       `json:"rabbitmqUser,omitempty"`
 	RabbitmqPassword          string       `json:"rabbitmqPassword,omitempty"`
 	RabbitmqVhost             string       `json:"rabbitmqVhost,omitempty"`
@@ -105,6 +105,13 @@ func (c *QueryEngine) InstanceConfiguration(configMapName string,
 	if err != nil {
 		return err
 	}
+
+	redisNodesInformation, err := NewRedisClusterConfiguration(c.Spec.ServiceConfiguration.RedisInstance,
+		request.Namespace, client)
+	if err != nil {
+		return err
+	}
+
 	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(c.Spec.ServiceConfiguration.AnalyticsInstance, request.Namespace, client)
 	if err != nil {
 		return err
@@ -132,7 +139,8 @@ func (c *QueryEngine) InstanceConfiguration(configMapName string,
 	collectorEndpointList := configtemplates.EndpointList(analyticsNodesInformation.CollectorServerIPList, analyticsNodesInformation.CollectorPort)
 	collectorEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(collectorEndpointList, " ")
 
-	redisServerSpaceSeparatedList := strings.Join(podIPList, ":6379 ") + ":6379"
+	redisEndpointList := configtemplates.EndpointList(redisNodesInformation.ServerIPList, redisNodesInformation.ServerPort)
+	redisEndpointListSpaceSpearated := configtemplates.JoinListWithSeparator(redisEndpointList, " ")
 
 	var data = make(map[string]string)
 	for _, pod := range podList {
@@ -159,7 +167,7 @@ func (c *QueryEngine) InstanceConfiguration(configMapName string,
 			InstrospectListenAddress: instrospectListenAddress,
 			CassandraServerList:      cassandraCQLEndpointListSpaceSeparated,
 			CollectorServerList:      collectorEndpointListSpaceSeparated,
-			RedisServerList:          redisServerSpaceSeparatedList,
+			RedisServerList:          redisEndpointListSpaceSpearated,
 			CAFilePath:               certificates.SignerCAFilepath,
 			AnalyticsDataTTL:         strconv.Itoa(analyticsNodesInformation.AnalyticsDataTTL),
 			LogLevel:                 queryengineConfig.LogLevel,

@@ -24,11 +24,8 @@ spec:
           cassandraInstance: configdb1
           rabbitmqInstance: rabbitmq1
           configInstance: config1
+          redisInstance: redis1
           containers:
-          - name: redis
-            image: contrail-external-redis
-          - name: stunnel
-            image: contrail-external-stunnel
           - name: analyticsapi
             image: contrail-analytics-api
           - name: collector
@@ -53,6 +50,7 @@ spec:
           zookeeperInstance: zookeeper1
           analyticsCassandraInstance: configdb1
           rabbitmqInstance: rabbitmq1
+          redisInstance: redis1
           containers:
           - name: queryengine
             image: contrail-analytics-query-engine
@@ -97,6 +95,7 @@ spec:
           rabbitmqInstance: rabbitmq1
           configInstance: config1
           analyticsInstance: analytics1
+          redisInstance: redis1
           containers:
           - name: nodemanager
             image: contrail-nodemgr
@@ -219,6 +218,22 @@ spec:
           containers:
           - name: rabbitmq
             image: contrail-external-rabbitmq
+    redis:
+    - metadata:
+        labels:
+          tf_cluster: cluster1
+        name: redis1
+      spec:
+        commonConfiguration:
+          nodeSelector:
+            node-role.kubernetes.io/master: ""
+        serviceConfiguration:
+          logLevel: SYS_DEBUG
+          containers:
+          - name: redis
+            image: contrail-external-redis
+          - name: stunnel
+            image: contrail-external-stunnel
     vrouters:
     - metadata:
         labels:
@@ -258,10 +273,9 @@ spec:
           analyticsInstance: analytics1
           controlInstance: control1
           cassandraInstance: configdb1
+          redisInstance: redis1
           logLevel: SYS_DEBUG
           containers:
-          - name: redis
-            image: contrail-external-redis
           - name: webuijob
             image: contrail-controller-webui-job
           - name: webuiweb

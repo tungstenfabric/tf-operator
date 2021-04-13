@@ -38,15 +38,8 @@ metadata:
                     "analyticsCassandraInstance": "configdb1",
                     "cassandraInstance": "configdb1",
                     "configInstance": "config1",
+                    "redisInstance": "redis1",
                     "containers": [
-                      {
-                        "image": "docker.io/tungstenfabric/contrail-external-redis:latest",
-                        "name": "redis"
-                      },
-                      {
-                        "image": "docker.io/tungstenfabric/contrail-external-stunnel:latest",
-                        "name": "stunnel"
-                      },
                       {
                         "image": "docker.io/tungstenfabric/contrail-analytics-api:latest",
                         "name": "analyticsapi"
@@ -87,6 +80,7 @@ metadata:
                     "analyticsInstance": "analytics1",
                     "cassandraInstance": "configdb1",
                     "configInstance": "config1",
+                    "redisInstance": "redis1",
                     "containers": [
                       {
                         "image": "docker.io/tungstenfabric/contrail-nodemgr:latest",
@@ -169,6 +163,7 @@ metadata:
                     "analyticsInstance": "analytics1",
                     "analyticsCassandraInstance": "configdb1",
                     "configInstance": "config1",
+                    "redisInstance": "redis1",
                     "containers": [
                       {
                         "image": "docker.io/tungstenfabric/contrail-analytics-query-engine:latest",
@@ -374,6 +369,35 @@ metadata:
                   }
                 }
               },
+              "redis": [
+                {
+                  "metadata": {
+                    "labels": {
+                      "tf_cluster": "cluster1"
+                    },
+                    "name": "redis1"
+                  },
+                  "spec": {
+                    "commonConfiguration": {
+                      "nodeSelector": {
+                        "node-role.kubernetes.io/master": ""
+                      }
+                    },
+                    "serviceConfiguration": {
+                      "containers": [
+                        {
+                          "image": "docker.io/tungstenfabric/contrail-external-redis:latest",
+                          "name": "redis"
+                        },
+                        {
+                          "image": "docker.io/tungstenfabric/contrail-external-stunnel:latest",
+                          "name": "stunnel"
+                        }
+                      ],
+                    }
+                  }
+                }
+              ],
               "vrouters": [
                 {
                   "metadata": {
@@ -438,11 +462,8 @@ metadata:
                     "analyticsInstance": "analytics1",
                     "cassandraInstance": "configdb1",
                     "configInstance": "config1",
+                    "redisInstance": "redis1",
                     "containers": [
-                      {
-                        "image": "docker.io/tungstenfabric/contrail-external-redis:latest",
-                        "name": "redis"
-                      },
                       {
                         "image": "docker.io/tungstenfabric/contrail-controller-webui-job:latest",
                         "name": "webuijob"
@@ -537,6 +558,10 @@ spec:
     - description: Rabbitmq is the Schema for the rabbitmqs API.
       kind: Rabbitmq
       name: rabbitmqs.tf.tungsten.io
+      version: v1alpha1
+    - description: Redis is the Schema for the redis API.
+      kind: Redis
+      name: redis.tf.tungsten.io
       version: v1alpha1
     - description: Vrouter is the Schema for the vrouters API.
       kind: Vrouter
