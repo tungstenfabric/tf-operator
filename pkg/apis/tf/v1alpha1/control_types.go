@@ -131,6 +131,17 @@ func init() {
 	SchemeBuilder.Register(&Control{}, &ControlList{})
 }
 
+func getPodDataIP(pod *corev1.Pod) (string, error) {
+	if cidr, isSet := pod.Annotations["dataSubnet"]; isSet {
+		ip, err := GetDataAddresses(pod, "control", cidr)
+		if err != nil {
+			return "", err
+		}
+		return ip, nil
+	}
+	return pod.Status.PodIP, nil
+}
+
 // InstanceConfiguration prepares control configmap
 func (c *Control) InstanceConfiguration(request reconcile.Request,
 	podList []corev1.Pod,
@@ -212,6 +223,10 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 	for _, pod := range podList {
 		hostname := pod.Annotations["hostname"]
 		podIP := pod.Status.PodIP
+		podListenAddress, err := getPodDataIP(&pod)
+		if err != nil {
+			return err
+		}
 		instrospectListenAddress := c.Spec.CommonConfiguration.IntrospectionListenAddress(podIP)
 		var controlControlConfigBuffer bytes.Buffer
 		err = configtemplates.ControlControlConfig.Execute(&controlControlConfigBuffer, struct {
@@ -235,7 +250,7 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 		}{
 			PodIP:                    podIP,
 			Hostname:                 hostname,
-			ListenAddress:            podIP,
+			ListenAddress:            podListenAddress,
 			InstrospectListenAddress: instrospectListenAddress,
 			BGPPort:                  strconv.Itoa(*controlConfig.BGPPort),
 			ASNNumber:                strconv.Itoa(*controlConfig.ASNNumber),
@@ -283,7 +298,7 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 		}{
 			PodIP:                    podIP,
 			Hostname:                 hostname,
-			ListenAddress:            podIP,
+			ListenAddress:            podListenAddress,
 			InstrospectListenAddress: instrospectListenAddress,
 			APIServerList:            configApiIPListSpaceSeparated,
 			APIServerPort:            strconv.Itoa(configNodesInformation.APIServerPort),
@@ -305,6 +320,7 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 		var controlNodemanagerBuffer bytes.Buffer
 		err = configtemplates.ControlNodemanagerConfig.Execute(&controlNodemanagerBuffer, struct {
 			Hostname                 string
+			PodIP                    string
 			ListenAddress            string
 			InstrospectListenAddress string
 			CollectorServerList      string
@@ -314,7 +330,8 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 			LogLevel                 string
 		}{
 			Hostname:                 hostname,
-			ListenAddress:            podIP,
+			PodIP:                    podIP,
+			ListenAddress:            podListenAddress,
 			InstrospectListenAddress: instrospectListenAddress,
 			CollectorServerList:      collectorEndpointListSpaceSeparated,
 			CassandraPort:            strconv.Itoa(cassandraNodesInformation.CQLPort),
@@ -452,14 +469,14 @@ func (c *Control) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, reques
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *Control) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient)
+	datanetwork := c.Spec.ServiceConfiguration.DataSubnet
+	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, datanetwork)
 }
 
 func retrieveDataIPs(pod corev1.Pod) []string {
 	var altIPs []string
-	if dataIP, isSet := pod.Annotations["dataSubnetIP"]; isSet {
-		altIPs = append(altIPs, dataIP)
-	}
+	altIP, _ := getPodDataIP(&pod)
+	altIPs = append(altIPs, altIP)
 	return altIPs
 }
 

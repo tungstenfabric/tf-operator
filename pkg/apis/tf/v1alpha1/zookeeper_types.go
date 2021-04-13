@@ -226,7 +226,7 @@ func (c *Zookeeper) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, requ
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *Zookeeper) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient)
+	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, "")
 }
 
 // SetInstanceActive sets the Zookeeper instance to active.

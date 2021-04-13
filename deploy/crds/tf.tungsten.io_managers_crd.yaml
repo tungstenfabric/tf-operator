@@ -2942,6 +2942,12 @@ spec:
                                 type: array
                               controlInstance:
                                 type: string
+                              dataSubnet:
+                                description: DataSubnet allow to set alternative network in which
+                                  control, nodemanager and dns services are listening. Local pod address
+                                  from this subnet will be discovered and used for connection.
+                                pattern: ^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\/(3[0-2]|2[0-9]|1[0-9]|[0-9]))$
+                                type: string
                               distribution:
                                 type: string
                               dnsServerPort:

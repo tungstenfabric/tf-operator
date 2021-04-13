@@ -158,8 +158,8 @@ server_list={{ .CollectorServerList }}
 introspect_ssl_enable=True
 introspect_ssl_insecure=True
 sandesh_ssl_enable=True
-sandesh_keyfile=/etc/certificates/server-key-{{ .ListenAddress }}.pem
-sandesh_certfile=/etc/certificates/server-{{ .ListenAddress }}.crt
+sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 sandesh_ca_cert={{ .CAFilePath }}`))
 
 // ControlDeProvisionConfig is the template of the Control de-provision script.

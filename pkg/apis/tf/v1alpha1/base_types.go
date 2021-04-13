@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"crypto/sha1"
@@ -8,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"regexp"
 	"sort"
 	"strconv"
@@ -767,10 +769,33 @@ func UpdatePodsAnnotations(podList []corev1.Pod, client client.Client) (updated 
 	return
 }
 
+// GetDataAddresses gets ip addresses of Control pods in data network
+func GetDataAddresses(pod *corev1.Pod, instanceType string, cidr string) (string, error) {
+	_, network, _ := net.ParseCIDR(cidr)
+
+	command := "ip address | awk '/inet /{print $2}' | cut -d '/' -f1"
+	stdout, _, err := ExecToContainer(pod, instanceType, []string{"/usr/bin/bash", "-c", command}, nil)
+	if err != nil {
+		return stdout, err
+	}
+	var ip_addresses []string
+	scanner := bufio.NewScanner(strings.NewReader(string(stdout)))
+	for scanner.Scan() {
+		ip_addresses = append(ip_addresses, scanner.Text())
+	}
+	for _, ip := range ip_addresses {
+		if network.Contains(net.ParseIP(ip)) {
+			return ip, nil
+		}
+	}
+
+	return "", nil
+}
+
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func PodIPListAndIPMapFromInstance(instanceType string,
 	request reconcile.Request,
-	clnt client.Client) ([]corev1.Pod, map[string]string, error) {
+	clnt client.Client, datanetwork string) ([]corev1.Pod, map[string]string, error) {
 
 	labelSelector := labels.SelectorFromSet(map[string]string{"tf_manager": instanceType,
 		instanceType: request.Name})
@@ -788,7 +813,15 @@ func PodIPListAndIPMapFromInstance(instanceType string,
 		if pod.Status.PodIP == "" || (pod.Status.Phase != "Running" && pod.Status.Phase != "Pending") {
 			continue
 		}
-		podNameIPMap[pod.Name] = pod.Status.PodIP
+		if datanetwork != "" {
+			ip, err := GetDataAddresses(pod, instanceType, datanetwork)
+			if err != nil {
+				return nil, nil, err
+			}
+			podNameIPMap[pod.Name] = ip
+		} else {
+			podNameIPMap[pod.Name] = pod.Status.PodIP
+		}
 		podList = append(podList, *pod)
 	}
 	return podList, podNameIPMap, nil
