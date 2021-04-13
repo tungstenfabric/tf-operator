@@ -1,4 +1,4 @@
-package analyticsdb
+package queryengine
 
 import (
 	"context"
@@ -27,7 +27,7 @@ import (
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
 )
 
-var log = logf.Log.WithName("controller_analyticsdb")
+var log = logf.Log.WithName("controller_queryengine")
 
 var restartTime, _ = time.ParseDuration("3s")
 var requeueReconcile = reconcile.Result{Requeue: true, RequeueAfter: restartTime}
@@ -36,7 +36,7 @@ func resourceHandler(myclient client.Client) handler.Funcs {
 	appHandler := handler.Funcs{
 		CreateFunc: func(e event.CreateEvent, q workqueue.RateLimitingInterface) {
 			listOps := &client.ListOptions{Namespace: e.Meta.GetNamespace()}
-			list := &v1alpha1.AnalyticsDBList{}
+			list := &v1alpha1.QueryEngineList{}
 			err := myclient.List(context.TODO(), list, listOps)
 			if err == nil {
 				for _, app := range list.Items {
@@ -49,7 +49,7 @@ func resourceHandler(myclient client.Client) handler.Funcs {
 		},
 		UpdateFunc: func(e event.UpdateEvent, q workqueue.RateLimitingInterface) {
 			listOps := &client.ListOptions{Namespace: e.MetaNew.GetNamespace()}
-			list := &v1alpha1.AnalyticsDBList{}
+			list := &v1alpha1.QueryEngineList{}
 			err := myclient.List(context.TODO(), list, listOps)
 			if err == nil {
 				for _, app := range list.Items {
@@ -62,7 +62,7 @@ func resourceHandler(myclient client.Client) handler.Funcs {
 		},
 		DeleteFunc: func(e event.DeleteEvent, q workqueue.RateLimitingInterface) {
 			listOps := &client.ListOptions{Namespace: e.Meta.GetNamespace()}
-			list := &v1alpha1.AnalyticsDBList{}
+			list := &v1alpha1.QueryEngineList{}
 			err := myclient.List(context.TODO(), list, listOps)
 			if err == nil {
 				for _, app := range list.Items {
@@ -75,7 +75,7 @@ func resourceHandler(myclient client.Client) handler.Funcs {
 		},
 		GenericFunc: func(e event.GenericEvent, q workqueue.RateLimitingInterface) {
 			listOps := &client.ListOptions{Namespace: e.Meta.GetNamespace()}
-			list := &v1alpha1.AnalyticsDBList{}
+			list := &v1alpha1.QueryEngineList{}
 			err := myclient.List(context.TODO(), list, listOps)
 			if err == nil {
 				for _, app := range list.Items {
@@ -90,13 +90,13 @@ func resourceHandler(myclient client.Client) handler.Funcs {
 	return appHandler
 }
 
-// Add adds the AnalyticsDB controller to the manager.
+// Add adds the QueryEngine controller to the manager.
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
 }
 
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileAnalyticsDB{
+	return &ReconcileQueryEngine{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		Manager:    mgr,
@@ -105,23 +105,23 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 }
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller.
-	c, err := controller.New("analyticsdb-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("queryengine-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
 
-	// Watch for changes to primary resource AnalyticsDB
-	if err = c.Watch(&source.Kind{Type: &v1alpha1.AnalyticsDB{}}, &handler.EnqueueRequestForObject{}); err != nil {
+	// Watch for changes to primary resource QueryEngine
+	if err = c.Watch(&source.Kind{Type: &v1alpha1.QueryEngine{}}, &handler.EnqueueRequestForObject{}); err != nil {
 		return err
 	}
-	serviceMap := map[string]string{"tf_manager": "analyticsdb"}
+	serviceMap := map[string]string{"tf_manager": "queryengine"}
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
 	podHandler := resourceHandler(mgr.GetClient())
 	predPodIPChange := utils.PodIPChange(serviceMap)
 
 	if err = c.Watch(&source.Kind{Type: &corev1.Service{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &v1alpha1.AnalyticsDB{},
+		OwnerType:    &v1alpha1.QueryEngine{},
 	}); err != nil {
 		return err
 	}
@@ -168,9 +168,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	srcSTS := &source.Kind{Type: &appsv1.StatefulSet{}}
 	stsHandler := &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &v1alpha1.AnalyticsDB{},
+		OwnerType:    &v1alpha1.QueryEngine{},
 	}
-	stsPred := utils.STSStatusChange(utils.AnalyticsDBGroupKind())
+	stsPred := utils.STSStatusChange(utils.QueryEngineGroupKind())
 	if err = c.Watch(srcSTS, stsHandler, stsPred); err != nil {
 		return err
 	}
@@ -178,11 +178,11 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-// blank assignment to verify that ReconcileAnalyticsDB implements reconcile.Reconciler.
-var _ reconcile.Reconciler = &ReconcileAnalyticsDB{}
+// blank assignment to verify that ReconcileQueryEngine implements reconcile.Reconciler.
+var _ reconcile.Reconciler = &ReconcileQueryEngine{}
 
-// ReconcileAnalyticsDB reconciles a AnalyticsDB object.
-type ReconcileAnalyticsDB struct {
+// ReconcileQueryEngine reconciles a QueryEngine object.
+type ReconcileQueryEngine struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver.
 	Client     client.Client
@@ -191,12 +191,12 @@ type ReconcileAnalyticsDB struct {
 	Kubernetes *k8s.Kubernetes
 }
 
-// Reconcile reconciles AnalyticsDB
-func (r *ReconcileAnalyticsDB) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+// Reconcile reconciles QueryEngine
+func (r *ReconcileQueryEngine) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Start")
-	instanceType := "analyticsdb"
-	instance := &v1alpha1.AnalyticsDB{}
+	instanceType := "queryengine"
+	instance := &v1alpha1.QueryEngine{}
 	cassandraInstance := &v1alpha1.Cassandra{}
 	zookeeperInstance := &v1alpha1.Zookeeper{}
 	rabbitmqInstance := &v1alpha1.Rabbitmq{}
@@ -204,12 +204,12 @@ func (r *ReconcileAnalyticsDB) Reconcile(request reconcile.Request) (reconcile.R
 	analyticsInstance := v1alpha1.Analytics{}
 
 	if err := r.Client.Get(context.TODO(), request.NamespacedName, instance); err != nil && errors.IsNotFound(err) {
-		reqLogger.Error(err, "Failed to get analyticsdb obj")
+		reqLogger.Error(err, "Failed to get queryengine obj")
 		return reconcile.Result{}, nil
 	}
 
 	if !instance.GetDeletionTimestamp().IsZero() {
-		reqLogger.Info("AnalyticsDB is deleting, skip reconcile")
+		reqLogger.Info("QueryEngine is deleting, skip reconcile")
 		return reconcile.Result{}, nil
 	}
 
@@ -224,12 +224,12 @@ func (r *ReconcileAnalyticsDB) Reconcile(request reconcile.Request) (reconcile.R
 	}
 
 	servicePortsMap := map[int32]string{
-		int32(v1alpha1.AnalyticsdbPort): "analyticsdb",
+		int32(v1alpha1.AnalyticsdbPort): "queryengine",
 	}
-	analyticsdbService := r.Kubernetes.Service(request.Name+"-"+instanceType, corev1.ServiceTypeClusterIP, servicePortsMap, instanceType, instance)
+	queryengineService := r.Kubernetes.Service(request.Name+"-"+instanceType, corev1.ServiceTypeClusterIP, servicePortsMap, instanceType, instance)
 
-	if err := analyticsdbService.EnsureExists(); err != nil {
-		reqLogger.Error(err, "AnalyticsDB service doesnt exist")
+	if err := queryengineService.EnsureExists(); err != nil {
+		reqLogger.Error(err, "QueryEngine service doesnt exist")
 		return reconcile.Result{}, err
 	}
 
@@ -316,18 +316,6 @@ func (r *ReconcileAnalyticsDB) Reconcile(request reconcile.Request) (reconcile.R
 				}
 				container.Command = command
 			}
-
-		case "nodemanager":
-			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/analyticsdb-nodemanager-runner.sh"}
-				container.Command = command
-			}
-
-		case "provisioner":
-			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/analyticsdb-provisioner.sh"}
-				container.Command = command
-			}
 		}
 	}
 
@@ -385,8 +373,8 @@ func (r *ReconcileAnalyticsDB) Reconcile(request reconcile.Request) (reconcile.R
 		}
 	}
 
-	if instance.Status.Endpoint != analyticsdbService.ClusterIP() {
-		if err = instance.SetEndpointInStatus(r.Client, analyticsdbService.ClusterIP()); err != nil && !v1alpha1.IsOKForRequeque(err) {
+	if instance.Status.Endpoint != queryengineService.ClusterIP() {
+		if err = instance.SetEndpointInStatus(r.Client, queryengineService.ClusterIP()); err != nil && !v1alpha1.IsOKForRequeque(err) {
 			reqLogger.Error(err, "Failed to set endpointIn status")
 			return reconcile.Result{}, err
 		}
@@ -436,7 +424,7 @@ func (r *ReconcileAnalyticsDB) Reconcile(request reconcile.Request) (reconcile.R
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileAnalyticsDB) ensureCertificatesExist(instance *v1alpha1.AnalyticsDB, pods []corev1.Pod, instanceType string) error {
+func (r *ReconcileQueryEngine) ensureCertificatesExist(instance *v1alpha1.QueryEngine, pods []corev1.Pod, instanceType string) error {
 	domain, err := v1alpha1.ClusterDNSDomain(r.Client)
 	if err != nil {
 		return err

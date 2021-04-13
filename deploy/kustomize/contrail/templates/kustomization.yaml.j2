@@ -13,6 +13,7 @@ patchesStrategicMerge:
   - auth.yaml
   - image-secrets.yaml
   - linklocal.yaml
+  - db.yaml
 
 # set contrail-status image
 patchesJson6902:
@@ -28,12 +29,6 @@ patchesJson6902:
       group: tf.tungsten.io
       version: v1alpha1
     path: kube-manager.json
-  - target:
-      kind: Manager
-      name: cluster1
-      group: tf.tungsten.io
-      version: v1alpha1
-    path: db.json
 
 images:
 # Contrail externals

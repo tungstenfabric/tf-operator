@@ -58,6 +58,7 @@ type AnalyticsConfiguration struct {
 	AnalyticsApiIntrospectPort *int         `json:"analyticsIntrospectPort,omitempty"`
 	CollectorIntrospectPort    *int         `json:"collectorIntrospectPort,omitempty"`
 	ConfigInstance             string       `json:"configInstance,omitempty"`
+	AnalyticsCassandraInstance string       `json:"analyticsCassandraInstance,omitempty"`
 	CassandraInstance          string       `json:"cassandraInstance,omitempty"`
 	ZookeeperInstance          string       `json:"zookeeperInstance,omitempty"`
 	RabbitmqInstance           string       `json:"rabbitmqInstance,omitempty"`
@@ -106,6 +107,12 @@ func (c *Analytics) InstanceConfiguration(configMapName string,
 
 	configMapInstanceDynamicConfig := &corev1.ConfigMap{}
 	err := client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: request.Namespace}, configMapInstanceDynamicConfig)
+	if err != nil {
+		return err
+	}
+
+	analyticsdbCassandraNodesInformation, err := NewCassandraClusterConfiguration(
+		c.Spec.ServiceConfiguration.AnalyticsCassandraInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}
@@ -160,13 +167,15 @@ func (c *Analytics) InstanceConfiguration(configMapName string,
 	if rabbitmqSecretVhost == "" {
 		rabbitmqSecretVhost = analyticsConfig.RabbitmqVhost
 	}
-	var collectorServerList, apiServerList, analyticsServerSpaceSeparatedList string
+	var collectorServerList, analyticsServerSpaceSeparatedList string
 	var podIPList []string
 	for _, pod := range podList {
 		podIPList = append(podIPList, pod.Status.PodIP)
 	}
 	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
 	sort.SliceStable(podIPList, func(i, j int) bool { return podIPList[i] < podIPList[j] })
+
+	configApiIPListCommaSeparated := configtemplates.JoinListWithSeparator(configNodesInformation.APIServerIPList, ",")
 
 	collectorServerList = strings.Join(podIPList, ":"+strconv.Itoa(*analyticsConfig.CollectorPort)+" ")
 	collectorServerList = collectorServerList + ":" + strconv.Itoa(*analyticsConfig.CollectorPort)
@@ -177,6 +186,8 @@ func (c *Analytics) InstanceConfiguration(configMapName string,
 	apiServerIPListCommaSeparated := configtemplates.JoinListWithSeparator(configNodesInformation.APIServerIPList, ",")
 	cassandraEndpointList := configtemplates.EndpointList(cassandraNodesInformation.ServerIPList, cassandraNodesInformation.Port)
 	cassandraEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(cassandraEndpointList, " ")
+	analyticsdbCassandraCQLEndpointList := configtemplates.EndpointList(analyticsdbCassandraNodesInformation.ServerIPList, analyticsdbCassandraNodesInformation.CQLPort)
+	analyticsdbCassandraCQLEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(analyticsdbCassandraCQLEndpointList, " ")
 	cassandraCQLEndpointList := configtemplates.EndpointList(cassandraNodesInformation.ServerIPList, cassandraNodesInformation.CQLPort)
 	cassandraCQLEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(cassandraCQLEndpointList, " ")
 	rabbitMqSSLEndpointList := configtemplates.EndpointList(rabbitmqNodesInformation.ServerIPList, rabbitmqNodesInformation.Port)
@@ -240,43 +251,45 @@ func (c *Analytics) InstanceConfiguration(configMapName string,
 
 		var collectorBuffer bytes.Buffer
 		err = configtemplates.CollectorConfig.Execute(&collectorBuffer, struct {
-			Hostname                 string
-			PodIP                    string
-			ListenAddress            string
-			InstrospectListenAddress string
-			CollectorIntrospectPort  string
-			ApiServerList            string
-			CassandraServerList      string
-			ZookeeperServerList      string
-			RabbitmqServerList       string
-			RabbitmqUser             string
-			RabbitmqPassword         string
-			RabbitmqVhost            string
-			LogLevel                 string
-			CAFilePath               string
-			AnalyticsDataTTL         string
-			AnalyticsConfigAuditTTL  string
-			AnalyticsStatisticsTTL   string
-			AnalyticsFlowTTL         string
+			Hostname                       string
+			PodIP                          string
+			ListenAddress                  string
+			InstrospectListenAddress       string
+			CollectorIntrospectPort        string
+			ApiServerList                  string
+			CassandraServerList            string
+			AnalyticsdbCassandraServerList string
+			ZookeeperServerList            string
+			RabbitmqServerList             string
+			RabbitmqUser                   string
+			RabbitmqPassword               string
+			RabbitmqVhost                  string
+			LogLevel                       string
+			CAFilePath                     string
+			AnalyticsDataTTL               string
+			AnalyticsConfigAuditTTL        string
+			AnalyticsStatisticsTTL         string
+			AnalyticsFlowTTL               string
 		}{
-			Hostname:                 hostname,
-			PodIP:                    podIP,
-			ListenAddress:            podIP,
-			InstrospectListenAddress: instrospectListenAddress,
-			CollectorIntrospectPort:  strconv.Itoa(*analyticsConfig.CollectorIntrospectPort),
-			ApiServerList:            apiServerEndpointListSpaceSeparated,
-			CassandraServerList:      cassandraCQLEndpointListSpaceSeparated,
-			ZookeeperServerList:      zookeeperEndpointListCommaSeparated,
-			RabbitmqServerList:       rabbitmqSSLEndpointListSpaceSeparated,
-			RabbitmqUser:             rabbitmqSecretUser,
-			RabbitmqPassword:         rabbitmqSecretPassword,
-			RabbitmqVhost:            rabbitmqSecretVhost,
-			LogLevel:                 analyticsConfig.LogLevel,
-			CAFilePath:               certificates.SignerCAFilepath,
-			AnalyticsDataTTL:         strconv.Itoa(*analyticsConfig.AnalyticsDataTTL),
-			AnalyticsConfigAuditTTL:  strconv.Itoa(*analyticsConfig.AnalyticsConfigAuditTTL),
-			AnalyticsStatisticsTTL:   strconv.Itoa(*analyticsConfig.AnalyticsStatisticsTTL),
-			AnalyticsFlowTTL:         strconv.Itoa(*analyticsConfig.AnalyticsFlowTTL),
+			Hostname:                       hostname,
+			PodIP:                          podIP,
+			ListenAddress:                  podIP,
+			InstrospectListenAddress:       instrospectListenAddress,
+			CollectorIntrospectPort:        strconv.Itoa(*analyticsConfig.CollectorIntrospectPort),
+			ApiServerList:                  apiServerEndpointListSpaceSeparated,
+			CassandraServerList:            cassandraCQLEndpointListSpaceSeparated,
+			AnalyticsdbCassandraServerList: analyticsdbCassandraCQLEndpointListSpaceSeparated,
+			ZookeeperServerList:            zookeeperEndpointListCommaSeparated,
+			RabbitmqServerList:             rabbitmqSSLEndpointListSpaceSeparated,
+			RabbitmqUser:                   rabbitmqSecretUser,
+			RabbitmqPassword:               rabbitmqSecretPassword,
+			RabbitmqVhost:                  rabbitmqSecretVhost,
+			LogLevel:                       analyticsConfig.LogLevel,
+			CAFilePath:                     certificates.SignerCAFilepath,
+			AnalyticsDataTTL:               strconv.Itoa(*analyticsConfig.AnalyticsDataTTL),
+			AnalyticsConfigAuditTTL:        strconv.Itoa(*analyticsConfig.AnalyticsConfigAuditTTL),
+			AnalyticsStatisticsTTL:         strconv.Itoa(*analyticsConfig.AnalyticsStatisticsTTL),
+			AnalyticsFlowTTL:               strconv.Itoa(*analyticsConfig.AnalyticsFlowTTL),
 		})
 		if err != nil {
 			panic(err)
@@ -379,7 +392,7 @@ func (c *Analytics) InstanceConfiguration(configMapName string,
 	configMapInstanceDynamicConfig.Data["analytics-nodemanager-runner.sh"] = nmr
 
 	// update with provisioner configs
-	UpdateProvisionerConfigMapData("analytics-provisioner", apiServerList, configMapInstanceDynamicConfig)
+	UpdateProvisionerConfigMapData("analytics-provisioner", configApiIPListCommaSeparated, configMapInstanceDynamicConfig)
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }

@@ -25,39 +25,39 @@ import (
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// AnalyticsDB is the Schema for the analyticsdb API.
+// QueryEngine is the Schema for the analyticsdb query engine.
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=analyticsdb,scope=Namespaced
+// +kubebuilder:resource:path=queryengine,scope=Namespaced
 // +kubebuilder:printcolumn:name="Replicas",type=integer,JSONPath=`.status.replicas`
 // +kubebuilder:printcolumn:name="Ready_Replicas",type=integer,JSONPath=`.status.readyReplicas`
 // +kubebuilder:printcolumn:name="Endpoint",type=string,JSONPath=`.status.endpoint`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 // +kubebuilder:printcolumn:name="Active",type=boolean,JSONPath=`.status.active`
-type AnalyticsDB struct {
+type QueryEngine struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   AnalyticsDBSpec   `json:"spec,omitempty"`
-	Status AnalyticsDBStatus `json:"status,omitempty"`
+	Spec   QueryEngineSpec   `json:"spec,omitempty"`
+	Status QueryEngineStatus `json:"status,omitempty"`
 }
 
-// AnalyticsDBSpec is the Spec for the AnalyticsDB API.
+// QueryEngineSpec is the Spec for the AnalyticsDB query engine.
 // +k8s:openapi-gen=true
-type AnalyticsDBSpec struct {
+type QueryEngineSpec struct {
 	CommonConfiguration  PodConfiguration         `json:"commonConfiguration,omitempty"`
-	ServiceConfiguration AnalyticsDBConfiguration `json:"serviceConfiguration"`
+	ServiceConfiguration QueryEngineConfiguration `json:"serviceConfiguration"`
 }
 
-// AnalyticsDBConfiguration is the Spec for the AnalyticsDB API.
+// QueryEngineConfiguration is the Spec for the AnalyticsDB query engine.
 // +k8s:openapi-gen=true
-type AnalyticsDBConfiguration struct {
+type QueryEngineConfiguration struct {
 	AnalyticsdbPort           *int         `json:"analyticsdbPort,omitempty"`
 	AnalyticsdbIntrospectPort *int         `json:"analyticsdbIntrospectPort,omitempty"`
 	Containers                []*Container `json:"containers,omitempty"`
 	ConfigInstance            string       `json:"configInstance,omitempty"`
 	AnalyticsInstance         string       `json:"analyticsInstance,omitempty"`
-	CassandraInstance         string       `json:"cassandraInstance,omitempty"`
+	CassandraInstance         string       `json:"analyticsCassandraInstance,omitempty"`
 	ZookeeperInstance         string       `json:"zookeeperInstance,omitempty"`
 	RabbitmqInstance          string       `json:"rabbitmqInstance,omitempty"`
 	RabbitmqUser              string       `json:"rabbitmqUser,omitempty"`
@@ -67,29 +67,29 @@ type AnalyticsDBConfiguration struct {
 	Storage                   Storage      `json:"storage,omitempty"`
 }
 
-// AnalyticsDBStatus status of AnalyticsDB
+// QueryEngineStatus status of QueryEngine
 // +k8s:openapi-gen=true
-type AnalyticsDBStatus struct {
+type QueryEngineStatus struct {
 	Active        *bool             `json:"active,omitempty"`
 	Nodes         map[string]string `json:"nodes,omitempty"`
 	Endpoint      string            `json:"endpoint,omitempty"`
 	ConfigChanged *bool             `json:"configChanged,omitempty"`
 }
 
-// AnalyticsDBList contains a list of AnalyticsDB.
+// QueryEngineList contains a list of QueryEngine.
 // +k8s:openapi-gen=true
-type AnalyticsDBList struct {
+type QueryEngineList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []AnalyticsDB `json:"items"`
+	Items           []QueryEngine `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&AnalyticsDB{}, &AnalyticsDBList{})
+	SchemeBuilder.Register(&QueryEngine{}, &QueryEngineList{})
 }
 
 // InstanceConfiguration configures and updates configmaps
-func (c *AnalyticsDB) InstanceConfiguration(configMapName string,
+func (c *QueryEngine) InstanceConfiguration(configMapName string,
 	request reconcile.Request,
 	podList []corev1.Pod,
 	client client.Client) error {
@@ -105,20 +105,27 @@ func (c *AnalyticsDB) InstanceConfiguration(configMapName string,
 	if err != nil {
 		return err
 	}
-
 	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(c.Spec.ServiceConfiguration.AnalyticsInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}
+	configNodesInformation, err := NewConfigClusterConfiguration(c.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, client)
+	if err != nil {
+		return err
+	}
 
-	analyticsdbConfig := c.ConfigurationParameters()
-	var apiServerList string
+	queryengineConfig := c.ConfigurationParameters()
 	var podIPList []string
 	for _, pod := range podList {
 		podIPList = append(podIPList, pod.Status.PodIP)
 	}
 	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
 	sort.SliceStable(podIPList, func(i, j int) bool { return podIPList[i] < podIPList[j] })
+
+	configApiList := make([]string, len(configNodesInformation.APIServerIPList))
+	copy(configApiList, configNodesInformation.APIServerIPList)
+	sort.Strings(configApiList)
+	configApiIPCommaSeparated := configtemplates.JoinListWithSeparator(configApiList, ",")
 
 	cassandraCQLEndpointList := configtemplates.EndpointList(cassandraNodesInformation.ServerIPList, cassandraNodesInformation.CQLPort)
 	cassandraCQLEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(cassandraCQLEndpointList, " ")
@@ -155,58 +162,39 @@ func (c *AnalyticsDB) InstanceConfiguration(configMapName string,
 			RedisServerList:          redisServerSpaceSeparatedList,
 			CAFilePath:               certificates.SignerCAFilepath,
 			AnalyticsDataTTL:         strconv.Itoa(analyticsNodesInformation.AnalyticsDataTTL),
-			LogLevel:                 analyticsdbConfig.LogLevel,
+			LogLevel:                 queryengineConfig.LogLevel,
 		})
 		if err != nil {
 			panic(err)
 		}
 		data["queryengine."+podIP] = queryEngineBuffer.String()
 
-		var nodemanagerBuffer bytes.Buffer
-		err = configtemplates.AnalyticsDBNodemanagerConfig.Execute(&nodemanagerBuffer, struct {
-			Hostname                 string
-			PodIP                    string
-			ListenAddress            string
-			InstrospectListenAddress string
-			CollectorServerList      string
-			CassandraPort            string
-			CassandraJmxPort         string
-			CAFilePath               string
-			LogLevel                 string
+		// TODO: commonize for all services
+		var vncApiBuffer bytes.Buffer
+		err = configtemplates.QueryEngineVncConfig.Execute(&vncApiBuffer, struct {
+			ConfigNodes   string
+			ConfigApiPort string
+			CAFilePath    string
+			AuthMode      AuthenticationMode
 		}{
-			Hostname:                 hostname,
-			PodIP:                    podIP,
-			ListenAddress:            podIP,
-			InstrospectListenAddress: instrospectListenAddress,
-			CollectorServerList:      collectorEndpointListSpaceSeparated,
-			CassandraPort:            strconv.Itoa(cassandraNodesInformation.CQLPort),
-			CassandraJmxPort:         strconv.Itoa(cassandraNodesInformation.JMXPort),
-			CAFilePath:               certificates.SignerCAFilepath,
-			LogLevel:                 analyticsdbConfig.LogLevel,
+			ConfigNodes:   configApiIPCommaSeparated,
+			ConfigApiPort: strconv.Itoa(configNodesInformation.APIServerPort),
+			CAFilePath:    certificates.SignerCAFilepath,
+			AuthMode:      c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 		})
 		if err != nil {
 			panic(err)
 		}
-		data["analyticsdb-nodemgr.conf."+podIP] = nodemanagerBuffer.String()
-		// empty env as no db tracking
-		data["analyticsdb-nodemgr.env."+podIP] = ""
+		data["vnc_api_lib.ini."+podIP] = vncApiBuffer.String()
 	}
 
 	configMapInstanceDynamicConfig.Data = data
-
-	// update with nodemanager runner
-	nmr := GetNodemanagerRunner()
-
-	configMapInstanceDynamicConfig.Data["analyticsdb-nodemanager-runner.sh"] = nmr
-
-	// update with provisioner analyticsdb
-	UpdateProvisionerConfigMapData("analyticsdb-provisioner", apiServerList, configMapInstanceDynamicConfig)
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }
 
 // CreateConfigMap makes default empty ConfigMap
-func (c *AnalyticsDB) CreateConfigMap(configMapName string,
+func (c *QueryEngine) CreateConfigMap(configMapName string,
 	client client.Client,
 	scheme *runtime.Scheme,
 	request reconcile.Request) (*corev1.ConfigMap, error) {
@@ -214,12 +202,12 @@ func (c *AnalyticsDB) CreateConfigMap(configMapName string,
 		client,
 		scheme,
 		request,
-		"analyticsdb",
+		"queryengine",
 		c)
 }
 
 // CreateSecret creates a secret.
-func (c *AnalyticsDB) CreateSecret(secretName string,
+func (c *QueryEngine) CreateSecret(secretName string,
 	client client.Client,
 	scheme *runtime.Scheme,
 	request reconcile.Request) (*corev1.Secret, error) {
@@ -227,37 +215,37 @@ func (c *AnalyticsDB) CreateSecret(secretName string,
 		client,
 		scheme,
 		request,
-		"analyticsdb",
+		"queryengine",
 		c)
 }
 
-// PrepareSTS prepares the intented statefulset for the analyticsdb object
-func (c *AnalyticsDB) PrepareSTS(sts *appsv1.StatefulSet, commonConfiguration *PodConfiguration, request reconcile.Request, scheme *runtime.Scheme) error {
-	return PrepareSTS(sts, commonConfiguration, "analyticsdb", request, scheme, c, true)
+// PrepareSTS prepares the intented statefulset for the queryengine object
+func (c *QueryEngine) PrepareSTS(sts *appsv1.StatefulSet, commonConfiguration *PodConfiguration, request reconcile.Request, scheme *runtime.Scheme) error {
+	return PrepareSTS(sts, commonConfiguration, "queryengine", request, scheme, c, true)
 }
 
-// AddVolumesToIntendedSTS adds volumes to the analyticsdb statefulset
-func (c *AnalyticsDB) AddVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeConfigMapMap map[string]string) {
+// AddVolumesToIntendedSTS adds volumes to the queryengine statefulset
+func (c *QueryEngine) AddVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeConfigMapMap map[string]string) {
 	AddVolumesToIntendedSTS(sts, volumeConfigMapMap)
 }
 
 // AddSecretVolumesToIntendedSTS adds volumes to the Rabbitmq deployment.
-func (c *AnalyticsDB) AddSecretVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeConfigMapMap map[string]string) {
+func (c *QueryEngine) AddSecretVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeConfigMapMap map[string]string) {
 	AddSecretVolumesToIntendedSTS(sts, volumeConfigMapMap)
 }
 
 //CreateSTS creates the STS
-func (c *AnalyticsDB) CreateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
+func (c *QueryEngine) CreateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
 	return CreateSTS(sts, instanceType, request, reconcileClient)
 }
 
 //UpdateSTS updates the STS
-func (c *AnalyticsDB) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
+func (c *QueryEngine) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
 	return UpdateSTS(sts, instanceType, request, reconcileClient, "deleteFirst")
 }
 
-// SetInstanceActive sets the AnalyticsDB instance to active
-func (c *AnalyticsDB) SetInstanceActive(client client.Client, activeStatus *bool, sts *appsv1.StatefulSet, request reconcile.Request) error {
+// SetInstanceActive sets the QueryEngine instance to active
+func (c *QueryEngine) SetInstanceActive(client client.Client, activeStatus *bool, sts *appsv1.StatefulSet, request reconcile.Request) error {
 	if err := client.Get(context.TODO(), types.NamespacedName{Name: sts.Name, Namespace: request.Namespace}, sts); err != nil {
 		return err
 	}
@@ -269,22 +257,22 @@ func (c *AnalyticsDB) SetInstanceActive(client client.Client, activeStatus *bool
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
-func (c *AnalyticsDB) PodIPListAndIPMapFromInstance(request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance("analyticsdb", request, reconcileClient)
+func (c *QueryEngine) PodIPListAndIPMapFromInstance(request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
+	return PodIPListAndIPMapFromInstance("queryengine", request, reconcileClient)
 }
 
-//PodsCertSubjects gets list of AnalyticsDB pods certificate subjets which can be passed to the certificate API
-func (c *AnalyticsDB) PodsCertSubjects(domain string, podList []corev1.Pod) []certificates.CertificateSubject {
+//PodsCertSubjects gets list of QueryEngine pods certificate subjets which can be passed to the certificate API
+func (c *QueryEngine) PodsCertSubjects(domain string, podList []corev1.Pod) []certificates.CertificateSubject {
 	var altIPs PodAlternativeIPs
 	return PodsCertSubjects(domain, podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
 }
 
-func (c *AnalyticsDB) SetPodsToReady(podIPList []corev1.Pod, client client.Client) error {
+func (c *QueryEngine) SetPodsToReady(podIPList []corev1.Pod, client client.Client) error {
 	return SetPodsToReady(podIPList, client)
 }
 
 // ManageNodeStatus updates nodes in status
-func (c *AnalyticsDB) ManageNodeStatus(podNameIPMap map[string]string,
+func (c *QueryEngine) ManageNodeStatus(podNameIPMap map[string]string,
 	client client.Client) (updated bool, err error) {
 	updated = false
 	err = nil
@@ -303,7 +291,7 @@ func (c *AnalyticsDB) ManageNodeStatus(podNameIPMap map[string]string,
 }
 
 // IsActive returns true if instance is active
-func (c *AnalyticsDB) IsActive(name string, namespace string, client client.Client) bool {
+func (c *QueryEngine) IsActive(name string, namespace string, client client.Client) bool {
 	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, c)
 	if err != nil || c.Status.Active == nil {
 		return false
@@ -311,9 +299,9 @@ func (c *AnalyticsDB) IsActive(name string, namespace string, client client.Clie
 	return *c.Status.Active
 }
 
-// ConfigurationParameters create analyticsdb struct
-func (c *AnalyticsDB) ConfigurationParameters() AnalyticsDBConfiguration {
-	analyticsdbConfiguration := AnalyticsDBConfiguration{}
+// ConfigurationParameters create queryengine struct
+func (c *QueryEngine) ConfigurationParameters() QueryEngineConfiguration {
+	queryengineConfiguration := QueryEngineConfiguration{}
 	var analyticsdbPort int
 	var logLevel string
 
@@ -322,19 +310,19 @@ func (c *AnalyticsDB) ConfigurationParameters() AnalyticsDBConfiguration {
 	} else {
 		analyticsdbPort = AnalyticsdbPort
 	}
-	analyticsdbConfiguration.AnalyticsdbPort = &analyticsdbPort
+	queryengineConfiguration.AnalyticsdbPort = &analyticsdbPort
 
 	if c.Spec.ServiceConfiguration.LogLevel != "" {
 		logLevel = c.Spec.ServiceConfiguration.LogLevel
 	} else {
 		logLevel = LogLevel
 	}
-	analyticsdbConfiguration.LogLevel = logLevel
-	return analyticsdbConfiguration
+	queryengineConfiguration.LogLevel = logLevel
+	return queryengineConfiguration
 
 }
 
-func (c *AnalyticsDB) SetEndpointInStatus(client client.Client, clusterIP string) error {
+func (c *QueryEngine) SetEndpointInStatus(client client.Client, clusterIP string) error {
 	c.Status.Endpoint = clusterIP
 	err := client.Status().Update(context.TODO(), c)
 	return err
@@ -345,6 +333,6 @@ func (c *AnalyticsDB) SetEndpointInStatus(client client.Client, clusterIP string
 //  configs - config files to be waited for and to be linked from configmap mount
 //   to a destination config folder (if destination is empty no link be done, only wait), e.g.
 //   { "api.${POD_IP}": "", "vnc_api.ini.${POD_IP}": "vnc_api.ini"}
-func (c *AnalyticsDB) CommonStartupScript(command string, configs map[string]string) string {
+func (c *QueryEngine) CommonStartupScript(command string, configs map[string]string) string {
 	return CommonStartupScript(command, configs)
 }

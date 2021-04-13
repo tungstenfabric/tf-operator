@@ -44,9 +44,8 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
-        # TODO: dont provide till 2 DBs be supported
-        #- name: NODE_TYPE
-        #  value: config-database
+        - name: NODE_TYPE
+          value: config-database
         image: tungstenfabric/contrail-external-zookeeper:latest
         resources:
           requests:

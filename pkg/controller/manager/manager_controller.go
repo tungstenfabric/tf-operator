@@ -32,7 +32,7 @@ var requeueReconcile = reconcile.Result{Requeue: true, RequeueAfter: restartTime
 
 var resourcesList = []runtime.Object{
 	&v1alpha1.Analytics{},
-	&v1alpha1.AnalyticsDB{},
+	&v1alpha1.QueryEngine{},
 	&v1alpha1.AnalyticsSnmp{},
 	&v1alpha1.AnalyticsAlarm{},
 	&v1alpha1.Cassandra{},
@@ -229,12 +229,12 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 		log.Error(err, "processAnalytics")
 	}
 
-	if err := r.processAnalyticsDB(instance, replicas, nodesHostAliases); err != nil {
+	if err := r.processQueryEngine(instance, replicas, nodesHostAliases); err != nil {
 		if v1alpha1.IsOKForRequeque(err) {
-			log.Info("Failed to processAnalyticsDB, future rereconcile")
+			log.Info("Failed to processQueryEngine, future rereconcile")
 			requeueErr = err
 		}
-		log.Error(err, "processAnalyticsDB")
+		log.Error(err, "processQueryEngine")
 	}
 
 	if err := r.processAnalyticsSnmp(instance, replicas); err != nil {
@@ -374,13 +374,13 @@ func (r *ReconcileManager) processAnalytics(manager *v1alpha1.Manager, replicas 
 	return nil
 }
 
-func (r *ReconcileManager) processAnalyticsDB(manager *v1alpha1.Manager, replicas int32, hostAliases []corev1.HostAlias) error {
-	if manager.Spec.Services.AnalyticsDB == nil {
-		if manager.Status.AnalyticsDB != nil {
-			oldConfig := &v1alpha1.AnalyticsDB{}
+func (r *ReconcileManager) processQueryEngine(manager *v1alpha1.Manager, replicas int32, hostAliases []corev1.HostAlias) error {
+	if manager.Spec.Services.QueryEngine == nil {
+		if manager.Status.QueryEngine != nil {
+			oldConfig := &v1alpha1.QueryEngine{}
 			oldConfig.ObjectMeta = v1.ObjectMeta{
 				Namespace: manager.Namespace,
-				Name:      *manager.Status.AnalyticsDB.Name,
+				Name:      *manager.Status.QueryEngine.Name,
 				Labels: map[string]string{
 					"tf_cluster": manager.Name,
 				},
@@ -389,32 +389,32 @@ func (r *ReconcileManager) processAnalyticsDB(manager *v1alpha1.Manager, replica
 			if err != nil && !errors.IsNotFound(err) {
 				return err
 			}
-			manager.Status.AnalyticsDB = nil
+			manager.Status.QueryEngine = nil
 		}
 		return nil
 	}
 
-	analyticsdb := &v1alpha1.AnalyticsDB{}
-	analyticsdb.ObjectMeta = manager.Spec.Services.AnalyticsDB.ObjectMeta
-	analyticsdb.ObjectMeta.Namespace = manager.Namespace
-	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, analyticsdb, func() error {
-		analyticsdb.Spec = manager.Spec.Services.AnalyticsDB.Spec
-		analyticsdb.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, analyticsdb.Spec.CommonConfiguration)
-		if analyticsdb.Spec.CommonConfiguration.Replicas == nil {
-			analyticsdb.Spec.CommonConfiguration.Replicas = &replicas
+	queryengine := &v1alpha1.QueryEngine{}
+	queryengine.ObjectMeta = manager.Spec.Services.QueryEngine.ObjectMeta
+	queryengine.ObjectMeta.Namespace = manager.Namespace
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, queryengine, func() error {
+		queryengine.Spec = manager.Spec.Services.QueryEngine.Spec
+		queryengine.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, queryengine.Spec.CommonConfiguration)
+		if queryengine.Spec.CommonConfiguration.Replicas == nil {
+			queryengine.Spec.CommonConfiguration.Replicas = &replicas
 		}
-		if len(analyticsdb.Spec.CommonConfiguration.HostAliases) == 0 {
-			analyticsdb.Spec.CommonConfiguration.HostAliases = hostAliases
+		if len(queryengine.Spec.CommonConfiguration.HostAliases) == 0 {
+			queryengine.Spec.CommonConfiguration.HostAliases = hostAliases
 		}
-		return controllerutil.SetControllerReference(manager, analyticsdb, r.scheme)
+		return controllerutil.SetControllerReference(manager, queryengine, r.scheme)
 	})
 	if err != nil {
 		return err
 	}
 	status := &v1alpha1.ServiceStatus{}
-	status.Name = &analyticsdb.Name
-	status.Active = analyticsdb.Status.Active
-	manager.Status.AnalyticsDB = status
+	status.Name = &queryengine.Name
+	status.Active = queryengine.Status.Active
+	manager.Status.QueryEngine = status
 	return nil
 }
 

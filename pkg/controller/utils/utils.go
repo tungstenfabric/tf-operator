@@ -17,7 +17,7 @@ var reqLogger = log.WithValues()
 // const defines the Group constants.
 const (
 	ANALYTICS      = "Analytics.tf.tungsten.io"
-	ANALYTICSDB    = "AnalyticsDB.tf.tungsten.io"
+	QUERYENGINE    = "QueryEngine.tf.tungsten.io"
 	ANALYTICSSNMP  = "AnalyticsSnmp.tf.tungsten.io"
 	ANALYTICSALARM = "AnalyticsAlarm.tf.tungsten.io"
 	CASSANDRA      = "Cassandra.tf.tungsten.io"
@@ -42,9 +42,9 @@ func AnalyticsGroupKind() schema.GroupKind {
 	return schema.ParseGroupKind(ANALYTICS)
 }
 
-// AnalyticsDBGroupKind returns group kind.
-func AnalyticsDBGroupKind() schema.GroupKind {
-	return schema.ParseGroupKind(ANALYTICSDB)
+// QueryEngineGroupKind returns group kind.
+func QueryEngineGroupKind() schema.GroupKind {
+	return schema.ParseGroupKind(QUERYENGINE)
 }
 
 // AnalyticsSnmpGroupKind returns group kind.

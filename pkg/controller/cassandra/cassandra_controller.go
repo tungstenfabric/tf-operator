@@ -293,16 +293,20 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 			}
 		}
 
+		nodeType := cassandraConfig.NodeType
+
 		if container.Name == "nodemanager" {
 			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/database-nodemanager-runner.sh"}
+				shell_script := "/etc/contrailconfigmaps/" + nodeType + "-nodemanager-runner.sh"
+				command := []string{"bash", shell_script}
 				container.Command = command
 			}
 		}
 
 		if container.Name == "provisioner" {
 			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/database-provisioner.sh"}
+				shell_script := "/etc/contrailconfigmaps/" + nodeType + "-provisioner.sh"
+				command := []string{"bash", shell_script}
 				container.Command = command
 			}
 		}

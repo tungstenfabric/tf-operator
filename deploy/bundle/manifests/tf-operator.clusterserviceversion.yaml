@@ -35,6 +35,7 @@ metadata:
                     }
                   },
                   "serviceConfiguration": {
+                    "analyticsCassandraInstance": "configdb1",
                     "cassandraInstance": "configdb1",
                     "configInstance": "config1",
                     "containers": [
@@ -151,12 +152,12 @@ metadata:
                   }
                 }
               },
-              "analyticsdb": {
+              "queryengine": {
                 "metadata": {
                   "labels": {
                     "tf_cluster": "cluster1"
                   },
-                  "name": "analyticsdb1"
+                  "name": "queryengine1"
                 },
                 "spec": {
                   "commonConfiguration": {
@@ -166,21 +167,13 @@ metadata:
                   },
                   "serviceConfiguration": {
                     "analyticsInstance": "analytics1",
-                    "cassandraInstance": "configdb1",
+                    "analyticsCassandraInstance": "configdb1",
                     "configInstance": "config1",
                     "containers": [
                       {
                         "image": "docker.io/tungstenfabric/contrail-analytics-query-engine:latest",
                         "name": "queryengine"
                       },
-                      {
-                        "image": "docker.io/tungstenfabric/contrail-nodemgr:latest",
-                        "name": "nodemanager"
-                      },
-                      {
-                        "image": "docker.io/tungstenfabric/contrail-provisioner:latest",
-                        "name": "provisioner"
-                      }
                     ],
                     "logLevel": "SYS_DEBUG",
                     "rabbitmqInstance": "rabbitmq1",
@@ -513,9 +506,9 @@ spec:
       kind: AnalyticsAlarm
       name: analyticsalarm.tf.tungsten.io
       version: v1alpha1
-    - description: AnalyticsDB is the Schema for the analyticsdb API.
-      kind: AnalyticsDB
-      name: analyticsdb.tf.tungsten.io
+    - description: QueryEngine is the Schema for the analyticsdb query engine.
+      kind: QueryEngine
+      name: queryengine.tf.tungsten.io
       version: v1alpha1
     - description: AnalyticsSnmp is the Schema for the Analytics SNMP API.
       kind: AnalyticsSnmp

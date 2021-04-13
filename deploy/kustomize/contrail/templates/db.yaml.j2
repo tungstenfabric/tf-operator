@@ -1,0 +1,76 @@
+---
+apiVersion: tf.tungsten.io/v1alpha1
+kind: Manager
+metadata:
+  name: cluster1
+  namespace: tf
+spec:
+  services:
+    cassandras:
+    - metadata:
+        labels:
+          contrail_cluster: cluster1
+        name: configdb1
+      spec:
+        commonConfiguration:
+          nodeSelector:
+            node-role.kubernetes.io/master: ""
+        serviceConfiguration:
+          configInstance: config1
+          analyticsInstance: analytics1
+          port: 9161
+          storagePort: 7012
+          sslStoragePort: 7013
+          cqlPort: 9041
+          jmxLocalPort: 7201
+{%- if CONFIGDB_MIN_HEAP_SIZE | default("") != "" and CONFIGDB_MAX_HEAP_SIZE | default("") != "" %}
+          minHeapSize: "{{ CONFIGDB_MIN_HEAP_SIZE }}"
+          maxHeapSize: "{{ CONFIGDB_MAX_HEAP_SIZE }}"
+{%- endif %}
+          nodeType: config-database
+          containers:
+          - name: cassandra
+            image: contrail-external-cassandra
+          - name: nodemanager
+            image: contrail-nodemgr
+          - name: provisioner
+            image: contrail-provisioner
+{%- if ANALYTICSDB_ENABLE | default("true") != "false" %}
+    - metadata:
+        labels:
+          contrail_cluster: cluster1
+        name: analyticsdb1
+      spec:
+        commonConfiguration:
+          nodeSelector:
+            node-role.kubernetes.io/master: ""
+        serviceConfiguration:
+          configInstance: config1
+          analyticsInstance: analytics1
+          port: 9160
+          storagePort: 7010
+          sslStoragePort: 7011
+          cqlPort: 9042
+          jmxLocalPort: 7200
+{%- if ANALYTICSDB_MIN_HEAP_SIZE | default("") != "" and ANALYTICSDB_MAX_HEAP_SIZE | default("") != "" %}
+          minHeapSize: "{{ ANALYTICSDB_MIN_HEAP_SIZE }}"
+          maxHeapSize: "{{ ANALYTICSDB_MAX_HEAP_SIZE }}"
+{%- endif %}
+          nodeType: database
+          containers:
+          - name: cassandra
+            image: contrail-external-cassandra
+          - name: nodemanager
+            image: contrail-nodemgr
+          - name: provisioner
+            image: contrail-provisioner
+    analytics:
+      spec:
+        serviceConfiguration:
+          analyticsCassandraInstance: analyticsdb1
+    queryengine:
+      spec:
+        serviceConfiguration:
+          analyticsCassandraInstance: analyticsdb1
+{%- endif -%}
+

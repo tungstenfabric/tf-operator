@@ -49,7 +49,7 @@ spec:
           value: io.tungsten
         # TODO: move do go code for flexibility
         - name: NODE_TYPE
-          value: database
+          value: {{ .NodeType }}
         lifecycle:
           preStop:
             exec:
@@ -67,9 +67,9 @@ spec:
         terminationMessagePolicy: File
         volumeMounts:
         - mountPath: /var/log/cassandra
-          name: cassandra-logs
+          name: {{ .NodeType }}-cassandra-logs
         - mountPath: /var/lib/cassandra
-          name: cassandra-data
+          name: {{ .NodeType }}-cassandra-data
       - name: nodemanager
         image: tungstenfabric/contrail-nodemgr:latest
         securityContext:
@@ -78,7 +78,7 @@ spec:
         - name: VENDOR_DOMAIN
           value: io.tungsten
         - name: NODE_TYPE
-          value: database
+          value: {{ .NodeType }}
         - name: POD_IP
           valueFrom:
             fieldRef:
@@ -91,7 +91,7 @@ spec:
         image: tungstenfabric/contrail-provisioner:latest
         env:
         - name: NODE_TYPE
-          value: database
+          value: {{ .NodeType }}
         - name: POD_IP
           valueFrom:
             fieldRef:
@@ -102,13 +102,13 @@ spec:
               fieldPath: metadata.annotations['hostname']
       volumes:
       - hostPath:
-          path: /var/log/contrail/config-database
+          path: /var/log/contrail/{{ .NodeType }}
           type: ""
-        name: cassandra-logs
+        name: {{ .NodeType }}-cassandra-logs
       - hostPath:
-          path: /var/lib/contrail/config-database
+          path: /var/lib/contrail/{{ .NodeType }}
           type: ""
-        name: cassandra-data
+        name: {{ .NodeType }}-cassandra-data
       - downwardAPI:
           defaultMode: 420
           items:
@@ -129,8 +129,10 @@ func GetSTS(cassandraConfig *v1alpha1.CassandraConfiguration) *appsv1.StatefulSe
 	var buf bytes.Buffer
 	err := yamlDatacassandraSTS.Execute(&buf, struct {
 		LocalJmxPort int
+		NodeType     string
 	}{
 		LocalJmxPort: *cassandraConfig.JmxLocalPort,
+		NodeType:     cassandraConfig.NodeType,
 	})
 	if err != nil {
 		panic(err)

@@ -385,6 +385,8 @@ spec:
                               description: Time to live (TTL) for statistics data
                                 in hours. Defaults to 4 hours.
                               type: integer
+                            analyticsCassandraInstance:
+                              type: string
                             cassandraInstance:
                               type: string
                             collectorIntrospectPort:
@@ -908,8 +910,8 @@ spec:
                           type: object
                       type: object
                   type: object
-                analyticsdb:
-                  description: AnalyticsDB is the Schema for the analyticsdb API.
+                queryengine:
+                  description: QueryEngine is the Schema for the analyticsdb query engine.
                   properties:
                     apiVersion:
                       description: 'APIVersion defines the versioned schema of this
@@ -926,8 +928,7 @@ spec:
                     metadata:
                       type: object
                     spec:
-                      description: AnalyticsDBSpec is the Spec for the AnalyticsDB
-                        API.
+                      description: QueryEngineSpec is the Spec for the AnalyticsDB query engine.
                       properties:
                         commonConfiguration:
                           description: PodConfiguration is the common services struct.
@@ -1076,8 +1077,8 @@ spec:
                               type: boolean
                           type: object
                         serviceConfiguration:
-                          description: AnalyticsDBConfiguration is the Spec for the
-                            AnalyticsDB API.
+                          description: QueryEngineConfiguration is the Spec for the
+                            AnalyticsDB query engine.
                           properties:
                             analyticsInstance:
                               type: string
@@ -1085,7 +1086,7 @@ spec:
                               type: integer
                             analyticsdbPort:
                               type: integer
-                            cassandraInstance:
+                            analyticsCassandraInstance:
                               type: string
                             configInstance:
                               type: string
@@ -1128,7 +1129,7 @@ spec:
                       - serviceConfiguration
                       type: object
                     status:
-                      description: AnalyticsDBStatus status of AnalyticsDB
+                      description: QueryEngineStatus status of QueryEngine
                       properties:
                         active:
                           type: boolean
@@ -3352,7 +3353,7 @@ spec:
                 name:
                   type: string
               type: object
-            analyticsdb:
+            queryengine:
               description: ServiceStatus provides information on the current status
                 of the service.
               properties:

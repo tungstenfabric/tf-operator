@@ -32,11 +32,10 @@ func GetSTS(instance *v1alpha1.Rabbitmq) *apps.StatefulSet {
 				},
 			},
 		},
-		// TODO: dont provide till 2 DBs be supported
-		// {
-		// 	Name:  "NODE_TYPE",
-		// 	Value: "config-database",
-		// },
+		{
+			Name:  "NODE_TYPE",
+			Value: "config-database",
+		},
 	}
 
 	if instance.Spec.ServiceConfiguration.CTLDistPorts != nil {

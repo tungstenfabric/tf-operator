@@ -9,6 +9,7 @@ http_server_port={{ .AnalyticsApiIntrospectPort}}
 http_server_ip={{ .InstrospectListenAddress }}
 rest_api_port=8081
 rest_api_ip={{ .ListenAddress }}
+partitions=30
 aaa_mode={{ .AAAMode }}
 log_file=/var/log/contrail/contrail-analytics-api.log
 log_level={{ .LogLevel }}
@@ -26,6 +27,7 @@ analytics_api_ssl_certfile = /etc/certificates/server-{{ .PodIP }}.crt
 analytics_api_ssl_keyfile = /etc/certificates/server-key-{{ .PodIP }}.pem
 analytics_api_ssl_ca_cert = {{ .CAFilePath }}
 [REDIS]
+redis_query_port=6379
 redis_uve_list={{ .RedisServerList }}
 redis_password=
 redis_use_ssl=True
@@ -61,7 +63,7 @@ log_file_size=1048576
 log_level={{ .LogLevel }}
 log_local=1
 # sandesh_send_rate_limit=
-cassandra_server_list={{ .CassandraServerList }}
+cassandra_server_list={{ .AnalyticsdbCassandraServerList }}
 zookeeper_server_list={{ .ZookeeperServerList }}
 [CASSANDRA]
 cassandra_use_ssl=true
@@ -102,7 +104,26 @@ introspect_ssl_insecure=True
 sandesh_ssl_enable=True
 sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
 sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
-sandesh_ca_cert={{ .CAFilePath }}`))
+sandesh_ca_cert={{ .CAFilePath }}
+[DATABASE]
+disk_usage_percentage.high_watermark0=90
+disk_usage_percentage.low_watermark0=85
+disk_usage_percentage.high_watermark1=80
+disk_usage_percentage.low_watermark1=75
+disk_usage_percentage.high_watermark2=70
+disk_usage_percentage.low_watermark2=60
+pending_compaction_tasks.high_watermark0=400
+pending_compaction_tasks.low_watermark0=300
+pending_compaction_tasks.high_watermark1=200
+pending_compaction_tasks.low_watermark1=150
+pending_compaction_tasks.high_watermark2=100
+pending_compaction_tasks.low_watermark2=80
+high_watermark0.message_severity_level=SYS_EMERG
+low_watermark0.message_severity_level=SYS_ALERT
+high_watermark1.message_severity_level=SYS_ERR
+low_watermark1.message_severity_level=SYS_WARN
+high_watermark2.message_severity_level=SYS_DEBUG
+low_watermark2.message_severity_level=INVALID`))
 
 // AnalyticsNodemanagerConfig is the template of the Analytics Nodemanager service configuration.
 var AnalyticsNodemanagerConfig = template.Must(template.New("").Parse(`[DEFAULTS]
@@ -160,4 +181,3 @@ cafile = {{ .CAFilePath }}
 user_domain_name = {{ .KeystoneUserDomainName }}
 project_domain_name = {{ .KeystoneProjectDomainName }}
 region_name = {{ .KeystoneRegion }}`))
-

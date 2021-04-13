@@ -916,12 +916,12 @@ func NewAnalyticsClusterConfiguration(name, namespace string, client client.Clie
 	return clusterConfig, nil
 }
 
-// NewAnalyticsDBClusterConfiguration gets a struct containing various representations of AnalyticsDB nodes string.
-func NewAnalyticsDBClusterConfiguration(name, namespace string, client client.Client) (AnalyticsDBClusterConfiguration, error) {
-	instance := &AnalyticsDB{}
+// NewQueryEngineClusterConfiguration gets a struct containing various representations of QueryEngine nodes string.
+func NewQueryEngineClusterConfiguration(name, namespace string, client client.Client) (QueryEngineClusterConfiguration, error) {
+	instance := &QueryEngine{}
 	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, instance)
 	if err != nil {
-		return AnalyticsDBClusterConfiguration{}, err
+		return QueryEngineClusterConfiguration{}, err
 	}
 	nodes := []string{}
 	if instance.Status.Nodes != nil {
@@ -931,9 +931,9 @@ func NewAnalyticsDBClusterConfiguration(name, namespace string, client client.Cl
 		sort.SliceStable(nodes, func(i, j int) bool { return nodes[i] < nodes[j] })
 	}
 	config := instance.ConfigurationParameters()
-	clusterConfig := AnalyticsDBClusterConfiguration{
-		AnalyticsDBServerIPList: nodes,
-		AnalyticsDBServerPort:   *config.AnalyticsdbPort,
+	clusterConfig := QueryEngineClusterConfiguration{
+		QueryEngineServerIPList: nodes,
+		QueryEngineServerPort:   *config.AnalyticsdbPort,
 	}
 	return clusterConfig, nil
 }
@@ -970,11 +970,11 @@ type AnalyticsClusterConfiguration struct {
 	CollectorServerIPList []string `json:"collectorServerIPList,omitempty"`
 }
 
-// AnalyticsDBConfiguration  stores all information about service's endpoints
-// under the Contrail AnalyticsDB
-type AnalyticsDBClusterConfiguration struct {
-	AnalyticsDBServerPort   int      `json:"analyticsdbServerPort,omitempty"`
-	AnalyticsDBServerIPList []string `json:"analyticsdbServerIPList,omitempty"`
+// QueryEngineConfiguration  stores all information about service's endpoints
+// under the Contrail AnalyticsDB query engine
+type QueryEngineClusterConfiguration struct {
+	QueryEngineServerPort   int      `json:"analyticsdbServerPort,omitempty"`
+	QueryEngineServerIPList []string `json:"analyticsdbServerIPList,omitempty"`
 }
 
 // ConfigClusterConfiguration  stores all information about service's endpoints
@@ -1000,9 +1000,9 @@ func (c *AnalyticsClusterConfiguration) FillWithDefaultValues() {
 
 // FillWithDefaultValues sets the default port values if they are set to the
 // zero value
-func (c *AnalyticsDBClusterConfiguration) FillWithDefaultValues() {
-	if c.AnalyticsDBServerPort == 0 {
-		c.AnalyticsDBServerPort = AnalyticsdbPort
+func (c *QueryEngineClusterConfiguration) FillWithDefaultValues() {
+	if c.QueryEngineServerPort == 0 {
+		c.QueryEngineServerPort = AnalyticsdbPort
 	}
 }
 

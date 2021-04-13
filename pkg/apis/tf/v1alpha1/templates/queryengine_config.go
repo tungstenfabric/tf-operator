@@ -2,7 +2,7 @@ package templates
 
 import "text/template"
 
-// QueryEngineConfig is the template of the AnalyticsDB Nodemanager service configuration.
+// QueryEngineConfig is the template of the AnalyticsDB Query-Engine service configuration.
 var QueryEngineConfig = template.Must(template.New("").Parse(`[DEFAULT]
 analytics_data_ttl={{ .AnalyticsDataTTL }}
 hostname={{ .Hostname }}
@@ -38,23 +38,13 @@ sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
 sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 sandesh_ca_cert={{ .CAFilePath }}`))
 
-// AnalyticsDBNodemanagerConfig is the template of the AnalyticsDB Nodemanager service configuration.
-var AnalyticsDBNodemanagerConfig = template.Must(template.New("").Parse(`[DEFAULTS]
-http_server_ip={{ .InstrospectListenAddress }}
-log_file=/var/log/contrail/contrail-config-nodemgr.log
-log_level={{ .LogLevel }}
-log_local=1
-hostname={{ .Hostname }}
-hostip={{ .ListenAddress }}
-db_port={{ .CassandraPort }}
-db_jmx_port={{ .CassandraJmxPort }}
-db_use_ssl=True
-[COLLECTOR]
-server_list={{ .CollectorServerList }}
-[SANDESH]
-introspect_ssl_enable=True
-introspect_ssl_insecure=True
-sandesh_ssl_enable=True
-sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
-sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
-sandesh_ca_cert={{ .CAFilePath }}`))
+// AnalyticsVncConfig is a template for vnc_api.ini file
+var QueryEngineVncConfig = template.Must(template.New("").Parse(`
+[global]
+WEB_SERVER = {{ .ConfigNodes }}
+WEB_PORT = {{ .ConfigApiPort }}
+BASE_URL = /
+use_ssl = True
+cafile = {{ .CAFilePath }}
+[auth]
+AUTHN_TYPE = noauth`))

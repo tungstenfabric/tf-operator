@@ -59,6 +59,7 @@ type CassandraConfiguration struct {
 	JmxLocalPort        *int                      `json:"jmxLocalPort,omitempty"`
 	MaxHeapSize         string                    `json:"maxHeapSize,omitempty"`
 	MinHeapSize         string                    `json:"minHeapSize,omitempty"`
+	NodeType            string                    `json:"nodeType,omitempty"`
 	StartRPC            *bool                     `json:"startRPC,omitempty"`
 	Storage             Storage                   `json:"storage,omitempty"`
 	MinimumDiskGB       *int                      `json:"minimumDiskGB,omitempty"`
@@ -136,6 +137,13 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 	seedsListString := strings.Join(c.seeds(podList), ",")
 	cassandraLog.Info("InstanceConfiguration", "seedsListString", seedsListString)
 
+	var cassandraPodIPList []string
+	for _, pod := range podList {
+		cassandraPodIPList = append(cassandraPodIPList, pod.Status.PodIP)
+	}
+	sort.SliceStable(cassandraPodIPList, func(i, j int) bool { return cassandraPodIPList[i] < cassandraPodIPList[j] })
+	cassandraIPListCommaSeparated := strings.Join(cassandraPodIPList, ",")
+
 	configNodesInformation, err := NewConfigClusterConfiguration(c.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, client)
 	if err != nil {
 		return err
@@ -146,6 +154,7 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 		return err
 	}
 
+	nodeType := cassandraConfig.NodeType
 	for _, pod := range podList {
 
 		var cassandraConfigBuffer bytes.Buffer
@@ -253,8 +262,8 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 			ConfigDBNodes    string
 			AnalyticsDBNodes string
 		}{
-			ConfigDBNodes:    apiServerIPListCommaSeparated,
-			AnalyticsDBNodes: apiServerIPListCommaSeparated,
+			ConfigDBNodes:    cassandraIPListCommaSeparated,
+			AnalyticsDBNodes: cassandraIPListCommaSeparated,
 		})
 		if err != nil {
 			panic(err)
@@ -266,8 +275,8 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 		// wait for api, nodemgr container will wait for config files be ready
 		if apiServerIPListCommaSeparated != "" {
 			configMapInstanceDynamicConfig.Data["vnc_api_lib.ini."+pod.Status.PodIP] = vncAPIConfigBufferString
-			configMapInstanceDynamicConfig.Data["database-nodemgr.conf."+pod.Status.PodIP] = nodemanagerConfigString
-			configMapInstanceDynamicConfig.Data["database-nodemgr.env."+pod.Status.PodIP] = nodemanagerEnvString
+			configMapInstanceDynamicConfig.Data[nodeType+"-nodemgr.conf."+pod.Status.PodIP] = nodemanagerConfigString
+			configMapInstanceDynamicConfig.Data[nodeType+"-nodemgr.env."+pod.Status.PodIP] = nodemanagerEnvString
 		}
 	}
 
@@ -275,7 +284,7 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 	if err != nil {
 		return err
 	}
-	UpdateProvisionerConfigMapData("database-provisioner", configtemplates.JoinListWithSeparator(configNodes, ","), configMapInstanceDynamicConfig)
+	UpdateProvisionerConfigMapData(nodeType+"-provisioner", configtemplates.JoinListWithSeparator(configNodes, ","), configMapInstanceDynamicConfig)
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }
@@ -285,6 +294,9 @@ func (c *Cassandra) CreateConfigMap(configMapName string,
 	client client.Client,
 	scheme *runtime.Scheme,
 	request reconcile.Request) (*corev1.ConfigMap, error) {
+
+	cassandraConfig := c.ConfigurationParameters()
+	nodeType := cassandraConfig.NodeType
 
 	configMap, err := CreateConfigMap(configMapName,
 		client,
@@ -296,19 +308,18 @@ func (c *Cassandra) CreateConfigMap(configMapName string,
 		return nil, err
 	}
 
-	configMap.Data["database-nodemanager-runner.sh"] = GetNodemanagerRunner()
+	configMap.Data[nodeType+"-nodemanager-runner.sh"] = GetNodemanagerRunner()
 
 	configNodes, err := c.GetConfigNodes(request, client)
 	if err != nil {
 		return nil, err
 	}
-	UpdateProvisionerConfigMapData("database-provisioner", configtemplates.JoinListWithSeparator(configNodes, ","), configMap)
+	UpdateProvisionerConfigMapData(nodeType+"-provisioner", configtemplates.JoinListWithSeparator(configNodes, ","), configMap)
 
 	cassandraSecret := &corev1.Secret{}
 	if err := client.Get(context.TODO(), types.NamespacedName{Name: request.Name + "-secret", Namespace: request.Namespace}, cassandraSecret); err != nil {
 		return nil, err
 	}
-	cassandraConfig := c.ConfigurationParameters()
 
 	var cassandraCommandBuffer bytes.Buffer
 	err = configtemplates.CassandraCommandTemplate.Execute(&cassandraCommandBuffer, struct {
@@ -472,7 +483,7 @@ func (c *Cassandra) ConfigurationParameters() *CassandraConfiguration {
 	}
 	cassandraConfiguration.SslStoragePort = &sslStoragePort
 	if cassandraConfiguration.ClusterName == "" {
-		cassandraConfiguration.ClusterName = "ContrailConfigDB"
+		cassandraConfiguration.ClusterName = "Contrail" + c.Spec.ServiceConfiguration.NodeType
 	}
 	if cassandraConfiguration.ListenAddress == "" {
 		cassandraConfiguration.ListenAddress = "auto"
@@ -483,6 +494,11 @@ func (c *Cassandra) ConfigurationParameters() *CassandraConfiguration {
 		minimumDiskGB = CassandraMinimumDiskGB
 	}
 	cassandraConfiguration.MinimumDiskGB = &minimumDiskGB
+	if c.Spec.ServiceConfiguration.NodeType == "" {
+		cassandraConfiguration.NodeType = "database"
+	} else {
+		cassandraConfiguration.NodeType = c.Spec.ServiceConfiguration.NodeType
+	}
 
 	return cassandraConfiguration
 }
@@ -562,10 +578,12 @@ func (c *Cassandra) GetConfigNodes(request reconcile.Request, clnt client.Client
 
 // ConfigDataDiff compare configmaps and retursn list of services to be reloaded
 func (c *Cassandra) ConfigDataDiff(pod *corev1.Pod, v1 *corev1.ConfigMap, v2 *corev1.ConfigMap) []string {
+	cassandraConfig := c.ConfigurationParameters()
+	nodeType := cassandraConfig.NodeType
 	podIP := pod.Status.PodIP
 	srvMap := map[string][]string{
 		"cassandra":   {"cassandra." + podIP + ".yaml", "cqlshrc." + podIP},
-		"nodemanager": {"database-nodemgr.conf." + podIP, "database-nodemgr.env." + podIP, "vnc_api_lib.ini." + podIP},
+		"nodemanager": {nodeType + "-nodemgr.conf." + podIP, nodeType + "-nodemgr.env." + podIP, "vnc_api_lib.ini." + podIP},
 	}
 	var res []string
 	for srv, maps := range srvMap {

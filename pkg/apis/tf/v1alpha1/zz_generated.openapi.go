@@ -16,10 +16,10 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsConfiguration":      schema_pkg_apis_tf_v1alpha1_AnalyticsConfiguration(ref),
 		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsSpec":               schema_pkg_apis_tf_v1alpha1_AnalyticsSpec(ref),
 		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsStatus":             schema_pkg_apis_tf_v1alpha1_AnalyticsStatus(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsDB":                 schema_pkg_apis_tf_v1alpha1_AnalyticsDB(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsDBConfiguration":    schema_pkg_apis_tf_v1alpha1_AnalyticsDBConfiguration(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsDBSpec":             schema_pkg_apis_tf_v1alpha1_AnalyticsDBSpec(ref),
-		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsDBStatus":           schema_pkg_apis_tf_v1alpha1_AnalyticsDBStatus(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.QueryEngine":                 schema_pkg_apis_tf_v1alpha1_QueryEngine(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.QueryEngineConfiguration":    schema_pkg_apis_tf_v1alpha1_QueryEngineConfiguration(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.QueryEngineSpec":             schema_pkg_apis_tf_v1alpha1_QueryEngineSpec(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.QueryEngineStatus":           schema_pkg_apis_tf_v1alpha1_QueryEngineStatus(ref),
 		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsAlarm":              schema_pkg_apis_tf_v1alpha1_AnalyticsAlarm(ref),
 		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsAlarmConfiguration": schema_pkg_apis_tf_v1alpha1_AnalyticsAlarmConfiguration(ref),
 		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsAlarmSpec":          schema_pkg_apis_tf_v1alpha1_AnalyticsAlarmSpec(ref),
@@ -193,6 +193,12 @@ func schema_pkg_apis_tf_v1alpha1_AnalyticsConfiguration(ref common.ReferenceCall
 							Format: "int32",
 						},
 					},
+					"analyticsCassandraInstance": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
 					"cassandraInstance": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
@@ -332,11 +338,11 @@ func schema_pkg_apis_tf_v1alpha1_AnalyticsStatus(ref common.ReferenceCallback) c
 	}
 }
 
-func schema_pkg_apis_tf_v1alpha1_AnalyticsDB(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_QueryEngine(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "AnalyticsDB is the Schema for the AnalyticsDB API.",
+				Description: "QueryEngine is the Schema for the AnalyticsDB query engine.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -360,27 +366,27 @@ func schema_pkg_apis_tf_v1alpha1_AnalyticsDB(ref common.ReferenceCallback) commo
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsDBSpec"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.QueryEngineSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsDBStatus"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.QueryEngineStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsDBSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsDBStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.QueryEngineSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.QueryEngineStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_pkg_apis_tf_v1alpha1_AnalyticsDBConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_QueryEngineConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "AnalyticsDBConfiguration is the Spec for the cassandras API.",
+				Description: "QueryEngineConfiguration is the Spec for the cassandras API.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"containers": {
@@ -413,7 +419,7 @@ func schema_pkg_apis_tf_v1alpha1_AnalyticsDBConfiguration(ref common.ReferenceCa
 							Format: "",
 						},
 					},
-					"cassandraInstance": {
+					"analyticsCassandraInstance": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
 							Format: "",
@@ -428,12 +434,6 @@ func schema_pkg_apis_tf_v1alpha1_AnalyticsDBConfiguration(ref common.ReferenceCa
 					"rabbitmqInstance": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"nodeManager": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"boolean"},
 							Format: "",
 						},
 					},
@@ -474,11 +474,11 @@ func schema_pkg_apis_tf_v1alpha1_AnalyticsDBConfiguration(ref common.ReferenceCa
 	}
 }
 
-func schema_pkg_apis_tf_v1alpha1_AnalyticsDBSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_QueryEngineSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "AnalyticsDBSpec is the Spec for the AnalyticsDB API.",
+				Description: "QueryEngineSpec is the Spec for the AnalyticsDB query engine.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"commonConfiguration": {
@@ -488,7 +488,7 @@ func schema_pkg_apis_tf_v1alpha1_AnalyticsDBSpec(ref common.ReferenceCallback) c
 					},
 					"serviceConfiguration": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsDBConfiguration"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.QueryEngineConfiguration"),
 						},
 					},
 				},
@@ -496,11 +496,11 @@ func schema_pkg_apis_tf_v1alpha1_AnalyticsDBSpec(ref common.ReferenceCallback) c
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsDBConfiguration"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.QueryEngineConfiguration"},
 	}
 }
 
-func schema_pkg_apis_tf_v1alpha1_AnalyticsDBStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_tf_v1alpha1_QueryEngineStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1014,6 +1014,12 @@ func schema_pkg_apis_tf_v1alpha1_CassandraConfiguration(ref common.ReferenceCall
 						},
 					},
 					"minHeapSize": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"nodeType": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
 							Format: "",
@@ -2155,7 +2161,7 @@ func schema_pkg_apis_tf_v1alpha1_ManagerStatus(ref common.ReferenceCallback) com
 							Ref:         ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ServiceStatus"),
 						},
 					},
-					"analyticsdb": {
+					"queryengine": {
 						SchemaProps: spec.SchemaProps{
 							Description: "INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run \"operator-sdk generate k8s\" to regenerate code after modifying this file Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html",
 							Ref:         ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ServiceStatus"),
@@ -2502,9 +2508,9 @@ func schema_pkg_apis_tf_v1alpha1_Services(ref common.ReferenceCallback) common.O
 							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Analytics"),
 						},
 					},
-					"analyticsdb": {
+					"queryengine": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsDB"),
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.QueryEngine"),
 						},
 					},
 					"analyticsSnmp": {

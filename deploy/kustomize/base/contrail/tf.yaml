@@ -20,6 +20,7 @@ spec:
         serviceConfiguration:
           logLevel: SYS_DEBUG
           zookeeperInstance: zookeeper1
+          analyticsCassandraInstance: configdb1
           cassandraInstance: configdb1
           rabbitmqInstance: rabbitmq1
           configInstance: config1
@@ -36,11 +37,11 @@ spec:
             image: contrail-nodemgr
           - name: provisioner
             image: contrail-provisioner
-    analyticsdb:
+    queryengine:
       metadata:
         labels:
           tf_cluster: cluster1
-        name: analyticsdb1
+        name: queryengine1
       spec:
         commonConfiguration:
           nodeSelector:
@@ -50,15 +51,11 @@ spec:
           configInstance: config1
           analyticsInstance: analytics1
           zookeeperInstance: zookeeper1
-          cassandraInstance: configdb1
+          analyticsCassandraInstance: configdb1
           rabbitmqInstance: rabbitmq1
           containers:
           - name: queryengine
             image: contrail-analytics-query-engine
-          - name: nodemanager
-            image: contrail-nodemgr
-          - name: provisioner
-            image: contrail-provisioner
     analyticsSnmp:
       metadata:
         labels:

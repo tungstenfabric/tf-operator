@@ -214,6 +214,8 @@ spec:
                   description: Time to live (TTL) for statistics data in hours. Defaults
                     to 4 hours.
                   type: integer
+                analyticsCassandraInstance:
+                  type: string
                 cassandraInstance:
                   type: string
                 collectorIntrospectPort:
