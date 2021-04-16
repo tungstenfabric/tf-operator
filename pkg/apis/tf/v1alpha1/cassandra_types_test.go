@@ -162,8 +162,8 @@ func TestCassandraConfigMapsWithDefaultValues(t *testing.T) {
 
 	assert.Equal(t, "pod1-host", cassandraNodemanagerConfig.Section("DEFAULTS").Key("hostname").String())
 	assert.Equal(t, "1.1.1.1", cassandraNodemanagerConfig.Section("DEFAULTS").Key("hostip").String())
-	assert.Equal(t, "9042", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_port").String())
-	assert.Equal(t, "7200", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_jmx_port").String())
+	assert.Equal(t, "9041", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_port").String())
+	assert.Equal(t, "7201", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_jmx_port").String())
 	assert.Equal(t, "4", cassandraNodemanagerConfig.Section("DEFAULTS").Key("minimum_diskGB").String())
 	assert.Equal(t, "1.1.1.1:8086 2.2.2.2:8086", cassandraNodemanagerConfig.Section("COLLECTOR").Key("server_list").String())
 	assert.Equal(t, "/etc/certificates/server-key-1.1.1.1.pem", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_keyfile").String())
@@ -175,8 +175,8 @@ func TestCassandraConfigMapsWithDefaultValues(t *testing.T) {
 
 	assert.Equal(t, "pod2-host", cassandraNodemanagerConfig.Section("DEFAULTS").Key("hostname").String())
 	assert.Equal(t, "2.2.2.2", cassandraNodemanagerConfig.Section("DEFAULTS").Key("hostip").String())
-	assert.Equal(t, "9042", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_port").String())
-	assert.Equal(t, "7200", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_jmx_port").String())
+	assert.Equal(t, "9041", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_port").String())
+	assert.Equal(t, "7201", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_jmx_port").String())
 	assert.Equal(t, "4", cassandraNodemanagerConfig.Section("DEFAULTS").Key("minimum_diskGB").String())
 	assert.Equal(t, "1.1.1.1:8086 2.2.2.2:8086", cassandraNodemanagerConfig.Section("COLLECTOR").Key("server_list").String())
 	assert.Equal(t, "/etc/certificates/server-key-2.2.2.2.pem", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_keyfile").String())
@@ -295,8 +295,8 @@ func TestCassandraConfigMapsWithCustomValues(t *testing.T) {
 
 	assert.Equal(t, "pod1-host", cassandraNodemanagerConfig.Section("DEFAULTS").Key("hostname").String())
 	assert.Equal(t, "1.1.1.1", cassandraNodemanagerConfig.Section("DEFAULTS").Key("hostip").String())
-	assert.Equal(t, "9042", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_port").String())
-	assert.Equal(t, "7200", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_jmx_port").String())
+	assert.Equal(t, "9041", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_port").String())
+	assert.Equal(t, "7201", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_jmx_port").String())
 	assert.Equal(t, "4", cassandraNodemanagerConfig.Section("DEFAULTS").Key("minimum_diskGB").String())
 	assert.Equal(t, "1.1.1.1:8086 2.2.2.2:8086", cassandraNodemanagerConfig.Section("COLLECTOR").Key("server_list").String())
 	assert.Equal(t, "/etc/certificates/server-key-1.1.1.1.pem", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_keyfile").String())
@@ -308,8 +308,8 @@ func TestCassandraConfigMapsWithCustomValues(t *testing.T) {
 
 	assert.Equal(t, "pod2-host", cassandraNodemanagerConfig.Section("DEFAULTS").Key("hostname").String())
 	assert.Equal(t, "2.2.2.2", cassandraNodemanagerConfig.Section("DEFAULTS").Key("hostip").String())
-	assert.Equal(t, "9042", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_port").String())
-	assert.Equal(t, "7200", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_jmx_port").String())
+	assert.Equal(t, "9041", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_port").String())
+	assert.Equal(t, "7201", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_jmx_port").String())
 	assert.Equal(t, "4", cassandraNodemanagerConfig.Section("DEFAULTS").Key("minimum_diskGB").String())
 	assert.Equal(t, "1.1.1.1:8086 2.2.2.2:8086", cassandraNodemanagerConfig.Section("COLLECTOR").Key("server_list").String())
 	assert.Equal(t, "/etc/certificates/server-key-2.2.2.2.pem", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_keyfile").String())
