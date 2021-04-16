@@ -42,6 +42,12 @@ import (
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+const (
+	RHEL   string = "rhel"
+	CENTOS string = "centos"
+	UBUNTU string = "ubuntu"
+)
+
 // Container defines name, image and command.
 // +k8s:openapi-gen=true
 type Container struct {
@@ -87,7 +93,7 @@ type PodConfiguration struct {
 	// zero and not specified. Defaults to 1.
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty" protobuf:"varint,1,opt,name=replicas"`
-	// Use 0.0.0.0 for isntrospection ports
+	// Use 0.0.0.0 for introspection ports
 	// +optional
 	IntrospectListenAll *bool `json:"introspectListenAll,omitempty"`
 	// Allow node-init container to tune sysctl options
@@ -101,6 +107,9 @@ type PodConfiguration struct {
 	// +kubebuilder:validation:Enum=info;debug;warning;error;critical;none
 	// +optional
 	LogLevel string `json:"logLevel,omitempty"`
+	// OS family
+	// +optional
+	Distribution *string `json:"distribution,omitempty"`
 }
 
 //GetReplicas is used to get number of desired pods.
@@ -1348,7 +1357,7 @@ func ContainerFileChanged(pod *corev1.Pod, container string, path string, conten
 }
 
 // AddCommonVolumes append common volumes and mounts
-func AddCommonVolumes(podSpec *corev1.PodSpec) {
+func AddCommonVolumes(podSpec *corev1.PodSpec, configuration PodConfiguration) {
 	commonVolumes := []corev1.Volume{
 		{
 			Name: "etc-hosts",
@@ -1448,7 +1457,7 @@ func AddCommonVolumes(podSpec *corev1.PodSpec) {
 		c.VolumeMounts = append(c.VolumeMounts, commonMounts...)
 	}
 
-	AddNodemanagerVolumes(podSpec)
+	AddNodemanagerVolumes(podSpec, configuration)
 }
 
 // AddNodemanagerVolumes append common volumes and mounts
@@ -1457,7 +1466,7 @@ func AddCommonVolumes(podSpec *corev1.PodSpec) {
 // - /sys/fs/cgroup:/sys/fs/cgroup:ro
 // - /sys/fs/selinux:/sys/fs/selinux
 // - /var/lib/containers:/var/lib/containers:shared
-func AddNodemanagerVolumes(podSpec *corev1.PodSpec) {
+func AddNodemanagerVolumes(podSpec *corev1.PodSpec, configuration PodConfiguration) {
 	nodemgrVolumes := []corev1.Volume{
 		{
 			Name: "var-run",
@@ -1480,14 +1489,6 @@ func AddNodemanagerVolumes(podSpec *corev1.PodSpec) {
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
 					Path: "/sys/fs/cgroup",
-				},
-			},
-		},
-		{
-			Name: "sys-fs-selinux",
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/sys/fs/selinux",
 				},
 			},
 		},
@@ -1517,14 +1518,27 @@ func AddNodemanagerVolumes(podSpec *corev1.PodSpec) {
 			ReadOnly:  true,
 		},
 		{
-			Name:      "sys-fs-selinux",
-			MountPath: "/sys/fs/selinux",
-		},
-		{
 			Name:             "var-lib-containers",
 			MountPath:        "/var/lib/containers",
 			MountPropagation: &sharedMode,
 		},
+	}
+
+	if configuration.Distribution == nil || *configuration.Distribution != UBUNTU {
+		nodemgrMounts = append(nodemgrMounts,
+			corev1.VolumeMount{
+				Name:      "sys-fs-selinux",
+				MountPath: "/sys/fs/selinux",
+			})
+		nodemgrVolumes = append(nodemgrVolumes,
+			corev1.Volume{
+				Name: "sys-fs-selinux",
+				VolumeSource: corev1.VolumeSource{
+					HostPath: &corev1.HostPathVolumeSource{
+						Path: "/sys/fs/selinux",
+					},
+				},
+			})
 	}
 
 	hasNodemgr := false

@@ -1801,6 +1801,11 @@ func (in *ManagerConfiguration) DeepCopyInto(out *ManagerConfiguration) {
 		*out = new(KubernetesClusterConfig)
 		**out = **in
 	}
+	if in.Distribution != nil {
+		in, out := &in.Distribution, &out.Distribution
+		*out = new(string)
+		**out = **in
+	}
 	return
 }
 
@@ -2034,6 +2039,11 @@ func (in *PodConfiguration) DeepCopyInto(out *PodConfiguration) {
 		in, out := &in.AuthParameters, &out.AuthParameters
 		*out = new(AuthParameters)
 		(*in).DeepCopyInto(*out)
+	}
+	if in.Distribution != nil {
+		in, out := &in.Distribution, &out.Distribution
+		*out = new(string)
+		**out = **in
 	}
 	return
 }
@@ -2631,11 +2641,6 @@ func (in *VrouterConfiguration) DeepCopyInto(out *VrouterConfiguration) {
 				(*in).DeepCopyInto(*out)
 			}
 		}
-	}
-	if in.Distribution != nil {
-		in, out := &in.Distribution, &out.Distribution
-		*out = new(Distribution)
-		**out = **in
 	}
 	if in.EnvVariablesConfig != nil {
 		in, out := &in.EnvVariablesConfig, &out.EnvVariablesConfig

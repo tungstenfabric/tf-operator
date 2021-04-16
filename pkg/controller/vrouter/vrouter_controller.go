@@ -328,11 +328,16 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 		}
 	}
 
-	ubuntu := v1alpha1.UBUNTU
 	for idx := range daemonSet.Spec.Template.Spec.InitContainers {
 
 		container := &daemonSet.Spec.Template.Spec.InitContainers[idx]
-		if instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers); instanceContainer != nil {
+		containerName := container.Name
+		// change init container image in case of ubuntu
+		isUbuntu := instance.Spec.CommonConfiguration.Distribution != nil && *instance.Spec.CommonConfiguration.Distribution == v1alpha1.UBUNTU
+		if container.Name == "vrouterkernelinit" && isUbuntu {
+			containerName = "vrouterkernelbuildinit"
+		}
+		if instanceContainer := utils.GetContainerFromList(containerName, instance.Spec.ServiceConfiguration.Containers); instanceContainer != nil {
 			if instanceContainer.Command != nil {
 				container.Command = instanceContainer.Command
 			}
@@ -360,14 +365,6 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 				},
 			},
 		})
-
-		if container.Name == "vrouterkernelinit" {
-			if instance.Spec.ServiceConfiguration.Distribution != nil || instance.Spec.ServiceConfiguration.Distribution == &ubuntu {
-				if ic := utils.GetContainerFromList("vrouterkernelbuildinit", instance.Spec.ServiceConfiguration.Containers); ic != nil {
-					container.Image = ic.Image
-				}
-			}
-		}
 
 		if container.Name == "vroutercni" {
 			if container.Command == nil {

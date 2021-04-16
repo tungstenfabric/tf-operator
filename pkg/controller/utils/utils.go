@@ -407,6 +407,9 @@ func MergeCommonConfiguration(manager v1alpha1.ManagerConfiguration,
 	if instance.LogLevel == "" && manager.LogLevel != "" {
 		instance.LogLevel = manager.LogLevel
 	}
+	if instance.Distribution == nil && manager.Distribution != nil {
+		instance.Distribution = manager.Distribution
+	}
 	return instance
 }
 

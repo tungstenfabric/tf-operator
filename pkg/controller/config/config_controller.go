@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"time"
 	"strings"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	core "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -452,7 +452,7 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 	if ic := utils.GetContainerFromList("nodeinit", instance.Spec.ServiceConfiguration.Containers); ic != nil {
 		statusImage = strings.Replace(ic.Image, "contrail-node-init", "contrail-status", 1)
 		toolsImage = strings.Replace(ic.Image, "contrail-node-init", "contrail-tools", 1)
-	} 
+	}
 
 	for idx := range statefulSet.Spec.Template.Spec.InitContainers {
 
@@ -469,7 +469,7 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 		case "nodeinit":
 			container.Env = append(container.Env,
 				core.EnvVar{
-					Name: "CONTRAIL_STATUS_IMAGE",
+					Name:  "CONTRAIL_STATUS_IMAGE",
 					Value: statusImage,
 				},
 			)
@@ -490,7 +490,7 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 		}
 	}
 
-	v1alpha1.AddCommonVolumes(&statefulSet.Spec.Template.Spec)
+	v1alpha1.AddCommonVolumes(&statefulSet.Spec.Template.Spec, instance.Spec.CommonConfiguration)
 	v1alpha1.DefaultSecurityContext(&statefulSet.Spec.Template.Spec)
 
 	if created, err := instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil || created {

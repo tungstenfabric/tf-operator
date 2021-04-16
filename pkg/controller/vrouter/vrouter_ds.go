@@ -383,7 +383,7 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 		Tolerations:    podTolerations,
 	}
 
-	v1alpha1.AddCommonVolumes(&podSpec)
+	v1alpha1.AddCommonVolumes(&podSpec, c.Spec.CommonConfiguration)
 	v1alpha1.DefaultSecurityContext(&podSpec)
 
 	var daemonSetSelector = meta.LabelSelector{

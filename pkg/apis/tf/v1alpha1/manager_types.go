@@ -114,6 +114,9 @@ type ManagerConfiguration struct {
 	// +kubebuilder:validation:Enum=info;debug;warning;error;critical;none
 	// +optional
 	LogLevel string `json:"logLevel,omitempty"`
+	// OS family
+	// +optional
+	Distribution *string `json:"distribution,omitempty"`
 }
 
 // ManagerStatus defines the observed state of Manager.

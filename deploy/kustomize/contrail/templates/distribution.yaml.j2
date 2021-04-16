@@ -1,0 +1,11 @@
+{%- if DISTRIBUTION is defined and DISTRIBUTION != "" -%}
+---
+apiVersion: tf.tungsten.io/v1alpha1
+kind: Manager
+metadata:
+  name: cluster1
+  namespace: tf
+spec:
+  commonConfiguration:
+    distribution: {{ DISTRIBUTION }}
+{%- endif -%}

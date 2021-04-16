@@ -89,7 +89,6 @@ type VrouterConfiguration struct {
 	Gateway            string        `json:"gateway,omitempty"`
 	PhysicalInterface  string        `json:"physicalInterface,omitempty"`
 	MetaDataSecret     string        `json:"metaDataSecret,omitempty"`
-	Distribution       *Distribution `json:"distribution,omitempty"`
 	ServiceAccount     string        `json:"serviceAccount,omitempty"`
 	ClusterRole        string        `json:"clusterRole,omitempty"`
 	ClusterRoleBinding string        `json:"clusterRoleBinding,omitempty"`
@@ -233,15 +232,6 @@ type VrouterList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Vrouter `json:"items"`
 }
-
-// +k8s:openapi-gen=true
-type Distribution string
-
-const (
-	RHEL   Distribution = "rhel"
-	CENTOS Distribution = "centos"
-	UBUNTU Distribution = "ubuntu"
-)
 
 var vrouter_log = logf.Log.WithName("controller_vrouter")
 
