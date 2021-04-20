@@ -1,6 +1,8 @@
 package vrouter
 
 import (
+	"strings"
+
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	apps "k8s.io/api/apps/v1"
@@ -161,6 +163,7 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, statusImage, 
 					MountPath: "/etc/sysctl.d",
 				})
 		}
+		toolsImage := strings.Replace(statusImage, "contrail-status", "contrail-tools", 1)
 		podInitContainers = append(podInitContainers,
 			core.Container{
 				Name:         "nodeinit",
@@ -176,6 +179,13 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, statusImage, 
 			core.Container{
 				Name:    "nodeinit-status-prefetch",
 				Image:   statusImage,
+				Command: []string{"sh", "-c", "exit 0"},
+			},
+			// for password protected it is needed to prefetch contrail-tools image as it
+			// is not available w/o image secret
+			core.Container{
+				Name:    "nodeinit-tools-prefetch",
+				Image:   toolsImage,
 				Command: []string{"sh", "-c", "exit 0"},
 			},
 		)
