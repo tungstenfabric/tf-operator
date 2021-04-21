@@ -23,6 +23,7 @@ const (
 	CASSANDRA      = "Cassandra.tf.tungsten.io"
 	ZOOKEEPER      = "Zookeeper.tf.tungsten.io"
 	RABBITMQ       = "Rabbitmq.tf.tungsten.io"
+	REDIS          = "Redis.tf.tungsten.io"
 	CONFIG         = "Config.tf.tungsten.io"
 	CONTROL        = "Control.tf.tungsten.io"
 	WEBUI          = "Webui.tf.tungsten.io"
@@ -95,6 +96,11 @@ func ZookeeperGroupKind() schema.GroupKind {
 // RabbitmqGroupKind returns group kind.
 func RabbitmqGroupKind() schema.GroupKind {
 	return schema.ParseGroupKind(RABBITMQ)
+}
+
+// RedisGroupKind returns group kind.
+func RedisGroupKind() schema.GroupKind {
+	return schema.ParseGroupKind(REDIS)
 }
 
 // ReplicaSetGroupKind returns group kind.
@@ -331,6 +337,23 @@ func RabbitmqActiveChange() predicate.Funcs {
 				reqLogger.Info("type conversion mismatch")
 			}
 			return statusChange(oldRabbitmq.Status.Active, newRabbitmq.Status.Active)
+		},
+	}
+}
+
+// RedisActiveChange returns predicate function based on group kind.
+func RedisActiveChange() predicate.Funcs {
+	return predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			oldRedis, ok := e.ObjectOld.(*v1alpha1.Redis)
+			if !ok {
+				reqLogger.Info("type conversion mismatch")
+			}
+			newRedis, ok := e.ObjectNew.(*v1alpha1.Redis)
+			if !ok {
+				reqLogger.Info("type conversion mismatch")
+			}
+			return statusChange(oldRedis.Status.Active, newRedis.Status.Active)
 		},
 	}
 }

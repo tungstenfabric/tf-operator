@@ -960,6 +960,28 @@ func NewConfigClusterConfiguration(name, namespace string, client client.Client)
 	return clusterConfig, nil
 }
 
+// NewRedisClusterConfiguration gets a struct containing various representations of Redis nodes string.
+func NewRedisClusterConfiguration(name, namespace string, client client.Client) (RedisClusterConfiguration, error) {
+	instance := &Redis{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, instance)
+	if err != nil {
+		return RedisClusterConfiguration{}, err
+	}
+	nodes := []string{}
+	if instance.Status.Nodes != nil {
+		for _, ip := range instance.Status.Nodes {
+			nodes = append(nodes, ip)
+		}
+		sort.SliceStable(nodes, func(i, j int) bool { return nodes[i] < nodes[j] })
+	}
+	config := instance.ConfigurationParameters()
+	clusterConfig := RedisClusterConfiguration{
+		ServerIPList: nodes,
+		ServerPort:   *config.RedisPort,
+	}
+	return clusterConfig, nil
+}
+
 // AnalyticsConfiguration  stores all information about service's endpoints
 // under the Contrail Analytics
 type AnalyticsClusterConfiguration struct {
@@ -982,6 +1004,13 @@ type QueryEngineClusterConfiguration struct {
 type ConfigClusterConfiguration struct {
 	APIServerPort   int      `json:"apiServerPort,omitempty"`
 	APIServerIPList []string `json:"apiServerIPList,omitempty"`
+}
+
+// AnalyticsConfiguration  stores all information about service's endpoints
+// under the Contrail Analytics
+type RedisClusterConfiguration struct {
+	ServerPort   int      `json:"redisServerPort,omitempty"`
+	ServerIPList []string `json:"redisServerIPList,omitempty"`
 }
 
 // FillWithDefaultValues sets the default port values if they are set to the
@@ -1011,6 +1040,14 @@ func (c *QueryEngineClusterConfiguration) FillWithDefaultValues() {
 func (c *ConfigClusterConfiguration) FillWithDefaultValues() {
 	if c.APIServerPort == 0 {
 		c.APIServerPort = ConfigApiPort
+	}
+}
+
+// FillWithDefaultValues sets the default port values if they are set to the
+// zero value
+func (c *RedisClusterConfiguration) FillWithDefaultValues() {
+	if c.ServerPort == 0 {
+		c.ServerPort = RedisPort
 	}
 }
 

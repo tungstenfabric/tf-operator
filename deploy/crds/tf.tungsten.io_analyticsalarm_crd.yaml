@@ -212,6 +212,8 @@ spec:
                   type: string
                 rabbitmqInstance:
                   type: string
+                redisInstance:
+                  type: string
                 zookeeperInstance:
                   type: string
               type: object

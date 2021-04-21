@@ -62,20 +62,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-        - name: redis
-          image: tungstenfabric/contrail-external-redis:latest
-          # run as root for now, as container designed to switch user itslef
-          #securityContext:
-          #  # uid from tf-container-builder
-          #  runAsUser: 999
-          env:
-            - name: POD_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.podIP
-          volumeMounts:
-            - mountPath: /var/lib/redis
-              name: webui-data
       volumes:
         - hostPath:
             path: /var/lib/contrail/webui

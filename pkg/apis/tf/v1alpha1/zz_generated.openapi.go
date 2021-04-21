@@ -56,6 +56,10 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.RabbitmqConfiguration":       schema_pkg_apis_tf_v1alpha1_RabbitmqConfiguration(ref),
 		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.RabbitmqSpec":                schema_pkg_apis_tf_v1alpha1_RabbitmqSpec(ref),
 		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.RabbitmqStatus":              schema_pkg_apis_tf_v1alpha1_RabbitmqStatus(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Redis":                       schema_pkg_apis_tf_v1alpha1_Redis(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.RedisConfiguration":          schema_pkg_apis_tf_v1alpha1_RedisConfiguration(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.RedisSpec":                   schema_pkg_apis_tf_v1alpha1_RedisSpec(ref),
+		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.RedisStatus":                 schema_pkg_apis_tf_v1alpha1_RedisStatus(ref),
 		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ServiceStatus":               schema_pkg_apis_tf_v1alpha1_ServiceStatus(ref),
 		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Services":                    schema_pkg_apis_tf_v1alpha1_Services(ref),
 		"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.StaticRoutes":                schema_pkg_apis_tf_v1alpha1_StaticRoutes(ref),
@@ -212,6 +216,12 @@ func schema_pkg_apis_tf_v1alpha1_AnalyticsConfiguration(ref common.ReferenceCall
 						},
 					},
 					"rabbitmqInstance": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"redisInstance": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
 							Format: "",
@@ -432,6 +442,12 @@ func schema_pkg_apis_tf_v1alpha1_QueryEngineConfiguration(ref common.ReferenceCa
 						},
 					},
 					"rabbitmqInstance": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"redisInstance": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
 							Format: "",
@@ -799,6 +815,12 @@ func schema_pkg_apis_tf_v1alpha1_AnalyticsAlarmConfiguration(ref common.Referenc
 							Format: "",
 						},
 					},
+					"redisInstance": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
 					"zookeeperInstance": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
@@ -1113,6 +1135,166 @@ func schema_pkg_apis_tf_v1alpha1_CassandraStatus(ref common.ReferenceCallback) c
 		},
 		Dependencies: []string{
 			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.CassandraStatusPorts"},
+	}
+}
+
+func schema_pkg_apis_tf_v1alpha1_Redis(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Redis is the Schema for the redis API.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.RedisSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.RedisStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.RedisSpec", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.RedisStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_pkg_apis_tf_v1alpha1_RedisConfiguration(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "RedisConfiguration is the Spec for the redis API.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"containers": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Container"),
+									},
+								},
+							},
+						},
+					},
+					"clusterName": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"listenAddress": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"redisPort": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int32",
+						},
+					},
+					"storage": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Storage"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Container", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Storage"},
+	}
+}
+
+func schema_pkg_apis_tf_v1alpha1_RedisSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "RedisSpec is the Spec for the redis API.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"commonConfiguration": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration"),
+						},
+					},
+					"serviceConfiguration": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.RedisConfiguration"),
+						},
+					},
+				},
+				Required: []string{"commonConfiguration", "serviceConfiguration"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.RedisConfiguration", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.PodConfiguration"},
+	}
+}
+
+func schema_pkg_apis_tf_v1alpha1_RedisStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "RedisStatus defines the status of the redis object.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"active": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"boolean"},
+							Format: "",
+						},
+					},
+					"nodes": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"ports": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.RedisStatusPorts"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.RedisStatusPorts"},
 	}
 }
 
@@ -2238,6 +2420,18 @@ func schema_pkg_apis_tf_v1alpha1_ManagerStatus(ref common.ReferenceCallback) com
 							},
 						},
 					},
+					"redis": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ServiceStatus"),
+									},
+								},
+							},
+						},
+					},
 					"zookeepers": {
 						SchemaProps: spec.SchemaProps{
 							Type: []string{"array"},
@@ -2581,6 +2775,18 @@ func schema_pkg_apis_tf_v1alpha1_Services(ref common.ReferenceCallback) common.O
 							},
 						},
 					},
+					"redis": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Redis"),
+									},
+								},
+							},
+						},
+					},
 					"zookeepers": {
 						SchemaProps: spec.SchemaProps{
 							Type: []string{"array"},
@@ -2602,7 +2808,7 @@ func schema_pkg_apis_tf_v1alpha1_Services(ref common.ReferenceCallback) common.O
 			},
 		},
 		Dependencies: []string{
-			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsSnmp", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsAlarm", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Cassandra", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Config", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Control", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Keystone", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Kubemanager", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Rabbitmq", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Vrouter", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Webui", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Zookeeper"},
+			"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsSnmp", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.AnalyticsAlarm", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Cassandra", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Config", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Control", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Keystone", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Kubemanager", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Rabbitmq", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Vrouter", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Webui", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Zookeeper", "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Redis"},
 	}
 }
 
@@ -2939,6 +3145,12 @@ func schema_pkg_apis_tf_v1alpha1_WebuiConfiguration(ref common.ReferenceCallback
 						},
 					},
 					"cassandraInstance": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"redisInstance": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
 							Format: "",

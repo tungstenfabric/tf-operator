@@ -157,6 +157,13 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	srcRedis := &source.Kind{Type: &v1alpha1.Redis{}}
+	redisHandler := resourceHandler(mgr.GetClient())
+	predRedisSizeChange := utils.RedisActiveChange()
+	if err = c.Watch(srcRedis, redisHandler, predRedisSizeChange); err != nil {
+		return err
+	}
+
 	srcSTS := &source.Kind{Type: &appsv1.StatefulSet{}}
 	stsHandler := &handler.EnqueueRequestForOwner{
 		IsController: true,
@@ -198,6 +205,7 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 	configInstance := v1alpha1.Config{}
 	controlInstance := v1alpha1.Control{}
 	cassandraInstance := v1alpha1.Cassandra{}
+	redisInstance := v1alpha1.Redis{}
 
 	err := r.Client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
@@ -217,10 +225,11 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 	}
 
 	cassandraActive := cassandraInstance.IsActive(instance.Spec.ServiceConfiguration.CassandraInstance, request.Namespace, r.Client)
+	redisActive := redisInstance.IsActive(instance.Spec.ServiceConfiguration.RedisInstance, request.Namespace, r.Client)
 	configActive := configInstance.IsActive(instance.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, r.Client)
 	controlActive := controlInstance.IsActive(instance.Spec.ServiceConfiguration.ControlInstance, request.Namespace, r.Client)
-	if !configActive || !cassandraActive || !controlActive {
-		reqLogger.Info("Dependencies not ready", "db", cassandraActive, "api", configActive, "control", controlActive)
+	if !configActive || !cassandraActive || !redisActive || !controlActive {
+		reqLogger.Info("Dependencies not ready", "db", cassandraActive, "redis", redisActive, "api", configActive, "control", controlActive)
 		return reconcile.Result{}, nil
 	}
 
@@ -364,48 +373,6 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 			volumeMountList = append(volumeMountList, volumeMount)
 			(&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts = volumeMountList
 			(&statefulSet.Spec.Template.Spec.Containers[idx]).Image = instanceContainer.Image
-		}
-		if container.Name == "redis" {
-			instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
-			if instanceContainer.Command == nil {
-				command := []string{"bash", "-c",
-					"exec redis-server --lua-time-limit 15000 --dbfilename '' --bind 127.0.0.1 --port 6380",
-				}
-				(&statefulSet.Spec.Template.Spec.Containers[idx]).Command = command
-			} else {
-				(&statefulSet.Spec.Template.Spec.Containers[idx]).Command = instanceContainer.Command
-			}
-			volumeMountList := []corev1.VolumeMount{}
-			if len((&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts) > 0 {
-				volumeMountList = (&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts
-			}
-			volumeMount := corev1.VolumeMount{
-				Name:      request.Name + "-" + instanceType + "-volume",
-				MountPath: "/etc/contrailconfigmaps",
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			(&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts = volumeMountList
-			(&statefulSet.Spec.Template.Spec.Containers[idx]).Image = instanceContainer.Image
-			readinessProbe := corev1.Probe{
-				FailureThreshold: 3,
-				PeriodSeconds:    3,
-				Handler: corev1.Handler{
-					Exec: &corev1.ExecAction{
-						Command: []string{"sh", "-c", "redis-cli -h 127.0.0.1 -p 6380 ping"},
-					},
-				},
-			}
-			startUpProbe := corev1.Probe{
-				FailureThreshold: 30,
-				PeriodSeconds:    3,
-				Handler: corev1.Handler{
-					Exec: &corev1.ExecAction{
-						Command: []string{"sh", "-c", "redis-cli -h 127.0.0.1 -p 6380 ping"},
-					},
-				},
-			}
-			(&statefulSet.Spec.Template.Spec.Containers[idx]).ReadinessProbe = &readinessProbe
-			(&statefulSet.Spec.Template.Spec.Containers[idx]).StartupProbe = &startUpProbe
 		}
 	}
 

@@ -221,6 +221,8 @@ spec:
                   type: string
                 rabbitmqVhost:
                   type: string
+                redisInstance:
+                  type: string
                 storage:
                   properties:
                     path:

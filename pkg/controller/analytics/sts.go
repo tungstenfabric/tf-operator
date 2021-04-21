@@ -55,23 +55,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-        - name: redis
-          image: tungstenfabric/contrail-external-redis:latest
-          env:
-            - name: POD_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.podIP
-          volumeMounts:
-            - mountPath: /var/lib/redis
-              name: analytics-data
-        - name: stunnel
-          image: tungstenfabric/contrail-external-stunnel:latest
-          env:
-            - name: POD_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.podIP
         - name: nodemanager
           image: tungstenfabric/contrail-nodemgr:latest
           securityContext:

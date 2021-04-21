@@ -59,6 +59,7 @@ type AnalyticsAlarmConfiguration struct {
 	CassandraInstance              string       `json:"cassandraInstance,omitempty"`
 	ZookeeperInstance              string       `json:"zookeeperInstance,omitempty"`
 	RabbitmqInstance               string       `json:"rabbitmqInstance,omitempty"`
+	RedisInstance                  string       `json:"redisInstance,omitempty"`
 	AnalyticsInstance              string       `json:"analyticsInstance,omitempty"`
 	ConfigInstance                 string       `json:"configInstance,omitempty"`
 	LogFilePath                    string       `json:"logFilePath,omitempty"`
@@ -120,6 +121,11 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 		return err
 	}
 	rabbitmqNodesInformation, err := NewRabbitmqClusterConfiguration(c.Spec.ServiceConfiguration.RabbitmqInstance, request.Namespace, client)
+	if err != nil {
+		return err
+	}
+	redisNodesInformation, err := NewRedisClusterConfiguration(c.Spec.ServiceConfiguration.RedisInstance,
+		request.Namespace, client)
 	if err != nil {
 		return err
 	}
@@ -198,7 +204,8 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 		return err
 	}
 
-	redisServerSpaceSeparatedList := strings.Join(podIPList, ":6379 ") + ":6379"
+	redisEndpointList := configtemplates.EndpointList(redisNodesInformation.ServerIPList, redisNodesInformation.ServerPort)
+	redisEndpointListSpaceSpearated := configtemplates.JoinListWithSeparator(redisEndpointList, " ")
 
 	var data = make(map[string]string)
 	for _, pod := range podList {
@@ -245,7 +252,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 			RabbitmqVhost:            rabbitmqSecretVhost,
 			RabbitmqUser:             rabbitmqSecretUser,
 			RabbitmqPassword:         rabbitmqSecretPassword,
-			RedisServerList:          redisServerSpaceSeparatedList,
+			RedisServerList:          redisEndpointListSpaceSpearated,
 			CAFilePath:               certificates.SignerCAFilepath,
 			// TODO: move to params
 			LogLevel: "SYS_DEBUG",

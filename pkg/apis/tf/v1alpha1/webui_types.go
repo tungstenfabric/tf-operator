@@ -55,6 +55,7 @@ type WebuiConfiguration struct {
 	AnalyticsInstance string       `json:"analyticsInstance,omitempty"`
 	ControlInstance   string       `json:"controlInstance,omitempty"`
 	CassandraInstance string       `json:"cassandraInstance,omitempty"`
+	RedisInstance     string       `json:"redisInstance,omitempty"`
 	Containers        []*Container `json:"containers,omitempty"`
 }
 

@@ -37,6 +37,7 @@ type Services struct {
 	Cassandras     []*Cassandra          `json:"cassandras,omitempty"`
 	Zookeepers     []*Zookeeper          `json:"zookeepers,omitempty"`
 	Rabbitmq       *Rabbitmq             `json:"rabbitmq,omitempty"`
+	Redis          []*Redis              `json:"redis,omitempty"`
 }
 
 // VrouterService defines desired confgiuration of vRouter
@@ -133,6 +134,7 @@ type ManagerStatus struct {
 	Cassandras     []*ServiceStatus `json:"cassandras,omitempty"`
 	Zookeepers     []*ServiceStatus `json:"zookeepers,omitempty"`
 	Rabbitmq       *ServiceStatus   `json:"rabbitmq,omitempty"`
+	Redis          []*ServiceStatus `json:"redis,omitempty"`
 	CrdStatus      []CrdStatus      `json:"crdStatus,omitempty"`
 	Replicas       int32            `json:"replicas,omitempty"`
 	// +optional
@@ -269,6 +271,13 @@ func (m Manager) IsClusterReady() bool {
 	for _, kubemanagerService := range m.Spec.Services.Kubemanagers {
 		for _, kubemanagerStatus := range m.Status.Kubemanagers {
 			if kubemanagerService.Name == *kubemanagerStatus.Name && !kubemanagerStatus.ready() {
+				return false
+			}
+		}
+	}
+	for _, redisService := range m.Spec.Services.Redis {
+		for _, redisStatus := range m.Status.Redis {
+			if redisService.Name == *redisStatus.Name && !redisStatus.ready() {
 				return false
 			}
 		}

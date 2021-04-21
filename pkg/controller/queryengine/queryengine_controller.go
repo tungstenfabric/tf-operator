@@ -165,6 +165,13 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	srcRedis := &source.Kind{Type: &v1alpha1.Redis{}}
+	redisHandler := resourceHandler(mgr.GetClient())
+	predRedisSizeChange := utils.RedisActiveChange()
+	if err = c.Watch(srcRedis, redisHandler, predRedisSizeChange); err != nil {
+		return err
+	}
+
 	srcSTS := &source.Kind{Type: &appsv1.StatefulSet{}}
 	stsHandler := &handler.EnqueueRequestForOwner{
 		IsController: true,
@@ -200,6 +207,7 @@ func (r *ReconcileQueryEngine) Reconcile(request reconcile.Request) (reconcile.R
 	cassandraInstance := &v1alpha1.Cassandra{}
 	zookeeperInstance := &v1alpha1.Zookeeper{}
 	rabbitmqInstance := &v1alpha1.Rabbitmq{}
+	redisInstance := &v1alpha1.Redis{}
 	configInstance := v1alpha1.Config{}
 	analyticsInstance := v1alpha1.Analytics{}
 
@@ -216,10 +224,11 @@ func (r *ReconcileQueryEngine) Reconcile(request reconcile.Request) (reconcile.R
 	cassandraActive := cassandraInstance.IsActive(instance.Spec.ServiceConfiguration.CassandraInstance, request.Namespace, r.Client)
 	zookeeperActive := zookeeperInstance.IsActive(instance.Spec.ServiceConfiguration.ZookeeperInstance, request.Namespace, r.Client)
 	rabbitmqActive := rabbitmqInstance.IsActive(instance.Spec.ServiceConfiguration.RabbitmqInstance, request.Namespace, r.Client)
+	redisActive := redisInstance.IsActive(instance.Spec.ServiceConfiguration.RedisInstance, request.Namespace, r.Client)
 	configActive := configInstance.IsActive(instance.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, r.Client)
 	analyticsActive := analyticsInstance.IsActive(instance.Spec.ServiceConfiguration.AnalyticsInstance, request.Namespace, r.Client)
-	if !cassandraActive || !zookeeperActive || !rabbitmqActive || !configActive || !analyticsActive {
-		reqLogger.Info("Dependencies not ready", "db", cassandraActive, "zk", zookeeperActive, "rmq", rabbitmqActive, "api", configActive, "analytics", configActive)
+	if !cassandraActive || !zookeeperActive || !rabbitmqActive || !redisActive || !configActive || !analyticsActive {
+		reqLogger.Info("Dependencies not ready", "db", cassandraActive, "zk", zookeeperActive, "rmq", rabbitmqActive, "redis", redisActive, "api", configActive, "analytics", configActive)
 		return reconcile.Result{}, nil
 	}
 
