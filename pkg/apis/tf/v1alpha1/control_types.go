@@ -324,15 +324,17 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 
 		var vncApiConfigBuffer bytes.Buffer
 		err = configtemplates.ConfigAPIVNC.Execute(&vncApiConfigBuffer, struct {
-			APIServerList string
-			APIServerPort string
-			CAFilePath    string
-			AuthMode      AuthenticationMode
+			APIServerList          string
+			APIServerPort          string
+			CAFilePath             string
+			AuthMode               AuthenticationMode
+			KeystoneAuthParameters *KeystoneAuthParameters
 		}{
-			APIServerList: configApiIPListCommaSeparated,
-			APIServerPort: strconv.Itoa(configNodesInformation.APIServerPort),
-			CAFilePath:    certificates.SignerCAFilepath,
-			AuthMode:      c.Spec.CommonConfiguration.AuthParameters.AuthMode,
+			APIServerList:          configApiIPListCommaSeparated,
+			APIServerPort:          strconv.Itoa(configNodesInformation.APIServerPort),
+			CAFilePath:             certificates.SignerCAFilepath,
+			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
+			KeystoneAuthParameters: c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters,
 		})
 		if err != nil {
 			panic(err)

@@ -264,25 +264,17 @@ func (c *Config) InstanceConfiguration(configMapName string,
 
 		var vncApiConfigBuffer bytes.Buffer
 		err = configtemplates.ConfigAPIVNC.Execute(&vncApiConfigBuffer, struct {
-			PodIP                  string
 			APIServerList          string
 			APIServerPort          string
-			AuthMode               AuthenticationMode
 			CAFilePath             string
-			KeystoneAddress        string
-			KeystonePort           *int
-			KeystoneUserDomainName string
-			KeystoneAuthProtocol   string
+			AuthMode               AuthenticationMode
+			KeystoneAuthParameters *KeystoneAuthParameters
 		}{
-			PodIP:                  podIP,
 			APIServerList:          apiServerList,
 			APIServerPort:          strconv.Itoa(*configConfig.APIPort),
-			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 			CAFilePath:             certificates.SignerCAFilepath,
-			KeystoneAddress:        configAuth.Address,
-			KeystonePort:           configAuth.Port,
-			KeystoneUserDomainName: configAuth.UserDomainName,
-			KeystoneAuthProtocol:   configAuth.AuthProtocol,
+			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
+			KeystoneAuthParameters: c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters,
 		})
 		if err != nil {
 			panic(err)
