@@ -348,6 +348,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 		err = configtemplates.ConfigKeystoneAuthConf.Execute(&configKeystoneAuthConfBuffer, struct {
 			AdminUsername             string
 			AdminPassword             *string
+			AdminTenant               string
 			KeystoneAddress           string
 			KeystonePort              *int
 			KeystoneAuthProtocol      string
@@ -358,6 +359,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 		}{
 			AdminUsername:             configAuth.AdminUsername,
 			AdminPassword:             configAuth.AdminPassword,
+			AdminTenant:               configAuth.AdminTenant,
 			KeystoneAddress:           configAuth.Address,
 			KeystonePort:              configAuth.Port,
 			KeystoneAuthProtocol:      configAuth.AuthProtocol,
