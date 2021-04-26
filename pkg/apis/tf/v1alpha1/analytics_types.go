@@ -337,6 +337,7 @@ func (c *Analytics) InstanceConfiguration(configMapName string,
 		err = configtemplates.AnalyticsKeystoneAuthConf.Execute(&analyticsKeystoneAuthConfBuffer, struct {
 			AdminUsername             string
 			AdminPassword             *string
+			AdminTenant               string
 			KeystoneAddress           string
 			KeystonePort              *int
 			KeystoneAuthProtocol      string
@@ -347,6 +348,7 @@ func (c *Analytics) InstanceConfiguration(configMapName string,
 		}{
 			AdminUsername:             analyticsAuth.AdminUsername,
 			AdminPassword:             analyticsAuth.AdminPassword,
+			AdminTenant:               analyticsAuth.AdminTenant,
 			KeystoneAddress:           analyticsAuth.Address,
 			KeystonePort:              analyticsAuth.Port,
 			KeystoneAuthProtocol:      analyticsAuth.AuthProtocol,

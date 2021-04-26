@@ -160,7 +160,7 @@ AUTHN_TYPE = noauth`))
 // AnalyticsKeystoneAuthConf is the template keystone auth configuration.
 var AnalyticsKeystoneAuthConf = template.Must(template.New("").Parse(`[KEYSTONE]
 admin_password = {{ .AdminPassword }}
-admin_tenant_name = {{ .AdminUsername }}
+admin_tenant_name = {{ .AdminTenant }}
 admin_user = {{ .AdminUsername }}
 auth_host = {{ .KeystoneAddress }}
 auth_port = {{ .KeystonePort }}
