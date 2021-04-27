@@ -333,14 +333,20 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 
 		// TODO: commonize for all services
 		var vnciniBuffer bytes.Buffer
-		err = configtemplates.AnalyticsAlarmVncConfig.Execute(&vnciniBuffer, struct {
-			ConfigNodes   string
-			ConfigApiPort string
-			CAFilePath    string
+		err = configtemplates.ConfigAPIVNC.Execute(&vnciniBuffer, struct {
+			APIServerList          string
+			APIServerPort          string
+			CAFilePath             string
+			AuthMode               AuthenticationMode
+			KeystoneAuthParameters *KeystoneAuthParameters
+			PodIP                  string
 		}{
-			ConfigNodes:   configApiIPCommaSeparated,
-			ConfigApiPort: strconv.Itoa(configNodesInformation.APIServerPort),
-			CAFilePath:    certificates.SignerCAFilepath,
+			APIServerList:          configApiIPCommaSeparated,
+			APIServerPort:          strconv.Itoa(configNodesInformation.APIServerPort),
+			CAFilePath:             certificates.SignerCAFilepath,
+			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
+			KeystoneAuthParameters: c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters,
+			PodIP:                  podIP,
 		})
 		if err != nil {
 			panic(err)
@@ -356,7 +362,8 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 	configMapInstanceDynamicConfig.Data["analytics-alarm-nodemanager-runner.sh"] = GetNodemanagerRunner()
 
 	// update with provisioner configs
-	UpdateProvisionerConfigMapData("analytics-alarm-provisioner", configApiIPCommaSeparated, configMapInstanceDynamicConfig)
+	UpdateProvisionerConfigMapData("analytics-alarm-provisioner", configApiIPCommaSeparated,
+		c.Spec.CommonConfiguration.AuthParameters, configMapInstanceDynamicConfig)
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }

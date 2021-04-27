@@ -334,28 +334,14 @@ func (c *Analytics) InstanceConfiguration(configMapName string,
 		data["analytics-nodemgr.env."+podIP] = ""
 
 		var analyticsKeystoneAuthConfBuffer bytes.Buffer
-		err = configtemplates.AnalyticsKeystoneAuthConf.Execute(&analyticsKeystoneAuthConfBuffer, struct {
-			AdminUsername             string
-			AdminPassword             *string
-			AdminTenant               string
-			KeystoneAddress           string
-			KeystonePort              *int
-			KeystoneAuthProtocol      string
-			KeystoneUserDomainName    string
-			KeystoneProjectDomainName string
-			KeystoneRegion            string
-			CAFilePath                string
+		err = configtemplates.ConfigKeystoneAuthConf.Execute(&analyticsKeystoneAuthConfBuffer, struct {
+			KeystoneAuthParameters *KeystoneAuthParameters
+			CAFilePath             string
+			PodIP                  string
 		}{
-			AdminUsername:             analyticsAuth.AdminUsername,
-			AdminPassword:             analyticsAuth.AdminPassword,
-			AdminTenant:               analyticsAuth.AdminTenant,
-			KeystoneAddress:           analyticsAuth.Address,
-			KeystonePort:              analyticsAuth.Port,
-			KeystoneAuthProtocol:      analyticsAuth.AuthProtocol,
-			KeystoneUserDomainName:    analyticsAuth.UserDomainName,
-			KeystoneProjectDomainName: analyticsAuth.ProjectDomainName,
-			KeystoneRegion:            analyticsAuth.Region,
-			CAFilePath:                certificates.SignerCAFilepath,
+			KeystoneAuthParameters: analyticsAuth,
+			CAFilePath:             certificates.SignerCAFilepath,
+			PodIP:                  podIP,
 		})
 		if err != nil {
 			panic(err)
@@ -364,16 +350,20 @@ func (c *Analytics) InstanceConfiguration(configMapName string,
 
 		// TODO: commonize for all services
 		var vncApiBuffer bytes.Buffer
-		err = configtemplates.AnalyticsVncConfig.Execute(&vncApiBuffer, struct {
-			ConfigNodes   string
-			ConfigApiPort string
-			CAFilePath    string
-			AuthMode      AuthenticationMode
+		err = configtemplates.ConfigAPIVNC.Execute(&vncApiBuffer, struct {
+			APIServerList          string
+			APIServerPort          string
+			CAFilePath             string
+			AuthMode               AuthenticationMode
+			KeystoneAuthParameters *KeystoneAuthParameters
+			PodIP                  string
 		}{
-			ConfigNodes:   apiServerIPListCommaSeparated,
-			ConfigApiPort: strconv.Itoa(configNodesInformation.APIServerPort),
-			CAFilePath:    certificates.SignerCAFilepath,
-			AuthMode:      c.Spec.CommonConfiguration.AuthParameters.AuthMode,
+			APIServerList:          apiServerIPListCommaSeparated,
+			APIServerPort:          strconv.Itoa(configNodesInformation.APIServerPort),
+			CAFilePath:             certificates.SignerCAFilepath,
+			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
+			KeystoneAuthParameters: c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters,
+			PodIP:                  podIP,
 		})
 		if err != nil {
 			panic(err)
@@ -389,7 +379,8 @@ func (c *Analytics) InstanceConfiguration(configMapName string,
 	configMapInstanceDynamicConfig.Data["analytics-nodemanager-runner.sh"] = nmr
 
 	// update with provisioner configs
-	UpdateProvisionerConfigMapData("analytics-provisioner", configApiIPListCommaSeparated, configMapInstanceDynamicConfig)
+	UpdateProvisionerConfigMapData("analytics-provisioner", configApiIPListCommaSeparated,
+		c.Spec.CommonConfiguration.AuthParameters, configMapInstanceDynamicConfig)
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }

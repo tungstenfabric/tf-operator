@@ -39,12 +39,14 @@ type KeystoneAuthParameters struct {
 	AuthProtocol      string  `json:"authProtocol,omitempty"`
 	Address           string  `json:"address,omitempty"`
 	Port              *int    `json:"port,omitempty"`
+	AdminPort         *int    `json:"adminPort,omitempty"`
 	AdminTenant       string  `json:"adminTenant,omitempty"`
 	AdminUsername     string  `json:"adminUsername,omitempty"`
 	AdminPassword     *string `json:"adminPassword,omitempty"`
 	Region            string  `json:"region,omitempty"`
 	UserDomainName    string  `json:"userDomainName,omitempty"`
 	ProjectDomainName string  `json:"projectDomainName,omitempty"`
+	Insecure          *bool   `json:"insecure,omitempty"`
 }
 
 // Prepare makes default empty AuthParameters
@@ -83,6 +85,10 @@ func (ap *AuthParameters) Prepare(namespace string, client client.Client) error 
 		var p int = KeystoneAuthPort
 		c.Port = &p
 	}
+	if c.AdminPort == nil {
+		var p int = KeystoneAuthAdminPort
+		c.AdminPort = &p
+	}
 	if c.AuthProtocol == "" {
 		c.AuthProtocol = KeystoneAuthProto
 	}
@@ -94,6 +100,10 @@ func (ap *AuthParameters) Prepare(namespace string, client client.Client) error 
 	}
 	if c.Region == "" {
 		c.Region = KeystoneAuthRegionName
+	}
+	if c.Insecure == nil {
+		trueVal := KeystoneAuthInsecure
+		c.Insecure = &trueVal
 	}
 	return nil
 }
