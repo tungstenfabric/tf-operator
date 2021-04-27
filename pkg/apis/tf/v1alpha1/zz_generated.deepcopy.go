@@ -1456,6 +1456,7 @@ func (in *ManagerConfiguration) DeepCopyInto(out *ManagerConfiguration) {
 	}
 	if in.AuthParameters != nil {
 		in, out := &in.AuthParameters, &out.AuthParameters
+		*out = new(AuthParameters)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.TuneSysctl != nil {
