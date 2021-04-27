@@ -329,12 +329,14 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 			CAFilePath             string
 			AuthMode               AuthenticationMode
 			KeystoneAuthParameters *KeystoneAuthParameters
+			PodIP                  string
 		}{
 			APIServerList:          configApiIPListCommaSeparated,
 			APIServerPort:          strconv.Itoa(configNodesInformation.APIServerPort),
 			CAFilePath:             certificates.SignerCAFilepath,
 			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 			KeystoneAuthParameters: c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters,
+			PodIP:                  podIP,
 		})
 		if err != nil {
 			panic(err)
@@ -370,7 +372,8 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 	configMapInstanceDynamicConfig.Data["control-nodemanager-runner.sh"] = GetNodemanagerRunner()
 
 	// update with provisioner configs
-	UpdateProvisionerConfigMapData("control-provisioner", configApiIPListCommaSeparated, configMapInstanceDynamicConfig)
+	UpdateProvisionerConfigMapData("control-provisioner", configApiIPListCommaSeparated,
+		c.Spec.CommonConfiguration.AuthParameters, configMapInstanceDynamicConfig)
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }

@@ -20,7 +20,7 @@ config.endpoints.apiServiceType = "ApiServer";
 config.endpoints.opServiceType = "OpServer";
 
 config.regions = {};
-config.regions.RegionOne = "{{ .KeystoneAuthProtocol }}://{{ .KeystoneAddress }}:{{ .KeystonePort }}/v3";
+config.regions.RegionOne = "{{ .KeystoneAuthParameters.AuthProtocol }}://{{ .KeystoneAuthParameters.Address }}:{{ .KeystoneAuthParameters.Port }}/v3";
 
 config.serviceEndPointTakePublicURL = true;
 
@@ -49,13 +49,19 @@ config.computeManager.strictSSL = false;
 config.computeManager.ca = "";
 
 config.identityManager = {};
-config.identityManager.ip = "{{ .KeystoneAddress }}";
-config.identityManager.port = "{{ .KeystonePort }}";
-config.identityManager.authProtocol = "{{ .KeystoneAuthProtocol }}";
+config.identityManager.ip = "{{ .KeystoneAuthParameters.Address }}";
+config.identityManager.port = "{{ .KeystoneAuthParameters.Port }}";
+config.identityManager.authProtocol = "{{ .KeystoneAuthParameters.AuthProtocol }}";
 config.identityManager.apiVersion = ['v3'];
-config.identityManager.strictSSL = false;
-config.identityManager.defaultDomain = "{{ .KeystoneUserDomainName }}";
+config.identityManager.defaultDomain = "{{ .KeystoneAuthParameters.UserDomainName }}";
+{{ if .KeystoneAuthParameters.Insecure }}
+config.identityManager.strictSSL = "false";
+config.identityManager.ca = "";
+{{ else }}
+config.identityManager.strictSSL = "true";
 config.identityManager.ca = "{{ .CAFilePath }}";
+{{ end }}
+
 
 config.storageManager = {};
 config.storageManager.ip = "127.0.0.1";
@@ -166,8 +172,8 @@ module.exports = config;
 
 config.staticAuth = [];
 config.staticAuth[0] = {};
-config.staticAuth[0].username = '{{ .AdminUsername }}';
-config.staticAuth[0].password = '{{ .AdminPassword }}';
+config.staticAuth[0].username = '{{ .KeystoneAuthParameters.AdminUsername }}';
+config.staticAuth[0].password = '{{ .KeystoneAuthParameters.AdminPassword }}';
 config.staticAuth[0].roles = ['cloudAdmin'];
 `))
 
@@ -177,10 +183,10 @@ var WebuiAuthConfig = template.Must(template.New("").Parse(`/*
 */
 var auth = {};
 auth.admin_token = '';
-auth.admin_user = '{{ .AdminUsername }}';
-auth.admin_password = '{{ .AdminPassword }}';
-auth.admin_tenant_name = '{{ .AdminTenant }}';
-auth.project_domain_name = '{{ .KeystoneProjectDomainName }}';
-auth.user_domain_name = '{{ .KeystoneUserDomainName }}';
+auth.admin_user = '{{ .KeystoneAuthParameters.AdminUsername }}';
+auth.admin_password = '{{ .KeystoneAuthParameters.AdminPassword }}';
+auth.admin_tenant_name = '{{ .KeystoneAuthParameters.AdminTenant }}';
+auth.project_domain_name = '{{ .KeystoneAuthParameters.ProjectDomainName }}';
+auth.user_domain_name = '{{ .KeystoneAuthParameters.UserDomainName }}';
 module.exports = auth;
 `))

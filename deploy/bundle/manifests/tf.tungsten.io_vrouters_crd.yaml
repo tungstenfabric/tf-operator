@@ -50,12 +50,16 @@ spec:
                           type: string
                         adminPassword:
                           type: string
+                        adminPort:
+                          type: integer
                         adminTenant:
                           type: string
                         adminUsername:
                           type: string
                         authProtocol:
                           type: string
+                        insecure:
+                          type: boolean
                         port:
                           type: integer
                         projectDomainName:
@@ -188,6 +192,9 @@ spec:
                   type: string
                 clusterRoleBinding:
                   type: string
+                cniMTU:
+                  description: CniMTU - mtu for virtual tap devices
+                  type: integer
                 collectorPort:
                   type: string
                 configApiPort:

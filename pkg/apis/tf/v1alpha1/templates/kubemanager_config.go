@@ -12,6 +12,7 @@ log_level={{ .LogLevel }}
 log_local=1
 nested_mode=0
 http_server_ip={{ .InstrospectListenAddress }}
+
 [KUBERNETES]
 kubernetes_api_server={{ .KubernetesAPIServer }}
 kubernetes_api_port={{ .KubernetesAPIPort }}
@@ -25,6 +26,7 @@ service_subnets={{ .ServiceSubnet }}
 ip_fabric_forwarding={{ .IPFabricForwarding }}
 ip_fabric_snat={{ .IPFabricSnat }}
 host_network_service={{ .HostNetworkService }}
+
 [VNC]
 public_fip_pool={{ .PublicFIPPool }}
 vnc_endpoint_ip={{ .APIServerList }}
@@ -45,10 +47,20 @@ cassandra_use_ssl=True
 cassandra_ca_certs={{ .CAFilePath }}
 collectors={{ .CollectorServerList }}
 zk_server_ip={{ .ZookeeperServerList }}
+
 [SANDESH]
 introspect_ssl_enable=True
 introspect_ssl_insecure=True
 sandesh_ssl_enable=True
 sandesh_keyfile=/etc/certificates/server-key-{{ .ListenAddress }}.pem
 sandesh_certfile=/etc/certificates/server-{{ .ListenAddress }}.crt
-sandesh_ca_cert={{ .CAFilePath }}`))
+sandesh_ca_cert={{ .CAFilePath }}
+
+{{ if eq .AuthMode "keystone" }}
+[AUTH]
+auth_user={{ .KeystoneAuthParameters.AdminUsername }}
+auth_password={{ .KeystoneAuthParameters.AdminPassword }}
+auth_tenant={{ .KeystoneAuthParameters.AdminTenant }}
+auth_token_url={{ .KeystoneAuthParameters.AuthProtocol }}://{{ .KeystoneAuthParameters.Address }}:{{ .KeystoneAuthParameters.AdminPort }}/v3/auth/tokens
+{{ end }}
+`))

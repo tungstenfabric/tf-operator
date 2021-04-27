@@ -53,12 +53,16 @@ spec:
                           type: string
                         adminPassword:
                           type: string
+                        adminPort:
+                          type: integer
                         adminTenant:
                           type: string
                         adminUsername:
                           type: string
                         authProtocol:
                           type: string
+                        insecure:
+                          type: boolean
                         port:
                           type: integer
                         projectDomainName:
@@ -180,9 +184,6 @@ spec:
                     all deployers except opneshift it is done by node-init, in openshift
                     - machineconfig)
                   type: boolean
-                useKubeadmConfig:
-                  description: Read cluster parameters from kubeadm config map
-                  type: boolean
               type: object
             services:
               description: Services defines the desired state of Services.
@@ -228,12 +229,16 @@ spec:
                                       type: string
                                     adminPassword:
                                       type: string
+                                    adminPort:
+                                      type: integer
                                     adminTenant:
                                       type: string
                                     adminUsername:
                                       type: string
                                     authProtocol:
                                       type: string
+                                    insecure:
+                                      type: boolean
                                     port:
                                       type: integer
                                     projectDomainName:
@@ -454,12 +459,16 @@ spec:
                                       type: string
                                     adminPassword:
                                       type: string
+                                    adminPort:
+                                      type: integer
                                     adminTenant:
                                       type: string
                                     adminUsername:
                                       type: string
                                     authProtocol:
                                       type: string
+                                    insecure:
+                                      type: boolean
                                     port:
                                       type: integer
                                     projectDomainName:
@@ -686,12 +695,16 @@ spec:
                                         type: string
                                       adminPassword:
                                         type: string
+                                      adminPort:
+                                        type: integer
                                       adminTenant:
                                         type: string
                                       adminUsername:
                                         type: string
                                       authProtocol:
                                         type: string
+                                      insecure:
+                                        type: boolean
                                       port:
                                         type: integer
                                       projectDomainName:
@@ -962,12 +975,16 @@ spec:
                                       type: string
                                     adminPassword:
                                       type: string
+                                    adminPort:
+                                      type: integer
                                     adminTenant:
                                       type: string
                                     adminUsername:
                                       type: string
                                     authProtocol:
                                       type: string
+                                    insecure:
+                                      type: boolean
                                     port:
                                       type: integer
                                     projectDomainName:
@@ -1247,12 +1264,16 @@ spec:
                                         type: string
                                       adminPassword:
                                         type: string
+                                      adminPort:
+                                        type: integer
                                       adminTenant:
                                         type: string
                                       adminUsername:
                                         type: string
                                       authProtocol:
                                         type: string
+                                      insecure:
+                                        type: boolean
                                       port:
                                         type: integer
                                       projectDomainName:
@@ -1533,12 +1554,16 @@ spec:
                                         type: string
                                       adminPassword:
                                         type: string
+                                      adminPort:
+                                        type: integer
                                       adminTenant:
                                         type: string
                                       adminUsername:
                                         type: string
                                       authProtocol:
                                         type: string
+                                      insecure:
+                                        type: boolean
                                       port:
                                         type: integer
                                       projectDomainName:
@@ -1776,12 +1801,16 @@ spec:
                                       type: string
                                     adminPassword:
                                       type: string
+                                    adminPort:
+                                      type: integer
                                     adminTenant:
                                       type: string
                                     adminUsername:
                                       type: string
                                     authProtocol:
                                       type: string
+                                    insecure:
+                                      type: boolean
                                     port:
                                       type: integer
                                     projectDomainName:
@@ -2011,12 +2040,16 @@ spec:
                                         type: string
                                       adminPassword:
                                         type: string
+                                      adminPort:
+                                        type: integer
                                       adminTenant:
                                         type: string
                                       adminUsername:
                                         type: string
                                       authProtocol:
                                         type: string
+                                      insecure:
+                                        type: boolean
                                       port:
                                         type: integer
                                       projectDomainName:
@@ -2162,6 +2195,9 @@ spec:
                                 type: string
                               clusterRoleBinding:
                                 type: string
+                              cniMTU:
+                                description: CniMTU - mtu for virtual tap devices
+                                type: integer
                               collectorPort:
                                 type: string
                               configApiPort:
@@ -2404,12 +2440,16 @@ spec:
                                       type: string
                                     adminPassword:
                                       type: string
+                                    adminPort:
+                                      type: integer
                                     adminTenant:
                                       type: string
                                     adminUsername:
                                       type: string
                                     authProtocol:
                                       type: string
+                                    insecure:
+                                      type: boolean
                                     port:
                                       type: integer
                                     projectDomainName:
@@ -2638,12 +2678,16 @@ spec:
                                         type: string
                                       adminPassword:
                                         type: string
+                                      adminPort:
+                                        type: integer
                                       adminTenant:
                                         type: string
                                       adminUsername:
                                         type: string
                                       authProtocol:
                                         type: string
+                                      insecure:
+                                        type: boolean
                                       port:
                                         type: integer
                                       projectDomainName:

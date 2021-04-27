@@ -103,18 +103,26 @@ sandesh_ca_cert={{ .CAFilePath }}`))
 
 // ConfigKeystoneAuthConf is the template of the DeviceManager keystone auth configuration.
 var ConfigKeystoneAuthConf = template.Must(template.New("").Parse(`[KEYSTONE]
-admin_password = {{ .AdminPassword }}
-admin_tenant_name = {{ .AdminTenant }}
-admin_user = {{ .AdminUsername }}
-auth_host = {{ .KeystoneAddress }}
-auth_port = {{ .KeystonePort }}
-auth_protocol = {{ .KeystoneAuthProtocol }}
-auth_url = {{ .KeystoneAuthProtocol }}://{{ .KeystoneAddress }}:{{ .KeystonePort }}/v3
+admin_password = {{ .KeystoneAuthParameters.AdminPassword }}
+admin_tenant_name = {{ .KeystoneAuthParameters.AdminTenant }}
+admin_user = {{ .KeystoneAuthParameters.AdminUsername }}
+auth_host = {{ .KeystoneAuthParameters.Address }}
+auth_port = {{ .KeystoneAuthParameters.AdminPort }}
+auth_protocol = {{ .KeystoneAuthParameters.AuthProtocol }}
+auth_url = {{ .KeystoneAuthParameters.AuthProtocol }}://{{ .KeystoneAuthParameters.Address }}:{{ .KeystoneAuthParameters.AdminPort }}/v3
 auth_type = password
+{{ if eq .KeystoneAuthParameters.AuthProtocol "https" }}
+{{ if .KeystoneAuthParameters.Insecure }}
+insecure = {{ .KeystoneAuthParameters.Insecure }}
+{{ else }}
 cafile = {{ .CAFilePath }}
-user_domain_name = {{ .KeystoneUserDomainName }}
-project_domain_name = {{ .KeystoneProjectDomainName }}
-region_name = {{ .KeystoneRegion }}`))
+keyfile = /etc/certificates/server-key-{{ .PodIP }}.pem
+certfile = /etc/certificates/server-{{ .PodIP }}.crt
+{{ end }}
+{{ end }}
+user_domain_name = {{ .KeystoneAuthParameters.UserDomainName }}
+project_domain_name = {{ .KeystoneAuthParameters.ProjectDomainName }}
+region_name = {{ .KeystoneAuthParameters.Region }}`))
 
 // FabricAnsibleConf is the template of the DeviceManager configuration for fabric management.
 var FabricAnsibleConf = template.Must(template.New("").Parse(`[DEFAULTS]

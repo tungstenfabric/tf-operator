@@ -213,10 +213,10 @@ func TestCassandraConfigMapsWithCustomValues(t *testing.T) {
 				AuthParameters: &AuthParameters{
 					AuthMode: AuthenticationModeKeystone,
 					KeystoneAuthParameters: &KeystoneAuthParameters{
-						AuthProtocol:   "https",
-						Address:        "9.9.9.9",
-						Port:           &keystoneTestPort,
-						UserDomainName: "test.net",
+						AuthProtocol:      "https",
+						Address:           "9.9.9.9",
+						AdminPort:         &keystoneTestPort,
+						ProjectDomainName: "test.net",
 					},
 				},
 			},

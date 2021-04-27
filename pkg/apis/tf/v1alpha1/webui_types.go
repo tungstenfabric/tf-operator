@@ -135,51 +135,37 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 		hostname := pod.Annotations["hostname"]
 		var webuiWebConfigBuffer bytes.Buffer
 		err := configtemplates.WebuiWebConfig.Execute(&webuiWebConfigBuffer, struct {
-			PodIP                     string
-			Hostname                  string
-			APIServerList             string
-			APIServerPort             string
-			AnalyticsServerList       string
-			AnalyticsServerPort       string
-			ControlNodeList           string
-			DnsNodePort               string
-			CassandraServerList       string
-			CassandraPort             string
-			AdminUsername             string
-			AdminPassword             *string
-			AdminTenant               string
-			KeystoneProjectDomainName string
-			KeystoneUserDomainName    string
-			KeystoneAuthProtocol      string
-			KeystoneAddress           string
-			KeystonePort              *int
-			KeystoneRegion            string
-			Manager                   string
-			CAFilePath                string
-			LogLevel                  string
+			PodIP                  string
+			Hostname               string
+			APIServerList          string
+			APIServerPort          string
+			AnalyticsServerList    string
+			AnalyticsServerPort    string
+			ControlNodeList        string
+			DnsNodePort            string
+			CassandraServerList    string
+			CassandraPort          string
+			Manager                string
+			CAFilePath             string
+			LogLevel               string
+			AuthMode               AuthenticationMode
+			KeystoneAuthParameters *KeystoneAuthParameters
 		}{
-			PodIP:                     pod.Status.PodIP,
-			Hostname:                  hostname,
-			APIServerList:             configApiIPListCommaSeparatedQuoted,
-			APIServerPort:             strconv.Itoa(configNodesInformation.APIServerPort),
-			AnalyticsServerList:       analyticsIPListCommaSeparatedQuoted,
-			AnalyticsServerPort:       strconv.Itoa(configNodesInformation.AnalyticsServerPort),
-			ControlNodeList:           controlXMPPIPListCommaSeparatedQuoted,
-			DnsNodePort:               strconv.Itoa(controlNodesInformation.DNSIntrospectPort),
-			CassandraServerList:       cassandraIPListCommaSeparatedQuoted,
-			CassandraPort:             strconv.Itoa(cassandraNodesInformation.CQLPort),
-			AdminUsername:             authConfig.AdminUsername,
-			AdminPassword:             authConfig.AdminPassword,
-			AdminTenant:               authConfig.AdminTenant,
-			KeystoneProjectDomainName: authConfig.ProjectDomainName,
-			KeystoneUserDomainName:    authConfig.UserDomainName,
-			KeystoneAuthProtocol:      authConfig.AuthProtocol,
-			KeystoneAddress:           authConfig.Address,
-			KeystonePort:              authConfig.Port,
-			KeystoneRegion:            authConfig.Region,
-			Manager:                   manager,
-			CAFilePath:                certificates.SignerCAFilepath,
-			LogLevel:                  c.Spec.CommonConfiguration.LogLevel,
+			PodIP:                  pod.Status.PodIP,
+			Hostname:               hostname,
+			APIServerList:          configApiIPListCommaSeparatedQuoted,
+			APIServerPort:          strconv.Itoa(configNodesInformation.APIServerPort),
+			AnalyticsServerList:    analyticsIPListCommaSeparatedQuoted,
+			AnalyticsServerPort:    strconv.Itoa(configNodesInformation.AnalyticsServerPort),
+			ControlNodeList:        controlXMPPIPListCommaSeparatedQuoted,
+			DnsNodePort:            strconv.Itoa(controlNodesInformation.DNSIntrospectPort),
+			CassandraServerList:    cassandraIPListCommaSeparatedQuoted,
+			CassandraPort:          strconv.Itoa(cassandraNodesInformation.CQLPort),
+			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
+			KeystoneAuthParameters: authConfig,
+			Manager:                manager,
+			CAFilePath:             certificates.SignerCAFilepath,
+			LogLevel:               c.Spec.CommonConfiguration.LogLevel,
 		})
 		if err != nil {
 			panic(err)
@@ -188,17 +174,11 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 		//fmt.Println("DATA ", data)
 		var webuiAuthConfigBuffer bytes.Buffer
 		err = configtemplates.WebuiAuthConfig.Execute(&webuiAuthConfigBuffer, struct {
-			AdminUsername             string
-			AdminPassword             *string
-			AdminTenant               string
-			KeystoneProjectDomainName string
-			KeystoneUserDomainName    string
+			AuthMode               AuthenticationMode
+			KeystoneAuthParameters *KeystoneAuthParameters
 		}{
-			AdminUsername:             authConfig.AdminUsername,
-			AdminPassword:             authConfig.AdminPassword,
-			AdminTenant:               authConfig.AdminTenant,
-			KeystoneProjectDomainName: authConfig.ProjectDomainName,
-			KeystoneUserDomainName:    authConfig.UserDomainName,
+			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
+			KeystoneAuthParameters: authConfig,
 		})
 		if err != nil {
 			panic(err)
