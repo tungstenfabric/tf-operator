@@ -137,6 +137,7 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 		// TODO: tmp disable, because inet_dist_listen_min must be set correctly
 		// rabbitmqEnvConfigString = rabbitmqEnvConfigString + fmt.Sprintf("CTL_ERL_ARGS=\"-proto_dist inet_tls\"\n")
 		rabbitmqEnvConfigString = rabbitmqEnvConfigString + fmt.Sprintf("NODENAME=rabbit@%s\n", pod.Status.PodIP)
+		rabbitmqEnvConfigString = rabbitmqEnvConfigString + fmt.Sprintf("RABBITMQ_DIST_PORT=%d\n", *c.Spec.ServiceConfiguration.Port + 20000)
 		data["rabbitmq-env.conf."+pod.Status.PodIP] = rabbitmqEnvConfigString
 	}
 
