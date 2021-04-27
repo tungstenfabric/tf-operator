@@ -51,6 +51,7 @@ type RabbitmqSpec struct {
 type RabbitmqConfiguration struct {
 	Containers   []*Container `json:"containers,omitempty"`
 	Port         *int         `json:"port,omitempty"`
+	ErlEpmdPort  *int         `json:"erlEpmdPort,omitempty"`
 	ErlangCookie string       `json:"erlangCookie,omitempty"`
 	Vhost        string       `json:"vhost,omitempty"`
 	User         string       `json:"user,omitempty"`
@@ -60,7 +61,6 @@ type RabbitmqConfiguration struct {
 	MirroredQueueMode        *string                 `json:"mirroredQueueMode,omitempty"`
 	ClusterPartitionHandling *string                 `json:"clusterPartitionHandling,omitempty"`
 	TCPListenOptions         *TCPListenOptionsConfig `json:"tcpListenOptions,omitempty"`
-	CTLDistPorts             *CTLDistPortsConfig     `json:"ctlDistPorts,omitempty"`
 }
 
 // RabbitmqStatus +k8s:openapi-gen=true
@@ -78,13 +78,6 @@ type TCPListenOptionsConfig struct {
 	LingerOn      *bool `json:"lingerOn,omitempty"`
 	LingerTimeout *int  `json:"lingerTimeout,omitempty"`
 	ExitOnClose   *bool `json:"exitOnClose,omitempty"`
-}
-
-// CTLDistPortsConfig is confgiuration for RabbitMQ ports (previously inet_dist_listen range)
-// +k8s:openapi-gen=true
-type CTLDistPortsConfig struct {
-	Min *int `json:"min,omitempty"`
-	Max *int `json:"max,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -134,10 +127,8 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 		}
 		data["rabbitmq.conf."+pod.Status.PodIP] = rabbitmqPodConfig.String()
 		rabbitmqEnvConfigString := fmt.Sprintf("HOME=/var/lib/rabbitmq\n")
-		// TODO: tmp disable, because inet_dist_listen_min must be set correctly
-		// rabbitmqEnvConfigString = rabbitmqEnvConfigString + fmt.Sprintf("CTL_ERL_ARGS=\"-proto_dist inet_tls\"\n")
 		rabbitmqEnvConfigString = rabbitmqEnvConfigString + fmt.Sprintf("NODENAME=rabbit@%s\n", pod.Status.PodIP)
-		rabbitmqEnvConfigString = rabbitmqEnvConfigString + fmt.Sprintf("RABBITMQ_DIST_PORT=%d\n", *c.Spec.ServiceConfiguration.Port + 20000)
+
 		data["rabbitmq-env.conf."+pod.Status.PodIP] = rabbitmqEnvConfigString
 	}
 
@@ -158,6 +149,12 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 	rabbitmqCommonEnvString = rabbitmqCommonEnvString + fmt.Sprintf("export RABBITMQ_ENABLED_PLUGINS_FILE=/etc/rabbitmq/plugins.conf\n")
 	rabbitmqCommonEnvString = rabbitmqCommonEnvString + fmt.Sprintf("export RABBITMQ_USE_LONGNAME=true\n")
 	rabbitmqCommonEnvString = rabbitmqCommonEnvString + fmt.Sprintf("export RABBITMQ_PID_FILE=/var/run/rabbitmq.pid\n")
+	rabbitmqCommonEnvString = rabbitmqCommonEnvString + fmt.Sprintf("export ERL_EPMD_PORT=%d\n", *c.Spec.ServiceConfiguration.ErlEpmdPort)
+	distPort := *c.Spec.ServiceConfiguration.Port + 20000
+	rabbitmqCommonEnvString = rabbitmqCommonEnvString + fmt.Sprintf("export RABBITMQ_DIST_PORT=%d\n", distPort)
+	// TODO: for now tls is not enabled for dist & management ports
+	// rabbitmqCommonEnvString = rabbitmqCommonEnvString + fmt.Sprintf("export RABBITMQ_CTL_ERL_ARGS=\"-proto_dist inet_tls\"\n")
+
 	data["rabbitmq-common.env"] = rabbitmqCommonEnvString
 
 	var secretName string
@@ -359,6 +356,7 @@ func (c *Rabbitmq) ManageNodeStatus(podNameIPMap map[string]string,
 
 func (c *Rabbitmq) ConfigurationParameters() {
 	var port = RabbitmqNodePort
+	var erlEpmdPort = RabbitmqErlEpmdPort
 	var erlangCookie = RabbitmqErlangCookie
 	var vhost = RabbitmqVhost
 	var user = RabbitmqUser
@@ -369,6 +367,9 @@ func (c *Rabbitmq) ConfigurationParameters() {
 
 	if c.Spec.ServiceConfiguration.Port == nil {
 		c.Spec.ServiceConfiguration.Port = &port
+	}
+	if c.Spec.ServiceConfiguration.ErlEpmdPort == nil {
+		c.Spec.ServiceConfiguration.ErlEpmdPort = &erlEpmdPort
 	}
 	if c.Spec.ServiceConfiguration.ErlangCookie == "" {
 		c.Spec.ServiceConfiguration.ErlangCookie = erlangCookie

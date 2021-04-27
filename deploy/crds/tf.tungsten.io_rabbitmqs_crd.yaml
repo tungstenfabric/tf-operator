@@ -187,15 +187,8 @@ spec:
                         type: string
                     type: object
                   type: array
-                ctlDistPorts:
-                  description: CTLDistPortsConfig is confgiuration for RabbitMQ ports
-                    (previously inet_dist_listen range)
-                  properties:
-                    max:
-                      type: integer
-                    min:
-                      type: integer
-                  type: object
+                erlEpmdPort:
+                  type: integer
                 erlangCookie:
                   type: string
                 mirroredQueueMode:

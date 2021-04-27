@@ -1,8 +1,6 @@
 package rabbitmq
 
 import (
-	"strconv"
-
 	apps "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,21 +35,6 @@ func GetSTS(instance *v1alpha1.Rabbitmq) *apps.StatefulSet {
 		// 	Name:  "NODE_TYPE",
 		// 	Value: "config-database",
 		// },
-	}
-
-	if instance.Spec.ServiceConfiguration.CTLDistPorts != nil {
-		if instance.Spec.ServiceConfiguration.CTLDistPorts.Min != nil {
-			nodeEnv = append(nodeEnv, core.EnvVar{
-				Name:  "RABBITMQ_CTL_DIST_PORT_MIN",
-				Value: strconv.Itoa(*instance.Spec.ServiceConfiguration.CTLDistPorts.Min),
-			})
-		}
-		if instance.Spec.ServiceConfiguration.CTLDistPorts.Max != nil {
-			nodeEnv = append(nodeEnv, core.EnvVar{
-				Name:  "RABBITMQ_CTL_DIST_PORT_MAX",
-				Value: strconv.Itoa(*instance.Spec.ServiceConfiguration.CTLDistPorts.Max),
-			})
-		}
 	}
 
 	var podContainers = []core.Container{
