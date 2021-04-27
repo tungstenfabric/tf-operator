@@ -60,7 +60,7 @@ func (ap *AuthParameters) Prepare(namespace string, client client.Client) error 
 		c.AdminUsername = KeystoneAuthAdminUser
 	}
 	if c.AdminTenant == "" {
-		c.AdminTenant = KeystoneAuthHost
+		c.AdminTenant = KeystoneAuthAdminTenant
 	}
 	if c.AdminPassword == nil {
 		if ap.KeystoneSecretName != nil && *ap.KeystoneSecretName != "" {
@@ -91,6 +91,9 @@ func (ap *AuthParameters) Prepare(namespace string, client client.Client) error 
 	}
 	if c.ProjectDomainName == "" {
 		c.ProjectDomainName = KeystoneAuthProjectDomainName
+	}
+	if c.Region == "" {
+		c.Region = KeystoneAuthRegionName
 	}
 	return nil
 }

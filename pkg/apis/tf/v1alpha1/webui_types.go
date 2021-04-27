@@ -154,6 +154,7 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 			CassandraPort             string
 			AdminUsername             string
 			AdminPassword             *string
+			AdminTenant               string
 			KeystoneProjectDomainName string
 			KeystoneUserDomainName    string
 			KeystoneAuthProtocol      string
@@ -176,6 +177,7 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 			CassandraPort:             strconv.Itoa(cassandraNodesInformation.CQLPort),
 			AdminUsername:             authConfig.AdminUsername,
 			AdminPassword:             authConfig.AdminPassword,
+			AdminTenant:               authConfig.AdminTenant,
 			KeystoneProjectDomainName: authConfig.ProjectDomainName,
 			KeystoneUserDomainName:    authConfig.UserDomainName,
 			KeystoneAuthProtocol:      authConfig.AuthProtocol,
@@ -195,11 +197,13 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 		err = configtemplates.WebuiAuthConfig.Execute(&webuiAuthConfigBuffer, struct {
 			AdminUsername             string
 			AdminPassword             *string
+			AdminTenant               string
 			KeystoneProjectDomainName string
 			KeystoneUserDomainName    string
 		}{
 			AdminUsername:             authConfig.AdminUsername,
 			AdminPassword:             authConfig.AdminPassword,
+			AdminTenant:               authConfig.AdminTenant,
 			KeystoneProjectDomainName: authConfig.ProjectDomainName,
 			KeystoneUserDomainName:    authConfig.UserDomainName,
 		})

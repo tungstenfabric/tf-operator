@@ -176,10 +176,10 @@ var WebuiAuthConfig = template.Must(template.New("").Parse(`/*
 * Copyright (c) 2014 Juniper Networks, Inc. All rights reserved.
 */
 var auth = {};
+auth.admin_token = '';
 auth.admin_user = '{{ .AdminUsername }}';
 auth.admin_password = '{{ .AdminPassword }}';
-auth.admin_token = '';
-auth.admin_tenant_name = '{{ .AdminUsername }}';
+auth.admin_tenant_name = '{{ .AdminTenant }}';
 auth.project_domain_name = '{{ .KeystoneProjectDomainName }}';
 auth.user_domain_name = '{{ .KeystoneUserDomainName }}';
 module.exports = auth;
