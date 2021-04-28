@@ -140,12 +140,14 @@ sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 sandesh_ca_cert={{ .CAFilePath }}`))
 
 // ConfigDNSMasqBaseConfig is the template of the DNSMasq service configuration.
-var ConfigDNSMasqBaseConfig = `log-facility=/var/log/contrail/dnsmasq.log
+var ConfigDNSMasqBaseConfig = template.Must(template.New("").Parse(`log-facility=/var/log/contrail/dnsmasq.log
 bogus-priv
 log-dhcp
+{{ if not .UseExternalTFTP }}
 enable-tftp
 tftp-root=/var/lib/tftp
-`
+{{ end }}
+`))
 
 // ConfigDNSMasqConfig is the template of the main DNSMasq service configuration.
 var ConfigDNSMasqConfig = `conf-dir=/var/lib/dnsmasq/,*.conf

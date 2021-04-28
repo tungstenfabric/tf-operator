@@ -282,6 +282,8 @@ spec:
                   type: object
                 svcMonitorIntrospectPort:
                   type: integer
+                useExternalTFTP:
+                  type: boolean
                 zookeeperInstance:
                   type: string
               type: object
