@@ -91,7 +91,7 @@ else
     done
     sleep $(( 5 + $RANDOM % 5 ))
     rabbitmqctl --node $bootstrap_node forget_cluster_node $RABBITMQ_NODENAME
-    rabbitmqctl --node $RABBITMQ_NODENAME reset
+    rabbitmqctl --node $RABBITMQ_NODENAME force_reset
     rabbitmqctl --node $RABBITMQ_NODENAME join_cluster $bootstrap_node || continue
     rabbitmqctl --node $RABBITMQ_NODENAME start_app || continue
     break
