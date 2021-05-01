@@ -185,16 +185,17 @@ spec:
                   type: boolean
               type: object
             serviceConfiguration:
-              description: QueryEngineConfiguration is the Spec for the AnalyticsDB query engine.
+              description: QueryEngineConfiguration is the Spec for the AnalyticsDB
+                query engine.
               properties:
+                analyticsCassandraInstance:
+                  type: string
                 analyticsInstance:
                   type: string
                 analyticsdbIntrospectPort:
                   type: integer
                 analyticsdbPort:
                   type: integer
-                analyticsCassandraInstance:
-                  type: string
                 configInstance:
                   type: string
                 containers:
