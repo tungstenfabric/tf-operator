@@ -68,6 +68,15 @@ export CNI_MTU=1450
 ./tf-operator/contrib/render_manifests.sh
 ```
 
+## Use own root CA
+```bash
+# generate root CA key and cert and provide base64 encoded values
+export TF_ROOT_CA_CERT_BASE64=<base64 of root ca cert>
+export TF_ROOT_CA_KEY_BASE64=<base64 of root ca key>
+# ... other options
+./tf-operator/contrib/render_manifests.sh
+```
+
 ## Deploy TF cluster with operator
 ```bash
 kubectl apply -f ./tf-operator/deploy/crds/
