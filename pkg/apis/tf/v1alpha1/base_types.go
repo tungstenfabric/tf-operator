@@ -1136,16 +1136,20 @@ func (c *CassandraClusterConfiguration) FillWithDefaultValues() {
 }
 
 // ProvisionerEnvData returns provisioner env data
-func ProvisionerEnvData(configAPINodes string) string {
+func ProvisionerEnvData(configAPINodes string, authParams *AuthParameters) string {
 	var bufEnv bytes.Buffer
 	err := templates.ProvisionerConfig.Execute(&bufEnv, struct {
-		ConfigAPINodes   string
-		SignerCAFilepath string
-		Retries          string
-		Delay            string
+		ConfigAPINodes         string
+		SignerCAFilepath       string
+		Retries                string
+		Delay                  string
+		AuthMode               AuthenticationMode
+		KeystoneAuthParameters *KeystoneAuthParameters
 	}{
-		ConfigAPINodes:   configAPINodes,
-		SignerCAFilepath: certificates.SignerCAFilepath,
+		ConfigAPINodes:         configAPINodes,
+		SignerCAFilepath:       certificates.SignerCAFilepath,
+		AuthMode:               authParams.AuthMode,
+		KeystoneAuthParameters: authParams.KeystoneAuthParameters,
 	})
 	if err != nil {
 		panic(err)
@@ -1168,9 +1172,9 @@ func UpdateProvisionerRunner(configMapName string, configMap *corev1.ConfigMap) 
 }
 
 // UpdateProvisionerConfigMapData update provisioner data in config map
-func UpdateProvisionerConfigMapData(configMapName string, configAPINodes string, configMap *corev1.ConfigMap) {
+func UpdateProvisionerConfigMapData(configMapName string, configAPINodes string, authParams *AuthParameters, configMap *corev1.ConfigMap) {
 	UpdateProvisionerRunner(configMapName, configMap)
-	configMap.Data[configMapName+".env"] = ProvisionerEnvData(configAPINodes)
+	configMap.Data[configMapName+".env"] = ProvisionerEnvData(configAPINodes, authParams)
 }
 
 // GetNodemanagerRunner returns nodemanagaer runner script

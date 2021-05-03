@@ -145,29 +145,3 @@ sandesh_ssl_enable=True
 sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
 sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 sandesh_ca_cert={{ .CAFilePath }}`))
-
-// AnalyticsVncConfig is a template for vnc_api.ini file
-var AnalyticsVncConfig = template.Must(template.New("").Parse(`
-[global]
-WEB_SERVER = {{ .ConfigNodes }}
-WEB_PORT = {{ .ConfigApiPort }}
-BASE_URL = /
-use_ssl = True
-cafile = {{ .CAFilePath }}
-[auth]
-AUTHN_TYPE = noauth`))
-
-// AnalyticsKeystoneAuthConf is the template keystone auth configuration.
-var AnalyticsKeystoneAuthConf = template.Must(template.New("").Parse(`[KEYSTONE]
-admin_password = {{ .AdminPassword }}
-admin_tenant_name = {{ .AdminTenant }}
-admin_user = {{ .AdminUsername }}
-auth_host = {{ .KeystoneAddress }}
-auth_port = {{ .KeystonePort }}
-auth_protocol = {{ .KeystoneAuthProtocol }}
-auth_url = {{ .KeystoneAuthProtocol }}://{{ .KeystoneAddress }}:{{ .KeystonePort }}/v3
-auth_type = password
-cafile = {{ .CAFilePath }}
-user_domain_name = {{ .KeystoneUserDomainName }}
-project_domain_name = {{ .KeystoneProjectDomainName }}
-region_name = {{ .KeystoneRegion }}`))

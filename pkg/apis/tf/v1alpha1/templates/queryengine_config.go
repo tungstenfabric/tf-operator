@@ -37,14 +37,3 @@ sandesh_ssl_enable=True
 sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
 sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 sandesh_ca_cert={{ .CAFilePath }}`))
-
-// AnalyticsVncConfig is a template for vnc_api.ini file
-var QueryEngineVncConfig = template.Must(template.New("").Parse(`
-[global]
-WEB_SERVER = {{ .ConfigNodes }}
-WEB_PORT = {{ .ConfigApiPort }}
-BASE_URL = /
-use_ssl = True
-cafile = {{ .CAFilePath }}
-[auth]
-AUTHN_TYPE = noauth`))

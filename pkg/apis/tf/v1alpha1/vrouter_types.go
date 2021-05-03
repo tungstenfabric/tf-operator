@@ -913,7 +913,8 @@ func (c *Vrouter) UpdateAgentConfigMapForPod(vrouterPod *VrouterPod,
 	configMap.Data["vrouter-nodemgr.env."+podIP] = ""
 
 	// update with provisioner configs
-	UpdateProvisionerConfigMapData("vrouter-provisioner", clusterParams.ConfigNodes, configMap)
+	UpdateProvisionerConfigMapData("vrouter-provisioner", clusterParams.ConfigNodes,
+		c.Spec.CommonConfiguration.AuthParameters, configMap)
 
 	return client.Update(context.Background(), configMap)
 }
@@ -987,7 +988,7 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 		return false, nil
 	}
 
-	provData := ProvisionerEnvData(clusterParams.ConfigNodes)
+	provData := ProvisionerEnvData(clusterParams.ConfigNodes, c.Spec.CommonConfiguration.AuthParameters)
 
 	// wait till new files is delivered to agent
 	eq, err := vrouterPod.IsAgentConfigsAvaliable(c, provData, configMap)

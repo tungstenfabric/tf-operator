@@ -975,6 +975,16 @@ func (in *KeystoneAuthParameters) DeepCopyInto(out *KeystoneAuthParameters) {
 		*out = new(int)
 		**out = **in
 	}
+	if in.AdminPort != nil {
+		in, out := &in.AdminPort, &out.AdminPort
+		*out = new(int)
+		**out = **in
+	}
+	if in.Insecure != nil {
+		in, out := &in.Insecure, &out.Insecure
+		*out = new(bool)
+		**out = **in
+	}
 	if in.AdminPassword != nil {
 		in, out := &in.AdminPassword, &out.AdminPassword
 		*out = new(string)

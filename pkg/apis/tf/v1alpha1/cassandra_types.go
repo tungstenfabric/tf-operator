@@ -245,12 +245,14 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 			CAFilePath             string
 			AuthMode               AuthenticationMode
 			KeystoneAuthParameters *KeystoneAuthParameters
+			PodIP                  string
 		}{
 			APIServerList:          apiServerIPListCommaSeparated,
 			APIServerPort:          strconv.Itoa(configNodesInformation.APIServerPort),
 			CAFilePath:             certificates.SignerCAFilepath,
 			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 			KeystoneAuthParameters: c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters,
+			PodIP:                  pod.Status.PodIP,
 		})
 		if err != nil {
 			panic(err)
@@ -284,7 +286,8 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 	if err != nil {
 		return err
 	}
-	UpdateProvisionerConfigMapData(nodeType+"-provisioner", configtemplates.JoinListWithSeparator(configNodes, ","), configMapInstanceDynamicConfig)
+	UpdateProvisionerConfigMapData(nodeType+"-provisioner", configtemplates.JoinListWithSeparator(configNodes, ","),
+		c.Spec.CommonConfiguration.AuthParameters, configMapInstanceDynamicConfig)
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }
@@ -314,7 +317,8 @@ func (c *Cassandra) CreateConfigMap(configMapName string,
 	if err != nil {
 		return nil, err
 	}
-	UpdateProvisionerConfigMapData(nodeType+"-provisioner", configtemplates.JoinListWithSeparator(configNodes, ","), configMap)
+	UpdateProvisionerConfigMapData(nodeType+"-provisioner", configtemplates.JoinListWithSeparator(configNodes, ","),
+		c.Spec.CommonConfiguration.AuthParameters, configMap)
 
 	cassandraSecret := &corev1.Secret{}
 	if err := client.Get(context.TODO(), types.NamespacedName{Name: request.Name + "-secret", Namespace: request.Namespace}, cassandraSecret); err != nil {

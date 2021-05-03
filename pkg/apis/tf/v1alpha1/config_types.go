@@ -256,12 +256,14 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			CAFilePath             string
 			AuthMode               AuthenticationMode
 			KeystoneAuthParameters *KeystoneAuthParameters
+			PodIP                  string
 		}{
 			APIServerList:          apiServerList,
 			APIServerPort:          strconv.Itoa(*configConfig.APIPort),
 			CAFilePath:             certificates.SignerCAFilepath,
 			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 			KeystoneAuthParameters: c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters,
+			PodIP:                  podIP,
 		})
 		if err != nil {
 			panic(err)
@@ -333,27 +335,13 @@ func (c *Config) InstanceConfiguration(configMapName string,
 
 		var configKeystoneAuthConfBuffer bytes.Buffer
 		err = configtemplates.ConfigKeystoneAuthConf.Execute(&configKeystoneAuthConfBuffer, struct {
-			AdminUsername             string
-			AdminPassword             *string
-			AdminTenant               string
-			KeystoneAddress           string
-			KeystonePort              *int
-			KeystoneAuthProtocol      string
-			KeystoneUserDomainName    string
-			KeystoneProjectDomainName string
-			KeystoneRegion            string
-			CAFilePath                string
+			KeystoneAuthParameters *KeystoneAuthParameters
+			CAFilePath             string
+			PodIP                  string
 		}{
-			AdminUsername:             configAuth.AdminUsername,
-			AdminPassword:             configAuth.AdminPassword,
-			AdminTenant:               configAuth.AdminTenant,
-			KeystoneAddress:           configAuth.Address,
-			KeystonePort:              configAuth.Port,
-			KeystoneAuthProtocol:      configAuth.AuthProtocol,
-			KeystoneUserDomainName:    configAuth.UserDomainName,
-			KeystoneProjectDomainName: configAuth.ProjectDomainName,
-			KeystoneRegion:            configAuth.Region,
-			CAFilePath:                certificates.SignerCAFilepath,
+			KeystoneAuthParameters: configAuth,
+			CAFilePath:             certificates.SignerCAFilepath,
+			PodIP:                  podIP,
 		})
 		if err != nil {
 			panic(err)
@@ -480,7 +468,8 @@ func (c *Config) InstanceConfiguration(configMapName string,
 	configMapInstanceDynamicConfig.Data["config-nodemanager-runner.sh"] = nmr
 
 	// update with provisioner configs
-	UpdateProvisionerConfigMapData("config-provisioner", apiServerList, configMapInstanceDynamicConfig)
+	UpdateProvisionerConfigMapData("config-provisioner", apiServerList,
+		c.Spec.CommonConfiguration.AuthParameters, configMapInstanceDynamicConfig)
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }

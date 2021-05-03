@@ -179,16 +179,20 @@ func (c *QueryEngine) InstanceConfiguration(configMapName string,
 
 		// TODO: commonize for all services
 		var vncApiBuffer bytes.Buffer
-		err = configtemplates.QueryEngineVncConfig.Execute(&vncApiBuffer, struct {
-			ConfigNodes   string
-			ConfigApiPort string
-			CAFilePath    string
-			AuthMode      AuthenticationMode
+		err = configtemplates.ConfigAPIVNC.Execute(&vncApiBuffer, struct {
+			APIServerList          string
+			APIServerPort          string
+			CAFilePath             string
+			AuthMode               AuthenticationMode
+			KeystoneAuthParameters *KeystoneAuthParameters
+			PodIP                  string
 		}{
-			ConfigNodes:   configApiIPCommaSeparated,
-			ConfigApiPort: strconv.Itoa(configNodesInformation.APIServerPort),
-			CAFilePath:    certificates.SignerCAFilepath,
-			AuthMode:      c.Spec.CommonConfiguration.AuthParameters.AuthMode,
+			APIServerList:          configApiIPCommaSeparated,
+			APIServerPort:          strconv.Itoa(configNodesInformation.APIServerPort),
+			CAFilePath:             certificates.SignerCAFilepath,
+			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
+			KeystoneAuthParameters: c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters,
+			PodIP:                  podIP,
 		})
 		if err != nil {
 			panic(err)

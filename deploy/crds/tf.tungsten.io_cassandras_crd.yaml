@@ -50,12 +50,16 @@ spec:
                           type: string
                         adminPassword:
                           type: string
+                        adminPort:
+                          type: integer
                         adminTenant:
                           type: string
                         adminUsername:
                           type: string
                         authProtocol:
                           type: string
+                        insecure:
+                          type: boolean
                         port:
                           type: integer
                         projectDomainName:
