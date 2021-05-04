@@ -8,7 +8,11 @@ import (
 var WebuiWebConfig = template.Must(template.New("").Funcs(tfFuncs).Parse(`var config = {};
 
 config.orchestration = {};
-config.orchestration.Manager = "{{ .Manager }}";
+{{ if eq .AuthMode "noauth" }}
+config.orchestration.Manager = "none";
+{{ else }}
+config.orchestration.Manager = "openstack";
+{{ end }}
 config.orchestrationModuleEndPointFromConfig = false;
 
 config.contrailEndPointFromConfig = true;
@@ -170,11 +174,13 @@ config.server_options.ciphers = 'ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-
 
 module.exports = config;
 
+{{ if eq .AuthMode "noauth" }}
 config.staticAuth = [];
 config.staticAuth[0] = {};
 config.staticAuth[0].username = '{{ .KeystoneAuthParameters.AdminUsername }}';
 config.staticAuth[0].password = '{{ .KeystoneAuthParameters.AdminPassword }}';
 config.staticAuth[0].roles = ['cloudAdmin'];
+{{ end }}
 `))
 
 // WebuiAuthConfig is the template of the Webui Auth service configuration.
