@@ -128,6 +128,7 @@ auto_bootstrap: true
 var CassandraCqlShrc = template.Must(template.New("").Parse(`
 [ssl]
 certfile = {{ .CAFilePath }}
+version = SSLv23
 `))
 
 // CassandraNodemanagerConfig is a template for nodemgr.{$POD_IP} file
