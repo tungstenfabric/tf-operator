@@ -85,6 +85,7 @@ type ConfigConfiguration struct {
 	Storage                     Storage                 `json:"storage,omitempty"`
 	FabricMgmtIP                string                  `json:"fabricMgmtIP,omitempty"`
 	LinklocalServiceConfig      *LinklocalServiceConfig `json:"linklocalServiceConfig,omitempty"`
+	UseExternalTFTP             *bool                   `json:"useExternalTFTP,omitempty"`
 }
 
 // LinklocalServiceConfig is the Spec for link local coniguration
@@ -349,7 +350,18 @@ func (c *Config) InstanceConfiguration(configMapName string,
 		data["contrail-keystone-auth.conf."+podIP] = configKeystoneAuthConfBuffer.String()
 
 		data["dnsmasq."+podIP] = configtemplates.ConfigDNSMasqConfig
-		data["dnsmasq_base."+podIP] = configtemplates.ConfigDNSMasqBaseConfig
+
+		// UseExternalTFTP
+		var configDNSMasqBuffer bytes.Buffer
+		err = configtemplates.ConfigDNSMasqBaseConfig.Execute(&configDNSMasqBuffer, struct {
+			UseExternalTFTP bool
+		}{
+			UseExternalTFTP: *configConfig.UseExternalTFTP,
+		})
+		if err != nil {
+			panic(err)
+		}
+		data["dnsmasq_base."+podIP] = configDNSMasqBuffer.String()
 
 		var configSchematransformerConfigBuffer bytes.Buffer
 		err = configtemplates.ConfigSchematransformerConfig.Execute(&configSchematransformerConfigBuffer, struct {
@@ -684,6 +696,12 @@ func (c *Config) ConfigurationParameters() ConfigConfiguration {
 			configConfiguration.LinklocalServiceConfig.IPFabricServicePort = &port
 		}
 	}
+
+	useExternalTFTP := false
+	if c.Spec.ServiceConfiguration.UseExternalTFTP != nil {
+		useExternalTFTP = *c.Spec.ServiceConfiguration.UseExternalTFTP
+	}
+	configConfiguration.UseExternalTFTP = &useExternalTFTP
 
 	return configConfiguration
 }
