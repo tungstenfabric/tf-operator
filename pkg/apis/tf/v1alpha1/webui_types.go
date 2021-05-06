@@ -123,8 +123,6 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 
 	authConfig := c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters
 
-	manager := "none"
-
 	configApiIPListCommaSeparatedQuoted := configtemplates.JoinListWithSeparatorAndSingleQuotes(configNodesInformation.APIServerIPList, ",")
 	analyticsIPListCommaSeparatedQuoted := configtemplates.JoinListWithSeparatorAndSingleQuotes(configNodesInformation.AnalyticsServerIPList, ",")
 	controlXMPPIPListCommaSeparatedQuoted := configtemplates.JoinListWithSeparatorAndSingleQuotes(controlNodesInformation.ControlServerIPList, ",")
@@ -145,7 +143,6 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 			DnsNodePort            string
 			CassandraServerList    string
 			CassandraPort          string
-			Manager                string
 			CAFilePath             string
 			LogLevel               string
 			AuthMode               AuthenticationMode
@@ -163,7 +160,6 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 			CassandraPort:          strconv.Itoa(cassandraNodesInformation.CQLPort),
 			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 			KeystoneAuthParameters: authConfig,
-			Manager:                manager,
 			CAFilePath:             certificates.SignerCAFilepath,
 			LogLevel:               c.Spec.CommonConfiguration.LogLevel,
 		})
