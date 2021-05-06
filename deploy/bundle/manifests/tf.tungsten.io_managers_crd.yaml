@@ -180,9 +180,6 @@ spec:
                     all deployers except opneshift it is done by node-init, in openshift
                     - machineconfig)
                   type: boolean
-                useKubeadmConfig:
-                  description: Read cluster parameters from kubeadm config map
-                  type: boolean
               type: object
             services:
               description: Services defines the desired state of Services.
@@ -1923,15 +1920,8 @@ spec:
                                     type: string
                                 type: object
                               type: array
-                            ctlDistPorts:
-                              description: CTLDistPortsConfig is confgiuration for
-                                RabbitMQ ports (previously inet_dist_listen range)
-                              properties:
-                                max:
-                                  type: integer
-                                min:
-                                  type: integer
-                              type: object
+                            erlEpmdPort:
+                              type: integer
                             erlangCookie:
                               type: string
                             mirroredQueueMode:
@@ -2162,6 +2152,9 @@ spec:
                                 type: string
                               clusterRoleBinding:
                                 type: string
+                              cniMTU:
+                                description: CniMTU - mtu for virtual tap devices
+                                type: integer
                               collectorPort:
                                 type: string
                               configApiPort:
