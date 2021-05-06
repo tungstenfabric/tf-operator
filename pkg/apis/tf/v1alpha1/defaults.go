@@ -106,7 +106,7 @@ const (
 	DnsServerPort                               int    = 53
 	DnsIntrospectPort                           int    = 8092
 	RndcKey                                     string = "xvysmOR8lnUQRBcunkC6vg=="
-	UseExternalTftp                             bool   = false
+	UseExternalTFTP                             bool   = false
 	ZookeeperNodes                              string = ""
 	ZookeeperPort                               int    = 2181
 	ZookeeperElectionPort                       int    = 2888

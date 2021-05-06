@@ -752,6 +752,11 @@ func (in *ConfigConfiguration) DeepCopyInto(out *ConfigConfiguration) {
 		*out = new(LinklocalServiceConfig)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.UseExternalTFTP != nil {
+		in, out := &in.UseExternalTFTP, &out.UseExternalTFTP
+		*out = new(bool)
+		**out = **in
+	}
 	return
 }
 
