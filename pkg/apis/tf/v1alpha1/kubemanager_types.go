@@ -222,6 +222,8 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 			CAFilePath               string
 			LogLevel                 string
 			PublicFIPPool            string
+			AuthMode                 AuthenticationMode
+			KeystoneAuthParameters   *KeystoneAuthParameters
 		}{
 			Token:                    token,
 			ListenAddress:            pod.Status.PodIP,
@@ -250,6 +252,8 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 			CAFilePath:               certificates.SignerCAFilepath,
 			LogLevel:                 kubemanagerConfig.LogLevel,
 			PublicFIPPool:            kubemanagerConfig.PublicFIPPool,
+			AuthMode:                 c.Spec.CommonConfiguration.AuthParameters.AuthMode,
+			KeystoneAuthParameters:   c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters,
 		})
 		if err != nil {
 			panic(err)
@@ -263,12 +267,14 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 			CAFilePath             string
 			AuthMode               AuthenticationMode
 			KeystoneAuthParameters *KeystoneAuthParameters
+			PodIP                  string
 		}{
 			APIServerList:          configApiIPListCommaSeparated,
 			APIServerPort:          strconv.Itoa(configNodesInformation.APIServerPort),
 			CAFilePath:             certificates.SignerCAFilepath,
 			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 			KeystoneAuthParameters: c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters,
+			PodIP:                  pod.Status.PodIP,
 		})
 		if err != nil {
 			panic(err)
