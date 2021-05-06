@@ -763,6 +763,36 @@ func (vrouterPod *VrouterPod) RecalculateAgentParameters() (string, string, erro
 	return vrouterPod.ExecToAgentContainer([]string{"/usr/bin/bash", "-c", command})
 }
 
+// ValidateVrouterNIC checks if vrouter pod configured on correct NIC
+func (vrouterPod *VrouterPod) ValidateVrouterNIC() (string, string, error) {
+	// check nic only if vhost0 is up
+	command := `
+source /etc/contrailconfigmaps/params.env.${POD_IP};
+source /actions.sh ;
+source /common.sh ;
+source /agent-functions.sh ;
+wait_vhost0 1 0 || exit 0 ;
+[[ $(get_vrouter_physical_iface) == vhost0 ]] || echo "REQUIRES VHOST RELOAD"
+`
+	return vrouterPod.ExecToAgentContainer([]string{"/usr/bin/bash", "-c", command})
+}
+
+func (vrouterPod *VrouterPod) NeedVhostReload() (bool, error) {
+	stdout, stderr, err := vrouterPod.ValidateVrouterNIC()
+	if err != nil {
+		log.Error(err, "NeedVhostReload failed", "stdout", stdout, "stderr", stderr)
+		return false, err
+	}
+	scanner := bufio.NewScanner(strings.NewReader(stdout))
+	for scanner.Scan() {
+		value := removeQuotes(scanner.Text())
+		if value == "REQUIRES VHOST RELOAD" {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // GetAgentParameters gets parametrs from `/parametrs.sh`
 func (vrouterPod *VrouterPod) GetAgentParameters(hostParams *map[string]string) (string, string, error) {
 	command := []string{"/usr/bin/bash", "-c", "source /actions.sh; get_parameters"}
@@ -910,6 +940,25 @@ func (c *Vrouter) UpdateAgentConfigMapForPod(vrouterPod *VrouterPod,
 	return client.Update(context.Background(), configMap)
 }
 
+// UpdateAgentConfigMapForPod recalculates files `/etc/contrailconfigmaps/config_name.{$pod_ip}` in the agent configMap
+func (c *Vrouter) RemoveAgentConfigMapForPod(vrouterPod *VrouterPod,
+	configMap *corev1.ConfigMap,
+	client client.Client,
+) error {
+
+	podIP := vrouterPod.Pod.Status.PodIP
+	delete(configMap.Data, "contrail-vrouter-agent.conf."+podIP)
+	delete(configMap.Data, "contrail-lbaas.auth.conf."+podIP)
+	delete(configMap.Data, "vnc_api_lib.ini."+podIP)
+	delete(configMap.Data, "vrouter-nodemgr.conf."+podIP)
+	delete(configMap.Data, "vrouter-nodemgr.env."+podIP)
+
+	// remove provisioner configs
+	RemoveProvisionerConfigMapData("vrouter-provisioner", configMap)
+
+	return client.Update(context.Background(), configMap)
+}
+
 // UpdateAgent waits for config updates and reload containers
 func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouterPod *VrouterPod, configMap *corev1.ConfigMap, clnt client.Client) (bool, error) {
 
@@ -950,6 +999,20 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 			log.Info("params.env is not ready", "err", err)
 			// reset status to allow UpdateAgentParams on next iteration as params might be changed since that one more times
 			agentStatus.Status = "Starting"
+			return true, err
+		}
+
+		if needReload, err := vrouterPod.NeedVhostReload(); err != nil || needReload {
+			if needReload {
+				log.Info("Vhost is needed to be reinit, delete pod", "pod", vrouterPod.Pod.Name)
+				if err = c.RemoveAgentConfigMapForPod(vrouterPod, configMap, clnt); err != nil {
+					log.Error(err, "RemoveAgentConfigMapForPod failed")
+					return true, err
+				}
+				if err = clnt.Delete(context.Background(), vrouterPod.Pod); err != nil {
+					log.Error(err, "Remove pod failed", "pod", vrouterPod.Pod.Name)
+				}
+			}
 			return true, err
 		}
 
