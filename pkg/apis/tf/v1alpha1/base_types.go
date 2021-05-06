@@ -1177,6 +1177,11 @@ func UpdateProvisionerConfigMapData(configMapName string, configAPINodes string,
 	configMap.Data[configMapName+".env"] = ProvisionerEnvData(configAPINodes, authParams)
 }
 
+// RemoveProvisionerConfigMapData update provisioner data in config map
+func RemoveProvisionerConfigMapData(configMapName string, configMap *corev1.ConfigMap) {
+	delete(configMap.Data, configMapName+".env")
+}
+
 // GetNodemanagerRunner returns nodemanagaer runner script
 func GetNodemanagerRunner() string {
 	var bufRun bytes.Buffer
