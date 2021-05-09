@@ -450,7 +450,7 @@ func (c *Analytics) SetInstanceActive(client client.Client, activeStatus *bool, 
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *Analytics) PodIPListAndIPMapFromInstance(request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance("analytics", request, reconcileClient)
+	return PodIPListAndIPMapFromInstance("analytics", request, reconcileClient, "")
 }
 
 //PodsCertSubjects gets list of Analytics pods certificate subjets which can be passed to the certificate API
