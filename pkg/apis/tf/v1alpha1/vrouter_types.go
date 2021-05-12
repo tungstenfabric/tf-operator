@@ -95,7 +95,6 @@ type VrouterConfiguration struct {
 	// What is it doing?
 	// VrouterEncryption   bool              `json:"vrouterEncryption,omitempty"`
 	// What is it doing?
-	StatusImage string `json:"statusImage,omitempty"`
 	// What is it doing?
 	EnvVariablesConfig map[string]string `json:"envVariablesConfig,omitempty"`
 	ControlInstance    string            `json:"controlInstance,omitempty"`

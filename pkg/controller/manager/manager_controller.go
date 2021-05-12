@@ -759,6 +759,9 @@ func (r *ReconcileManager) processRabbitMQ(manager *v1alpha1.Manager, replicas i
 }
 
 func (r *ReconcileManager) processVRouters(manager *v1alpha1.Manager, replicas int32) error {
+	if len(manager.Spec.Services.Vrouters) == 0 {
+		return nil
+	}
 	for _, existingVRouter := range manager.Status.Vrouters {
 		found := false
 		for _, intendedVRouter := range manager.Spec.Services.Vrouters {

@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"reflect"
 	"time"
+	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -528,6 +530,50 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 					},
 				)
 			}
+		}
+	}
+
+	statusImage := ""
+	toolsImage := ""
+
+	if ic := utils.GetContainerFromList("nodeinit", instance.Spec.ServiceConfiguration.Containers); ic != nil {
+		statusImage = strings.Replace(ic.Image, "contrail-node-init", "contrail-status", 1)
+		toolsImage = strings.Replace(ic.Image, "contrail-node-init", "contrail-tools", 1)
+	} 
+
+	for idx := range statefulSet.Spec.Template.Spec.InitContainers {
+
+		container := &statefulSet.Spec.Template.Spec.InitContainers[idx]
+		if instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers); instanceContainer != nil {
+			if instanceContainer.Command != nil {
+				container.Command = instanceContainer.Command
+			}
+			container.Image = instanceContainer.Image
+		}
+
+		switch container.Name {
+
+		case "nodeinit":
+			container.Env = append(container.Env,
+				core.EnvVar{
+					Name: "CONTRAIL_STATUS_IMAGE",
+					Value: statusImage,
+				},
+			)
+
+		case "nodeinit-status-prefetch":
+			if container.Command == nil {
+				command := []string{"sh", "-c", "exit 0"}
+				container.Command = command
+			}
+			container.Image = statusImage
+
+		case "nodeinit-tools-prefetch":
+			if container.Command == nil {
+				command := []string{"sh", "-c", "exit 0"}
+				container.Command = command
+			}
+			container.Image = toolsImage
 		}
 	}
 

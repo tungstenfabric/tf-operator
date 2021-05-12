@@ -119,6 +119,8 @@ spec:
             image: contrail-nodemgr
           - name: provisioneranalytics
             image: contrail-provisioner
+          - name: nodeinit
+            image: contrail-node-init
     controls:
     - metadata:
         labels:
