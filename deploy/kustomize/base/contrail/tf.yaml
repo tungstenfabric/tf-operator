@@ -152,6 +152,8 @@ spec:
             image: contrail-controller-config-svcmonitor
           - name: nodemanager
             image: contrail-nodemgr
+          - name: nodeinit
+            image: contrail-node-init
           - name: provisioner
             image: contrail-provisioner
     controls:
@@ -234,31 +236,6 @@ spec:
             image: contrail-external-redis
           - name: stunnel
             image: contrail-external-stunnel
-    vrouters:
-    - metadata:
-        labels:
-          tf_cluster: cluster1
-        name: vrouter1
-      spec:
-        serviceConfiguration:
-          logLevel: SYS_DEBUG
-          controlInstance: control1
-          statusImage: contrail-status
-          containers:
-          - name: nodeinit
-            image: contrail-node-init
-          - name: vrouterkernelinit
-            image: contrail-vrouter-kernel-init
-          - name: vrouterkernelbuildinit
-            image: contrail-vrouter-kernel-build-init
-          - name: provisioner
-            image: contrail-provisioner
-          - name: nodemanager
-            image: contrail-nodemgr
-          - name: vrouteragent
-            image: contrail-vrouter-agent
-          - name: vroutercni
-            image: contrail-kubernetes-cni-init
     webui:
       metadata:
         labels:
