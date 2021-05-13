@@ -498,10 +498,10 @@ func (r *ReconcileAnalyticsAlarm) GetSTS(request reconcile.Request, instance *v1
 }
 
 var kafkaInitKeystoreCommandTemplate = template.Must(template.New("").Parse(
-	"keytool -keystore /opt/kafka_2.11-2.3.1/kafka.server.truststore.jks -keypass {{ .KeystorePassword }} -storepass {{ .TruststorePassword }} -noprompt  -alias CARoot -import -file {{ .CAFilePath }} && " +
+	"keytool -keystore /opt/kafka/kafka.server.truststore.jks -keypass {{ .KeystorePassword }} -storepass {{ .TruststorePassword }} -noprompt  -alias CARoot -import -file {{ .CAFilePath }} && " +
 		"openssl pkcs12 -export -in /etc/certificates/server-${POD_IP}.crt -inkey /etc/certificates/server-key-${POD_IP}.pem -chain -CAfile {{ .CAFilePath }} -password pass:{{ .TruststorePassword }} -name localhost -out TmpFile && " +
-		"keytool -importkeystore -deststorepass {{ .KeystorePassword }} -destkeypass {{ .KeystorePassword }} -destkeystore /opt/kafka_2.11-2.3.1/kafka.server.keystore.jks -srcstorepass {{ .TruststorePassword }} -srckeystore TmpFile -srcstoretype PKCS12 -alias localhost && " +
-		"keytool -keystore /opt/kafka_2.11-2.3.1/kafka.server.keystore.jks -keypass {{ .KeystorePassword }} -storepass {{ .KeystorePassword }} -noprompt -alias CARoot -import -file {{ .CAFilePath }} ; "))
+		"keytool -importkeystore -deststorepass {{ .KeystorePassword }} -destkeypass {{ .KeystorePassword }} -destkeystore /opt/kafka/kafka.server.keystore.jks -srcstorepass {{ .TruststorePassword }} -srckeystore TmpFile -srcstoretype PKCS12 -alias localhost && " +
+		"keytool -keystore /opt/kafka/kafka.server.keystore.jks -keypass {{ .KeystorePassword }} -storepass {{ .KeystorePassword }} -noprompt -alias CARoot -import -file {{ .CAFilePath }} ; "))
 
 type kafkaInitKeystoreCommandData struct {
 	KeystorePassword   string
