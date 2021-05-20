@@ -3,7 +3,7 @@ package templates
 import "text/template"
 
 // CassandraConfig is the template of a full Cassandra configuration.
-var CassandraConfig = template.Must(template.New("").Parse(`cluster_name: {{ .ClusterName }}
+var CassandraConfig = template.Must(template.New("").Parse(`cluster_name: ContrailConfigDB
 num_tokens: 256
 hinted_handoff_enabled: true
 max_hint_window_in_ms: 10800000 # 3 hours

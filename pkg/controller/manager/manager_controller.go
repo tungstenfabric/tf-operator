@@ -600,9 +600,6 @@ func (r *ReconcileManager) processCassandras(manager *v1alpha1.Manager, replicas
 		cassandra.ObjectMeta.Namespace = manager.Namespace
 		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, cassandra, func() error {
 			cassandra.Spec = cassandraService.Spec
-			if cassandra.Spec.ServiceConfiguration.ClusterName == "" {
-				cassandra.Spec.ServiceConfiguration.ClusterName = manager.GetName()
-			}
 			cassandra.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, cassandra.Spec.CommonConfiguration)
 			if cassandra.Spec.CommonConfiguration.Replicas == nil {
 				cassandra.Spec.CommonConfiguration.Replicas = &replicas

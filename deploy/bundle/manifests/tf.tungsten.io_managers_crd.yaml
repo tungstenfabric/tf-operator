@@ -1133,8 +1133,6 @@ spec:
                                   memtableFlushWriters:
                                     type: integer
                                 type: object
-                              clusterName:
-                                type: string
                               configInstance:
                                 type: string
                               containers:
