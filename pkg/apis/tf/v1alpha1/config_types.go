@@ -339,10 +339,12 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			KeystoneAuthParameters *KeystoneAuthParameters
 			CAFilePath             string
 			PodIP                  string
+			AuthMode               AuthenticationMode
 		}{
 			KeystoneAuthParameters: configAuth,
 			CAFilePath:             certificates.SignerCAFilepath,
 			PodIP:                  podIP,
+			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 		})
 		if err != nil {
 			panic(err)
