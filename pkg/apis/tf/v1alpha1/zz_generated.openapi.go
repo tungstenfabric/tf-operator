@@ -987,12 +987,6 @@ func schema_pkg_apis_tf_v1alpha1_CassandraConfiguration(ref common.ReferenceCall
 							},
 						},
 					},
-					"clusterName": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
 					"listenAddress": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
