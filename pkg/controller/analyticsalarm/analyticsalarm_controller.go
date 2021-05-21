@@ -208,10 +208,19 @@ type ReconcileAnalyticsAlarm struct {
 func (r *ReconcileAnalyticsAlarm) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Reconciling AnalyticsAlarm")
-
+	// Check ZIU status
+	f, err := v1alpha1.CanReconcile("AnalyticsAlarm", r.Client)
+	if err != nil {
+		log.Error(err, "When check analytics alarm ziu status")
+		return reconcile.Result{}, err
+	}
+	if !f {
+		log.Info("analytics alarm reconcile blocks by ZIU status")
+		return reconcile.Result{Requeue: true, RequeueAfter: v1alpha1.ZiuRestartTime}, nil
+	}
 	// Get instance
 	instance := &v1alpha1.AnalyticsAlarm{}
-	err := r.Client.Get(context.TODO(), request.NamespacedName, instance)
+	err = r.Client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil

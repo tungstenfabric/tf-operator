@@ -106,6 +106,12 @@ type ManagerConfiguration struct {
 	Distribution *string `json:"distribution,omitempty"`
 }
 
+// ZIU status for orchestrating cluster ZIU process
+// -1 not needed
+// 0 not detected
+// 1..x ziu stages
+type ZIUStatus int32
+
 // ManagerStatus defines the observed state of Manager.
 // +k8s:openapi-gen=true
 type ManagerStatus struct {
@@ -126,6 +132,7 @@ type ManagerStatus struct {
 	Rabbitmq       *ServiceStatus   `json:"rabbitmq,omitempty"`
 	Redis          []*ServiceStatus `json:"redis,omitempty"`
 	CrdStatus      []CrdStatus      `json:"crdStatus,omitempty"`
+	ZiuState       ZIUStatus        `json:"ziuState,omitempty"`
 	// +optional
 	// +patchMergeKey=type
 	// +patchStrategy=merge

@@ -191,12 +191,22 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Start")
 	instanceType := "config"
+	// Check ZIU status
+	f, err := v1alpha1.CanReconcile("Config", r.Client)
+	if err != nil {
+		log.Error(err, "When check config ziu status")
+		return reconcile.Result{}, err
+	}
+	if !f {
+		log.Info("config reconcile blocks by ZIU status")
+		return reconcile.Result{Requeue: true, RequeueAfter: v1alpha1.ZiuRestartTime}, nil
+	}
 	instance := &v1alpha1.Config{}
 	cassandraInstance := &v1alpha1.Cassandra{}
 	zookeeperInstance := &v1alpha1.Zookeeper{}
 	rabbitmqInstance := &v1alpha1.Rabbitmq{}
 
-	if err := r.Client.Get(context.TODO(), request.NamespacedName, instance); err != nil && errors.IsNotFound(err) {
+	if err = r.Client.Get(context.TODO(), request.NamespacedName, instance); err != nil && errors.IsNotFound(err) {
 		reqLogger.Error(err, "Failed to get config obj")
 		return reconcile.Result{}, nil
 	}

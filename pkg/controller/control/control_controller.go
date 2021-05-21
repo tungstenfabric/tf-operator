@@ -181,12 +181,24 @@ func (r *ReconcileControl) Reconcile(request reconcile.Request) (reconcile.Resul
 	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Reconciling Control")
 	instanceType := "control"
+
+	// Check ZIU status
+	f, err := v1alpha1.CanReconcile("Control", r.Client)
+	if err != nil {
+		log.Error(err, "When check control ziu status")
+		return reconcile.Result{}, err
+	}
+	if !f {
+		log.Info("control reconcile blocks by ZIU status")
+		return reconcile.Result{Requeue: true, RequeueAfter: v1alpha1.ZiuRestartTime}, nil
+	}
+
 	instance := &v1alpha1.Control{}
 	cassandraInstance := v1alpha1.Cassandra{}
 	rabbitmqInstance := v1alpha1.Rabbitmq{}
 	configInstance := v1alpha1.Config{}
 
-	err := r.Client.Get(context.TODO(), request.NamespacedName, instance)
+	err = r.Client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil

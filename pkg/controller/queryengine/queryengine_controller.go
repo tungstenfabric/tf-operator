@@ -202,6 +202,18 @@ func (r *ReconcileQueryEngine) Reconcile(request reconcile.Request) (reconcile.R
 	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Start")
 	instanceType := "queryengine"
+
+	// Check ZIU status
+	f, err := v1alpha1.CanReconcile("QueryEngine", r.Client)
+	if err != nil {
+		log.Error(err, "When check queryengine ziu status")
+		return reconcile.Result{}, err
+	}
+	if !f {
+		log.Info("queryengine reconcile blocks by ZIU status")
+		return reconcile.Result{Requeue: true, RequeueAfter: v1alpha1.ZiuRestartTime}, nil
+	}
+
 	instance := &v1alpha1.QueryEngine{}
 	cassandraInstance := &v1alpha1.Cassandra{}
 	zookeeperInstance := &v1alpha1.Zookeeper{}

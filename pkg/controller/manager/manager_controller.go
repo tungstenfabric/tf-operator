@@ -2,15 +2,21 @@ package manager
 
 import (
 	"context"
+	"fmt"
+	"reflect"
+	"strings"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -20,10 +26,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	"github.com/fatih/structs"
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
-	"github.com/tungstenfabric/tf-operator/pkg/k8s"
 )
 
 var log = logf.Log.WithName("controller_manager")
@@ -58,29 +64,15 @@ func Add(mgr manager.Manager) error {
 	if err := apiextensionsv1beta1.AddToScheme(scheme.Scheme); err != nil {
 		return err
 	}
-	var r reconcile.Reconciler
-	reconcileManager := ReconcileManager{client: mgr.GetClient(),
-		scheme:     mgr.GetScheme(),
-		manager:    mgr,
-		cache:      mgr.GetCache(),
-		kubernetes: k8s.New(mgr.GetClient(), mgr.GetScheme()),
+	reconcileManager := &ReconcileManager{client: mgr.GetClient(),
+		scheme:  mgr.GetScheme(),
+		manager: mgr,
 	}
-	r = &reconcileManager
-	//r := newReconciler(mgr)
-	c, err := createController(mgr, r)
+	c, err := controller.New("manager-controller", mgr, controller.Options{Reconciler: reconcileManager})
 	if err != nil {
 		return err
 	}
-	reconcileManager.controller = c
 	return addManagerWatch(c, mgr)
-}
-
-func createController(mgr manager.Manager, r reconcile.Reconciler) (controller.Controller, error) {
-	c, err := controller.New("manager-controller", mgr, controller.Options{Reconciler: r})
-	if err != nil {
-		return c, err
-	}
-	return c, nil
 }
 
 func addResourcesToWatch(c controller.Controller, obj runtime.Object) error {
@@ -110,18 +102,402 @@ var _ reconcile.Reconciler = &ReconcileManager{}
 type ReconcileManager struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver.
-	client     client.Client
-	scheme     *runtime.Scheme
-	manager    manager.Manager
-	controller controller.Controller
-	cache      cache.Cache
-	kubernetes *k8s.Kubernetes
+	client  client.Client
+	scheme  *runtime.Scheme
+	manager manager.Manager
+}
+
+// Get kubemanager STS. If kubemanager STS not found looks like tf start first time - return false
+// Get kubemanager image tag from current setup (from kubemanager STS created)
+// Get kubemanager image tag from current manager manifest
+// If they are the same return false
+// otherwise return true - tags are differ and we start ZIU procedure
+func IsZiuRequired(clnt client.Client) (bool, error) {
+	stsList := &appsv1.StatefulSetList{}
+
+	// Check if required STS exists in the cluster
+	err := clnt.List(context.Background(), stsList, client.InNamespace("tf"))
+	if err != nil {
+		return false, fmt.Errorf("Can't list stses %v", err)
+	}
+	stsFound := false
+	for _, item := range stsList.Items {
+		if item.Name == "kubemanager1-kubemanager-statefulset" {
+			stsFound = true
+		}
+	}
+	if !stsFound {
+		// Looks like setup installed the first time
+		return false, nil
+	}
+
+	// Get kubemanager container tag from sts
+	kubemanagerSts := &appsv1.StatefulSet{}
+	kubemanagerName := types.NamespacedName{Name: "kubemanager1-kubemanager-statefulset", Namespace: "tf"}
+	err = clnt.Get(context.Background(), kubemanagerName, kubemanagerSts)
+	if err != nil {
+		return false, fmt.Errorf("Can't get kubemanager sts %v", err)
+	}
+	ss := strings.Split(kubemanagerSts.Spec.Template.Spec.Containers[0].Image, ":")
+	kmStsTag := ss[len(ss)-1]
+	// Get kubemanager container tag from manager manifest
+	manager := &v1alpha1.Manager{}
+	managerName := types.NamespacedName{Name: "cluster1", Namespace: "tf"}
+	err = clnt.Get(context.Background(), managerName, manager)
+	if err != nil {
+		return false, fmt.Errorf("Can't get manager manifest %v", err)
+	}
+	ss = strings.Split(manager.Spec.Services.Kubemanagers[0].Spec.ServiceConfiguration.Containers[0].Image, ":")
+	kmManagerTag := ss[len(ss)-1]
+	if kmManagerTag == kmStsTag {
+		return false, nil
+	}
+	return true, nil
+}
+
+// Got unstructured Services and Kind
+// Iterate over Services map and find its key
+// return service Name
+func getServiceNameByKind(kind string, servicesStrict map[string]interface{}) string {
+	serviceName := ""
+	for name := range servicesStrict {
+		if strings.EqualFold(name, kind) || strings.EqualFold(name, kind+"s") {
+			serviceName = name
+			break
+		}
+	}
+	return serviceName
+}
+
+type srvInstanceFn func(
+	kind string,
+	srvName string,
+	isSlice bool,
+	clnt client.Client,
+	params map[string]interface{}) (map[string]interface{}, error)
+
+// Get instances of the kind from manager spec and call runFn function for each service
+// Pass params if any to each call and  collect results in returned slice
+func iterateOverKindInstances(kind string,
+	runFn srvInstanceFn,
+	clnt client.Client,
+	params map[string]interface{}) ([]map[string]interface{}, error) {
+
+	mngr := &v1alpha1.Manager{}
+	mngrName := types.NamespacedName{Name: "cluster1", Namespace: "tf"}
+	if err := clnt.Get(context.Background(), mngrName, mngr); err != nil {
+		return nil, err
+	}
+	var service reflect.Value
+	var _tried_services string
+	for serviceName := range structs.Map(mngr.Spec.Services) {
+		if strings.EqualFold(serviceName, kind) || strings.EqualFold(serviceName, kind+"s") {
+			_srvs := reflect.Indirect(reflect.ValueOf(&mngr.Spec.Services))
+			service = _srvs.FieldByName(serviceName)
+			break
+		}
+		_tried_services = _tried_services + serviceName + " "
+	}
+	if !service.IsValid() {
+		return nil, fmt.Errorf("Failed to find %s in services: %+v", kind, _tried_services)
+	}
+
+	var res []map[string]interface{}
+	var subRes map[string]interface{}
+	var err error
+	if reflect.TypeOf(service.Interface()).Kind() == reflect.Slice {
+		for i := 0; i < service.Len(); i++ {
+			serviceInstanceName := structs.Map(service.Index(i).Interface())["ObjectMeta"].(map[string]interface{})["Name"].(string)
+			if subRes, err = runFn(kind, serviceInstanceName, true, clnt, params); err != nil {
+				return nil, err
+			}
+			res = append(res, subRes)
+		}
+	} else {
+		serviceInstanceName := structs.Map(service.Interface())["ObjectMeta"].(map[string]interface{})["Name"].(string)
+		if subRes, err = runFn(kind, serviceInstanceName, false, clnt, params); err != nil {
+			return nil, err
+		}
+		res = append(res, subRes)
+	}
+	return res, nil
+}
+
+// Get Kind based on ZIU Stage
+// Get manager unstructured spec for kind
+// For each instance of the service check if Instance is updated
+func isServiceUpdated(ziuStage int, clnt client.Client) (bool, error) {
+	kind := v1alpha1.ZiuKinds[ziuStage]
+	// Get manager as unstructured
+	u := &unstructured.Unstructured{}
+	u.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "tf.tungsten.io",
+		Kind:    "Manager",
+		Version: "v1alpha1",
+	})
+	err := clnt.Get(context.Background(), client.ObjectKey{
+		Namespace: "tf",
+		Name:      "cluster1",
+	}, u)
+	if err != nil {
+		return false, err
+	}
+	params := map[string]interface{}{
+		"Manager": u.UnstructuredContent(),
+	}
+	resArr, err := iterateOverKindInstances(kind, isServiceInstanceUpdated, clnt, params)
+	if err != nil {
+		return false, err
+	}
+	if len(resArr) == 0 {
+		return false, fmt.Errorf("iterateOverKindInstances needs to return non empty result")
+	}
+	var res bool = true
+	for _, val := range resArr {
+		res = res && val["Updated"].(bool)
+	}
+	return res, nil
+}
+
+// As params we got "Manager" spec as Unstructured
+// And return boolean under "Updated" key in the map
+//
+// Find in the cluster STS related to the instance on service in manager spec
+// Get name from the first container from manager service spec
+// Find a container with the same name in STS template
+// check if container image from manager manifest is the same with the image from deployed sts
+// check if STS Updated Replicas is the same with Replicas
+// if it is return true, otherwise, return false
+func isServiceInstanceUpdated(kind string, serviceName string, isSlice bool, clnt client.Client, params map[string]interface{}) (map[string]interface{}, error) {
+	// TODO Remove if it works without reflect
+	// updatedFalse := map[string]interface{}{"Updated": reflect.ValueOf(false).Interface()}
+	// updatedTrue := map[string]interface{}{"Updated": reflect.ValueOf(true).Interface()}
+	updatedFalse := map[string]interface{}{"Updated": false}
+	updatedTrue := map[string]interface{}{"Updated": true}
+
+	// Got STS related to service instance
+	stsName := serviceName + "-" + strings.ToLower(kind) + "-statefulset"
+	sts := &appsv1.StatefulSet{}
+	var err error
+	if err = clnt.Get(context.Background(), types.NamespacedName{Name: stsName, Namespace: "tf"}, sts); err != nil {
+		if errors.IsNotFound(err) {
+			// We have to wait when sts will bw set up
+			return updatedFalse, nil
+		}
+		return updatedFalse, err
+	}
+
+	// Find service instance spec in the manager spec
+	var u_service map[string]interface{}
+	services := params["Manager"].(map[string]interface{})["spec"].(map[string]interface{})["services"].(map[string]interface{})
+	serviceNameByKind := getServiceNameByKind(kind, services)
+	if isSlice {
+		// Iterate over services of this kind and find service with proper name
+		for _, servData := range services[serviceNameByKind].([]interface{}) {
+			_srv := servData.(map[string]interface{})
+			if _srv["metadata"].(map[string]interface{})["name"].(string) == serviceName {
+				u_service = _srv
+				break
+			}
+		}
+	} else {
+		u_service = services[serviceNameByKind].(map[string]interface{})
+	}
+	if len(u_service) == 0 {
+		return updatedFalse, fmt.Errorf("Failed to find service %s/%s by %s in object %+v", kind, serviceName, serviceNameByKind, services)
+	}
+
+	// Get name and image from the first container from manager service spec
+	managerContainer := u_service["spec"].(map[string]interface{})["serviceConfiguration"].(map[string]interface{})["containers"].([]interface{})[0].(map[string]interface{})
+	managerContainerName := managerContainer["name"].(string)
+	managerContainerImage := managerContainer["image"].(string)
+
+	// Find a container with the same name in STS template
+	for _, container := range sts.Spec.Template.Spec.Containers {
+		// check if container image from manager manifest is the same with the image from deployed sts
+		if container.Name == managerContainerName && container.Image != managerContainerImage {
+			return updatedFalse, nil
+		}
+	}
+	// check if STS Updated Replicas is the same with Replicas
+	if sts.Status.Replicas != sts.Status.UpdatedReplicas {
+		return updatedFalse, nil
+	}
+	// Get service pods
+	var pods *corev1.PodList
+	if pods, err = v1alpha1.SelectPods(serviceName, strings.ToLower(kind), "tf", clnt); err != nil {
+		return updatedFalse, err
+	}
+	// We have to see all pods required
+	if int(sts.Status.Replicas) != len(pods.Items) {
+		return updatedFalse, nil
+	}
+	podRes := true
+	for _, podItem := range pods.Items {
+		// We have to check contaier tag for all pods is the same with manager
+		podRes = podRes && checkPodTag(managerContainerName, managerContainerImage, &podItem)
+		// We have to see all pods are Running
+		podRes = podRes && (podItem.Status.Phase == corev1.PodPhase("Running"))
+
+		if !podRes {
+			return updatedFalse, nil
+		}
+	}
+	// All looks updated
+	return updatedTrue, nil
+}
+
+func checkPodTag(managerContainerName string, managerContainerImage string, podItem *corev1.Pod) bool {
+	resContainer := false
+	for _, container := range podItem.Spec.Containers {
+		if (managerContainerName == container.Name) && (managerContainerImage == container.Image) {
+			resContainer = true
+			break
+		}
+	}
+	return resContainer
+}
+
+// Extract by name and kind part of Manager manifest (resource spec) as unstructured
+func getUnstructuredSpec(kind string, name string, isSlice bool, clnt client.Client) (map[string]interface{}, error) {
+	// Getmanager as unstructured
+	u := &unstructured.Unstructured{}
+	u.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "tf.tungsten.io",
+		Kind:    "Manager",
+		Version: "v1alpha1",
+	})
+	err := clnt.Get(context.Background(), client.ObjectKey{
+		Namespace: "tf",
+		Name:      "cluster1",
+	}, u)
+	if err != nil {
+		return u.UnstructuredContent(), err
+	}
+	services := u.UnstructuredContent()["spec"].(map[string]interface{})["services"].(map[string]interface{})
+	// find right service: it's key in lowercase have to starts with kind
+	var service map[string]interface{}
+	serviceName := getServiceNameByKind(kind, services)
+	if isSlice {
+		for _, serv := range services[serviceName].([]interface{}) {
+			if serv.(map[string]interface{})["metadata"].(map[string]interface{})["name"].(string) == name {
+				service = serv.(map[string]interface{})["spec"].(map[string]interface{})
+			}
+		}
+	} else {
+		service = services[serviceName].(map[string]interface{})["spec"].(map[string]interface{})
+	}
+	if len(service) == 0 {
+		return nil, fmt.Errorf("We can't find resource %v/%v by name %s in manager spec %+v", kind, name, serviceName, services)
+	}
+	return service, nil
+}
+
+func updateResource(kind string, serviceName string, isSlice bool, clnt client.Client) error {
+	u_manager := &unstructured.Unstructured{}
+	u_manager.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "tf.tungsten.io",
+		Kind:    "Manager",
+		Version: "v1alpha1",
+	})
+	err := clnt.Get(context.Background(), client.ObjectKey{
+		Namespace: "tf",
+		Name:      "cluster1",
+	}, u_manager)
+	if err != nil {
+		return err
+	}
+	managerCommonConf := u_manager.UnstructuredContent()["spec"].(map[string]interface{})["commonConfiguration"].(map[string]interface{})
+
+	res := &unstructured.Unstructured{}
+	res.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "tf.tungsten.io",
+		Kind:    kind,
+		Version: "v1alpha1",
+	})
+	err = clnt.Get(context.Background(), client.ObjectKey{
+		Namespace: "tf",
+		Name:      serviceName,
+	}, res)
+	if err != nil {
+		return err
+	}
+	res_spec, err := getUnstructuredSpec(kind, serviceName, isSlice, clnt)
+	if err != nil {
+		return err
+	}
+	res.Object["spec"] = res_spec
+	mergedCommonConf := utils.MergeUnstructuredCommonConfig(managerCommonConf, res_spec["commonConfiguration"].(map[string]interface{}))
+	res.Object["spec"].(map[string]interface{})["commonConfiguration"] = mergedCommonConf
+	err = clnt.Update(context.Background(), res)
+	return err
+}
+
+func updateZiuResource(kind string, serviceName string, isSlice bool, clnt client.Client, params map[string]interface{}) (map[string]interface{}, error) {
+	fake := make(map[string]interface{})
+	// Check if resource is absend on cluster - create it, increate ZIU Stage and return
+	res := &unstructured.Unstructured{}
+	res.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "tf.tungsten.io",
+		Kind:    kind,
+		Version: "v1alpha1",
+	})
+	if err := clnt.Get(context.Background(), client.ObjectKey{
+		Namespace: "tf",
+		Name:      serviceName,
+	}, res); err != nil {
+		return fake, err
+	}
+
+	// We have resource in the cluster
+	if _, err := v1alpha1.QuerySTS(res.GetName()+"-"+strings.ToLower(kind)+"-statefulset", res.GetNamespace(), clnt); err != nil {
+		return fake, err
+	}
+	return nil, updateResource(kind, serviceName, isSlice, clnt)
+}
+
+func updateZiuStage(ziuStage v1alpha1.ZIUStatus, clnt client.Client) error {
+	if _, err := iterateOverKindInstances(v1alpha1.ZiuKinds[ziuStage], updateZiuResource, clnt, nil); err != nil {
+		return err
+	}
+	return v1alpha1.SetZiuStage(int(ziuStage)+1, clnt)
+
+}
+
+func ReconcileZiu(clnt client.Client) (reconcile.Result, error) {
+	ziuStage, err := v1alpha1.GetZiuStage(clnt)
+	if err != nil || ziuStage < 0 {
+		return reconcile.Result{}, err
+	}
+
+	restartTime, _ := time.ParseDuration("15s")
+	requeueResult := reconcile.Result{Requeue: true, RequeueAfter: restartTime}
+
+	if ziuStage > 0 {
+		// We have to wait previous stage updated and ready
+		if isUpdated, err := isServiceUpdated(int(ziuStage)-1, clnt); err != nil || !isUpdated {
+			return requeueResult, err
+		}
+	}
+
+	if len(v1alpha1.ZiuKinds) == int(ziuStage) {
+		// ZIU have been finished - set stage to -1
+		return requeueResult, v1alpha1.SetZiuStage(-1, clnt)
+	}
+
+	return requeueResult, updateZiuStage(v1alpha1.ZIUStatus(ziuStage), clnt)
 }
 
 // Reconcile reconciles the manager.
 func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Reconciling Manager")
+
+	// Process ZIU if needed
+	if res, err := ReconcileZiu(r.client); err != nil || res.Requeue {
+		return res, err
+	}
+
 	instance := &v1alpha1.Manager{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {

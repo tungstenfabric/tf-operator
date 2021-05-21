@@ -61,8 +61,8 @@ func ClusterDNSDomain(client client.Client) (string, error) {
 
 // TODO: rework, as cluster info is a kind of info be available overall components
 // get Manager CommonConfig data from cluster
-func getManager(client client.Client) (Manager, error) {
-	var mngr Manager
+func getManager(client client.Client) (*Manager, error) {
+	var mngr *Manager
 	// Get manager manifest
 	ul := &unstructured.UnstructuredList{}
 	ul.SetGroupVersionKind(schema.GroupVersionKind{
@@ -164,6 +164,7 @@ func (c *KubernetesClusterConfig) fillWithDefaultValues() {
 }
 
 func (c *KubernetesClusterConfig) fillWithKubeadmConfigMap() error {
+
 	kubeadmConfigMap, err := getConfigMapFromOtherNamespace("kubeadm-config", "kube-system")
 	if err != nil {
 		// Which config map is used for containing parameters depends on method of deployment.

@@ -199,9 +199,20 @@ func (r *ReconcileAnalyticsSnmp) Reconcile(request reconcile.Request) (reconcile
 	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Reconciling AnalyticsSnmp")
 
+	// Check ZIU status
+	f, err := v1alpha1.CanReconcile("AnalyticsSnmp", r.Client)
+	if err != nil {
+		log.Error(err, "When check analytics snmp ziu status")
+		return reconcile.Result{}, err
+	}
+	if !f {
+		log.Info("analytics snmp reconcile blocks by ZIU status")
+		return reconcile.Result{Requeue: true, RequeueAfter: v1alpha1.ZiuRestartTime}, nil
+	}
+
 	// Get instance
 	instance := &v1alpha1.AnalyticsSnmp{}
-	err := r.Client.Get(context.TODO(), request.NamespacedName, instance)
+	err = r.Client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil
