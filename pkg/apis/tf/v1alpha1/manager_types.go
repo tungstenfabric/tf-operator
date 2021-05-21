@@ -25,53 +25,19 @@ type ManagerSpec struct {
 // Services defines the desired state of Services.
 // +k8s:openapi-gen=true
 type Services struct {
-	AnalyticsSnmp  *AnalyticsSnmp        `json:"analyticsSnmp,omitempty"`
-	AnalyticsAlarm *AnalyticsAlarm       `json:"analyticsAlarm,omitempty"`
-	Analytics      *Analytics            `json:"analytics,omitempty"`
-	Config         *Config               `json:"config,omitempty"`
-	Controls       []*Control            `json:"controls,omitempty"`
-	Kubemanagers   []*KubemanagerService `json:"kubemanagers,omitempty"`
-	QueryEngine    *QueryEngine          `json:"queryengine,omitempty"`
-	Webui          *Webui                `json:"webui,omitempty"`
-	Vrouters       []*VrouterService     `json:"vrouters,omitempty"`
-	Cassandras     []*Cassandra          `json:"cassandras,omitempty"`
-	Zookeepers     []*Zookeeper          `json:"zookeepers,omitempty"`
-	Rabbitmq       *Rabbitmq             `json:"rabbitmq,omitempty"`
-	Redis          []*Redis              `json:"redis,omitempty"`
-}
-
-// VrouterService defines desired confgiuration of vRouter
-// +k8s:openapi-gen=true
-type VrouterService struct {
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              VrouterServiceSpec `json:"spec,omitempty"`
-}
-
-// VrouterServiceSpec defines desired spec confgiuration of vRouter
-// +k8s:openapi-gen=true
-type VrouterServiceSpec struct {
-	CommonConfiguration  PodConfiguration                   `json:"commonConfiguration,omitempty"`
-	ServiceConfiguration VrouterManagerServiceConfiguration `json:"serviceConfiguration"`
-}
-
-// VrouterManagerServiceConfiguration defines service confgiuration for vRouter
-// +k8s:openapi-gen=true
-type VrouterManagerServiceConfiguration struct {
-	VrouterConfiguration `json:",inline"`
-}
-
-// KubemanagerService defines desired configuration of vRouter
-// +k8s:openapi-gen=true
-type KubemanagerService struct {
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              KubemanagerServiceSpec `json:"spec,omitempty"`
-}
-
-// KubemanagerServiceSpec defines desired spec configuration of vRouter
-// +k8s:openapi-gen=true
-type KubemanagerServiceSpec struct {
-	CommonConfiguration  PodConfiguration                `json:"commonConfiguration,omitempty"`
-	ServiceConfiguration KubemanagerServiceConfiguration `json:"serviceConfiguration"`
+	AnalyticsSnmp  *AnalyticsSnmp  `json:"analyticsSnmp,omitempty"`
+	AnalyticsAlarm *AnalyticsAlarm `json:"analyticsAlarm,omitempty"`
+	Analytics      *Analytics      `json:"analytics,omitempty"`
+	Config         *Config         `json:"config,omitempty"`
+	Controls       []*Control      `json:"controls,omitempty"`
+	Kubemanager    *Kubemanager    `json:"kubemanager,omitempty"`
+	QueryEngine    *QueryEngine    `json:"queryengine,omitempty"`
+	Webui          *Webui          `json:"webui,omitempty"`
+	Vrouters       []*Vrouter      `json:"vrouters,omitempty"`
+	Cassandras     []*Cassandra    `json:"cassandras,omitempty"`
+	Zookeeper      *Zookeeper      `json:"zookeeper,omitempty"`
+	Rabbitmq       *Rabbitmq       `json:"rabbitmq,omitempty"`
+	Redis          []*Redis        `json:"redis,omitempty"`
 }
 
 // ManagerConfiguration is the common services struct.
@@ -123,12 +89,12 @@ type ManagerStatus struct {
 	Analytics      *ServiceStatus   `json:"analytics,omitempty"`
 	Config         *ServiceStatus   `json:"config,omitempty"`
 	Controls       []*ServiceStatus `json:"controls,omitempty"`
-	Kubemanagers   []*ServiceStatus `json:"kubemanagers,omitempty"`
+	Kubemanager    *ServiceStatus   `json:"kubemanager,omitempty"`
 	QueryEngine    *ServiceStatus   `json:"queryengine,omitempty"`
 	Webui          *ServiceStatus   `json:"webui,omitempty"`
 	Vrouters       []*ServiceStatus `json:"vrouters,omitempty"`
 	Cassandras     []*ServiceStatus `json:"cassandras,omitempty"`
-	Zookeepers     []*ServiceStatus `json:"zookeepers,omitempty"`
+	Zookeeper      *ServiceStatus   `json:"zookeeper,omitempty"`
 	Rabbitmq       *ServiceStatus   `json:"rabbitmq,omitempty"`
 	Redis          []*ServiceStatus `json:"redis,omitempty"`
 	CrdStatus      []CrdStatus      `json:"crdStatus,omitempty"`
@@ -241,13 +207,6 @@ func (m Manager) IsClusterReady() bool {
 			}
 		}
 	}
-	for _, zookeeperService := range m.Spec.Services.Zookeepers {
-		for _, zookeeperStatus := range m.Status.Zookeepers {
-			if zookeeperService.Name == *zookeeperStatus.Name && !zookeeperStatus.ready() {
-				return false
-			}
-		}
-	}
 	for _, controlService := range m.Spec.Services.Controls {
 		for _, controlStatus := range m.Status.Controls {
 			if controlService.Name == *controlStatus.Name && !controlStatus.ready() {
@@ -264,19 +223,20 @@ func (m Manager) IsClusterReady() bool {
 		}
 	}
 
-	for _, kubemanagerService := range m.Spec.Services.Kubemanagers {
-		for _, kubemanagerStatus := range m.Status.Kubemanagers {
-			if kubemanagerService.Name == *kubemanagerStatus.Name && !kubemanagerStatus.ready() {
-				return false
-			}
-		}
-	}
 	for _, redisService := range m.Spec.Services.Redis {
 		for _, redisStatus := range m.Status.Redis {
 			if redisService.Name == *redisStatus.Name && !redisStatus.ready() {
 				return false
 			}
 		}
+	}
+
+	if m.Spec.Services.Zookeeper != nil && !m.Status.Zookeeper.ready() {
+		return false
+	}
+
+	if m.Spec.Services.Kubemanager != nil && !m.Status.Kubemanager.ready() {
+		return false
 	}
 
 	if m.Spec.Services.Webui != nil && !m.Status.Webui.ready() {

@@ -271,6 +271,7 @@ func (r *ReconcileControl) Reconcile(request reconcile.Request) (reconcile.Resul
 		},
 	}
 
+	utils.CleanupContainers(&statefulSet.Spec.Template.Spec, instance.Spec.ServiceConfiguration.Containers)
 	for idx := range statefulSet.Spec.Template.Spec.Containers {
 
 		container := &statefulSet.Spec.Template.Spec.Containers[idx]

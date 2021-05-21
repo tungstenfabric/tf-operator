@@ -28,14 +28,14 @@ import (
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// ZookeeperSpec is the Spec for the zookeepers API.
+// ZookeeperSpec is the Spec for the zookeeper API.
 // +k8s:openapi-gen=true
 type ZookeeperSpec struct {
 	CommonConfiguration  PodConfiguration       `json:"commonConfiguration,omitempty"`
 	ServiceConfiguration ZookeeperConfiguration `json:"serviceConfiguration"`
 }
 
-// ZookeeperConfiguration is the Spec for the zookeepers API.
+// ZookeeperConfiguration is the Spec for the zookeeper API.
 // +k8s:openapi-gen=true
 type ZookeeperConfiguration struct {
 	Containers        []*Container `json:"containers,omitempty"`
@@ -61,7 +61,7 @@ type ZookeeperStatusPorts struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// Zookeeper is the Schema for the zookeepers API.
+// Zookeeper is the Schema for the zookeeper API.
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
 type Zookeeper struct {

@@ -206,6 +206,7 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 
 	instance.AddSecretVolumesToIntendedSTS(statefulSet, map[string]string{secretCertificates.Name: request.Name + "-secret-certificates"})
 
+	utils.CleanupContainers(&statefulSet.Spec.Template.Spec, instance.Spec.ServiceConfiguration.Containers)
 	for idx := range statefulSet.Spec.Template.Spec.Containers {
 
 		container := &statefulSet.Spec.Template.Spec.Containers[idx]

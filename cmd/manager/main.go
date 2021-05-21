@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"math/rand"
-	"os"
 	"runtime"
 	"time"
 
@@ -36,17 +35,14 @@ func printVersion() {
 }
 
 func runOperator(sigHandler <-chan struct{}) error {
+
+	// Get a config to talk to the apiserver.
+	cfg := config.GetConfigOrDie()
+
 	namespace, err := k8sutil.GetWatchNamespace()
 	if err != nil {
 		log.Error(err, "Failed to get watch namespace")
-		os.Exit(1)
-	}
-
-	// Get a config to talk to the apiserver.
-	cfg, err := config.GetConfig()
-	if err != nil {
-		log.Error(err, "")
-		os.Exit(1)
+		return err
 	}
 
 	// Create a new Cmd to provide shared dependencies and start components.
@@ -58,8 +54,8 @@ func runOperator(sigHandler <-chan struct{}) error {
 		LeaderElectionNamespace: namespace,
 	})
 	if err != nil {
-		log.Error(err, "")
-		os.Exit(1)
+		log.Error(err, "Failed create Manager instance")
+		return err
 	}
 
 	log.Info("Registering Components.")
@@ -67,25 +63,25 @@ func runOperator(sigHandler <-chan struct{}) error {
 	// Setup Scheme for all resources.
 	if err = apis.AddToScheme(mgr.GetScheme()); err != nil {
 		log.Error(err, "")
-		os.Exit(1)
+		return err
 	}
 
 	// Check is ZIU Required?
-	clnt, err := client.New(config.GetConfigOrDie(), client.Options{})
+	clnt, err := client.New(cfg, client.Options{})
 	if err != nil {
 		log.Error(err, "Failed to create client")
-		os.Exit(1)
+		return err
 	}
 
 	f, err := mgrController.IsZiuRequired(clnt)
 	if err != nil {
 		log.Error(err, "try to check if ziu required")
-		os.Exit(1)
+		return err
 	}
 	if f {
 		// We start ZIU process
 		log.Info("Start ZIU process")
-		err = v1alpha1.SetZiuStage(0, clnt)
+		err = v1alpha1.InitZiu(clnt)
 	} else {
 		// We not needed ZIU
 		log.Info("ZIU not needed")
@@ -93,18 +89,18 @@ func runOperator(sigHandler <-chan struct{}) error {
 	}
 	if err != nil {
 		log.Error(err, "Failed to Set ZIU Stage")
-		os.Exit(1)
+		return err
 	}
 
 	// Setup all Controllers.
 	if err := controller.AddToManager(mgr); err != nil {
 		log.Error(err, "")
-		os.Exit(1)
+		return err
 	}
 
 	if err := kubemanager.Add(mgr); err != nil {
 		log.Error(err, "")
-		os.Exit(1)
+		return err
 	}
 
 	log.Info("Starting")

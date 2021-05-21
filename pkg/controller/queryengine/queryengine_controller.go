@@ -287,6 +287,8 @@ func (r *ReconcileQueryEngine) Reconcile(request reconcile.Request) (reconcile.R
 			}},
 		},
 	}
+
+	utils.CleanupContainers(&statefulSet.Spec.Template.Spec, instance.Spec.ServiceConfiguration.Containers)
 	for idx := range statefulSet.Spec.Template.Spec.Containers {
 
 		container := &statefulSet.Spec.Template.Spec.Containers[idx]

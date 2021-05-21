@@ -14,7 +14,7 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
-      description: Zookeeper is the Schema for the zookeepers API.
+      description: Zookeeper is the Schema for the zookeeper API.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -29,7 +29,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: ZookeeperSpec is the Spec for the zookeepers API.
+          description: ZookeeperSpec is the Spec for the zookeeper API.
           properties:
             commonConfiguration:
               description: PodConfiguration is the common services struct.
@@ -146,7 +146,7 @@ spec:
                   type: boolean
               type: object
             serviceConfiguration:
-              description: ZookeeperConfiguration is the Spec for the zookeepers API.
+              description: ZookeeperConfiguration is the Spec for the zookeeper API.
               properties:
                 adminEnabled:
                   type: boolean

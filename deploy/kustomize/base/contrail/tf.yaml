@@ -154,8 +154,8 @@ spec:
             image: contrail-nodemgr
           - name: provisioner
             image: contrail-provisioner
-    kubemanagers:
-    - metadata:
+    kubemanager:
+      metadata:
         labels:
           tf_cluster: cluster1
         name: kubemanager1
@@ -221,8 +221,8 @@ spec:
             image: contrail-controller-webui-job
           - name: webuiweb
             image: contrail-controller-webui-web
-    zookeepers:
-    - metadata:
+    zookeeper:
+      metadata:
         labels:
           tf_cluster: cluster1
         name: zookeeper1

@@ -273,6 +273,7 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 
 	instance.AddSecretVolumesToIntendedSTS(statefulSet, map[string]string{secretCertificates.Name: request.Name + "-secret-certificates"})
 
+	utils.CleanupContainers(&statefulSet.Spec.Template.Spec, instance.Spec.ServiceConfiguration.Containers)
 	for idx, container := range statefulSet.Spec.Template.Spec.Containers {
 		if container.Name == "webuiweb" {
 			command := []string{"bash", "-c", instance.CommonStartupScript(

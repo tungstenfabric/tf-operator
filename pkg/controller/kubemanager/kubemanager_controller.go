@@ -274,6 +274,8 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 			}},
 		},
 	}
+
+	utils.CleanupContainers(&statefulSet.Spec.Template.Spec, instance.Spec.ServiceConfiguration.Containers)
 	for idx := range statefulSet.Spec.Template.Spec.Containers {
 		container := &statefulSet.Spec.Template.Spec.Containers[idx]
 		instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
