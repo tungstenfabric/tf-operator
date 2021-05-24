@@ -362,3 +362,42 @@ func TestRabbitmqConfigMapsWithAllValues(t *testing.T) {
 	assert.Equal(t, "rabbit@1.1.1.1", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.1").String())
 	assert.Equal(t, "rabbit@2.2.2.2", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.2").String())
 }
+
+func TestRabbitmqUpdateSecret(t *testing.T) {
+	scheme, err := SchemeBuilder.Build()
+	require.NoError(t, err, "Failed to build scheme")
+	require.NoError(t, corev1.SchemeBuilder.AddToScheme(scheme), "Failed to add CoreV1 into scheme")
+
+	instance := Rabbitmq{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-rabbitmq",
+			Namespace: "test-ns",
+		},
+		Spec: RabbitmqSpec{
+			ServiceConfiguration: RabbitmqConfiguration{
+				User:     "test_user",
+				Password: "test_password",
+				Vhost:    "vhost0",
+			},
+		},
+	}
+
+	secret := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-secret",
+			Namespace: "test-ns",
+		},
+		Data: map[string][]byte{
+			"user":            []byte("test_user"),
+			"password":        []byte("test_password"),
+			"vhost":           []byte("vhost0"),
+			"salted_password": []byte("1234test_password"),
+		},
+	}
+
+	cl := fake.NewFakeClientWithScheme(scheme, &instance, &secret)
+
+	updated, err := instance.UpdateSecret(&secret, cl)
+	require.NoError(t, err)
+	assert.Equal(t, false, updated)
+}
