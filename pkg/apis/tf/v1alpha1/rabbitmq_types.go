@@ -303,11 +303,6 @@ func (c *Rabbitmq) AddSecretVolumesToIntendedSTS(sts *appsv1.StatefulSet, volume
 	AddSecretVolumesToIntendedSTS(sts, volumeConfigMapMap)
 }
 
-// SetPodsToReady sets Rabbitmq PODs to ready.
-func (c *Rabbitmq) SetPodsToReady(podIPList []corev1.Pod, client client.Client) error {
-	return SetPodsToReady(podIPList, client)
-}
-
 // CreateSTS creates the STS.
 func (c *Rabbitmq) CreateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
 	return CreateSTS(sts, instanceType, request, reconcileClient)
