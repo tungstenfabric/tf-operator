@@ -349,11 +349,6 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 			return reconcile.Result{}, err
 		}
 
-		if err = instance.SetPodsToReady(podIPList, r.Client); err != nil {
-			reqLogger.Error(err, "SetPodsToReady failed")
-			return reconcile.Result{}, err
-		}
-
 		if updated, err := instance.ManageNodeStatus(podIPMap, r.Client); err != nil || updated {
 			if err != nil && !v1alpha1.IsOKForRequeque(err) {
 				reqLogger.Error(err, "Failed to manage node status")

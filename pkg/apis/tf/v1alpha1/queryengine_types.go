@@ -279,10 +279,6 @@ func (c *QueryEngine) PodsCertSubjects(domain string, podList []corev1.Pod) []ce
 	return PodsCertSubjects(domain, podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
 }
 
-func (c *QueryEngine) SetPodsToReady(podIPList []corev1.Pod, client client.Client) error {
-	return SetPodsToReady(podIPList, client)
-}
-
 // ManageNodeStatus updates nodes in status
 func (c *QueryEngine) ManageNodeStatus(podNameIPMap map[string]string,
 	client client.Client) (updated bool, err error) {

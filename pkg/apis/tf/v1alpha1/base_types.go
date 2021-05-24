@@ -318,19 +318,6 @@ func EnsureServiceAccount(spec *corev1.PodSpec,
 	return nil
 }
 
-// SetPodsToReady sets the status label of a POD to ready.
-func SetPodsToReady(podList []corev1.Pod, client client.Client) error {
-	for _, pod := range podList {
-		labels := pod.GetLabels()
-		labels["status"] = "ready"
-		pod.SetLabels(labels)
-		if err := client.Update(context.TODO(), &pod); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // +k8s:deepcopy-gen=false
 type podAltIPsRetriver func(pod corev1.Pod) []string
 

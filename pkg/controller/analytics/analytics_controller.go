@@ -379,11 +379,6 @@ func (r *ReconcileAnalytics) Reconcile(request reconcile.Request) (reconcile.Res
 			return reconcile.Result{}, err
 		}
 
-		if err = instance.SetPodsToReady(podIPList, r.Client); err != nil {
-			reqLogger.Error(err, "Failed to set pods to ready")
-			return reconcile.Result{}, err
-		}
-
 		if updated, err := instance.ManageNodeStatus(podIPMap, r.Client); err != nil || updated {
 			if err != nil && !v1alpha1.IsOKForRequeque(err) {
 				reqLogger.Error(err, "Failed to manage node status")

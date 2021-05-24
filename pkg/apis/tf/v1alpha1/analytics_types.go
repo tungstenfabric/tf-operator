@@ -461,11 +461,6 @@ func (c *Analytics) PodsCertSubjects(domain string, podList []corev1.Pod) []cert
 	return PodsCertSubjects(domain, podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
 }
 
-// SetPodsToReady set pods ready
-func (c *Analytics) SetPodsToReady(podIPList []corev1.Pod, client client.Client) error {
-	return SetPodsToReady(podIPList, client)
-}
-
 // ManageNodeStatus updates nodes in status
 func (c *Analytics) ManageNodeStatus(podNameIPMap map[string]string,
 	client client.Client) (updated bool, err error) {

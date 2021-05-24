@@ -336,11 +336,6 @@ func (c *Kubemanager) AddSecretVolumesToIntendedSTS(sts *appsv1.StatefulSet, vol
 	AddSecretVolumesToIntendedSTS(sts, volumeConfigMapMap)
 }
 
-// SetPodsToReady sets Kubemanager PODs to ready.
-func (c *Kubemanager) SetPodsToReady(podIPList []corev1.Pod, client client.Client) error {
-	return SetPodsToReady(podIPList, client)
-}
-
 // CreateSTS creates the STS.
 func (c *Kubemanager) CreateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
 	return CreateSTS(sts, instanceType, request, reconcileClient)

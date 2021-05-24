@@ -161,11 +161,6 @@ func (c *Redis) AddSecretVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeCon
 	AddSecretVolumesToIntendedSTS(sts, volumeConfigMapMap)
 }
 
-// SetPodsToReady sets Redis PODs to ready.
-func (c *Redis) SetPodsToReady(podIPList []corev1.Pod, client client.Client) error {
-	return SetPodsToReady(podIPList, client)
-}
-
 // CreateSTS creates the STS.
 func (c *Redis) CreateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
 	return CreateSTS(sts, instanceType, request, reconcileClient)
