@@ -1136,7 +1136,7 @@ func (c *Vrouter) IsActiveOnControllers(clnt client.Client) (bool, error) {
 		return false, err
 	}
 	for _, node := range controllerNodes.Items {
-		if s := c.LookupAgentStatus(node.Name); s != nil && s.Status != "Ready" {
+		if s := c.LookupAgentStatus(node.Name); s == nil || s.Status != "Ready" {
 			return false, nil
 		}
 	}
