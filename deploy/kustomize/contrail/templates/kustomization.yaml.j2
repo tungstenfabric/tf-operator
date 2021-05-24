@@ -15,15 +15,10 @@ patchesStrategicMerge:
   - linklocal.yaml
   - tftp.yaml
   - db.yaml
+  - vrouter.yaml
 
 # set contrail-status image
 patchesJson6902:
-  - target:
-      kind: Manager
-      name: cluster1
-      group: tf.tungsten.io
-      version: v1alpha1
-    path: vrouter.json
   - target:
       kind: Manager
       name: cluster1

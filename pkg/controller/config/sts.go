@@ -119,6 +119,33 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.annotations['hostname']
+      initContainers:
+        - name: nodeinit
+          image: tungstenfabric/contrail-node-init:latest
+          securityContext:
+            privileged: true
+          env:
+            - name: VENDOR_DOMAIN
+              value: io.tungsten
+            - name: NODE_TYPE
+              value: config
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                   fieldPath: status.podIP
+            - name: INTROSPECT_SSL_ENABLE
+              value: True
+          volumeMounts:
+            - mountPath: /host/usr/bin
+              name: host-usr-bin
+            - mountPath: /var/run
+              name: var-run
+            - mountPath: /dev
+              name: dev
+        - name: nodeinit-status-prefetch
+          image: tungstenfabric/contrail-status:latest
+        - name: nodeinit-tools-prefetch
+          image: tungstenfabric/contrail-tools:latest
       volumes:
         - hostPath:
             path: /var/lib/tftp
@@ -140,6 +167,10 @@ spec:
             path: /usr/bin
             type: ""
           name: host-usr-bin
+        - hostPath:
+            path: /dev
+            type: ""
+          name: dev
         - downwardAPI:
             defaultMode: 420
             items:

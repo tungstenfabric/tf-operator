@@ -1,0 +1,44 @@
+{%- if CONTRAIL_CONTAINER_TAG is not defined or CONTRAIL_CONTAINER_TAG == "" -%}
+{%- set CONTRAIL_CONTAINER_TAG = "latest" -%}
+{%- endif %}
+{%- if CONTAINER_REGISTRY is not defined or CONTAINER_REGISTRY == "" -%}
+{%- set CONTAINER_REGISTRY = "tungstenfabric" -%}
+{%- endif -%}
+{%- if CNI is not defined or CNI == "" -%}
+---
+apiVersion: tf.tungsten.io/v1alpha1
+kind: Manager
+metadata:
+  name: cluster1
+  namespace: tf
+spec:
+  services:
+    vrouters:
+    - metadata:
+        labels:
+          tf_cluster: cluster1
+        name: vrouter1
+      spec:
+        serviceConfiguration:
+          logLevel: SYS_DEBUG
+          controlInstance: control1
+{%- if CNI_MTU is defined and CNI_MTU != "" %}
+          cniMTU: {{ CNI_MTU }}
+{%- endif %}
+          containers:
+          - name: nodeinit
+            image: contrail-node-init
+          - name: vrouterkernelinit
+            image: contrail-vrouter-kernel-init
+          - name: vrouterkernelbuildinit
+            image: contrail-vrouter-kernel-build-init
+          - name: provisioner
+            image: contrail-provisioner
+          - name: nodemanager
+            image: contrail-nodemgr
+          - name: vrouteragent
+            image: contrail-vrouter-agent
+          - name: vroutercni
+            image: contrail-kubernetes-cni-init
+{%- endif -%}
+

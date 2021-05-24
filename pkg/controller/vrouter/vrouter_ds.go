@@ -1,8 +1,6 @@
 package vrouter
 
 import (
-	"strings"
-
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	apps "k8s.io/api/apps/v1"
@@ -12,7 +10,7 @@ import (
 )
 
 //GetDaemonset returns DaemonSet object for vRouter
-func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, statusImage, cloudOrchestrator string) *apps.DaemonSet {
+func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestrator string) *apps.DaemonSet {
 	var labelsMountPermission int32 = 0644
 	var trueVal = true
 
@@ -123,73 +121,67 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, statusImage, 
 		},
 	}
 
-	if statusImage != "" {
-		envListNodeInit := append(envList,
-			corev1.EnvVar{
-				Name:  "SERVER_CA_CERTFILE",
-				Value: certificates.SignerCAFilepath,
-			},
-			corev1.EnvVar{
-				Name:  "SERVER_CERTFILE",
-				Value: "/etc/certificates/server-${POD_IP}.crt",
-			},
-			corev1.EnvVar{
-				Name:  "SERVER_KEYFILE",
-				Value: "/etc/certificates/server-key-${POD_IP}.pem",
-			},
-			core.EnvVar{
-				Name:  "CONTRAIL_STATUS_IMAGE",
-				Value: statusImage,
-			},
-		)
-		podInitContainerMounts := []core.VolumeMount{
-			{
-				Name:      "host-usr-bin",
-				MountPath: "/host/usr/bin",
-			},
-			{
-				Name:      "var-run",
-				MountPath: "/var/run",
-			},
-			{
-				Name:      "dev",
-				MountPath: "/dev",
-			},
-		}
-		if c.Spec.CommonConfiguration.TuneSysctl != nil && *c.Spec.CommonConfiguration.TuneSysctl {
-			podInitContainerMounts = append(podInitContainerMounts,
-				core.VolumeMount{
-					Name:      "host-sysctl",
-					MountPath: "/etc/sysctl.d",
-				})
-		}
-		toolsImage := strings.Replace(statusImage, "contrail-status", "contrail-tools", 1)
-		podInitContainers = append(podInitContainers,
-			core.Container{
-				Name:         "nodeinit",
-				Image:        "tungstenfabric/contrail-node-init:latest",
-				Env:          envListNodeInit,
-				VolumeMounts: podInitContainerMounts,
-				SecurityContext: &core.SecurityContext{
-					Privileged: &trueVal,
-				},
-			},
-			// for password protected it is needed to prefetch contrail-status image as it
-			// is not available w/o image secret
-			core.Container{
-				Name:    "nodeinit-status-prefetch",
-				Image:   statusImage,
-				Command: []string{"sh", "-c", "exit 0"},
-			},
-			// for password protected it is needed to prefetch contrail-tools image as it
-			// is not available w/o image secret
-			core.Container{
-				Name:    "nodeinit-tools-prefetch",
-				Image:   toolsImage,
-				Command: []string{"sh", "-c", "exit 0"},
-			},
-		)
+	envListNodeInit := append(envList,
+		corev1.EnvVar{
+			Name:  "SERVER_CA_CERTFILE",
+			Value: certificates.SignerCAFilepath,
+	},
+		corev1.EnvVar{
+			Name:  "SERVER_CERTFILE",
+			Value: "/etc/certificates/server-${POD_IP}.crt",
+		},
+		corev1.EnvVar{
+			Name:  "SERVER_KEYFILE",
+			Value: "/etc/certificates/server-key-${POD_IP}.pem",
+		},
+	)
+	podInitContainerMounts := []core.VolumeMount{
+		{
+			Name:      "host-usr-bin",
+			MountPath: "/host/usr/bin",
+		},
+		{
+			Name:      "var-run",
+			MountPath: "/var/run",
+		},
+		{
+			Name:      "dev",
+			MountPath: "/dev",
+		},
 	}
+	if c.Spec.CommonConfiguration.TuneSysctl != nil && *c.Spec.CommonConfiguration.TuneSysctl {
+		podInitContainerMounts = append(podInitContainerMounts,
+			core.VolumeMount{
+				Name:      "host-sysctl",
+				MountPath: "/etc/sysctl.d",
+			})
+	}
+	podInitContainers = append(podInitContainers,
+		core.Container{
+			Name:         "nodeinit",
+			Image:        "tungstenfabric/contrail-node-init:latest",
+			Env:          envListNodeInit,
+			VolumeMounts: podInitContainerMounts,
+			SecurityContext: &core.SecurityContext{
+				Privileged: &trueVal,
+			},
+		},
+		// for password protected it is needed to prefetch contrail-status image as it
+		// is not available w/o image secret
+		core.Container{
+			Name:    "nodeinit-status-prefetch",
+			Image:	 "tungstenfabric/contrail-status:latest",
+			Command: []string{"sh", "-c", "exit 0"},
+		},
+		// for password protected it is needed to prefetch contrail-tools image as it
+		// is not available w/o image secret
+		core.Container{
+			Name:    "nodeinit-tools-prefetch",
+			Image:	  "tungstenfabric/contrail-tools:latest",
+			Command: []string{"sh", "-c", "exit 0"},
+		},
+	)
+
 
 	var podContainers = []core.Container{
 		{
