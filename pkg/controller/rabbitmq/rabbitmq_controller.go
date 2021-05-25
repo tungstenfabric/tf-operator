@@ -8,7 +8,6 @@ import (
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 
 	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
-	"github.com/tungstenfabric/tf-operator/pkg/randomstring"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -261,45 +260,12 @@ func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Resu
 	v1alpha1.AddCommonVolumes(&statefulSet.Spec.Template.Spec)
 	v1alpha1.DefaultSecurityContext(&statefulSet.Spec.Template.Spec)
 
-	var password string
-	var user string
-	var vhost string
-	if instance.Spec.ServiceConfiguration.Password != "" {
-		password = instance.Spec.ServiceConfiguration.Password
-	} else {
-		password = randomstring.RandString{Size: 32}.Generate()
-	}
-
-	if instance.Spec.ServiceConfiguration.User != "" {
-		user = instance.Spec.ServiceConfiguration.User
-	} else {
-		user = randomstring.RandString{Size: 8}.Generate()
-	}
-	if instance.Spec.ServiceConfiguration.Vhost != "" {
-		vhost = instance.Spec.ServiceConfiguration.Vhost
-	} else {
-		vhost = randomstring.RandString{Size: 6}.Generate()
-	}
-
-	secretPassword := []byte(password)
-	secretUser := []byte(user)
-	secretVhost := []byte(vhost)
-	if secret.Data == nil {
-		secret.Data = make(map[string][]byte)
-	}
-	if _, ok := secret.Data["password"]; !ok {
-		secret.Data["password"] = secretPassword
-	}
-	if _, ok := secret.Data["user"]; !ok {
-		secret.Data["user"] = secretUser
-	}
-	if _, ok := secret.Data["vhost"]; !ok {
-		secret.Data["vhost"] = secretVhost
-	}
-
-	if err = r.Client.Update(context.Background(), secret); err != nil {
-		reqLogger.Error(err, "Failed to update secret.")
-		return reconcile.Result{}, err
+	if _, err := instance.UpdateSecret(secret, r.Client); err != nil {
+		if !v1alpha1.IsOKForRequeque(err) {
+			reqLogger.Error(err, "Failed to update the secret.")
+			return reconcile.Result{}, err
+		}
+		return requeueReconcile, nil
 	}
 
 	if created, err := instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil || created {
