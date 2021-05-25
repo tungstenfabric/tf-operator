@@ -17,6 +17,7 @@ import (
 
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
+	"github.com/tungstenfabric/tf-operator/pkg/randomstring"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -169,19 +170,7 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 		return err
 	}
 
-	salt := [4]byte{}
-	_, err = rand.Read(salt[:])
-	if err != nil {
-		return err
-	}
-
-	saltedP := append(salt[:], secret.Data["password"]...)
-	hash := sha256.New()
-	if _, err := hash.Write(saltedP); err != nil {
-		return err
-	}
-	hashPass := hash.Sum(nil)
-	saltedP = append(salt[:], hashPass...)
+	saltedP := secret.Data["salted_password"]
 
 	var rabbitmqDefinitionBuffer bytes.Buffer
 	err = configtemplates.RabbitmqDefinition.Execute(&rabbitmqDefinitionBuffer, struct {
@@ -234,6 +223,59 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 	}
 
 	return nil
+}
+
+func setRandomField(data map[string][]byte, field string, value string, size int) map[string][]byte {
+	if value == "" {
+		if _, ok := data[field]; !ok {
+			data[field] = []byte(randomstring.RandString{Size: size}.Generate())
+		}
+	} else {
+		data[field] = []byte(value)
+	}
+	return data
+}
+
+// UpdateSecret
+func (c *Rabbitmq) UpdateSecret(secret *corev1.Secret, client client.Client) (updated bool, err error) {
+	updated, err = false, nil
+
+	if secret.Data == nil {
+		secret.Data = make(map[string][]byte)
+	}
+	oldData := make(map[string][]byte)
+	for k, v := range secret.Data {
+		oldData[k] = v
+	}
+
+	setRandomField(secret.Data, "user", c.Spec.ServiceConfiguration.User, 8)
+	setRandomField(secret.Data, "password", c.Spec.ServiceConfiguration.Password, 32)
+	setRandomField(secret.Data, "vhost", c.Spec.ServiceConfiguration.Vhost, 6)
+
+	if old, ok := oldData["password"]; !ok || string(old) != string(secret.Data["password"]) {
+		salt := [4]byte{}
+		if _, err = rand.Read(salt[:]); err != nil {
+			return
+		}
+		saltedP := append(salt[:], secret.Data["password"]...)
+		hash := sha256.New()
+		if _, err = hash.Write(saltedP); err != nil {
+			return
+		}
+		hashPass := hash.Sum(nil)
+		saltedP = append(salt[:], hashPass...)
+		secret.Data["salted_password"] = saltedP
+	}
+
+	if reflect.DeepEqual(oldData, secret.Data) {
+		return
+	}
+
+	if err = client.Update(context.TODO(), secret); err != nil {
+		return
+	}
+	updated = true
+	return
 }
 
 func (c *Rabbitmq) CreateConfigMap(configMapName string,
