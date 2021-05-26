@@ -49,7 +49,6 @@ type CassandraSpec struct {
 type CassandraConfiguration struct {
 	Containers          []*Container              `json:"containers,omitempty"`
 	ConfigInstance      string                    `json:"configInstance,omitempty"`
-	ClusterName         string                    `json:"clusterName,omitempty"`
 	ListenAddress       string                    `json:"listenAddress,omitempty"`
 	Port                *int                      `json:"port,omitempty"`
 	CqlPort             *int                      `json:"cqlPort,omitempty"`
@@ -144,7 +143,6 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 
 		var cassandraConfigBuffer bytes.Buffer
 		err = configtemplates.CassandraConfig.Execute(&cassandraConfigBuffer, struct {
-			ClusterName         string
 			Seeds               string
 			StoragePort         string
 			SslStoragePort      string
@@ -160,7 +158,6 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 			TruststorePassword  string
 			Parameters          CassandraConfigParameters
 		}{
-			ClusterName:         cassandraConfig.ClusterName,
 			Seeds:               seedsListString,
 			StoragePort:         strconv.Itoa(*cassandraConfig.StoragePort),
 			SslStoragePort:      strconv.Itoa(*cassandraConfig.SslStoragePort),
@@ -465,9 +462,6 @@ func (c *Cassandra) ConfigurationParameters() *CassandraConfiguration {
 		sslStoragePort = CassandraSslStoragePort
 	}
 	cassandraConfiguration.SslStoragePort = &sslStoragePort
-	if cassandraConfiguration.ClusterName == "" {
-		cassandraConfiguration.ClusterName = "ContrailConfigDB"
-	}
 	if cassandraConfiguration.ListenAddress == "" {
 		cassandraConfiguration.ListenAddress = "auto"
 	}
