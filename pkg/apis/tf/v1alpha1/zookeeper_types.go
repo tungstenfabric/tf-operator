@@ -215,8 +215,8 @@ func (c *Zookeeper) CreateSTS(sts *appsv1.StatefulSet, instanceType string, requ
 }
 
 // UpdateSTS updates the STS.
-func (c *Zookeeper) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
-	return UpdateSTS(sts, instanceType, request, reconcileClient, "rolling")
+func (c *Zookeeper) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, reconcileClient client.Client) (bool, error) {
+	return UpdateServiceSTS(c, instanceType, sts, false, reconcileClient)
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
