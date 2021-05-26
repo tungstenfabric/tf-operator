@@ -497,11 +497,6 @@ func (c *Vrouter) CreateCNIConfigMap(client client.Client, scheme *runtime.Schem
 	return configMap, client.Update(context.TODO(), configMap)
 }
 
-// SetPodsToReady sets Kubemanager PODs to ready.
-func (c *Vrouter) SetPodsToReady(podIPList []corev1.Pod, client client.Client) error {
-	return SetPodsToReady(podIPList, client)
-}
-
 // ManageNodeStatus updates nodes map
 func (c *Vrouter) ManageNodeStatus(podNameIPMap map[string]string,
 	client client.Client) (updated bool, err error) {

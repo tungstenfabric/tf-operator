@@ -284,11 +284,6 @@ func (r *ReconcileAnalyticsSnmp) Reconcile(request reconcile.Request) (reconcile
 			reqLogger.Error(err, "InstanceConfiguration failed")
 			return reconcile.Result{}, err
 		}
-
-		if err = v1alpha1.SetPodsToReady(podIPList, r.Client); err != nil {
-			reqLogger.Error(err, "Failed to set pods to ready")
-			return reconcile.Result{}, err
-		}
 	}
 
 	falseVal := false

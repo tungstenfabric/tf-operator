@@ -353,9 +353,6 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	if err := r.ensureCertificatesExist(instance, podList, clusterIP, instanceType); err != nil {
 		return reconcile.Result{}, err
 	}
-	if err = instance.SetPodsToReady(podList, r.Client); err != nil {
-		return reconcile.Result{}, err
-	}
 
 	minPods := 1
 	if instance.Spec.CommonConfiguration.Replicas != nil {

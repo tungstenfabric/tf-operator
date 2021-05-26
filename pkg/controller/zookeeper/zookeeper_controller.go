@@ -293,10 +293,6 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 			reqLogger.Error(err, "Failed to ensure certificates exist.")
 			return reconcile.Result{}, err
 		}
-		if err = instance.SetPodsToReady(podIPList, r.Client); err != nil {
-			reqLogger.Error(err, "Failed to set pods to ready.")
-			return reconcile.Result{}, err
-		}
 		if requeueNeeded, err := instance.ManageNodeStatus(podIPList, r.Client); err != nil || requeueNeeded {
 			if err != nil {
 				reqLogger.Error(err, "Failed to manage node status.")
