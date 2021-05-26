@@ -327,11 +327,6 @@ func SetDSCommonConfiguration(ds *appsv1.DaemonSet,
 	if len(commonConfiguration.NodeSelector) > 0 {
 		ds.Spec.Template.Spec.NodeSelector = commonConfiguration.NodeSelector
 	}
-	if commonConfiguration.HostNetwork != nil {
-		ds.Spec.Template.Spec.HostNetwork = *commonConfiguration.HostNetwork
-	} else {
-		ds.Spec.Template.Spec.HostNetwork = false
-	}
 	if len(commonConfiguration.ImagePullSecrets) > 0 {
 		imagePullSecretList := []corev1.LocalObjectReference{}
 		for _, imagePullSecretName := range commonConfiguration.ImagePullSecrets {
@@ -468,7 +463,7 @@ func (c *Vrouter) PodIPListAndIPMapFromInstance(instanceType string, request rec
 //PodsCertSubjects gets list of Vrouter pods certificate subjets which can be passed to the certificate API
 func (c *Vrouter) PodsCertSubjects(domain string, podList []corev1.Pod) []certificates.CertificateSubject {
 	var altIPs PodAlternativeIPs
-	return PodsCertSubjects(domain, podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
+	return PodsCertSubjects(domain, podList, altIPs)
 }
 
 // CreateEnvConfigMap creates vRouter configMaps with rendered values

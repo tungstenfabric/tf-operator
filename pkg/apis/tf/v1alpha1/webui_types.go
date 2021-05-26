@@ -260,7 +260,7 @@ func (c *Webui) PodIPListAndIPMapFromInstance(instanceType string, request recon
 //PodsCertSubjects gets list of Config pods certificate subjets which can be passed to the certificate API
 func (c *Webui) PodsCertSubjects(domain string, podList []corev1.Pod) []certificates.CertificateSubject {
 	var altIPs PodAlternativeIPs
-	return PodsCertSubjects(domain, podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
+	return PodsCertSubjects(domain, podList, altIPs)
 }
 
 // SetInstanceActive sets the Webui instance to active.

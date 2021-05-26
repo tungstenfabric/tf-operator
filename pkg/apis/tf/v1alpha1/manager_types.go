@@ -82,12 +82,6 @@ type ManagerConfiguration struct {
 	// More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/.
 	// +optional
 	NodeSelector map[string]string `json:"nodeSelector,omitempty" protobuf:"bytes,7,rep,name=nodeSelector"`
-	// Host networking requested for this pod. Use the host's network namespace.
-	// If this option is set, the ports that will be used must be specified.
-	// Default to false.
-	// +k8s:conversion-gen=false
-	// +optional
-	HostNetwork *bool `json:"hostNetwork,omitempty" protobuf:"varint,11,opt,name=hostNetwork"`
 	// ImagePullSecrets is an optional list of references to secrets in the same namespace to use for pulling any of the images used by this PodSpec.
 	ImagePullSecrets []string `json:"imagePullSecrets,omitempty"`
 	// If specified, the pod's tolerations.

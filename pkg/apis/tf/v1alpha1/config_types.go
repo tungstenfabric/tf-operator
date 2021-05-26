@@ -559,7 +559,7 @@ func (c *Config) PodIPListAndIPMapFromInstance(request reconcile.Request, reconc
 //PodsCertSubjects gets list of Config pods certificate subjets which can be passed to the certificate API
 func (c *Config) PodsCertSubjects(domain string, podList []corev1.Pod) []certificates.CertificateSubject {
 	var altIPs PodAlternativeIPs
-	return PodsCertSubjects(domain, podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
+	return PodsCertSubjects(domain, podList, altIPs)
 }
 
 // SetPodsToReady set pods ready
