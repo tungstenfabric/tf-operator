@@ -501,7 +501,7 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 		return requeueReconcile, nil
 	}
 
-	if updated, err := instance.UpdateSTS(statefulSet, instanceType, request, r.Client); err != nil || updated {
+	if updated, err := instance.UpdateSTS(statefulSet, instanceType, r.Client); err != nil || updated {
 		if err != nil && !v1alpha1.IsOKForRequeque(err) {
 			reqLogger.Error(err, "Failed to update the stateful set.")
 			return reconcile.Result{}, err
@@ -559,7 +559,7 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 
 	if *instance.Status.ConfigChanged {
 		reqLogger.Info("Update StatefulSet: ConfigChanged")
-		if err := r.Client.Update(context.TODO(), statefulSet); err != nil && !v1alpha1.IsOKForRequeque(err) {
+		if _, err := v1alpha1.UpdateServiceSTS(instance, instanceType, statefulSet, true, r.Client); err != nil && !v1alpha1.IsOKForRequeque(err) {
 			reqLogger.Error(err, "Update StatefulSet failed")
 			return reconcile.Result{}, err
 		}

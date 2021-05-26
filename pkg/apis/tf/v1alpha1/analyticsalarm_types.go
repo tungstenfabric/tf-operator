@@ -387,8 +387,8 @@ func (c *AnalyticsAlarm) CreateSTS(sts *appsv1.StatefulSet, instanceType string,
 }
 
 // UpdateSTS updates the STS.
-func (c *AnalyticsAlarm) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
-	return UpdateSTS(sts, instanceType, request, reconcileClient, "rolling")
+func (c *AnalyticsAlarm) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, client client.Client) (bool, error) {
+	return UpdateServiceSTS(c, instanceType, sts, false, client)
 }
 
 //PodsCertSubjects gets list of Vrouter pods certificate subjets which can be passed to the certificate API

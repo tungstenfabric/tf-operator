@@ -340,7 +340,7 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	}
 
 	// Update StatefulSet if replicas or images changed
-	if updated, err := instance.UpdateSTS(statefulSet, instanceType, request, r.Client); err != nil || updated {
+	if updated, err := instance.UpdateSTS(statefulSet, instanceType, r.Client); err != nil || updated {
 		if err != nil && !v1alpha1.IsOKForRequeque(err) {
 			reqLogger.Error(err, "Failed to update the stateful set.")
 			return reconcile.Result{}, err
