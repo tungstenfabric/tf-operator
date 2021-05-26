@@ -27,6 +27,15 @@ func NewSubject(name, domain, hostname, ip string, alternativeIPs []string) Cert
 	return CertificateSubject{name: name, domain: domain, hostname: hostname, ip: ip, alternativeIPs: alternativeIPs}
 }
 
+func contains(list []string, val string) bool {
+	for _, v := range list {
+		if val == v {
+			return true
+		}
+	}
+	return false
+}
+
 func (c CertificateSubject) generateCertificateTemplate(client client.Client) (x509.Certificate, *rsa.PrivateKey, error) {
 	certPrivKey, err := rsa.GenerateKey(rand.Reader, certKeyLength)
 
@@ -42,12 +51,6 @@ func (c CertificateSubject) generateCertificateTemplate(client client.Client) (x
 		return x509.Certificate{}, nil, fmt.Errorf("fail to generate serial number: %w", err)
 	}
 
-	var ips []net.IP
-	ips = append(ips, net.ParseIP(c.ip))
-	for _, ip := range c.alternativeIPs {
-		ips = append(ips, net.ParseIP(ip))
-	}
-
 	fullName := c.hostname
 	if !strings.HasSuffix(c.hostname, c.domain) {
 		fullName = fullName + "." + c.domain
@@ -60,6 +63,25 @@ func (c CertificateSubject) generateCertificateTemplate(client client.Client) (x
 		}
 		pn = pn + i
 		altDNSNames = append(altDNSNames, pn)
+	}
+
+	var ips []net.IP
+	ips = append(ips, net.ParseIP(c.ip))
+	for _, ip := range c.alternativeIPs {
+		ips = append(ips, net.ParseIP(ip))
+	}
+
+	for _, ip := range append(c.alternativeIPs, c.ip) {
+		hostNames, err := net.LookupAddr(string(ip))
+		if err != nil {
+			continue
+		}
+		for _, h := range hostNames {
+			_h := strings.Trim(h, ".")
+			if !contains(altDNSNames, _h) {
+				altDNSNames = append(altDNSNames, _h)
+			}
+		}
 	}
 
 	certificateTemplate := x509.Certificate{
