@@ -77,6 +77,14 @@ export TF_ROOT_CA_KEY_BASE64=<base64 of root ca key>
 ./tf-operator/contrib/render_manifests.sh
 ```
 
+## Prepare for deploy on Ubuntu
+```bash
+# prepare for deploy on Ubuntu
+export DISTRIBUTION=ubuntu
+# ... other options
+./tf-operator/contrib/render_manifests.sh
+```
+
 ## Deploy TF cluster with operator
 ```bash
 kubectl apply -f ./tf-operator/deploy/crds/

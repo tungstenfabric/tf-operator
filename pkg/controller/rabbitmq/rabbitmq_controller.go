@@ -257,7 +257,7 @@ func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Resu
 		}
 	}
 
-	v1alpha1.AddCommonVolumes(&statefulSet.Spec.Template.Spec)
+	v1alpha1.AddCommonVolumes(&statefulSet.Spec.Template.Spec, instance.Spec.CommonConfiguration)
 	v1alpha1.DefaultSecurityContext(&statefulSet.Spec.Template.Spec)
 
 	if _, err := instance.UpdateSecret(secret, r.Client); err != nil {

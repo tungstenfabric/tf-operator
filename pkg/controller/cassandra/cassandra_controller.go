@@ -327,7 +327,7 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		},
 	}
 
-	v1alpha1.AddCommonVolumes(&statefulSet.Spec.Template.Spec)
+	v1alpha1.AddCommonVolumes(&statefulSet.Spec.Template.Spec, instance.Spec.CommonConfiguration)
 	v1alpha1.DefaultSecurityContext(&statefulSet.Spec.Template.Spec)
 
 	// Create statefulset if it doesn't exist
