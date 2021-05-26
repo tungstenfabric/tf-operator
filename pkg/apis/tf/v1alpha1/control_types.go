@@ -471,7 +471,7 @@ func retrieveDataIPs(pod corev1.Pod) []string {
 //PodsCertSubjects gets list of Control pods certificate subjects which can be passed to the certificate API
 func (c *Control) PodsCertSubjects(domain string, podList []corev1.Pod) []certificates.CertificateSubject {
 	altIPs := PodAlternativeIPs{Retriever: retrieveDataIPs}
-	return PodsCertSubjects(domain, podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
+	return PodsCertSubjects(domain, podList, altIPs)
 }
 
 // SetInstanceActive sets instance to active.

@@ -67,12 +67,6 @@ type PodConfiguration struct {
 	// More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/.
 	// +optional
 	NodeSelector map[string]string `json:"nodeSelector,omitempty" protobuf:"bytes,7,rep,name=nodeSelector"`
-	// Host networking requested for this pod. Use the host's network namespace.
-	// If this option is set, the ports that will be used must be specified.
-	// Default to false.
-	// +k8s:conversion-gen=false
-	// +optional
-	HostNetwork *bool `json:"hostNetwork,omitempty" protobuf:"varint,11,opt,name=hostNetwork"`
 	// HostAliases is an optional list of hosts and IPs that will be injected into the pod's hosts
 	// file if specified.
 	// +optional
@@ -335,19 +329,10 @@ type PodAlternativeIPs struct {
 
 // PodsCertSubjects iterates over passed list of pods and for every pod prepares certificate subject
 // which can be later used for generating certificate for given pod.
-func PodsCertSubjects(domain string, podList []corev1.Pod, hostNetwork *bool, podAltIPs PodAlternativeIPs) []certificates.CertificateSubject {
+func PodsCertSubjects(domain string, podList []corev1.Pod, podAltIPs PodAlternativeIPs) []certificates.CertificateSubject {
 	var pods []certificates.CertificateSubject
-	useNodeName := true
-	if hostNetwork != nil {
-		useNodeName = *hostNetwork
-	}
 	for _, pod := range podList {
-		var hostname string
-		if useNodeName {
-			hostname = pod.Spec.NodeName
-		} else {
-			hostname = pod.Spec.Hostname
-		}
+        hostname := pod.Spec.NodeName
 		var alternativeIPs []string
 		if podAltIPs.ServiceIP != "" {
 			alternativeIPs = append(alternativeIPs, podAltIPs.ServiceIP)
@@ -470,11 +455,6 @@ func SetDeploymentCommonConfiguration(deployment *appsv1.Deployment,
 	if len(commonConfiguration.NodeSelector) > 0 {
 		deployment.Spec.Template.Spec.NodeSelector = commonConfiguration.NodeSelector
 	}
-	if commonConfiguration.HostNetwork != nil {
-		deployment.Spec.Template.Spec.HostNetwork = *commonConfiguration.HostNetwork
-	} else {
-		deployment.Spec.Template.Spec.HostNetwork = false
-	}
 
 	if len(commonConfiguration.HostAliases) > 0 {
 		deployment.Spec.Template.Spec.HostAliases = commonConfiguration.HostAliases
@@ -507,11 +487,6 @@ func SetSTSCommonConfiguration(sts *appsv1.StatefulSet,
 	}
 	if len(commonConfiguration.NodeSelector) > 0 {
 		sts.Spec.Template.Spec.NodeSelector = commonConfiguration.NodeSelector
-	}
-	if commonConfiguration.HostNetwork != nil {
-		sts.Spec.Template.Spec.HostNetwork = *commonConfiguration.HostNetwork
-	} else {
-		sts.Spec.Template.Spec.HostNetwork = false
 	}
 
 	if len(commonConfiguration.HostAliases) > 0 {
@@ -745,9 +720,6 @@ func SetInstanceActive(client client.Client, activeStatus *bool, sts *appsv1.Sta
 }
 
 func getPodsHostname(c client.Client, pod *corev1.Pod) (string, error) {
-	if !pod.Spec.HostNetwork {
-		return pod.Spec.Hostname, nil
-	}
 	n := corev1.Node{}
 	if err := c.Get(context.Background(), types.NamespacedName{Name: pod.Spec.NodeName}, &n); err != nil {
 		return "", err

@@ -1447,11 +1447,6 @@ func (in *ManagerConfiguration) DeepCopyInto(out *ManagerConfiguration) {
 			(*out)[key] = val
 		}
 	}
-	if in.HostNetwork != nil {
-		in, out := &in.HostNetwork, &out.HostNetwork
-		*out = new(bool)
-		**out = **in
-	}
 	if in.ImagePullSecrets != nil {
 		in, out := &in.ImagePullSecrets, &out.ImagePullSecrets
 		*out = make([]string, len(*in))
@@ -1667,11 +1662,6 @@ func (in *PodConfiguration) DeepCopyInto(out *PodConfiguration) {
 		for key, val := range *in {
 			(*out)[key] = val
 		}
-	}
-	if in.HostNetwork != nil {
-		in, out := &in.HostNetwork, &out.HostNetwork
-		*out = new(bool)
-		**out = **in
 	}
 	if in.HostAliases != nil {
 		in, out := &in.HostAliases, &out.HostAliases
