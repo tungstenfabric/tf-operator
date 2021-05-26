@@ -3,6 +3,7 @@ package vrouter
 import (
 	"context"
 	"time"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -19,6 +20,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	core "k8s.io/api/core/v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
@@ -237,7 +239,6 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 	daemonSet := GetDaemonset(
 		instance,
 		&kcc.Networking.CNIConfig,
-		instance.Spec.ServiceConfiguration.StatusImage,
 		vcp.CloudOrchestrator)
 	if err = instance.PrepareDaemonSet(daemonSet, &instance.Spec.CommonConfiguration, request, r.Scheme, r.Client); err != nil {
 		return reconcile.Result{}, err
@@ -390,8 +391,25 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 				})
 		}
 
-		// nothing to do for nodeinit
-		// if container.Name == "nodeinit" {}
+		if container.Name == "nodeinit" {
+			statusImage := strings.Replace(container.Image, "contrail-node-init", "contrail-status", 1)
+			container.Env = append(container.Env, core.EnvVar{
+				Name: "CONTRAIL_STATUS_IMAGE",
+				Value: statusImage,
+			})
+		}
+
+		if container.Name == "nodeinit-status-prefetch" {
+			if ic := utils.GetContainerFromList("nodeinit", instance.Spec.ServiceConfiguration.Containers); ic != nil {
+				container.Image = strings.Replace(ic.Image, "contrail-node-init", "contrail-status", 1)
+			}
+		}
+
+		if container.Name == "nodeinit-tools-prefetch" {
+			if ic := utils.GetContainerFromList("nodeinit", instance.Spec.ServiceConfiguration.Containers); ic != nil {
+				container.Image = strings.Replace(ic.Image, "contrail-node-init", "contrail-tools", 1)
+ 			}
+		}
 	}
 
 	if err = instance.CreateDS(daemonSet, &instance.Spec.CommonConfiguration, instanceType, request,

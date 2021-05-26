@@ -2362,10 +2362,6 @@ spec:
                               statsCollectorDestinationPath:
                                 description: Collector
                                 type: string
-                              statusImage:
-                                description: What is it doing? VrouterEncryption   bool              `json:"vrouterEncryption,omitempty"`
-                                  What is it doing?
-                                type: string
                               subclaster:
                                 description: XMPP
                                 type: string

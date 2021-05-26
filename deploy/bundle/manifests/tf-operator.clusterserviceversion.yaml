@@ -363,8 +363,7 @@ metadata:
                         }
                       ],
                       "controlInstance": "control1",
-                      "logLevel": "SYS_DEBUG",
-                      "statusImage": "docker.io/tungstenfabric/contrail-status:R2011"
+                      "logLevel": "SYS_DEBUG"
                     }
                   }
                 }
