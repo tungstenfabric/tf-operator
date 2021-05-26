@@ -102,7 +102,9 @@ sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 sandesh_ca_cert={{ .CAFilePath }}`))
 
 // ConfigKeystoneAuthConf is the template of the DeviceManager keystone auth configuration.
-var ConfigKeystoneAuthConf = template.Must(template.New("").Parse(`[KEYSTONE]
+var ConfigKeystoneAuthConf = template.Must(template.New("").Parse(`
+{{ if eq .AuthMode "keystone" }}
+[KEYSTONE]
 admin_password = {{ .KeystoneAuthParameters.AdminPassword }}
 admin_tenant_name = {{ .KeystoneAuthParameters.AdminTenant }}
 admin_user = {{ .KeystoneAuthParameters.AdminUsername }}
@@ -122,7 +124,8 @@ certfile = /etc/certificates/server-{{ .PodIP }}.crt
 {{ end }}
 user_domain_name = {{ .KeystoneAuthParameters.UserDomainName }}
 project_domain_name = {{ .KeystoneAuthParameters.ProjectDomainName }}
-region_name = {{ .KeystoneAuthParameters.Region }}`))
+region_name = {{ .KeystoneAuthParameters.Region }}
+{{ end }}`))
 
 // FabricAnsibleConf is the template of the DeviceManager configuration for fabric management.
 var FabricAnsibleConf = template.Must(template.New("").Parse(`[DEFAULTS]
