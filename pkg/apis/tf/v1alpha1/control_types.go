@@ -51,9 +51,6 @@ type ControlConfiguration struct {
 	XMPPPort          *int         `json:"xmppPort,omitempty"`
 	DNSPort           *int         `json:"dnsPort,omitempty"`
 	DNSIntrospectPort *int         `json:"dnsIntrospectPort,omitempty"`
-	RabbitmqUser      string       `json:"rabbitmqUser,omitempty"`
-	RabbitmqPassword  string       `json:"rabbitmqPassword,omitempty"`
-	RabbitmqVhost     string       `json:"rabbitmqVhost,omitempty"`
 	// DataSubnet allow to set alternative network in which control, nodemanager
 	// and dns services will listen. Local pod address from this subnet will be
 	// discovered and used both in configuration for hostip directive and provision
@@ -190,13 +187,13 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 
 	controlConfig := c.ConfigurationParameters()
 	if rabbitmqSecretUser == "" {
-		rabbitmqSecretUser = controlConfig.RabbitmqUser
+		rabbitmqSecretUser = RabbitmqUser
 	}
 	if rabbitmqSecretPassword == "" {
-		rabbitmqSecretPassword = controlConfig.RabbitmqPassword
+		rabbitmqSecretPassword = RabbitmqPassword
 	}
 	if rabbitmqSecretVhost == "" {
-		rabbitmqSecretVhost = controlConfig.RabbitmqVhost
+		rabbitmqSecretVhost = RabbitmqVhost
 	}
 
 	rabbitMqSSLEndpointList := configtemplates.EndpointList(rabbitmqNodesInformation.ServerIPList, rabbitmqNodesInformation.Port)

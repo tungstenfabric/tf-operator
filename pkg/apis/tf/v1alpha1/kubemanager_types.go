@@ -81,9 +81,6 @@ type KubemanagerConfiguration struct {
 	IPFabricSnat          *bool        `json:"ipFabricSnat,omitempty"`
 	HostNetworkService    *bool        `json:"hostNetworkService,omitempty"`
 	KubernetesTokenFile   string       `json:"kubernetesTokenFile,omitempty"`
-	RabbitmqUser          string       `json:"rabbitmqUser,omitempty"`
-	RabbitmqPassword      string       `json:"rabbitmqPassword,omitempty"`
-	RabbitmqVhost         string       `json:"rabbitmqVhost,omitempty"`
 	LogLevel              string       `json:"logLevel,omitempty"`
 	PublicFIPPool         string       `json:"publicFIPPool,omitempty"`
 }
@@ -160,13 +157,13 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 		return err
 	}
 	if rabbitmqSecretUser == "" {
-		rabbitmqSecretUser = kubemanagerConfig.RabbitmqUser
+		rabbitmqSecretUser = RabbitmqUser
 	}
 	if rabbitmqSecretPassword == "" {
-		rabbitmqSecretPassword = kubemanagerConfig.RabbitmqPassword
+		rabbitmqSecretPassword = RabbitmqPassword
 	}
 	if rabbitmqSecretVhost == "" {
-		rabbitmqSecretVhost = kubemanagerConfig.RabbitmqVhost
+		rabbitmqSecretVhost = RabbitmqVhost
 	}
 
 	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
