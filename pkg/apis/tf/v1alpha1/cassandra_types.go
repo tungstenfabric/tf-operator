@@ -60,7 +60,6 @@ type CassandraConfiguration struct {
 	MinHeapSize         string                    `json:"minHeapSize,omitempty"`
 	NodeType            string                    `json:"nodeType,omitempty"`
 	StartRPC            *bool                     `json:"startRPC,omitempty"`
-	Storage             Storage                   `json:"storage,omitempty"`
 	MinimumDiskGB       *int                      `json:"minimumDiskGB,omitempty"`
 	CassandraParameters CassandraConfigParameters `json:"cassandraParameters,omitempty"`
 }
@@ -438,16 +437,6 @@ func (c *Cassandra) ConfigurationParameters() *CassandraConfiguration {
 	var sslStoragePort int
 	var minimumDiskGB int
 
-	if c.Spec.ServiceConfiguration.Storage.Path == "" {
-		cassandraConfiguration.Storage.Path = "/var/lib/cassandra"
-	} else {
-		cassandraConfiguration.Storage.Path = c.Spec.ServiceConfiguration.Storage.Path
-	}
-	if c.Spec.ServiceConfiguration.Storage.Size == "" {
-		cassandraConfiguration.Storage.Size = "5Gi"
-	} else {
-		cassandraConfiguration.Storage.Size = c.Spec.ServiceConfiguration.Storage.Size
-	}
 	if c.Spec.ServiceConfiguration.Port != nil {
 		port = *c.Spec.ServiceConfiguration.Port
 	} else {

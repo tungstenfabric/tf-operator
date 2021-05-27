@@ -68,7 +68,6 @@ type AnalyticsConfiguration struct {
 	RabbitmqVhost              string       `json:"rabbitmqVhost,omitempty"`
 	LogLevel                   string       `json:"logLevel,omitempty"`
 	AAAMode                    AAAMode      `json:"aaaMode,omitempty"`
-	Storage                    Storage      `json:"storage,omitempty"`
 	// Time (in hours) that the analytics object and log data stays in the Cassandra database. Defaults to 48 hours.
 	AnalyticsDataTTL *int `json:"analyticsDataTTL,omitempty"`
 	// Time (in hours) the analytics config data entering the collector stays in the Cassandra database. Defaults to 2160 hours.
