@@ -56,7 +56,6 @@ type AnalyticsAlarmSpec struct {
 // AnalyticsAlarmConfiguration is the Spec for the Analytics Alarm API.
 // +k8s:openapi-gen=true
 type AnalyticsAlarmConfiguration struct {
-	ZookeeperInstance              string       `json:"zookeeperInstance,omitempty"`
 	LogFilePath                    string       `json:"logFilePath,omitempty"`
 	LogLevel                       string       `json:"logLevel,omitempty"`
 	LogLocal                       string       `json:"logLocal,omitempty"`
@@ -111,7 +110,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 	if err != nil {
 		return err
 	}
-	zookeeperNodesInformation, err := NewZookeeperClusterConfiguration(c.Spec.ServiceConfiguration.ZookeeperInstance,
+	zookeeperNodesInformation, err := NewZookeeperClusterConfiguration(ZookeeperInstance,
 		request.Namespace, client)
 	if err != nil {
 		return err

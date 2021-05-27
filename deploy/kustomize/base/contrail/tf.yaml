@@ -17,7 +17,6 @@ spec:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
           logLevel: SYS_DEBUG
-          zookeeperInstance: zookeeper1
           containers:
           - name: nodemanager
             image: contrail-nodemgr
@@ -38,7 +37,6 @@ spec:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
           logLevel: SYS_DEBUG
-          zookeeperInstance: zookeeper1
           containers:
           - name: init
             image: python
@@ -78,7 +76,6 @@ spec:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
           logLevel: SYS_DEBUG
-          zookeeperInstance: zookeeper1
           containers:
           - name: redis
             image: contrail-external-redis
@@ -144,7 +141,6 @@ spec:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
           logLevel: SYS_DEBUG
-          zookeeperInstance: zookeeper1
           ipFabricForwarding: false
           ipFabricSnat: true
           hostNetworkService: true
