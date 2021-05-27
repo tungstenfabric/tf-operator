@@ -363,8 +363,6 @@ spec:
                               - noauth
                               - rbac
                               type: string
-                            analyticsCassandraInstance:
-                              type: string
                             analyticsConfigAuditTTL:
                               description: Time (in hours) the analytics config data
                                 entering the collector stays in the Cassandra database.
@@ -387,14 +385,10 @@ spec:
                               description: Time to live (TTL) for statistics data
                                 in hours. Defaults to 4 hours.
                               type: integer
-                            cassandraInstance:
-                              type: string
                             collectorIntrospectPort:
                               type: integer
                             collectorPort:
                               type: integer
-                            configInstance:
-                              type: string
                             containers:
                               items:
                                 description: Container defines name, image and command.

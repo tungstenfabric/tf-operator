@@ -221,10 +221,10 @@ func (r *ReconcileAnalyticsSnmp) Reconcile(request reconcile.Request) (reconcile
 	rabbitmqInstance := v1alpha1.Rabbitmq{}
 	configInstance := v1alpha1.Config{}
 	analyticsInstance := v1alpha1.Analytics{}
-	cassandraActive := cassandraInstance.IsActive(instance.Spec.ServiceConfiguration.CassandraInstance, request.Namespace, r.Client)
+	cassandraActive := cassandraInstance.IsActive(v1alpha1.CassandraInstance, request.Namespace, r.Client)
 	zookeeperActive := zookeeperInstance.IsActive(instance.Spec.ServiceConfiguration.ZookeeperInstance, request.Namespace, r.Client)
 	rabbitmqActive := rabbitmqInstance.IsActive(v1alpha1.RabbitmqInstance, request.Namespace, r.Client)
-	configActive := configInstance.IsActive(instance.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, r.Client)
+	configActive := configInstance.IsActive(v1alpha1.ConfigInstance, request.Namespace, r.Client)
 	analyticsActive := analyticsInstance.IsActive(instance.Spec.ServiceConfiguration.AnalyticsInstance, request.Namespace, r.Client)
 	if !cassandraActive || !zookeeperActive || !rabbitmqActive || !configActive || !analyticsActive {
 		reqLogger.Info("Dependencies not ready", "db", cassandraActive, "zk", zookeeperActive, "rmq", rabbitmqActive, "api", configActive, "analytics", configActive)

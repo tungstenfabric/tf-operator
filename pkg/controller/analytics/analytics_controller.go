@@ -205,7 +205,12 @@ func (r *ReconcileAnalytics) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, nil
 	}
 
-	cassandraActive := cassandraInstance.IsActive(instance.Spec.ServiceConfiguration.CassandraInstance, request.Namespace, r.Client)
+	analyticsCassandraInstance, err := v1alpha1.GetAnalyticsCassandraInstance(r.Client)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	cassandraActive := cassandraInstance.IsActive(analyticsCassandraInstance, request.Namespace, r.Client)
 	zookeeperActive := zookeeperInstance.IsActive(instance.Spec.ServiceConfiguration.ZookeeperInstance, request.Namespace, r.Client)
 	rabbitmqActive := rabbitmqInstance.IsActive(v1alpha1.RabbitmqInstance, request.Namespace, r.Client)
 	redisActive := redisInstance.IsActive(instance.Spec.ServiceConfiguration.RedisInstance, request.Namespace, r.Client)

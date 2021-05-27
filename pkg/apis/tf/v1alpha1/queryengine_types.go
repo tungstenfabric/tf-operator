@@ -54,9 +54,7 @@ type QueryEngineConfiguration struct {
 	AnalyticsdbPort           *int         `json:"analyticsdbPort,omitempty"`
 	AnalyticsdbIntrospectPort *int         `json:"analyticsdbIntrospectPort,omitempty"`
 	Containers                []*Container `json:"containers,omitempty"`
-	ConfigInstance            string       `json:"configInstance,omitempty"`
 	AnalyticsInstance         string       `json:"analyticsInstance,omitempty"`
-	CassandraInstance         string       `json:"analyticsCassandraInstance,omitempty"`
 	ZookeeperInstance         string       `json:"zookeeperInstance,omitempty"`
 	RedisInstance             string       `json:"redisInstance,omitempty"`
 	RabbitmqUser              string       `json:"rabbitmqUser,omitempty"`
@@ -99,8 +97,13 @@ func (c *QueryEngine) InstanceConfiguration(configMapName string,
 		return err
 	}
 
+	analyticsCassandraInstance, err := GetAnalyticsCassandraInstance(client)
+	if err != nil {
+		return err
+	}
+
 	cassandraNodesInformation, err := NewCassandraClusterConfiguration(
-		c.Spec.ServiceConfiguration.CassandraInstance, request.Namespace, client)
+		analyticsCassandraInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}
@@ -115,7 +118,7 @@ func (c *QueryEngine) InstanceConfiguration(configMapName string,
 	if err != nil {
 		return err
 	}
-	configNodesInformation, err := NewConfigClusterConfiguration(c.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, client)
+	configNodesInformation, err := NewConfigClusterConfiguration(ConfigInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}

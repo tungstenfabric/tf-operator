@@ -1678,3 +1678,24 @@ func IsOKForRequeque(err error) bool {
 	}
 	return false
 }
+
+func GetAnalyticsCassandraInstance(client client.Client) (string, error) {
+	cassandras := &CassandraList{}
+
+	err := client.List(context.Background(), cassandras)
+	if err != nil {
+		return "", err
+	}
+	if len(cassandras.Items) == 0 {
+		return "", fmt.Errorf("CassandraList items is empty")
+	}
+
+	analyticsCassandraInstance := CassandraInstance
+	for _, cassandra := range cassandras.Items {
+		if cassandra.Name == AnalyticsCassandraInstance {
+			analyticsCassandraInstance = cassandra.Name
+		}
+	}
+
+	return analyticsCassandraInstance, nil
+}

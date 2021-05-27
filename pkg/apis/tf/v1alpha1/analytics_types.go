@@ -57,9 +57,6 @@ type AnalyticsConfiguration struct {
 	CollectorPort              *int         `json:"collectorPort,omitempty"`
 	AnalyticsApiIntrospectPort *int         `json:"analyticsIntrospectPort,omitempty"`
 	CollectorIntrospectPort    *int         `json:"collectorIntrospectPort,omitempty"`
-	ConfigInstance             string       `json:"configInstance,omitempty"`
-	AnalyticsCassandraInstance string       `json:"analyticsCassandraInstance,omitempty"`
-	CassandraInstance          string       `json:"cassandraInstance,omitempty"`
 	ZookeeperInstance          string       `json:"zookeeperInstance,omitempty"`
 	RedisInstance              string       `json:"redisInstance,omitempty"`
 	RabbitmqUser               string       `json:"rabbitmqUser,omitempty"`
@@ -111,14 +108,19 @@ func (c *Analytics) InstanceConfiguration(configMapName string,
 		return err
 	}
 
+	analyticsCassandraInstance, err := GetAnalyticsCassandraInstance(client)
+	if analyticsCassandraInstance == "" {
+		return err
+	}
+
 	analyticsdbCassandraNodesInformation, err := NewCassandraClusterConfiguration(
-		c.Spec.ServiceConfiguration.AnalyticsCassandraInstance, request.Namespace, client)
+		analyticsCassandraInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}
 
 	cassandraNodesInformation, err := NewCassandraClusterConfiguration(
-		c.Spec.ServiceConfiguration.CassandraInstance, request.Namespace, client)
+		CassandraInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}
@@ -142,7 +144,7 @@ func (c *Analytics) InstanceConfiguration(configMapName string,
 	}
 
 	configNodesInformation, err := NewConfigClusterConfiguration(
-		c.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, client)
+		ConfigInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}
