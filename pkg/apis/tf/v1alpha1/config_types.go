@@ -76,9 +76,6 @@ type ConfigConfiguration struct {
 	AnalyticsInstance           string                  `json:"analyticsInstance,omitempty"`
 	CassandraInstance           string                  `json:"cassandraInstance,omitempty"`
 	ZookeeperInstance           string                  `json:"zookeeperInstance,omitempty"`
-	RabbitmqUser                string                  `json:"rabbitmqUser,omitempty"`
-	RabbitmqPassword            string                  `json:"rabbitmqPassword,omitempty"`
-	RabbitmqVhost               string                  `json:"rabbitmqVhost,omitempty"`
 	LogLevel                    string                  `json:"logLevel,omitempty"`
 	AAAMode                     AAAMode                 `json:"aaaMode,omitempty"`
 	FabricMgmtIP                string                  `json:"fabricMgmtIP,omitempty"`
@@ -174,13 +171,13 @@ func (c *Config) InstanceConfiguration(configMapName string,
 
 	configConfig := c.ConfigurationParameters()
 	if rabbitmqSecretUser == "" {
-		rabbitmqSecretUser = configConfig.RabbitmqUser
+		rabbitmqSecretUser = RabbitmqUser
 	}
 	if rabbitmqSecretPassword == "" {
-		rabbitmqSecretPassword = configConfig.RabbitmqPassword
+		rabbitmqSecretPassword = RabbitmqPassword
 	}
 	if rabbitmqSecretVhost == "" {
-		rabbitmqSecretVhost = configConfig.RabbitmqVhost
+		rabbitmqSecretVhost = RabbitmqVhost
 	}
 	var analyticsServerList, apiServerList string
 	var podIPList []string
@@ -584,9 +581,6 @@ func (c *Config) IsActive(name string, namespace string, client client.Client) b
 func (c *Config) ConfigurationParameters() ConfigConfiguration {
 	configConfiguration := ConfigConfiguration{}
 	var apiPort int
-	var rabbitmqUser string
-	var rabbitmqPassword string
-	var rabbitmqVhost string
 	var logLevel string
 
 	if c.Spec.ServiceConfiguration.LogLevel != "" {
@@ -633,27 +627,6 @@ func (c *Config) ConfigurationParameters() ConfigConfiguration {
 		svcMonitorIntrospectPort = ConfigSvcMonitorIntrospectPort
 	}
 	configConfiguration.SvcMonitorIntrospectPort = &svcMonitorIntrospectPort
-
-	if c.Spec.ServiceConfiguration.RabbitmqUser != "" {
-		rabbitmqUser = c.Spec.ServiceConfiguration.RabbitmqUser
-	} else {
-		rabbitmqUser = RabbitmqUser
-	}
-	configConfiguration.RabbitmqUser = rabbitmqUser
-
-	if c.Spec.ServiceConfiguration.RabbitmqPassword != "" {
-		rabbitmqPassword = c.Spec.ServiceConfiguration.RabbitmqPassword
-	} else {
-		rabbitmqPassword = RabbitmqPassword
-	}
-	configConfiguration.RabbitmqPassword = rabbitmqPassword
-
-	if c.Spec.ServiceConfiguration.RabbitmqVhost != "" {
-		rabbitmqVhost = c.Spec.ServiceConfiguration.RabbitmqVhost
-	} else {
-		rabbitmqVhost = RabbitmqVhost
-	}
-	configConfiguration.RabbitmqVhost = rabbitmqVhost
 
 	configConfiguration.AAAMode = c.Spec.ServiceConfiguration.AAAMode
 	if configConfiguration.AAAMode == "" {

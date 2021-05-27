@@ -247,11 +247,6 @@ spec:
                   type: array
                 logLevel:
                   type: string
-                rabbitmqPassword:
-                  type: string
-                rabbitmqUser:
-                  type: string
-                rabbitmqVhost:
                   type: string
                 redisInstance:
                   type: string
