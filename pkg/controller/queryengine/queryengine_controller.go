@@ -223,7 +223,7 @@ func (r *ReconcileQueryEngine) Reconcile(request reconcile.Request) (reconcile.R
 
 	cassandraActive := cassandraInstance.IsActive(instance.Spec.ServiceConfiguration.CassandraInstance, request.Namespace, r.Client)
 	zookeeperActive := zookeeperInstance.IsActive(instance.Spec.ServiceConfiguration.ZookeeperInstance, request.Namespace, r.Client)
-	rabbitmqActive := rabbitmqInstance.IsActive(instance.Spec.ServiceConfiguration.RabbitmqInstance, request.Namespace, r.Client)
+	rabbitmqActive := rabbitmqInstance.IsActive(v1alpha1.RabbitmqInstance, request.Namespace, r.Client)
 	redisActive := redisInstance.IsActive(instance.Spec.ServiceConfiguration.RedisInstance, request.Namespace, r.Client)
 	configActive := configInstance.IsActive(instance.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, r.Client)
 	analyticsActive := analyticsInstance.IsActive(instance.Spec.ServiceConfiguration.AnalyticsInstance, request.Namespace, r.Client)
