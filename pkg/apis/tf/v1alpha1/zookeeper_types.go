@@ -45,7 +45,6 @@ type ZookeeperConfiguration struct {
 	ServerPort        *int         `json:"serverPort,omitempty"`
 	AdminEnableServer *bool        `json:"adminEnabled,omitempty"`
 	AdminPort         *int         `json:"adminPort,omitempty"`
-	Storage           Storage      `json:"storage,omitempty"`
 }
 
 // ZookeeperStatus defines the status of the zookeeper object.
@@ -311,16 +310,6 @@ func (c *Zookeeper) ConfigurationParameters() ZookeeperConfiguration {
 	var serverPort int
 	var adminEnableServer bool
 	var adminPort int
-	if c.Spec.ServiceConfiguration.Storage.Path == "" {
-		zookeeperConfiguration.Storage.Path = "/var/lib/zookeeper"
-	} else {
-		zookeeperConfiguration.Storage.Path = c.Spec.ServiceConfiguration.Storage.Path
-	}
-	if c.Spec.ServiceConfiguration.Storage.Size == "" {
-		zookeeperConfiguration.Storage.Size = "10Gi"
-	} else {
-		zookeeperConfiguration.Storage.Size = c.Spec.ServiceConfiguration.Storage.Size
-	}
 
 	if c.Spec.ServiceConfiguration.ClientPort != nil {
 		clientPort = *c.Spec.ServiceConfiguration.ClientPort

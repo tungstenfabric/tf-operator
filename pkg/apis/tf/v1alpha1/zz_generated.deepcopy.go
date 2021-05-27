@@ -441,7 +441,6 @@ func (in *CassandraConfiguration) DeepCopyInto(out *CassandraConfiguration) {
 		*out = new(int)
 		**out = **in
 	}
-	out.Storage = in.Storage
 	return
 }
 
@@ -726,7 +725,6 @@ func (in *ConfigConfiguration) DeepCopyInto(out *ConfigConfiguration) {
 		*out = new(int)
 		**out = **in
 	}
-	out.Storage = in.Storage
 	if in.AnalyticsDataTTL != nil {
 		in, out := &in.AnalyticsDataTTL, &out.AnalyticsDataTTL
 		*out = new(int)
@@ -2621,7 +2619,6 @@ func (in *ZookeeperConfiguration) DeepCopyInto(out *ZookeeperConfiguration) {
 		*out = new(int)
 		**out = **in
 	}
-	out.Storage = in.Storage
 	return
 }
 
