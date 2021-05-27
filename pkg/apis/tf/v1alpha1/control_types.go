@@ -45,7 +45,6 @@ type ControlSpec struct {
 type ControlConfiguration struct {
 	Containers        []*Container `json:"containers,omitempty"`
 	CassandraInstance string       `json:"cassandraInstance,omitempty"`
-	RabbitmqInstance  string       `json:"rabbitmqInstance,omitempty"`
 	ConfigInstance    string       `json:"configInstance,omitempty"`
 	BGPPort           *int         `json:"bgpPort,omitempty"`
 	ASNNumber         *int         `json:"asnNumber,omitempty"`
@@ -164,7 +163,7 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 		return err
 	}
 
-	rabbitmqNodesInformation, err := NewRabbitmqClusterConfiguration(c.Spec.ServiceConfiguration.RabbitmqInstance,
+	rabbitmqNodesInformation, err := NewRabbitmqClusterConfiguration(RabbitmqInstance,
 		request.Namespace, client)
 	if err != nil {
 		return err
