@@ -44,8 +44,6 @@ type ControlSpec struct {
 // +k8s:openapi-gen=true
 type ControlConfiguration struct {
 	Containers        []*Container `json:"containers,omitempty"`
-	CassandraInstance string       `json:"cassandraInstance,omitempty"`
-	ConfigInstance    string       `json:"configInstance,omitempty"`
 	BGPPort           *int         `json:"bgpPort,omitempty"`
 	ASNNumber         *int         `json:"asnNumber,omitempty"`
 	XMPPPort          *int         `json:"xmppPort,omitempty"`
@@ -151,7 +149,7 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 		return err
 	}
 
-	cassandraNodesInformation, err := NewCassandraClusterConfiguration(c.Spec.ServiceConfiguration.CassandraInstance,
+	cassandraNodesInformation, err := NewCassandraClusterConfiguration(CassandraInstance,
 		request.Namespace, client)
 	if err != nil {
 		return err
@@ -180,7 +178,7 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 		rabbitmqSecretVhost = string(rabbitmqSecret.Data["vhost"])
 	}
 
-	configNodesInformation, err := NewConfigClusterConfiguration(c.Spec.ServiceConfiguration.ConfigInstance,
+	configNodesInformation, err := NewConfigClusterConfiguration(ConfigInstance,
 		request.Namespace, client)
 	if err != nil {
 		return err

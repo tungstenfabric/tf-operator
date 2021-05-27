@@ -192,9 +192,9 @@ func (r *ReconcileControl) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, nil
 	}
 
-	cassandraActive := cassandraInstance.IsActive(instance.Spec.ServiceConfiguration.CassandraInstance, request.Namespace, r.Client)
 	rabbitmqActive := rabbitmqInstance.IsActive(v1alpha1.RabbitmqInstance, request.Namespace, r.Client)
-	configActive := configInstance.IsActive(instance.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, r.Client)
+	cassandraActive := cassandraInstance.IsActive(v1alpha1.CassandraInstance, request.Namespace, r.Client)
+	configActive := configInstance.IsActive(v1alpha1.ConfigInstance, request.Namespace, r.Client)
 	if !configActive || !cassandraActive || !rabbitmqActive {
 		reqLogger.Info("Dependencies not ready", "db", cassandraActive, "rmq", rabbitmqActive, "api", configActive)
 		return reconcile.Result{}, nil

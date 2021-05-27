@@ -77,7 +77,6 @@ type ConfigConfiguration struct {
 	SvcMonitorIntrospectPort    *int         `json:"svcMonitorIntrospectPort,omitempty"`
 	AnalyticsApiIntrospectPort  *int         `json:"analyticsIntrospectPort,omitempty"`
 	CollectorIntrospectPort     *int         `json:"collectorIntrospectPort,omitempty"`
-	CassandraInstance           string       `json:"cassandraInstance,omitempty"`
 	ZookeeperInstance           string       `json:"zookeeperInstance,omitempty"`
 	LogLevel                    string       `json:"logLevel,omitempty"`
 	AAAMode                     AAAMode      `json:"aaaMode,omitempty"`
@@ -143,7 +142,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 	configAuth := c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters
 
 	cassandraNodesInformation, err := NewCassandraClusterConfiguration(
-		c.Spec.ServiceConfiguration.CassandraInstance, request.Namespace, client)
+		CassandraInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}
