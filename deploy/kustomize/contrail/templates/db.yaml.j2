@@ -25,7 +25,6 @@ spec:
           minHeapSize: "{{ CONFIGDB_MIN_HEAP_SIZE }}"
           maxHeapSize: "{{ CONFIGDB_MAX_HEAP_SIZE }}"
 {%- endif %}
-          nodeType: config-database
           containers:
           - name: cassandra
             image: contrail-external-cassandra
@@ -52,7 +51,6 @@ spec:
           minHeapSize: "{{ ANALYTICSDB_MIN_HEAP_SIZE }}"
           maxHeapSize: "{{ ANALYTICSDB_MAX_HEAP_SIZE }}"
 {%- endif %}
-          nodeType: database
           containers:
           - name: cassandra
             image: contrail-external-cassandra
@@ -61,4 +59,3 @@ spec:
           - name: provisioner
             image: contrail-provisioner
 {%- endif -%}
-

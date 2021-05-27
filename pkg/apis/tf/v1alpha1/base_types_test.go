@@ -36,6 +36,26 @@ func getManager(dbs []string) *Manager {
 	}
 }
 
+func TestGetDatabaseNodeTypeSingleDB(t *testing.T) {
+	scheme, err := SchemeBuilder.Build()
+	require.NoError(t, err)
+	c := fake.NewFakeClientWithScheme(scheme, getManager([]string{"configdb1"}))
+	var nodeType string
+	nodeType, err = GetDatabaseNodeType(c)
+	require.NoError(t, err)
+	assert.Equal(t, nodeType, "database")
+}
+
+func TestGetDatabaseNodeTypeTwoDB(t *testing.T) {
+	scheme, err := SchemeBuilder.Build()
+	require.NoError(t, err)
+	c := fake.NewFakeClientWithScheme(scheme, getManager([]string{"configdb1", "analyticsdb1"}))
+	var nodeType string
+	nodeType, err = GetDatabaseNodeType(c)
+	require.NoError(t, err)
+	assert.Equal(t, nodeType, "config-database")
+}
+
 func TestGetAnalyticsCassandraInstanceSingleDB(t *testing.T) {
 	scheme, err := SchemeBuilder.Build()
 	require.NoError(t, err)

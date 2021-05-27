@@ -981,8 +981,6 @@ spec:
                                 type: string
                               minimumDiskGB:
                                 type: integer
-                              nodeType:
-                                type: string
                               port:
                                 type: integer
                               sslStoragePort:

@@ -55,7 +55,6 @@ type CassandraConfiguration struct {
 	JmxLocalPort        *int                      `json:"jmxLocalPort,omitempty"`
 	MaxHeapSize         string                    `json:"maxHeapSize,omitempty"`
 	MinHeapSize         string                    `json:"minHeapSize,omitempty"`
-	NodeType            string                    `json:"nodeType,omitempty"`
 	StartRPC            *bool                     `json:"startRPC,omitempty"`
 	MinimumDiskGB       *int                      `json:"minimumDiskGB,omitempty"`
 	CassandraParameters CassandraConfigParameters `json:"cassandraParameters,omitempty"`
@@ -146,7 +145,13 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 		return err
 	}
 
-	nodeType := cassandraConfig.NodeType
+	databaseNodeType, err := GetDatabaseNodeType(client)
+	if err != nil {
+		return err
+	}
+	if strings.HasPrefix(request.Name, "analyticsdb") {
+		databaseNodeType = "database"
+	}
 	for _, pod := range podList {
 
 		var cassandraConfigBuffer bytes.Buffer
@@ -271,8 +276,8 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 		// wait for api, nodemgr container will wait for config files be ready
 		if apiServerIPListCommaSeparated != "" {
 			configMapInstanceDynamicConfig.Data["vnc_api_lib.ini."+pod.Status.PodIP] = vncAPIConfigBufferString
-			configMapInstanceDynamicConfig.Data[nodeType+"-nodemgr.conf."+pod.Status.PodIP] = nodemanagerConfigString
-			configMapInstanceDynamicConfig.Data[nodeType+"-nodemgr.env."+pod.Status.PodIP] = nodemanagerEnvString
+			configMapInstanceDynamicConfig.Data[databaseNodeType+"-nodemgr.conf."+pod.Status.PodIP] = nodemanagerConfigString
+			configMapInstanceDynamicConfig.Data[databaseNodeType+"-nodemgr.env."+pod.Status.PodIP] = nodemanagerEnvString
 		}
 	}
 
@@ -447,11 +452,6 @@ func (c *Cassandra) ConfigurationParameters() *CassandraConfiguration {
 		minimumDiskGB = CassandraMinimumDiskGB
 	}
 	cassandraConfiguration.MinimumDiskGB = &minimumDiskGB
-	if c.Spec.ServiceConfiguration.NodeType == "" {
-		cassandraConfiguration.NodeType = "database"
-	} else {
-		cassandraConfiguration.NodeType = c.Spec.ServiceConfiguration.NodeType
-	}
 
 	return cassandraConfiguration
 }
@@ -533,13 +533,11 @@ func (c *Cassandra) UpdateStatus(cassandraConfig *CassandraConfiguration, podNam
 }
 
 // ConfigDataDiff compare configmaps and retursn list of services to be reloaded
-func (c *Cassandra) ConfigDataDiff(pod *corev1.Pod, v1 *corev1.ConfigMap, v2 *corev1.ConfigMap) []string {
-	cassandraConfig := c.ConfigurationParameters()
-	nodeType := cassandraConfig.NodeType
+func (c *Cassandra) ConfigDataDiff(pod *corev1.Pod, v1 *corev1.ConfigMap, v2 *corev1.ConfigMap, databaseNodeType string) []string {
 	podIP := pod.Status.PodIP
 	srvMap := map[string][]string{
 		"cassandra":   {"cassandra." + podIP + ".yaml", "cqlshrc." + podIP},
-		"nodemanager": {nodeType + "-nodemgr.conf." + podIP, nodeType + "-nodemgr.env." + podIP, "vnc_api_lib.ini." + podIP},
+		"nodemanager": {databaseNodeType + "-nodemgr.conf." + podIP, databaseNodeType + "-nodemgr.env." + podIP, "vnc_api_lib.ini." + podIP},
 	}
 	var res []string
 	for srv, maps := range srvMap {

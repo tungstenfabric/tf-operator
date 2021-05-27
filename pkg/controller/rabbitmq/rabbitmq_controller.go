@@ -191,7 +191,11 @@ func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
-	statefulSet := GetSTS(instance)
+	databaseNodeType, err := v1alpha1.GetDatabaseNodeType(r.Client)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	statefulSet := GetSTS(instance, databaseNodeType)
 	if err = instance.PrepareSTS(statefulSet, &instance.Spec.CommonConfiguration, request, r.Scheme); err != nil {
 		return reconcile.Result{}, err
 	}

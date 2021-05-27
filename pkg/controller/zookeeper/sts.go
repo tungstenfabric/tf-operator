@@ -1,11 +1,14 @@
 package zookeeper
 
 import (
+	"bytes"
+	"text/template"
+
 	"github.com/ghodss/yaml"
 	appsv1 "k8s.io/api/apps/v1"
 )
 
-var yamlDatazookeeper_sts = `
+var yamlDatazookeeper_sts = template.Must(template.New("").Parse(`
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -47,7 +50,7 @@ spec:
             fieldRef:
               fieldPath: metadata.name
         - name: NODE_TYPE
-          value: config-database
+          value: {{ .DatabaseNodeType }}
         image: tungstenfabric/contrail-external-zookeeper:latest
         resources:
           requests:
@@ -98,15 +101,26 @@ spec:
               apiVersion: v1
               fieldPath: metadata.labels
             path: zoo.cfg
-        name: conf`
+        name: conf
 
-func GetSTS() *appsv1.StatefulSet {
-	sts := appsv1.StatefulSet{}
-	err := yaml.Unmarshal([]byte(yamlDatazookeeper_sts), &sts)
+`))
+
+func GetSTS(databaseNodeType string) *appsv1.StatefulSet {
+	var buf bytes.Buffer
+	err := yamlDatazookeeper_sts.Execute(&buf, struct {
+		DatabaseNodeType string
+	}{
+		DatabaseNodeType: databaseNodeType,
+	})
 	if err != nil {
 		panic(err)
 	}
-	jsonData, err := yaml.YAMLToJSON([]byte(yamlDatazookeeper_sts))
+	sts := appsv1.StatefulSet{}
+	err = yaml.Unmarshal(buf.Bytes(), &sts)
+	if err != nil {
+		panic(err)
+	}
+	jsonData, err := yaml.YAMLToJSON(buf.Bytes())
 	if err != nil {
 		panic(err)
 	}

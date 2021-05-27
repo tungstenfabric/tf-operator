@@ -971,12 +971,6 @@ func schema_pkg_apis_tf_v1alpha1_CassandraConfiguration(ref common.ReferenceCall
 							Format: "",
 						},
 					},
-					"nodeType": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
 					"startRPC": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"boolean"},

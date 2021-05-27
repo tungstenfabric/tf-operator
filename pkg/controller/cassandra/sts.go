@@ -51,7 +51,7 @@ spec:
           value: io.tungsten
         # TODO: move do go code for flexibility
         - name: NODE_TYPE
-          value: {{ .NodeType }}
+          value: {{ .DatabaseNodeType }}
         lifecycle:
           preStop:
             exec:
@@ -71,7 +71,7 @@ spec:
         - mountPath: /var/log/cassandra
           name: contrail-logs
         - mountPath: /var/lib/cassandra
-          name: {{ .NodeType }}-cassandra-data
+          name: {{ .DatabaseNodeType }}-cassandra-data
       - name: nodemanager
         image: tungstenfabric/contrail-nodemgr:latest
         securityContext:
@@ -80,7 +80,7 @@ spec:
         - name: VENDOR_DOMAIN
           value: io.tungsten
         - name: NODE_TYPE
-          value: {{ .NodeType }}
+          value: {{ .DatabaseNodeType }}
         - name: POD_IP
           valueFrom:
             fieldRef:
@@ -93,7 +93,7 @@ spec:
         image: tungstenfabric/contrail-provisioner:latest
         env:
         - name: NODE_TYPE
-          value: {{ .NodeType }}
+          value: {{ .DatabaseNodeType }}
         - name: POD_IP
           valueFrom:
             fieldRef:
@@ -104,13 +104,13 @@ spec:
               fieldPath: metadata.annotations['hostname']
       volumes:
       - hostPath:
-          path: /var/log/contrail/{{ .NodeType }}
+          path: /var/log/contrail/{{ .DatabaseNodeType }}
           type: ""
         name: contrail-logs
       - hostPath:
-          path: /var/lib/contrail/{{ .NodeType }}
+          path: /var/lib/contrail/{{ .DatabaseNodeType }}
           type: ""
-        name: {{ .NodeType }}-cassandra-data
+        name: {{ .DatabaseNodeType }}-cassandra-data
       - downwardAPI:
           defaultMode: 420
           items:
@@ -127,25 +127,24 @@ spec:
 `))
 
 // GetSTS returns cassandra sts object by template
-func GetSTS(cassandraConfig *v1alpha1.CassandraConfiguration) *appsv1.StatefulSet {
+func GetSTS(cassandraConfig *v1alpha1.CassandraConfiguration, databaseNodeType string) *appsv1.StatefulSet {
 	var buf bytes.Buffer
 	err := yamlDatacassandraSTS.Execute(&buf, struct {
-		LocalJmxPort int
-		NodeType     string
+		LocalJmxPort     int
+		DatabaseNodeType string
 	}{
-		LocalJmxPort: *cassandraConfig.JmxLocalPort,
-		NodeType:     cassandraConfig.NodeType,
+		LocalJmxPort:     *cassandraConfig.JmxLocalPort,
+		DatabaseNodeType: databaseNodeType,
 	})
 	if err != nil {
 		panic(err)
 	}
-	strSts := buf.String()
 	sts := appsv1.StatefulSet{}
-	err = yaml.Unmarshal([]byte(strSts), &sts)
+	err = yaml.Unmarshal(buf.Bytes(), &sts)
 	if err != nil {
 		panic(err)
 	}
-	jsonData, err := yaml.YAMLToJSON([]byte(strSts))
+	jsonData, err := yaml.YAMLToJSON(buf.Bytes())
 	if err != nil {
 		panic(err)
 	}

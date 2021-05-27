@@ -9,7 +9,7 @@ import (
 )
 
 // GetSTS create default StatefulSet Rabbitmq object
-func GetSTS(instance *v1alpha1.Rabbitmq) *apps.StatefulSet {
+func GetSTS(instance *v1alpha1.Rabbitmq, databaseNodeType string) *apps.StatefulSet {
 	var labelsMountPermission int32 = 0644
 
 	var nodeEnv = []core.EnvVar{
@@ -31,7 +31,7 @@ func GetSTS(instance *v1alpha1.Rabbitmq) *apps.StatefulSet {
 		},
 		{
 			Name:  "NODE_TYPE",
-			Value: "config-database",
+			Value: databaseNodeType,
 		},
 	}
 

@@ -2,6 +2,7 @@ package cassandra
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
@@ -225,7 +226,14 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 
 	cassandraConfig := instance.ConfigurationParameters()
 
-	statefulSet := GetSTS(cassandraConfig)
+	databaseNodeType, err := v1alpha1.GetDatabaseNodeType(r.Client)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	if strings.HasPrefix(request.Name, "analyticsdb") {
+		databaseNodeType = "database"
+	}
+	statefulSet := GetSTS(cassandraConfig, databaseNodeType)
 	if err = instance.PrepareSTS(statefulSet, &instance.Spec.CommonConfiguration, request, r.Scheme); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -381,7 +389,7 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	}
 	changedServices := make(map[*corev1.Pod][]string)
 	for _, pod := range podIPList {
-		if diff := instance.ConfigDataDiff(&pod, configMap, newConfigMap); len(diff) > 0 {
+		if diff := instance.ConfigDataDiff(&pod, configMap, newConfigMap, databaseNodeType); len(diff) > 0 {
 			changedServices[&pod] = diff
 		}
 	}

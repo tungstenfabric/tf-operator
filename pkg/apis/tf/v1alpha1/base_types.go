@@ -1757,6 +1757,22 @@ func GetAnalyticsCassandraInstance(cl client.Client) (string, error) {
 	return name, nil
 }
 
+// Return NODE_TYPE for database depending on setup
+func GetDatabaseNodeType(cl client.Client) (string, error) {
+	var mgr *Manager
+	var err error
+	if mgr, err = GetManagerObject(cl); err != nil {
+		return "", err
+	}
+	if len(mgr.Spec.Services.Cassandras) == 0 {
+		return "", fmt.Errorf("Cannot detect Analytics DB name - empty cassandra list")
+	}
+	if len(mgr.Spec.Services.Cassandras) == 1 {
+		return "database", nil
+	}
+	return "config-database", nil
+}
+
 func updateMap(values map[string]string, data *map[string]string) {
 	for k, v := range values {
 		(*data)[k] = v

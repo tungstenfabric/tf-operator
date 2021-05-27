@@ -10,7 +10,8 @@ import (
 
 func TestSTSEnv(t *testing.T) {
 	instance := v1alpha1.Rabbitmq{}
-	sts := GetSTS(&instance)
+	databaseNodeType := "config-database"
+	sts := GetSTS(&instance, databaseNodeType)
 	for _, env := range sts.Spec.Template.Spec.Containers[0].Env {
 		if env.Name == "NODE_TYPE" {
 			assert.Equal(t, "config-database", env.Value)

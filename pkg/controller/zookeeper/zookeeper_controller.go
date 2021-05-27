@@ -188,7 +188,11 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
-	statefulSet := GetSTS()
+	databaseNodeType, err := v1alpha1.GetDatabaseNodeType(r.Client)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	statefulSet := GetSTS(databaseNodeType)
 	if err := instance.PrepareSTS(statefulSet, &instance.Spec.CommonConfiguration, request, r.Scheme); err != nil {
 		return reconcile.Result{}, err
 	}
