@@ -74,7 +74,6 @@ type ConfigConfiguration struct {
 	DeviceManagerIntrospectPort *int                    `json:"deviceManagerIntrospectPort,omitempty"`
 	SvcMonitorIntrospectPort    *int                    `json:"svcMonitorIntrospectPort,omitempty"`
 	AnalyticsInstance           string                  `json:"analyticsInstance,omitempty"`
-	ZookeeperInstance           string                  `json:"zookeeperInstance,omitempty"`
 	LogLevel                    string                  `json:"logLevel,omitempty"`
 	AAAMode                     AAAMode                 `json:"aaaMode,omitempty"`
 	FabricMgmtIP                string                  `json:"fabricMgmtIP,omitempty"`
@@ -134,7 +133,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 	}
 
 	zookeeperNodesInformation, err := NewZookeeperClusterConfiguration(
-		c.Spec.ServiceConfiguration.ZookeeperInstance, request.Namespace, client)
+		ZookeeperInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}

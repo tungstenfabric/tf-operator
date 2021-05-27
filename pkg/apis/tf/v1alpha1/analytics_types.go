@@ -57,8 +57,6 @@ type AnalyticsConfiguration struct {
 	CollectorPort              *int         `json:"collectorPort,omitempty"`
 	AnalyticsApiIntrospectPort *int         `json:"analyticsIntrospectPort,omitempty"`
 	CollectorIntrospectPort    *int         `json:"collectorIntrospectPort,omitempty"`
-	ZookeeperInstance          string       `json:"zookeeperInstance,omitempty"`
-	RedisInstance              string       `json:"redisInstance,omitempty"`
 	LogLevel                   string       `json:"logLevel,omitempty"`
 	AAAMode                    AAAMode      `json:"aaaMode,omitempty"`
 	// Time (in hours) that the analytics object and log data stays in the Cassandra database. Defaults to 48 hours.
@@ -120,13 +118,13 @@ func (c *Analytics) InstanceConfiguration(configMapName string,
 	}
 
 	zookeeperNodesInformation, err := NewZookeeperClusterConfiguration(
-		c.Spec.ServiceConfiguration.ZookeeperInstance, request.Namespace, client)
+		ZookeeperInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}
 
 	redisNodesInformation, err := NewRedisClusterConfiguration(
-		c.Spec.ServiceConfiguration.RedisInstance, request.Namespace, client)
+		RedisInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}

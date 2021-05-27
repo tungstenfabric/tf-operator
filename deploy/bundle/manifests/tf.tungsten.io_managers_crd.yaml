@@ -402,8 +402,6 @@ spec:
                               type: array
                             logLevel:
                               type: string
-                            redisInstance:
-                              type: string
                             storage:
                               properties:
                                 path:
@@ -412,8 +410,6 @@ spec:
                                   pattern: ^([0-9]+)([KMGTPE]i)?$
                                   type: string
                               type: object
-                            zookeeperInstance:
-                              type: string
                           type: object
                       required:
                       - serviceConfiguration

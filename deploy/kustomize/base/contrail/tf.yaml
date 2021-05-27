@@ -17,8 +17,6 @@ spec:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
           logLevel: SYS_DEBUG
-          zookeeperInstance: zookeeper1
-          redisInstance: redis1
           containers:
           - name: analyticsapi
             image: contrail-analytics-api
@@ -40,8 +38,6 @@ spec:
         serviceConfiguration:
           logLevel: SYS_DEBUG
           analyticsInstance: analytics1
-          zookeeperInstance: zookeeper1
-          redisInstance: redis1
           containers:
           - name: queryengine
             image: contrail-analytics-query-engine
@@ -56,7 +52,6 @@ spec:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
           logLevel: SYS_DEBUG
-          zookeeperInstance: zookeeper1
           analyticsInstance: analytics1
           containers:
           - name: nodemanager
@@ -78,9 +73,7 @@ spec:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
           logLevel: SYS_DEBUG
-          zookeeperInstance: zookeeper1
           analyticsInstance: analytics1
-          redisInstance: redis1
           containers:
           - name: nodemanager
             image: contrail-nodemgr
@@ -119,7 +112,6 @@ spec:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
           logLevel: SYS_DEBUG
-          zookeeperInstance: zookeeper1
           analyticsInstance: analytics1
           containers:
           - name: api
@@ -173,7 +165,6 @@ spec:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
           logLevel: SYS_DEBUG
-          zookeeperInstance: zookeeper1
           analyticsInstance: analytics1
           ipFabricForwarding: false
           ipFabricSnat: true
@@ -224,7 +215,6 @@ spec:
         serviceConfiguration:
           analyticsInstance: analytics1
           controlInstance: control1
-          redisInstance: redis1
           logLevel: SYS_DEBUG
           containers:
           - name: webuijob

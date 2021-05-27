@@ -239,10 +239,6 @@ spec:
                 logLevel:
                   type: string
                   type: string
-                redisInstance:
-                  type: string
-                zookeeperInstance:
-                  type: string
               type: object
           required:
           - serviceConfiguration

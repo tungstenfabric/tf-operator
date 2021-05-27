@@ -233,9 +233,9 @@ func (r *ReconcileAnalyticsAlarm) Reconcile(request reconcile.Request) (reconcil
 	configInstance := v1alpha1.Config{}
 	analyticsInstance := v1alpha1.Analytics{}
 	cassandraActive := cassandraInstance.IsActive(v1alpha1.CassandraInstance, request.Namespace, r.Client)
-	zookeeperActive := zookeeperInstance.IsActive(instance.Spec.ServiceConfiguration.ZookeeperInstance, request.Namespace, r.Client)
+	zookeeperActive := zookeeperInstance.IsActive(v1alpha1.ZookeeperInstance, request.Namespace, r.Client)
 	rabbitmqActive := rabbitmqInstance.IsActive(v1alpha1.RabbitmqInstance, request.Namespace, r.Client)
-	redisActive := redisInstance.IsActive(instance.Spec.ServiceConfiguration.RedisInstance, request.Namespace, r.Client)
+	redisActive := redisInstance.IsActive(v1alpha1.RedisInstance, request.Namespace, r.Client)
 	configActive := configInstance.IsActive(v1alpha1.ConfigInstance, request.Namespace, r.Client)
 	analyticsActive := analyticsInstance.IsActive(instance.Spec.ServiceConfiguration.AnalyticsInstance, request.Namespace, r.Client)
 	if !cassandraActive || !zookeeperActive || !rabbitmqActive || !redisActive || !configActive || !analyticsActive {
