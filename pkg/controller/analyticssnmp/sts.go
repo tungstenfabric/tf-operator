@@ -17,6 +17,8 @@ spec:
       app: analyticssnmp
   serviceName: "analyticssnmp"
   replicas: 1
+  updateStrategy:
+    type: OnDelete
   template:
     metadata:
       labels:

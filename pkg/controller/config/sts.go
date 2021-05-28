@@ -16,6 +16,8 @@ spec:
       app: config
   serviceName: "config"
   replicas: 1
+  updateStrategy:
+    type: OnDelete
   template:
     metadata:
       labels:

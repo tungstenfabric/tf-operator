@@ -17,6 +17,8 @@ spec:
       tf_manager: analyticsalarm
   serviceName: "analyticsalarm"
   replicas: 1
+  updateStrategy:
+    type: OnDelete
   template:
     metadata:
       labels:

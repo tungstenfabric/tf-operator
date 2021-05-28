@@ -16,6 +16,8 @@ spec:
       app: queryengine
   serviceName: "queryengine"
   replicas: 1
+  updateStrategy:
+    type: OnDelete
   template:
     metadata:
       labels:
