@@ -71,7 +71,6 @@ CONFIG_API_SSL_ENABLE="{{ .ServiceConfig.ConfigApiSslEnable }}"
 #SRIOV_VF="{{ .ServiceConfig.SriovVf }}"
 
 # Introspect
-#INTROSPECT_LISTEN_ALL="{{ .ServiceConfig.IntrospectListenAll }}"
 INTROSPECT_SSL_ENABLE="{{ .ServiceConfig.IntrospectSslEnable }}"
 
 # Keystone authentication

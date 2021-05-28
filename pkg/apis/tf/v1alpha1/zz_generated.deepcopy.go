@@ -1781,11 +1781,6 @@ func (in *ManagerConfiguration) DeepCopyInto(out *ManagerConfiguration) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.IntrospectListenAll != nil {
-		in, out := &in.IntrospectListenAll, &out.IntrospectListenAll
-		*out = new(bool)
-		**out = **in
-	}
 	if in.AuthParameters != nil {
 		in, out := &in.AuthParameters, &out.AuthParameters
 		*out = new(AuthParameters)
@@ -2028,11 +2023,6 @@ func (in *PodConfiguration) DeepCopyInto(out *PodConfiguration) {
 	if in.Replicas != nil {
 		in, out := &in.Replicas, &out.Replicas
 		*out = new(int32)
-		**out = **in
-	}
-	if in.IntrospectListenAll != nil {
-		in, out := &in.IntrospectListenAll, &out.IntrospectListenAll
-		*out = new(bool)
 		**out = **in
 	}
 	if in.AuthParameters != nil {
