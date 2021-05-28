@@ -118,13 +118,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	podHandler := resourceHandler(mgr.GetClient())
 	predPodIPChange := utils.PodIPChange(serviceMap)
 
-	if err = c.Watch(&source.Kind{Type: &corev1.Service{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &v1alpha1.QueryEngine{},
-	}); err != nil {
-		return err
-	}
-
 	if err = c.Watch(srcPod, podHandler, predPodIPChange); err != nil {
 		return err
 	}
@@ -364,7 +357,7 @@ func (r *ReconcileQueryEngine) Reconcile(request reconcile.Request) (reconcile.R
 		return requeueReconcile, nil
 	}
 	if len(podIPMap) > 0 {
-		if err := r.ensureCertificatesExist(instance, podIPList, instanceType); err != nil {
+		if err := v1alpha1.EnsureCertificatesExist(instance, podIPList, instanceType, r.Client, r.Scheme); err != nil {
 			reqLogger.Error(err, "Failed to ensure CertificatesExist")
 			return reconcile.Result{}, err
 		}
@@ -430,14 +423,4 @@ func (r *ReconcileQueryEngine) Reconcile(request reconcile.Request) (reconcile.R
 
 	reqLogger.Info("Done")
 	return reconcile.Result{}, nil
-}
-
-func (r *ReconcileQueryEngine) ensureCertificatesExist(instance *v1alpha1.QueryEngine, pods []corev1.Pod, instanceType string) error {
-	domain, err := v1alpha1.ClusterDNSDomain(r.Client)
-	if err != nil {
-		return err
-	}
-	subjects := instance.PodsCertSubjects(domain, pods)
-	crt := certificates.NewCertificate(r.Client, r.Scheme, instance, subjects, instanceType)
-	return crt.EnsureExistsAndIsSigned()
 }

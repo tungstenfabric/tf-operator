@@ -355,12 +355,6 @@ func (c *AnalyticsAlarm) CreateSecret(secretName string,
 		c)
 }
 
-//PodsCertSubjects gets list of Vrouter pods certificate subjets which can be passed to the certificate API
-func (c *AnalyticsAlarm) PodsCertSubjects(domain string, podList []corev1.Pod) []certificates.CertificateSubject {
-	var altIPs PodAlternativeIPs
-	return PodsCertSubjects(domain, podList, altIPs)
-}
-
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *AnalyticsAlarm) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
 	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, "")

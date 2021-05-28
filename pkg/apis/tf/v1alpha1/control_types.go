@@ -434,19 +434,6 @@ func (c *Control) PodIPListAndIPMapFromInstance(instanceType string, request rec
 	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, datanetwork)
 }
 
-func retrieveDataIPs(pod corev1.Pod) []string {
-	var altIPs []string
-	altIP, _ := getPodDataIP(&pod)
-	altIPs = append(altIPs, altIP)
-	return altIPs
-}
-
-//PodsCertSubjects gets list of Control pods certificate subjects which can be passed to the certificate API
-func (c *Control) PodsCertSubjects(domain string, podList []corev1.Pod) []certificates.CertificateSubject {
-	altIPs := PodAlternativeIPs{Retriever: retrieveDataIPs}
-	return PodsCertSubjects(domain, podList, altIPs)
-}
-
 // SetInstanceActive sets instance to active.
 func (c *Control) SetInstanceActive(client client.Client, activeStatus *bool, degradedStatus *bool, sts *appsv1.StatefulSet, request reconcile.Request) error {
 	return SetInstanceActive(client, activeStatus, degradedStatus, sts, request, c)

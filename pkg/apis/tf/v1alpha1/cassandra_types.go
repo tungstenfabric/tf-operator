@@ -366,12 +366,6 @@ func (c *Cassandra) PodIPListAndIPMapFromInstance(instanceType string, request r
 	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, "")
 }
 
-//PodsCertSubjects gets list of Cassandra pods certificate subjets which can be passed to the certificate API
-func (c *Cassandra) PodsCertSubjects(domain string, podList []corev1.Pod, serviceIP string) []certificates.CertificateSubject {
-	altIPs := PodAlternativeIPs{ServiceIP: serviceIP}
-	return PodsCertSubjects(domain, podList, altIPs)
-}
-
 // QuerySTS queries the Cassandra STS
 func (c *Cassandra) QuerySTS(name string, namespace string, reconcileClient client.Client) (*appsv1.StatefulSet, error) {
 	return QuerySTS(name, namespace, reconcileClient)

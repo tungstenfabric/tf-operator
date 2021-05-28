@@ -69,14 +69,6 @@ func (s *Service) ClusterIP() string {
 	return s.svc.Spec.ClusterIP
 }
 
-// ExternalIP is used to read externalIP of service
-func (s *Service) ExternalIP() string {
-	if len(s.svc.Status.LoadBalancer.Ingress) == 0 {
-		return ""
-	}
-	return s.svc.Status.LoadBalancer.Ingress[0].IP
-}
-
 // NodePort is used get nodeport associated with service
 func (s *Service) NodePort(name string) int32 {
 	for _, p := range s.svc.Spec.Ports {

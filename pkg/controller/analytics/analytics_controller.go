@@ -390,7 +390,7 @@ func (r *ReconcileAnalytics) Reconcile(request reconcile.Request) (reconcile.Res
 	}
 
 	if len(podIPMap) > 0 {
-		if err := r.ensureCertificatesExist(instance, podIPList, instanceType); err != nil {
+		if err := v1alpha1.EnsureCertificatesExist(instance, podIPList, instanceType, r.Client, r.Scheme); err != nil {
 			reqLogger.Error(err, "Failed to ensure CertificatesExist")
 			return reconcile.Result{}, err
 		}
@@ -464,14 +464,4 @@ func (r *ReconcileAnalytics) Reconcile(request reconcile.Request) (reconcile.Res
 
 	reqLogger.Info("Done")
 	return reconcile.Result{}, nil
-}
-
-func (r *ReconcileAnalytics) ensureCertificatesExist(instance *v1alpha1.Analytics, pods []corev1.Pod, instanceType string) error {
-	domain, err := v1alpha1.ClusterDNSDomain(r.Client)
-	if err != nil {
-		return err
-	}
-	subjects := instance.PodsCertSubjects(domain, pods)
-	crt := certificates.NewCertificate(r.Client, r.Scheme, instance, subjects, instanceType)
-	return crt.EnsureExistsAndIsSigned()
 }

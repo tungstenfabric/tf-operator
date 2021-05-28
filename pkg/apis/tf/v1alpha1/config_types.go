@@ -522,12 +522,6 @@ func (c *Config) PodIPListAndIPMapFromInstance(request reconcile.Request, reconc
 	return PodIPListAndIPMapFromInstance("config", request, reconcileClient, "")
 }
 
-//PodsCertSubjects gets list of Config pods certificate subjets which can be passed to the certificate API
-func (c *Config) PodsCertSubjects(domain string, podList []corev1.Pod) []certificates.CertificateSubject {
-	var altIPs PodAlternativeIPs
-	return PodsCertSubjects(domain, podList, altIPs)
-}
-
 // ManageNodeStatus updates nodes in status
 func (c *Config) ManageNodeStatus(podNameIPMap map[string]string,
 	client client.Client) (updated bool, err error) {

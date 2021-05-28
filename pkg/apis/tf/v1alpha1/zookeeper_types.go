@@ -334,12 +334,6 @@ func (c *Zookeeper) ConfigurationParameters() ZookeeperConfiguration {
 	return zookeeperConfiguration
 }
 
-// PodsCertSubjects gets list of Zookeeper pods certificate subjets which can be passed to the certificate API
-func (c *Zookeeper) PodsCertSubjects(domain string, podList []corev1.Pod) []certificates.CertificateSubject {
-	var altIPs PodAlternativeIPs
-	return PodsCertSubjects(domain, podList, altIPs)
-}
-
 // CommonStartupScript prepare common run service script
 //  command - is a final command to run
 //  configs - config files to be waited for and to be linked from configmap mount

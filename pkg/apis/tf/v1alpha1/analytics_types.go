@@ -422,12 +422,6 @@ func (c *Analytics) PodIPListAndIPMapFromInstance(request reconcile.Request, rec
 	return PodIPListAndIPMapFromInstance("analytics", request, reconcileClient, "")
 }
 
-//PodsCertSubjects gets list of Analytics pods certificate subjets which can be passed to the certificate API
-func (c *Analytics) PodsCertSubjects(domain string, podList []corev1.Pod) []certificates.CertificateSubject {
-	var altIPs PodAlternativeIPs
-	return PodsCertSubjects(domain, podList, altIPs)
-}
-
 // ManageNodeStatus updates nodes in status
 func (c *Analytics) ManageNodeStatus(podNameIPMap map[string]string,
 	client client.Client) (updated bool, err error) {

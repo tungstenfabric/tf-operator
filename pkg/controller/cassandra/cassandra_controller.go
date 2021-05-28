@@ -362,7 +362,7 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		minPods = replicas/2 + 1
 	}
 	if len(podIPList) >= int(minPods) {
-		if err := r.ensureCertificatesExist(instance, podIPList, "", instanceType); err != nil {
+		if err := v1alpha1.EnsureCertificatesExist(instance, podIPList, instanceType, r.Client, r.Scheme); err != nil {
 			return reconcile.Result{}, err
 		}
 		if err = instance.InstanceConfiguration(request, podIPList, r.Client); err != nil {
@@ -414,14 +414,4 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		return requeueReconcile, nil
 	}
 	return reconcile.Result{}, nil
-}
-
-func (r *ReconcileCassandra) ensureCertificatesExist(instance *v1alpha1.Cassandra, pods []corev1.Pod, serviceIP string, instanceType string) error {
-	domain, err := v1alpha1.ClusterDNSDomain(r.Client)
-	if err != nil {
-		return err
-	}
-	subjects := instance.PodsCertSubjects(domain, pods, serviceIP)
-	crt := certificates.NewCertificate(r.Client, r.Scheme, instance, subjects, instanceType)
-	return crt.EnsureExistsAndIsSigned()
 }

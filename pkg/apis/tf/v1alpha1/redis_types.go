@@ -11,7 +11,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
-	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -159,12 +158,6 @@ func (c *Redis) SetInstanceActive(client client.Client, activeStatus *bool, degr
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *Redis) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
 	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, "")
-}
-
-//PodsCertSubjects gets list of Redis pods certificate subjets which can be passed to the certificate API
-func (c *Redis) PodsCertSubjects(domain string, podList []corev1.Pod) []certificates.CertificateSubject {
-	var altIPs PodAlternativeIPs
-	return PodsCertSubjects(domain, podList, altIPs)
 }
 
 // QuerySTS queries the Redis STS

@@ -6,7 +6,9 @@ import (
 	"fmt"
 
 	core "k8s.io/api/core/v1"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -23,21 +25,29 @@ type Certificate struct {
 	certificateSubjects []CertificateSubject
 }
 
+func getSigner(cl client.Client, owner v1.Object) (certificateSigner, error) {
+	return &signer{
+		client: cl,
+		owner:  owner,
+	}, nil
+}
+
 // NewCertificate creates new cert
-func NewCertificate(cl client.Client, scheme *runtime.Scheme, owner v1.Object, subjects []CertificateSubject, ownerType string) *Certificate {
+func NewCertificate(cl client.Client, scheme *runtime.Scheme, owner v1.Object, subjects []CertificateSubject, ownerType string) (*Certificate, error) {
 	secretName := owner.GetName() + "-secret-certificates"
 	kubernetes := k8s.New(cl, scheme)
-	return &Certificate{
-		client: cl,
-		scheme: scheme,
-		owner:  owner,
-		sc:     kubernetes.Secret(secretName, ownerType, owner),
-		signer: &signer{
-			client: cl,
-			owner:  owner,
-		},
-		certificateSubjects: subjects,
+	signer, err := getSigner(cl, owner)
+	if err != nil {
+		return nil, err
 	}
+	return &Certificate{
+		client:              cl,
+		scheme:              scheme,
+		owner:               owner,
+		sc:                  kubernetes.Secret(secretName, ownerType, owner),
+		signer:              signer,
+		certificateSubjects: subjects,
+	}, nil
 }
 
 // EnsureExistsAndIsSigned ensures cert is signed

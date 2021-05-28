@@ -449,12 +449,6 @@ func (c *Vrouter) PodIPListAndIPMapFromInstance(instanceType string, request rec
 	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, "")
 }
 
-//PodsCertSubjects gets list of Vrouter pods certificate subjets which can be passed to the certificate API
-func (c *Vrouter) PodsCertSubjects(domain string, podList []corev1.Pod) []certificates.CertificateSubject {
-	var altIPs PodAlternativeIPs
-	return PodsCertSubjects(domain, podList, altIPs)
-}
-
 // CreateEnvConfigMap creates vRouter configMaps with rendered values
 func (c *Vrouter) CreateEnvConfigMap(instanceType string, client client.Client, scheme *runtime.Scheme, request reconcile.Request) (*corev1.ConfigMap, error) {
 	envVariablesConfigMapName := request.Name + "-" + instanceType + "-configmap-env"

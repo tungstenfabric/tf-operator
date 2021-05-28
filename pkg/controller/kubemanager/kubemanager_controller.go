@@ -359,8 +359,8 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 			return reconcile.Result{}, err
 		}
 
-		if err := r.ensureCertificatesExist(instance, podIPList, instanceType); err != nil {
-			reqLogger.Error(err, "ensureCertificatesExist failed")
+		if err := v1alpha1.EnsureCertificatesExist(instance, podIPList, instanceType, r.Client, r.Scheme); err != nil {
+			reqLogger.Error(err, "EnsureCertificatesExist failed")
 			return reconcile.Result{}, err
 		}
 
@@ -415,14 +415,4 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 
 	reqLogger.Info("Done")
 	return reconcile.Result{}, nil
-}
-
-func (r *ReconcileKubemanager) ensureCertificatesExist(instance *v1alpha1.Kubemanager, pods []corev1.Pod, instanceType string) error {
-	domain, err := v1alpha1.ClusterDNSDomain(r.Client)
-	if err != nil {
-		return err
-	}
-	subjects := instance.PodsCertSubjects(domain, pods)
-	crt := certificates.NewCertificate(r.Client, r.Scheme, instance, subjects, instanceType)
-	return crt.EnsureExistsAndIsSigned()
 }

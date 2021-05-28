@@ -446,8 +446,8 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 			return reconcile.Result{}, err
 		}
 
-		if err := r.ensureCertificatesExist(instance, podIPList, instanceType); err != nil {
-			log.Error(err, "ensureCertificatesExist failed")
+		if err := v1alpha1.EnsureCertificatesExist(instance, podIPList, instanceType, r.Client, r.Scheme); err != nil {
+			log.Error(err, "EnsureCertificatesExist failed")
 			return reconcile.Result{}, err
 		}
 
@@ -530,14 +530,4 @@ func (r *ReconcileWebui) listWebUIPods(webUIName string) ([]corev1.Pod, error) {
 		res = append(res, pod)
 	}
 	return res, nil
-}
-
-func (r *ReconcileWebui) ensureCertificatesExist(instance *v1alpha1.Webui, pods []corev1.Pod, instanceType string) error {
-	domain, err := v1alpha1.ClusterDNSDomain(r.Client)
-	if err != nil {
-		return err
-	}
-	subjects := instance.PodsCertSubjects(domain, pods)
-	crt := certificates.NewCertificate(r.Client, r.Scheme, instance, subjects, instanceType)
-	return crt.EnsureExistsAndIsSigned()
 }

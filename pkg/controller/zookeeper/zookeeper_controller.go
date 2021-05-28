@@ -306,7 +306,7 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 			reqLogger.Error(err, "Failed to update config map.")
 			return reconcile.Result{}, err
 		}
-		if err := r.ensureCertificatesExist(instance, podIPList, instanceType); err != nil {
+		if err := v1alpha1.EnsureCertificatesExist(instance, podIPList, instanceType, r.Client, r.Scheme); err != nil {
 			reqLogger.Error(err, "Failed to ensure certificates exist.")
 			return reconcile.Result{}, err
 		}
@@ -352,14 +352,4 @@ func (r *ReconcileZookeeper) ensurePodDisruptionBudgetExists(zookeeper *v1alpha1
 	})
 
 	return err
-}
-
-func (r *ReconcileZookeeper) ensureCertificatesExist(instance *v1alpha1.Zookeeper, pods []corev1.Pod, instanceType string) error {
-	domain, err := v1alpha1.ClusterDNSDomain(r.Client)
-	if err != nil {
-		return err
-	}
-	subjects := instance.PodsCertSubjects(domain, pods)
-	crt := certificates.NewCertificate(r.Client, r.Scheme, instance, subjects, instanceType)
-	return crt.EnsureExistsAndIsSigned()
 }

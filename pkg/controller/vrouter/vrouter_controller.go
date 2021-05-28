@@ -444,7 +444,7 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	if len(podIPMap) > 0 {
-		if err := r.ensureCertificatesExist(instance, podIPList, instanceType); err != nil {
+		if err := v1alpha1.EnsureCertificatesExist(instance, podIPList, instanceType, r.Client, r.Scheme); err != nil {
 			reqLogger.Error(err, "Failed to ensure certificates exist.")
 			return reconcile.Result{}, err
 		}
@@ -513,14 +513,4 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	return reconcile.Result{}, nil
-}
-
-func (r *ReconcileVrouter) ensureCertificatesExist(vrouter *v1alpha1.Vrouter, pods []corev1.Pod, instanceType string) error {
-	domain, err := v1alpha1.ClusterDNSDomain(r.Client)
-	if err != nil {
-		return err
-	}
-	subjects := vrouter.PodsCertSubjects(domain, pods)
-	crt := certificates.NewCertificate(r.Client, r.Scheme, vrouter, subjects, instanceType)
-	return crt.EnsureExistsAndIsSigned()
 }
