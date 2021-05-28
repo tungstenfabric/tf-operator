@@ -122,7 +122,6 @@ type VrouterConfiguration struct {
 	SriovVf               string `json:"sriovVf,omitempty"`
 
 	// Introspect
-	IntrospectListenAll *bool `json:"introspectListenAll,omitempty"`
 	IntrospectSslEnable *bool `json:"introspectSslEnable,omitempty"`
 
 	// Keystone authentication

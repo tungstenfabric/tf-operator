@@ -338,9 +338,6 @@ func MergeCommonConfiguration(manager v1alpha1.ManagerConfiguration,
 	if len(instance.Tolerations) == 0 && len(manager.Tolerations) > 0 {
 		instance.Tolerations = manager.Tolerations
 	}
-	if instance.IntrospectListenAll == nil && manager.IntrospectListenAll != nil {
-		instance.IntrospectListenAll = manager.IntrospectListenAll
-	}
 	if instance.TuneSysctl == nil {
 		if manager.TuneSysctl != nil {
 			instance.TuneSysctl = manager.TuneSysctl
