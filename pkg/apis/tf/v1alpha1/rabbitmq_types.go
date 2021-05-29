@@ -351,8 +351,8 @@ func (c *Rabbitmq) CreateSTS(sts *appsv1.StatefulSet, instanceType string, reque
 }
 
 // UpdateSTS updates the STS.
-func (c *Rabbitmq) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
-	return UpdateSTS(sts, instanceType, request, reconcileClient, "rolling")
+func (c *Rabbitmq) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, client client.Client) (bool, error) {
+	return UpdateServiceSTS(c, instanceType, sts, false, client)
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.

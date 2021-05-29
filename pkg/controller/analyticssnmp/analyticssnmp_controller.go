@@ -263,7 +263,7 @@ func (r *ReconcileAnalyticsSnmp) Reconcile(request reconcile.Request) (reconcile
 		return requeueReconcile, err
 	}
 
-	if updated, err := instance.UpdateSTS(statefulSet, instanceType, request, r.Client); err != nil || updated {
+	if updated, err := instance.UpdateSTS(statefulSet, instanceType, r.Client); err != nil || updated {
 		if err != nil {
 			return reconcile.Result{}, err
 		}

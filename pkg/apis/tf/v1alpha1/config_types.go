@@ -534,9 +534,9 @@ func (c *Config) CreateSTS(sts *appsv1.StatefulSet, instanceType string, request
 	return CreateSTS(sts, instanceType, request, reconcileClient)
 }
 
-//UpdateSTS updates the STS
-func (c *Config) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
-	return UpdateSTS(sts, instanceType, request, reconcileClient, "deleteFirst")
+// UpdateSTS updates the STS.
+func (c *Config) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, client client.Client) (bool, error) {
+	return UpdateServiceSTS(c, instanceType, sts, false, client)
 }
 
 // SetInstanceActive sets the Config instance to active
