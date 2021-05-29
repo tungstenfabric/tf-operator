@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
-	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
 	appsv1 "k8s.io/api/apps/v1"
@@ -382,9 +381,11 @@ func (r *ReconcileAnalyticsSnmp) GetSTS(request reconcile.Request, instance *v1a
 
 	// Add volumes to stateful set
 	v1alpha1.AddVolumesToIntendedSTS(statefulSet, map[string]string{
-		FullName("configmap", request):     FullName("volume", request),
-		certificates.SignerCAConfigMapName: request.Name + "-csr-signer-ca",
+		FullName("configmap", request): FullName("volume", request),
 	})
+
+	v1alpha1.AddCAVolumeToIntendedSTS(statefulSet)
+
 	v1alpha1.AddSecretVolumesToIntendedSTS(statefulSet, map[string]string{
 		request.Name + "-secret-certificates": request.Name + "-secret-certificates",
 	})
@@ -426,15 +427,8 @@ func (r *ReconcileAnalyticsSnmp) GetSTS(request reconcile.Request, instance *v1a
 				Name:      FullName("volume", request),
 				MountPath: "/etc/contrailconfigmaps",
 			},
-			corev1.VolumeMount{
-				Name:      request.Name + "-secret-certificates",
-				MountPath: "/etc/certificates",
-			},
-			corev1.VolumeMount{
-				Name:      request.Name + "-csr-signer-ca",
-				MountPath: certificates.SignerCAMountPath,
-			},
 		)
+		v1alpha1.AddCertsMounts(request.Name, container)
 
 		if container.Name == "analytics-snmp-collector" {
 			if container.Command == nil {

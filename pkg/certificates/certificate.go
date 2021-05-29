@@ -21,25 +21,14 @@ type Certificate struct {
 	scheme              *runtime.Scheme
 	owner               v1.Object
 	sc                  *k8s.Secret
-	signer              certificateSigner
+	signer              CertificateSigner
 	certificateSubjects []CertificateSubject
 }
 
-func getSigner(cl client.Client, owner v1.Object) (certificateSigner, error) {
-	return &signer{
-		client: cl,
-		owner:  owner,
-	}, nil
-}
-
 // NewCertificate creates new cert
-func NewCertificate(cl client.Client, scheme *runtime.Scheme, owner v1.Object, subjects []CertificateSubject, ownerType string) (*Certificate, error) {
+func NewCertificate(signer CertificateSigner, cl client.Client, scheme *runtime.Scheme, owner v1.Object, subjects []CertificateSubject, ownerType string) (*Certificate, error) {
 	secretName := owner.GetName() + "-secret-certificates"
 	kubernetes := k8s.New(cl, scheme)
-	signer, err := getSigner(cl, owner)
-	if err != nil {
-		return nil, err
-	}
 	return &Certificate{
 		client:              cl,
 		scheme:              scheme,
@@ -55,8 +44,8 @@ func (r *Certificate) EnsureExistsAndIsSigned() error {
 	return r.sc.EnsureExists(r)
 }
 
-type certificateSigner interface {
-	SignCertificate(certTemplate x509.Certificate, privateKey rsa.PrivateKey) ([]byte, error)
+type CertificateSigner interface {
+	SignCertificate(secret *core.Secret, certTemplate x509.Certificate, privateKey *rsa.PrivateKey) ([]byte, error)
 }
 
 // FillSecret fill secret with data
@@ -92,7 +81,7 @@ func (r *Certificate) createCertificateForPod(subject CertificateSubject, secret
 		return fmt.Errorf("failed to generate certificate template for %s, %s: %w", subject.hostname, subject.name, err)
 	}
 
-	certBytes, err := r.signer.SignCertificate(certificateTemplate, *privateKey)
+	certBytes, err := r.signer.SignCertificate(secret, certificateTemplate, privateKey)
 	if err != nil {
 		return fmt.Errorf("failed to sign certificate for %s, %s: %w", subject.hostname, subject.name, err)
 	}

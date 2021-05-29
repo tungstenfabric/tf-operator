@@ -16,7 +16,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
-	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -195,7 +194,7 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 		err = configtemplates.CassandraCqlShrc.Execute(&cassandraCqlShrcBuffer, struct {
 			CAFilePath string
 		}{
-			CAFilePath: certificates.SignerCAFilepath,
+			CAFilePath: SignerCAFilepath,
 		})
 		if err != nil {
 			panic(err)
@@ -239,7 +238,7 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 			CollectorServerList:      collectorEndpointListSpaceSeparated,
 			CassandraPort:            strconv.Itoa(*cassandraConfig.CqlPort),
 			CassandraJmxPort:         strconv.Itoa(*cassandraConfig.JmxLocalPort),
-			CAFilePath:               certificates.SignerCAFilepath,
+			CAFilePath:               SignerCAFilepath,
 			MinimumDiskGB:            *cassandraConfig.MinimumDiskGB,
 			// TODO: move to params
 			LogLevel:                 logLevel,
@@ -261,7 +260,7 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 		}{
 			APIServerList:          apiServerIPListCommaSeparated,
 			APIServerPort:          strconv.Itoa(configNodesInformation.APIServerPort),
-			CAFilePath:             certificates.SignerCAFilepath,
+			CAFilePath:             SignerCAFilepath,
 			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 			KeystoneAuthParameters: c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters,
 			PodIP:                  pod.Status.PodIP,
@@ -335,7 +334,7 @@ func (c *Cassandra) CreateConfigMap(configMapName string,
 	}{
 		KeystorePassword:   string(cassandraSecret.Data["keystorePassword"]),
 		TruststorePassword: string(cassandraSecret.Data["truststorePassword"]),
-		CAFilePath:         certificates.SignerCAFilepath,
+		CAFilePath:         SignerCAFilepath,
 		JmxLocalPort:       strconv.Itoa(*cassandraConfig.JmxLocalPort),
 	})
 	if err != nil {

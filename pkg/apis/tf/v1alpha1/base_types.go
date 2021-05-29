@@ -361,6 +361,13 @@ func PodsCertSubjects(domain string, podList []corev1.Pod, podAltIPs PodAlternat
 	return pods
 }
 
+// GetConfigMap creates a config map based on the instance type.
+func GetConfigMap(name, ns string, client client.Client) (*corev1.ConfigMap, error) {
+	configMap := &corev1.ConfigMap{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: ns}, configMap)
+	return configMap, err
+}
+
 // CreateConfigMap creates a config map based on the instance type.
 func CreateConfigMap(
 	configMapName string,
@@ -370,8 +377,7 @@ func CreateConfigMap(
 	instanceType string,
 	object v1.Object) (*corev1.ConfigMap, error) {
 
-	configMap := &corev1.ConfigMap{}
-	err := client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: request.Namespace}, configMap)
+	configMap, err := GetConfigMap(configMapName, request.Namespace, client)
 	if err == nil {
 		if configMap.Data == nil {
 			configMap.Data = make(map[string]string)
@@ -509,9 +515,8 @@ func SetSTSCommonConfiguration(sts *appsv1.StatefulSet,
 	}
 }
 
-// AddVolumesToIntendedSTS adds volumes to a deployment.
-func AddVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeConfigMapMap map[string]string) {
-	volumeList := sts.Spec.Template.Spec.Volumes
+func AddVolumesToPodSpec(spec *corev1.PodSpec, volumeConfigMapMap map[string]string) {
+	volumeList := spec.Volumes
 	for configMapName, volumeName := range volumeConfigMapMap {
 		volume := corev1.Volume{
 			Name: volumeName,
@@ -525,7 +530,52 @@ func AddVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeConfigMapMap map[str
 		}
 		volumeList = append(volumeList, volume)
 	}
-	sts.Spec.Template.Spec.Volumes = volumeList
+	spec.Volumes = volumeList
+}
+
+// AddVolumesToIntendedSTS adds volumes to a deployment.
+func AddVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeConfigMapMap map[string]string) {
+	AddVolumesToPodSpec(&sts.Spec.Template.Spec, volumeConfigMapMap)
+}
+
+// AddVolumesToIntendedDS adds volumes to a deployment.
+func AddVolumesToIntendedDS(ds *appsv1.DaemonSet, volumeConfigMapMap map[string]string) {
+	AddVolumesToPodSpec(&ds.Spec.Template.Spec, volumeConfigMapMap)
+}
+
+// AddCAVolumeToIntendedSTS adds volumes to a deployment.
+func AddCAVolumeToIntendedSTS(sts *appsv1.StatefulSet) {
+	if SignerCAConfigMapName != "" && SignerCAMountPath != "" {
+		AddVolumesToIntendedSTS(sts, map[string]string{
+			SignerCAConfigMapName: "ca-certs",
+		})
+	}
+}
+
+// AddCAVolumeToIntendedDS adds volumes to a deployment.
+func AddCAVolumeToIntendedDS(ds *appsv1.DaemonSet) {
+	if SignerCAConfigMapName != "" && SignerCAMountPath != "" {
+		AddVolumesToIntendedDS(ds, map[string]string{
+			SignerCAConfigMapName: "ca-certs",
+		})
+	}
+}
+
+func AddCertsMounts(name string, container *corev1.Container) {
+	if SignerCAConfigMapName != "" && SignerCAMountPath != "" {
+		container.VolumeMounts = append(container.VolumeMounts,
+			corev1.VolumeMount{
+				Name:      "ca-certs",
+				MountPath: SignerCAMountPath,
+			},
+		)
+	}
+	container.VolumeMounts = append(container.VolumeMounts,
+		corev1.VolumeMount{
+			Name:      name + "-secret-certificates",
+			MountPath: "/etc/certificates",
+		},
+	)
 }
 
 // AddSecretVolumesToIntendedSTS adds volumes to a deployment.
@@ -1270,7 +1320,7 @@ func ProvisionerEnvData(configAPINodes string, authParams AuthParameters) string
 		KeystoneAuthParameters KeystoneAuthParameters
 	}{
 		ConfigAPINodes:         configAPINodes,
-		SignerCAFilepath:       certificates.SignerCAFilepath,
+		SignerCAFilepath:       SignerCAFilepath,
 		AuthMode:               authParams.AuthMode,
 		KeystoneAuthParameters: authParams.KeystoneAuthParameters,
 	})
@@ -1664,7 +1714,7 @@ func CommonStartupScript(command string, configs map[string]string) string {
 		Configs:        configs,
 		ConfigMapMount: "/etc/contrailconfigmaps",
 		DstConfigPath:  "/etc/contrail",
-		CAFilePath:     certificates.SignerCAFilepath,
+		CAFilePath:     SignerCAFilepath,
 	})
 	if err != nil {
 		panic(err)

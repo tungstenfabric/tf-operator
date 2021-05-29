@@ -15,7 +15,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
-	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -197,12 +196,12 @@ func (c *AnalyticsSnmp) InstanceConfiguration(podList []corev1.Pod, client clien
 			ZookeeperServers:         zookeeperEndpointListCommaSeparated,
 			ConfigServers:            configApiIPEndpointListSpaceSeparated,
 			ConfigDbServerList:       configDbEndpointListSpaceSeparated,
-			CassandraSslCaCertfile:   certificates.SignerCAFilepath,
+			CassandraSslCaCertfile:   SignerCAFilepath,
 			RabbitmqServerList:       rabbitmqSSLEndpointListSpaceSeparated,
 			RabbitmqVhost:            rabbitmqSecretVhost,
 			RabbitmqUser:             rabbitmqSecretUser,
 			RabbitmqPassword:         rabbitmqSecretPassword,
-			CAFilePath:               certificates.SignerCAFilepath,
+			CAFilePath:               SignerCAFilepath,
 			// TODO: move to params
 			LogLevel:                 logLevel,
 		})
@@ -243,12 +242,12 @@ func (c *AnalyticsSnmp) InstanceConfiguration(podList []corev1.Pod, client clien
 			AnalyticsServers:         configApiIPEndpointListSpaceSeparated,
 			ConfigServers:            configApiIPEndpointListSpaceSeparated,
 			ConfigDbServerList:       configDbEndpointListSpaceSeparated,
-			CassandraSslCaCertfile:   certificates.SignerCAFilepath,
+			CassandraSslCaCertfile:   SignerCAFilepath,
 			RabbitmqServerList:       rabbitmqSSLEndpointListSpaceSeparated,
 			RabbitmqVhost:            rabbitmqSecretVhost,
 			RabbitmqUser:             rabbitmqSecretUser,
 			RabbitmqPassword:         rabbitmqSecretPassword,
-			CAFilePath:               certificates.SignerCAFilepath,
+			CAFilePath:               SignerCAFilepath,
 			// TODO: move to params
 			LogLevel:                 logLevel,
 		})
@@ -279,7 +278,7 @@ func (c *AnalyticsSnmp) InstanceConfiguration(podList []corev1.Pod, client clien
 			InstrospectListenAddress: instrospectListenAddress,
 			CassandraPort:            strconv.Itoa(cassandraNodesInformation.CQLPort),
 			CassandraJmxPort:         strconv.Itoa(cassandraNodesInformation.JMXPort),
-			CAFilePath:               certificates.SignerCAFilepath,
+			CAFilePath:               SignerCAFilepath,
 			CollectorServerList:      collectorEndpointListSpaceSeparated,
 			// TODO: move to params
 			LogLevel:                 logLevel,
@@ -303,7 +302,7 @@ func (c *AnalyticsSnmp) InstanceConfiguration(podList []corev1.Pod, client clien
 		}{
 			APIServerList:          configApiIPCommaSeparated,
 			APIServerPort:          strconv.Itoa(configNodesInformation.APIServerPort),
-			CAFilePath:             certificates.SignerCAFilepath,
+			CAFilePath:             SignerCAFilepath,
 			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 			KeystoneAuthParameters: c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters,
 			PodIP:                  podIP,

@@ -16,7 +16,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
-	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -147,7 +146,7 @@ func (c *QueryEngine) InstanceConfiguration(podList []corev1.Pod, client client.
 			CassandraServerList:      cassandraCQLEndpointListSpaceSeparated,
 			CollectorServerList:      collectorEndpointListSpaceSeparated,
 			RedisServerList:          redisEndpointListSpaceSpearated,
-			CAFilePath:               certificates.SignerCAFilepath,
+			CAFilePath:               SignerCAFilepath,
 			AnalyticsDataTTL:         strconv.Itoa(analyticsNodesInformation.AnalyticsDataTTL),
 			LogLevel:                 ConvertLogLevel(c.Spec.CommonConfiguration.LogLevel),
 		})
@@ -168,7 +167,7 @@ func (c *QueryEngine) InstanceConfiguration(podList []corev1.Pod, client client.
 		}{
 			APIServerList:          configApiIPCommaSeparated,
 			APIServerPort:          strconv.Itoa(configNodesInformation.APIServerPort),
-			CAFilePath:             certificates.SignerCAFilepath,
+			CAFilePath:             SignerCAFilepath,
 			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 			KeystoneAuthParameters: c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters,
 			PodIP:                  podIP,

@@ -278,7 +278,11 @@ func init() {
 
 func TestReconcileManager(t *testing.T) {
 	runtimeScheme := runtimeScheme(t)
-	clnt := fake.NewFakeClientWithScheme(runtimeScheme, GetTestData("master", "ManagerList"))
+	clnt := fake.NewFakeClientWithScheme(
+		runtimeScheme,
+		GetTestData("master", "ManagerList"),
+		GetTestData("master", "SecretList"),
+	)
 	var reconcileManager *manager.ReconcileManager = &manager.ReconcileManager{
 		Client:  clnt,
 		Scheme:  runtimeScheme,

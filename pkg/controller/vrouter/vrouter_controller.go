@@ -23,7 +23,6 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
-	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
 )
 
@@ -258,13 +257,14 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 
 	configMapVolumeName := request.Name + "-agent-volume"
 	secretVolumeName := secretCertificates.Name
-	csrSignerCaVolumeName := request.Name + "-csr-signer-ca"
 	cniVolumeName := cniConfigMap.Name + "-cni-volume"
 	instance.AddVolumesToIntendedDS(daemonSet, map[string]string{
-		configMapAgent.Name:                configMapVolumeName,
-		cniConfigMap.Name:                  cniVolumeName,
-		certificates.SignerCAConfigMapName: csrSignerCaVolumeName,
+		configMapAgent.Name: configMapVolumeName,
+		cniConfigMap.Name:   cniVolumeName,
 	})
+
+	v1alpha1.AddCAVolumeToIntendedDS(daemonSet)
+
 	instance.AddSecretVolumesToIntendedDS(daemonSet, map[string]string{secretCertificates.Name: secretVolumeName})
 
 	for idx := range daemonSet.Spec.Template.Spec.Containers {
@@ -280,14 +280,8 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 				Name:      configMapVolumeName,
 				MountPath: "/etc/contrailconfigmaps",
 			},
-			corev1.VolumeMount{
-				Name:      secretVolumeName,
-				MountPath: "/etc/certificates",
-			},
-			corev1.VolumeMount{
-				Name:      csrSignerCaVolumeName,
-				MountPath: certificates.SignerCAMountPath,
-			})
+		)
+		v1alpha1.AddCertsMounts(request.Name, container)
 
 		container.EnvFrom = append(container.EnvFrom, corev1.EnvFromSource{
 			ConfigMapRef: &corev1.ConfigMapEnvSource{
@@ -353,15 +347,9 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 			corev1.VolumeMount{
 				Name:      configMapVolumeName,
 				MountPath: "/etc/contrailconfigmaps",
-			},
-			corev1.VolumeMount{
-				Name:      secretVolumeName,
-				MountPath: "/etc/certificates",
-			},
-			corev1.VolumeMount{
-				Name:      csrSignerCaVolumeName,
-				MountPath: certificates.SignerCAMountPath,
 			})
+
+		v1alpha1.AddCertsMounts(request.Name, container)
 
 		container.EnvFrom = append(container.EnvFrom, corev1.EnvFromSource{
 			ConfigMapRef: &corev1.ConfigMapEnvSource{

@@ -16,7 +16,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
-	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -232,13 +231,13 @@ func (c *AnalyticsAlarm) InstanceConfiguration(podList []corev1.Pod, client clie
 			ConfigServers:            configApiIPEndpointListSpaceSeparated,
 			ConfigDbServerList:       configDbEndpointListSpaceSeparated,
 			KafkaServers:             kafkaServerSpaceSeparatedList,
-			CassandraSslCaCertfile:   certificates.SignerCAFilepath,
+			CassandraSslCaCertfile:   SignerCAFilepath,
 			RabbitmqServerList:       rabbitmqSSLEndpointListSpaceSeparated,
 			RabbitmqVhost:            rabbitmqSecretVhost,
 			RabbitmqUser:             rabbitmqSecretUser,
 			RabbitmqPassword:         rabbitmqSecretPassword,
 			RedisServerList:          redisEndpointListSpaceSpearated,
-			CAFilePath:               certificates.SignerCAFilepath,
+			CAFilePath:               SignerCAFilepath,
 			// TODO: move to params
 			LogLevel:                 logLevel,
 		})
@@ -275,7 +274,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(podList []corev1.Pod, client clie
 			MinInsyncReplicas:  strconv.Itoa(minInsyncReplicas),
 			KeystorePassword:   string(kafkaSecret.Data["keystorePassword"]),
 			TruststorePassword: string(kafkaSecret.Data["truststorePassword"]),
-			CAFilePath:         certificates.SignerCAFilepath,
+			CAFilePath:         SignerCAFilepath,
 			// TODO: move to params
 			LogLevel:           logLevel,
 		})
@@ -306,7 +305,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(podList []corev1.Pod, client clie
 			InstrospectListenAddress: instrospectListenAddress,
 			CassandraPort:            strconv.Itoa(cassandraNodesInformation.CQLPort),
 			CassandraJmxPort:         strconv.Itoa(cassandraNodesInformation.JMXPort),
-			CAFilePath:               certificates.SignerCAFilepath,
+			CAFilePath:               SignerCAFilepath,
 			CollectorServerList:      collectorEndpointListSpaceSeparated,
 			// TODO: move to params
 			LogLevel:                 logLevel,
@@ -330,7 +329,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(podList []corev1.Pod, client clie
 		}{
 			APIServerList:          configApiIPCommaSeparated,
 			APIServerPort:          strconv.Itoa(configNodesInformation.APIServerPort),
-			CAFilePath:             certificates.SignerCAFilepath,
+			CAFilePath:             SignerCAFilepath,
 			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 			KeystoneAuthParameters: c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters,
 			PodIP:                  podIP,

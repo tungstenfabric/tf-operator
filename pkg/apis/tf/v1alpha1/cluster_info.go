@@ -5,7 +5,6 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/ghodss/yaml"
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -55,17 +54,10 @@ func ClusterDNSDomain(client client.Client) (string, error) {
 }
 
 func yamlToStruct(yamlString string, structPointer interface{}) error {
-	jsonData, err := yaml.YAMLToJSON([]byte(yamlString))
-	if err != nil {
-		clusterInfoLog.Error(err, "YAMLToJSON failed", "jsonData", jsonData)
+	if err := k8s.YamlToStruct(yamlString, structPointer); err != nil {
+		clusterInfoLog.Error(err, "YamlToStruct failed", "yamlString", yamlString)
 		return err
 	}
-
-	if err = yaml.Unmarshal([]byte(jsonData), structPointer); err != nil {
-		clusterInfoLog.Error(err, "Unmarshal failed", "jsonData", jsonData)
-		return err
-	}
-
 	return nil
 }
 

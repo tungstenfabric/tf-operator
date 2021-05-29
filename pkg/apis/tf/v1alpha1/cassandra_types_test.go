@@ -44,6 +44,14 @@ var cassandraRequest = reconcile.Request{
 	},
 }
 
+var caSecretCassandra = &corev1.Secret{
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      "contrail-ca-certificate",
+		Namespace: "test-ns",
+	},
+	Data: nil,
+}
+
 var cassandraCM = &corev1.ConfigMap{
 	ObjectMeta: metav1.ObjectMeta{
 		Name:      "configdb1-cassandra-configmap",
@@ -131,7 +139,7 @@ func TestCassandraConfigMapsWithDefaultValues(t *testing.T) {
 	require.NoError(t, err, "Failed to build scheme")
 	require.NoError(t, corev1.SchemeBuilder.AddToScheme(scheme), "Failed to add CoreV1 into scheme")
 
-	cl := fake.NewFakeClientWithScheme(scheme, &cassandraTypesTestManager, cassandraCM, cassandraSecret, config, cassandraAnalytics)
+	cl := fake.NewFakeClientWithScheme(scheme, &cassandraTypesTestManager, caSecretCassandra, cassandraCM, cassandraSecret, config, cassandraAnalytics)
 	cassandra := Cassandra{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "configdb1",
@@ -145,6 +153,8 @@ func TestCassandraConfigMapsWithDefaultValues(t *testing.T) {
 			},
 		},
 	}
+
+	require.NoError(t, InitCA(cl, scheme, &cassandra, "cassandra"))
 
 	require.NoError(t, cassandra.InstanceConfiguration(cassandraRequest, cassandraPodList, cl))
 
@@ -235,7 +245,7 @@ func TestCassandraConfigMapsWithCustomValues(t *testing.T) {
 	require.NoError(t, corev1.SchemeBuilder.AddToScheme(scheme), "Failed to add CoreV1 into scheme")
 
 	var keystoneTestPort = 7777
-	cl := fake.NewFakeClientWithScheme(scheme, &cassandraTypesTestManager, cassandraCM, cassandraSecret, config, cassandraAnalytics)
+	cl := fake.NewFakeClientWithScheme(scheme, &cassandraTypesTestManager, caSecretCassandra, cassandraCM, cassandraSecret, config, cassandraAnalytics)
 	cassandra := Cassandra{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "configdb1",
@@ -267,6 +277,8 @@ func TestCassandraConfigMapsWithCustomValues(t *testing.T) {
 			},
 		},
 	}
+
+	require.NoError(t, InitCA(cl, scheme, &cassandra, "cassandra"))
 
 	require.NoError(t, cassandra.InstanceConfiguration(cassandraRequest, cassandraPodList, cl))
 

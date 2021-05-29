@@ -28,7 +28,6 @@ import (
 
 	"github.com/fatih/structs"
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
-	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
 )
 
@@ -549,7 +548,7 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	if err := r.processCSRSignerCaConfigMap(instance); err != nil {
-		return reconcile.Result{}, err
+		return reconcile.Result{}, fmt.Errorf("Failed to prepare CA: err=%+v", err)
 	}
 
 	// set defaults if not set
@@ -1249,23 +1248,5 @@ func (r *ReconcileManager) processVRouters(manager *v1alpha1.Manager) error {
 }
 
 func (r *ReconcileManager) processCSRSignerCaConfigMap(manager *v1alpha1.Manager) error {
-	caCertificate := certificates.NewCACertificate(r.Client, r.Scheme, manager, "manager")
-	if err := caCertificate.EnsureExists(); err != nil {
-		return err
-	}
-
-	csrSignerCaConfigMap := &corev1.ConfigMap{}
-	csrSignerCaConfigMap.ObjectMeta.Name = certificates.SignerCAConfigMapName
-	csrSignerCaConfigMap.ObjectMeta.Namespace = manager.Namespace
-
-	_, err := controllerutil.CreateOrUpdate(context.Background(), r.Client, csrSignerCaConfigMap, func() error {
-		csrSignerCAValue, err := caCertificate.GetCaCert()
-		if err != nil {
-			return err
-		}
-		csrSignerCaConfigMap.Data = map[string]string{certificates.SignerCAFilename: string(csrSignerCAValue)}
-		return controllerutil.SetControllerReference(manager, csrSignerCaConfigMap, r.Scheme)
-	})
-
-	return err
+	return v1alpha1.InitCA(r.Client, r.Scheme, manager, "manager")
 }

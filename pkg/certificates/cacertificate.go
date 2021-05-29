@@ -1,7 +1,6 @@
 package certificates
 
 import (
-	"context"
 	"crypto/rand"
 	"crypto/x509"
 	"fmt"
@@ -9,17 +8,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
-)
-
-const (
-	SignerCAConfigMapName = "csr-signer-ca"
-	SignerCAMountPath     = "/etc/ssl/certs/kubernetes"
-	SignerCAFilename      = "ca-bundle.crt"
-	SignerCAFilepath      = SignerCAMountPath + "/" + SignerCAFilename
 )
 
 const (
@@ -49,11 +40,11 @@ func (c *CACertificate) EnsureExists() error {
 }
 
 func (c *CACertificate) GetCaCert() ([]byte, error) {
-	secret, err := c.getCaCertSecret()
+	secret, err := GetCaCertSecret(c.client, c.owner.GetNamespace())
 	if err != nil {
 		return nil, err
 	}
-	return secret.Data[SignerCAFilename], nil
+	return secret.Data[SelfSignerCAFilename], nil
 }
 
 type caCertSecret struct {
@@ -75,23 +66,17 @@ func (caCertSecret) FillSecret(secret *corev1.Secret) error {
 	}
 
 	secret.Data = map[string][]byte{
-		SignerCAFilename:           caCert,
+		SelfSignerCAFilename:       caCert,
 		signerCAPrivateKeyFilename: caCertPrivKey,
 	}
 	return nil
-}
-
-func (c *CACertificate) getCaCertSecret() (*corev1.Secret, error) {
-	secret := &corev1.Secret{}
-	err := c.client.Get(context.Background(), types.NamespacedName{Name: caSecretName, Namespace: c.owner.GetNamespace()}, secret)
-	return secret, err
 }
 
 func caCertExistsInSecret(secret *corev1.Secret) bool {
 	if secret.Data == nil {
 		return false
 	}
-	_, certOk := secret.Data[SignerCAFilename]
+	_, certOk := secret.Data[SelfSignerCAFilename]
 	_, privKeyOk := secret.Data[signerCAPrivateKeyFilename]
 	return certOk && privKeyOk
 }

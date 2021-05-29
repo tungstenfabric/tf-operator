@@ -16,7 +16,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
-	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	"github.com/tungstenfabric/tf-operator/pkg/randomstring"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -114,7 +113,7 @@ func (c *Rabbitmq) InstanceConfiguration(podList []corev1.Pod, client client.Cli
 			LogLevel                 string
 		}{
 			RabbitmqPort:             *c.Spec.ServiceConfiguration.Port,
-			SignerCAFilepath:         certificates.SignerCAFilepath,
+			SignerCAFilepath:         SignerCAFilepath,
 			ClusterPartitionHandling: *c.Spec.ServiceConfiguration.ClusterPartitionHandling,
 			PodIP:                    pod.Status.PodIP,
 			PodsList:                 podList,

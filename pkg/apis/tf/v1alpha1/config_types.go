@@ -18,7 +18,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
-	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -223,7 +222,7 @@ func (c *Config) InstanceConfiguration(podList []corev1.Pod, client client.Clien
 			AuthMode:                 c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 			AAAMode:                  configConfig.AAAMode,
 			LogLevel:                 logLevel,
-			CAFilePath:               certificates.SignerCAFilepath,
+			CAFilePath:               SignerCAFilepath,
 		})
 		if err != nil {
 			panic(err)
@@ -241,7 +240,7 @@ func (c *Config) InstanceConfiguration(podList []corev1.Pod, client client.Clien
 		}{
 			APIServerList:          apiServerList,
 			APIServerPort:          strconv.Itoa(*configConfig.APIPort),
-			CAFilePath:             certificates.SignerCAFilepath,
+			CAFilePath:             SignerCAFilepath,
 			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 			KeystoneAuthParameters: c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters,
 			PodIP:                  podIP,
@@ -290,7 +289,7 @@ func (c *Config) InstanceConfiguration(podList []corev1.Pod, client client.Clien
 			RabbitmqVhost:               rabbitmqSecretVhost,
 			LogLevel:                    logLevel,
 			FabricMgmtIP:                fabricMgmtIP,
-			CAFilePath:                  certificates.SignerCAFilepath,
+			CAFilePath:                  SignerCAFilepath,
 		})
 		if err != nil {
 			panic(err)
@@ -307,7 +306,7 @@ func (c *Config) InstanceConfiguration(podList []corev1.Pod, client client.Clien
 			PodIP:               podIP,
 			CollectorServerList: collectorEndpointListSpaceSeparated,
 			LogLevel:            logLevel,
-			CAFilePath:          certificates.SignerCAFilepath,
+			CAFilePath:          SignerCAFilepath,
 		})
 		if err != nil {
 			panic(err)
@@ -322,7 +321,7 @@ func (c *Config) InstanceConfiguration(podList []corev1.Pod, client client.Clien
 			AuthMode               AuthenticationMode
 		}{
 			KeystoneAuthParameters: configAuth,
-			CAFilePath:             certificates.SignerCAFilepath,
+			CAFilePath:             SignerCAFilepath,
 			PodIP:                  podIP,
 			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 		})
@@ -377,7 +376,7 @@ func (c *Config) InstanceConfiguration(podList []corev1.Pod, client client.Clien
 			RabbitmqPassword:         rabbitmqSecretPassword,
 			RabbitmqVhost:            rabbitmqSecretVhost,
 			LogLevel:                 logLevel,
-			CAFilePath:               certificates.SignerCAFilepath,
+			CAFilePath:               SignerCAFilepath,
 		})
 		if err != nil {
 			panic(err)
@@ -418,7 +417,7 @@ func (c *Config) InstanceConfiguration(podList []corev1.Pod, client client.Clien
 			RabbitmqVhost:            rabbitmqSecretVhost,
 			AAAMode:                  configConfig.AAAMode,
 			LogLevel:                 logLevel,
-			CAFilePath:               certificates.SignerCAFilepath,
+			CAFilePath:               SignerCAFilepath,
 		})
 		if err != nil {
 			panic(err)
@@ -447,7 +446,7 @@ func (c *Config) InstanceConfiguration(podList []corev1.Pod, client client.Clien
 			CollectorServerList:      collectorEndpointListSpaceSeparated,
 			CassandraPort:            strconv.Itoa(cassandraNodesInformation.CQLPort),
 			CassandraJmxPort:         strconv.Itoa(cassandraNodesInformation.JMXPort),
-			CAFilePath:               certificates.SignerCAFilepath,
+			CAFilePath:               SignerCAFilepath,
 			LogLevel:                 logLevel,
 		})
 		if err != nil {

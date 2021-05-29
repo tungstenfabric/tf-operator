@@ -12,7 +12,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
-	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -151,7 +150,7 @@ func (c *Webui) InstanceConfiguration(podList []corev1.Pod, client client.Client
 			CassandraPort:          strconv.Itoa(cassandraNodesInformation.CQLPort),
 			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 			KeystoneAuthParameters: authConfig,
-			CAFilePath:             certificates.SignerCAFilepath,
+			CAFilePath:             SignerCAFilepath,
 			LogLevel:               c.Spec.CommonConfiguration.LogLevel,
 		})
 		if err != nil {

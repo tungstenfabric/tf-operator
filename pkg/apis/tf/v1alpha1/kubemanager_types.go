@@ -14,7 +14,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
-	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -232,7 +231,7 @@ func (c *Kubemanager) InstanceConfiguration(podList []corev1.Pod, client client.
 			RabbitmqUser:             rabbitmqSecretUser,
 			RabbitmqPassword:         rabbitmqSecretPassword,
 			RabbitmqVhost:            rabbitmqSecretVhost,
-			CAFilePath:               certificates.SignerCAFilepath,
+			CAFilePath:               SignerCAFilepath,
 			LogLevel:                 ConvertLogLevel(c.Spec.CommonConfiguration.LogLevel),
 			PublicFIPPool:            kubemanagerConfig.PublicFIPPool,
 			AuthMode:                 c.Spec.CommonConfiguration.AuthParameters.AuthMode,
@@ -254,7 +253,7 @@ func (c *Kubemanager) InstanceConfiguration(podList []corev1.Pod, client client.
 		}{
 			APIServerList:          configApiIPListCommaSeparated,
 			APIServerPort:          strconv.Itoa(configNodesInformation.APIServerPort),
-			CAFilePath:             certificates.SignerCAFilepath,
+			CAFilePath:             SignerCAFilepath,
 			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 			KeystoneAuthParameters: c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters,
 			PodIP:                  pod.Status.PodIP,

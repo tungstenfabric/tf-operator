@@ -13,7 +13,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
-	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -530,7 +529,7 @@ func (c *Vrouter) VrouterConfigurationParameters(client client.Client) (*Vrouter
 		vrouterConfiguration.SslEnable = &trueVal
 	}
 	if vrouterConfiguration.ServerCaCertfile == "" {
-		vrouterConfiguration.ServerCaCertfile = certificates.SignerCAFilepath
+		vrouterConfiguration.ServerCaCertfile = SignerCAFilepath
 	}
 	if vrouterConfiguration.ServerCertfile == "" {
 		vrouterConfiguration.ServerCertfile = defCert

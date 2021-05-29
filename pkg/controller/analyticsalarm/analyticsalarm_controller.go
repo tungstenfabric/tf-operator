@@ -9,7 +9,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
-	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
 	"github.com/tungstenfabric/tf-operator/pkg/randomstring"
@@ -394,9 +393,11 @@ func (r *ReconcileAnalyticsAlarm) GetSTS(request reconcile.Request, instance *v1
 
 	// Add volumes to stateful set
 	v1alpha1.AddVolumesToIntendedSTS(statefulSet, map[string]string{
-		FullName("configmap", request):     FullName("volume", request),
-		certificates.SignerCAConfigMapName: request.Name + "-csr-signer-ca",
+		FullName("configmap", request): FullName("volume", request),
 	})
+
+	v1alpha1.AddCAVolumeToIntendedSTS(statefulSet)
+
 	v1alpha1.AddSecretVolumesToIntendedSTS(statefulSet, map[string]string{
 		request.Name + "-secret-certificates": request.Name + "-secret-certificates",
 	})
@@ -438,15 +439,8 @@ func (r *ReconcileAnalyticsAlarm) GetSTS(request reconcile.Request, instance *v1
 				Name:      FullName("volume", request),
 				MountPath: "/etc/contrailconfigmaps",
 			},
-			corev1.VolumeMount{
-				Name:      request.Name + "-secret-certificates",
-				MountPath: "/etc/certificates",
-			},
-			corev1.VolumeMount{
-				Name:      request.Name + "-csr-signer-ca",
-				MountPath: certificates.SignerCAMountPath,
-			},
 		)
+		v1alpha1.AddCertsMounts(request.Name, container)
 
 		if container.Name == "analytics-alarm-gen" {
 			if container.Command == nil {
@@ -485,7 +479,7 @@ func (r *ReconcileAnalyticsAlarm) GetSTS(request reconcile.Request, instance *v1
 			err = kafkaInitKeystoreCommandTemplate.Execute(&kafkaInitKeystoreCommandBuffer, kafkaInitKeystoreCommandData{
 				KeystorePassword:   kafkaKeystorePassword,
 				TruststorePassword: kafkaTruststorePassword,
-				CAFilePath:         certificates.SignerCAFilepath,
+				CAFilePath:         v1alpha1.SignerCAFilepath,
 			})
 			if err != nil {
 				panic(err)

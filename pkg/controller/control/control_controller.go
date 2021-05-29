@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
-	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 
 	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
 
@@ -242,11 +241,12 @@ func (r *ReconcileControl) Reconcile(request reconcile.Request) (reconcile.Resul
 
 	configmapsVolumeName := request.Name + "-" + instanceType + "-volume"
 	secretVolumeName := request.Name + "-secret-certificates"
-	csrSignerCaVolumeName := request.Name + "-csr-signer-ca"
 	instance.AddVolumesToIntendedSTS(statefulSet, map[string]string{
-		configMapName:                      configmapsVolumeName,
-		certificates.SignerCAConfigMapName: csrSignerCaVolumeName,
+		configMapName: configmapsVolumeName,
 	})
+
+	v1alpha1.AddCAVolumeToIntendedSTS(statefulSet)
+
 	instance.AddSecretVolumesToIntendedSTS(statefulSet, map[string]string{secretCertificates.Name: secretVolumeName})
 
 	if instance.Spec.ServiceConfiguration.DataSubnet != "" {
@@ -284,15 +284,8 @@ func (r *ReconcileControl) Reconcile(request reconcile.Request) (reconcile.Resul
 			corev1.VolumeMount{
 				Name:      configmapsVolumeName,
 				MountPath: "/etc/contrailconfigmaps",
-			},
-			corev1.VolumeMount{
-				Name:      secretVolumeName,
-				MountPath: "/etc/certificates",
-			},
-			corev1.VolumeMount{
-				Name:      csrSignerCaVolumeName,
-				MountPath: certificates.SignerCAMountPath,
 			})
+		v1alpha1.AddCertsMounts(request.Name, container)
 
 		container.Image = instanceContainer.Image
 

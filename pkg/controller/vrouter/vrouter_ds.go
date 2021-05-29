@@ -2,7 +2,6 @@ package vrouter
 
 import (
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
-	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	apps "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -124,7 +123,7 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 	envListNodeInit := append(envList,
 		corev1.EnvVar{
 			Name:  "SERVER_CA_CERTFILE",
-			Value: certificates.SignerCAFilepath,
+			Value: v1alpha1.SignerCAFilepath,
 		},
 		corev1.EnvVar{
 			Name:  "SERVER_CERTFILE",

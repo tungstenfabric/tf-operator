@@ -13,7 +13,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
-	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -244,7 +243,7 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 			RabbitmqUser:             rabbitmqSecretUser,
 			RabbitmqPassword:         rabbitmqSecretPassword,
 			RabbitmqVhost:            rabbitmqSecretVhost,
-			CAFilePath:               certificates.SignerCAFilepath,
+			CAFilePath:               SignerCAFilepath,
 			LogLevel:                 logLevel,
 		})
 		if err != nil {
@@ -290,7 +289,7 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 			RabbitmqUser:             rabbitmqSecretUser,
 			RabbitmqPassword:         rabbitmqSecretPassword,
 			RabbitmqVhost:            rabbitmqSecretVhost,
-			CAFilePath:               certificates.SignerCAFilepath,
+			CAFilePath:               SignerCAFilepath,
 			LogLevel:                 logLevel,
 		})
 		if err != nil {
@@ -320,7 +319,7 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 			CollectorServerList:      collectorEndpointListSpaceSeparated,
 			CassandraPort:            strconv.Itoa(cassandraNodesInformation.CQLPort),
 			CassandraJmxPort:         strconv.Itoa(cassandraNodesInformation.JMXPort),
-			CAFilePath:               certificates.SignerCAFilepath,
+			CAFilePath:               SignerCAFilepath,
 			LogLevel:                 logLevel,
 		})
 		if err != nil {
@@ -341,7 +340,7 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 		}{
 			APIServerList:          configApiIPListCommaSeparated,
 			APIServerPort:          strconv.Itoa(configNodesInformation.APIServerPort),
-			CAFilePath:             certificates.SignerCAFilepath,
+			CAFilePath:             SignerCAFilepath,
 			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 			KeystoneAuthParameters: c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters,
 			PodIP:                  podIP,

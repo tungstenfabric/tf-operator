@@ -21,7 +21,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
-	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
 )
@@ -266,11 +265,12 @@ func (r *ReconcileQueryEngine) Reconcile(request reconcile.Request) (reconcile.R
 	}
 
 	configmapsVolumeName := request.Name + "-" + instanceType + "-volume"
-	csrSignerCaVolumeName := request.Name + "-csr-signer-ca"
 	instance.AddVolumesToIntendedSTS(statefulSet, map[string]string{
-		configMapName:                      configmapsVolumeName,
-		certificates.SignerCAConfigMapName: csrSignerCaVolumeName,
+		configMapName: configmapsVolumeName,
 	})
+
+	v1alpha1.AddCAVolumeToIntendedSTS(statefulSet)
+
 	instance.AddSecretVolumesToIntendedSTS(statefulSet, map[string]string{secretCertificates.Name: request.Name + "-secret-certificates"})
 
 	statefulSet.Spec.Template.Spec.Affinity = &corev1.Affinity{
@@ -304,15 +304,8 @@ func (r *ReconcileQueryEngine) Reconcile(request reconcile.Request) (reconcile.R
 			corev1.VolumeMount{
 				Name:      request.Name + "-" + instanceType + "-volume",
 				MountPath: "/etc/contrailconfigmaps",
-			},
-			corev1.VolumeMount{
-				Name:      request.Name + "-secret-certificates",
-				MountPath: "/etc/certificates",
-			},
-			corev1.VolumeMount{
-				Name:      csrSignerCaVolumeName,
-				MountPath: certificates.SignerCAMountPath,
 			})
+		v1alpha1.AddCertsMounts(request.Name, container)
 
 		switch container.Name {
 

@@ -8,7 +8,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
-	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
 	"github.com/tungstenfabric/tf-operator/pkg/label"
 
@@ -202,11 +201,11 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
-	csrSignerCaVolumeName := request.Name + "-csr-signer-ca"
 	instance.AddVolumesToIntendedSTS(statefulSet, map[string]string{
-		configMapName:                      request.Name + "-" + instanceType + "-volume",
-		certificates.SignerCAConfigMapName: csrSignerCaVolumeName,
+		configMapName: request.Name + "-" + instanceType + "-volume",
 	})
+
+	v1alpha1.AddCAVolumeToIntendedSTS(statefulSet)
 
 	instance.AddSecretVolumesToIntendedSTS(statefulSet, map[string]string{secretCertificates.Name: request.Name + "-secret-certificates"})
 
@@ -227,15 +226,8 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 				Name:      request.Name + "-" + instanceType + "-volume",
 				MountPath: "/etc/contrailconfigmaps",
 			},
-			corev1.VolumeMount{
-				Name:      request.Name + "-secret-certificates",
-				MountPath: "/etc/certificates",
-			},
-			corev1.VolumeMount{
-				Name:      csrSignerCaVolumeName,
-				MountPath: certificates.SignerCAMountPath,
-			},
 		)
+		v1alpha1.AddCertsMounts(request.Name, container)
 
 		if container.Name == "zookeeper" {
 			if container.Command == nil {

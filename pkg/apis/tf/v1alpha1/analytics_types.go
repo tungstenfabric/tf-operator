@@ -17,7 +17,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
-	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -233,8 +232,8 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 			RabbitmqPassword:           rabbitmqSecretPassword,
 			RabbitmqVhost:              rabbitmqSecretVhost,
 			AAAMode:                    analyticsConfig.AAAMode,
-			CAFilePath:                 certificates.SignerCAFilepath,
-			LogLevel:                  logLevel,
+			CAFilePath:                 SignerCAFilepath,
+			LogLevel:                   logLevel,
 		})
 		if err != nil {
 			panic(err)
@@ -276,8 +275,8 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 			RabbitmqUser:                   rabbitmqSecretUser,
 			RabbitmqPassword:               rabbitmqSecretPassword,
 			RabbitmqVhost:                  rabbitmqSecretVhost,
-			LogLevel:                        logLevel,
-			CAFilePath:                     certificates.SignerCAFilepath,
+			LogLevel:                       logLevel,
+			CAFilePath:                     SignerCAFilepath,
 			AnalyticsDataTTL:               strconv.Itoa(*analyticsConfig.AnalyticsDataTTL),
 			AnalyticsConfigAuditTTL:        strconv.Itoa(*analyticsConfig.AnalyticsConfigAuditTTL),
 			AnalyticsStatisticsTTL:         strconv.Itoa(*analyticsConfig.AnalyticsStatisticsTTL),
@@ -310,8 +309,8 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 			CollectorServerList:      collectorServerList,
 			CassandraPort:            strconv.Itoa(cassandraNodesInformation.CQLPort),
 			CassandraJmxPort:         strconv.Itoa(cassandraNodesInformation.JMXPort),
-			CAFilePath:               certificates.SignerCAFilepath,
-			LogLevel:                  logLevel,
+			CAFilePath:               SignerCAFilepath,
+			LogLevel:                 logLevel,
 		})
 		if err != nil {
 			panic(err)
@@ -328,7 +327,7 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 			AuthMode               AuthenticationMode
 		}{
 			KeystoneAuthParameters: analyticsAuth,
-			CAFilePath:             certificates.SignerCAFilepath,
+			CAFilePath:             SignerCAFilepath,
 			PodIP:                  podIP,
 			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 		})
@@ -349,7 +348,7 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 		}{
 			APIServerList:          apiServerIPListCommaSeparated,
 			APIServerPort:          strconv.Itoa(configNodesInformation.APIServerPort),
-			CAFilePath:             certificates.SignerCAFilepath,
+			CAFilePath:             SignerCAFilepath,
 			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 			KeystoneAuthParameters: c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters,
 			PodIP:                  podIP,

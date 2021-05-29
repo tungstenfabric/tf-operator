@@ -66,13 +66,17 @@ func (c CertificateSubject) generateCertificateTemplate(client client.Client) (x
 	}
 
 	var ips []net.IP
+	var _ips []string
 	ips = append(ips, net.ParseIP(c.ip))
 	for _, ip := range c.alternativeIPs {
-		ips = append(ips, net.ParseIP(ip))
+		if !contains(_ips, ip) {
+			ips = append(ips, net.ParseIP(ip))
+			_ips = append(_ips, ip)
+		}
 	}
 
-	for _, ip := range append(c.alternativeIPs, c.ip) {
-		hostNames, err := net.LookupAddr(string(ip))
+	for _, ip := range _ips {
+		hostNames, err := net.LookupAddr(ip)
 		if err != nil {
 			continue
 		}

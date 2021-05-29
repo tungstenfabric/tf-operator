@@ -24,7 +24,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
-	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
 )
@@ -265,11 +264,11 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 		return reconcile.Result{}, err
 	}
 
-	csrSignerCaVolumeName := request.Name + "-csr-signer-ca"
 	instance.AddVolumesToIntendedSTS(statefulSet, map[string]string{
-		configMap.Name:                     request.Name + "-" + instanceType + "-volume",
-		certificates.SignerCAConfigMapName: csrSignerCaVolumeName,
+		configMap.Name: request.Name + "-" + instanceType + "-volume",
 	})
+
+	v1alpha1.AddCAVolumeToIntendedSTS(statefulSet)
 
 	instance.AddSecretVolumesToIntendedSTS(statefulSet, map[string]string{secretCertificates.Name: request.Name + "-secret-certificates"})
 
@@ -306,17 +305,10 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 				MountPath: "/etc/contrailconfigmaps",
 			}
 			volumeMountList = append(volumeMountList, volumeMount)
-			volumeMount = corev1.VolumeMount{
-				Name:      request.Name + "-secret-certificates",
-				MountPath: "/etc/certificates",
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			volumeMount = corev1.VolumeMount{
-				Name:      csrSignerCaVolumeName,
-				MountPath: certificates.SignerCAMountPath,
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
 			(&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts = volumeMountList
+
+			v1alpha1.AddCertsMounts(request.Name, &statefulSet.Spec.Template.Spec.Containers[idx])
+
 			(&statefulSet.Spec.Template.Spec.Containers[idx]).Image = instanceContainer.Image
 			readinessProbe := corev1.Probe{
 				FailureThreshold: 3,
@@ -369,22 +361,14 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 			if len((&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts) > 0 {
 				volumeMountList = (&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts
 			}
-			volumeMount := corev1.VolumeMount{
-				Name:      request.Name + "-" + instanceType + "-volume",
-				MountPath: "/etc/contrailconfigmaps",
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			volumeMount = corev1.VolumeMount{
-				Name:      request.Name + "-secret-certificates",
-				MountPath: "/etc/certificates",
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			volumeMount = corev1.VolumeMount{
-				Name:      csrSignerCaVolumeName,
-				MountPath: certificates.SignerCAMountPath,
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
+			volumeMountList = append(volumeMountList,
+				corev1.VolumeMount{
+					Name:      request.Name + "-" + instanceType + "-volume",
+					MountPath: "/etc/contrailconfigmaps",
+				})
 			(&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts = volumeMountList
+			v1alpha1.AddCertsMounts(request.Name, &statefulSet.Spec.Template.Spec.Containers[idx])
+
 			(&statefulSet.Spec.Template.Spec.Containers[idx]).Image = instanceContainer.Image
 		}
 	}

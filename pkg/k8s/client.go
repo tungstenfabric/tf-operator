@@ -8,8 +8,9 @@ import (
 	"path/filepath"
 	"sync"
 
-	core_v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
+	beta1cert "k8s.io/client-go/kubernetes/typed/certificates/v1beta1"
 	corev1api "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -21,7 +22,9 @@ import (
 var lock = sync.Mutex{}
 
 // var clientset *kubernetes.Clientset
+var clientset *kubernetes.Clientset
 var coreAPI corev1api.CoreV1Interface
+var betav1Csr beta1cert.CertificateSigningRequestInterface
 
 // Allows to overwrite clientset for unittests
 func SetClientset(c corev1api.CoreV1Interface) {
@@ -48,18 +51,30 @@ func getClientConfig() *rest.Config {
 	return config
 }
 
+func getClientset() *kubernetes.Clientset {
+	if clientset == nil {
+		clientset = kubernetes.NewForConfigOrDie(getClientConfig())
+	}
+	return clientset
+}
+
 // GetCoreV1 first tries to get a config object which uses the service account kubernetes gives to pods,
-// if it is called from a process running in a kubernetes environment.
-// Otherwise, it tries to build config from a default kubeconfig filepath if it fails, it fallback to the default config.
-// Once it get the config, it creates a new Clientset for the given config and returns the clientset.
 func GetCoreV1() corev1api.CoreV1Interface {
 	lock.Lock()
 	defer lock.Unlock()
 	if coreAPI == nil {
-		clientset := kubernetes.NewForConfigOrDie(getClientConfig())
-		coreAPI = clientset.CoreV1()
+		coreAPI = getClientset().CoreV1()
 	}
 	return coreAPI
+}
+
+func GetBetaV1Csr() beta1cert.CertificateSigningRequestInterface {
+	lock.Lock()
+	defer lock.Unlock()
+	if betav1Csr == nil {
+		betav1Csr = getClientset().CertificatesV1beta1().CertificateSigningRequests()
+	}
+	return betav1Csr
 }
 
 // ExecToPodThroughAPI uninterractively exec to the pod with the command specified.
@@ -77,12 +92,12 @@ func ExecToPodThroughAPI(command []string, containerName, podName, namespace str
 		Namespace(namespace).
 		SubResource("exec")
 	scheme := runtime.NewScheme()
-	if err := core_v1.AddToScheme(scheme); err != nil {
+	if err := corev1.AddToScheme(scheme); err != nil {
 		return "", "", fmt.Errorf("error adding to scheme: %v", err)
 	}
 
 	parameterCodec := runtime.NewParameterCodec(scheme)
-	req.VersionedParams(&core_v1.PodExecOptions{
+	req.VersionedParams(&corev1.PodExecOptions{
 		//Command:   strings.Fields(command),
 		Command:   command,
 		Container: containerName,
