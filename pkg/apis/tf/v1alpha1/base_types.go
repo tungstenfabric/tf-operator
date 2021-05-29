@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
@@ -601,70 +602,128 @@ func CreateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.R
 	if !k8serrors.IsNotFound(err) {
 		return false, err
 	}
-	sts.Spec.Template.ObjectMeta.Labels["version"] = "1"
+
 	return true, reconcileClient.Create(context.TODO(), sts)
 }
 
-// UpdateSTS updates the STS.
-func UpdateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client, strategy string) (bool, error) {
-	stsName := request.Name + "-" + instanceType + "-statefulset"
-	stsLog := log.WithName("UpdateSTS").WithName(stsName)
-	currentSTS, err := QuerySTS(stsName, request.Namespace, reconcileClient)
-	if currentSTS == nil {
-		return false, err
-	}
-	hasChanges := false
-	replicas := int32(1)
-	if sts.Spec.Replicas != nil {
-		replicas = int32(*sts.Spec.Replicas)
-	}
-	if replicas != *currentSTS.Spec.Replicas {
-		stsLog.Info("Replicas changed", "current", *currentSTS.Spec.Replicas, "new", replicas)
-		hasChanges = true
-	}
-	if !hasChanges {
-		for _, intendedContainer := range sts.Spec.Template.Spec.Containers {
-			for _, currentContainer := range currentSTS.Spec.Template.Spec.Containers {
-				if intendedContainer.Name == currentContainer.Name {
-					if intendedContainer.Image != currentContainer.Image {
-						hasChanges = true
-						stsLog.Info("Image changed",
-							"container", currentContainer.Name,
-							"currentContainer.Image", currentContainer.Image,
-							"intendedContainer.Image", intendedContainer.Image,
-						)
-						break
-					}
-					if !cmp.Equal(intendedContainer.Env, currentContainer.Env,
-						cmpopts.IgnoreFields(corev1.ObjectFieldSelector{}, "APIVersion"),
-					) {
-						hasChanges = true
-						stsLog.Info("Env changed",
-							"container", currentContainer.Name,
-							"currentContainer.Env", currentContainer.Env,
-							"intendedContainer.Env", intendedContainer.Env,
-						)
-						break
-					}
+// TODO: Make it more intellectual. Now it's checks only images and envs.
+func containersChanged(first *corev1.PodTemplateSpec,
+	second *corev1.PodTemplateSpec,
+) (changed bool) {
+	changed = false
+	logger := log.WithName("containerDiff")
+
+	for _, container1 := range first.Spec.Containers {
+		for _, container2 := range second.Spec.Containers {
+			if container1.Name == container2.Name {
+				if container1.Image != container2.Image {
+					changed = true
+					logger.Info("Image changed",
+						"Container", container1.Name,
+						"Current Image", container1.Image,
+						"Intended Image", container2.Image,
+					)
+					break
+				}
+				if !cmp.Equal(container1.Env,
+					container2.Env,
+					cmpopts.IgnoreFields(corev1.ObjectFieldSelector{}, "APIVersion"),
+				) {
+					changed = true
+					logger.Info("Env changed",
+						"Container", container1.Name,
+						"Container Env", container1.Env,
+						"Intended Env", container2.Env,
+					)
+					break
 				}
 			}
 		}
 	}
-	if !hasChanges {
-		return false, nil
+	return
+}
+
+// UpdateSafeSTS query existing statefulset and add to it allowed fields.
+// Allowed fileds are template, replicas and updateStrategy (k8s restrinction).
+// Template will be updated just in case when some container images or container env changed (or use force).
+// Nil values to leave fields unchanged.
+func UpdateSTS(name string,
+	namespace string,
+	template *corev1.PodTemplateSpec,
+	replicas *int32,
+	strategy *appsv1.StatefulSetUpdateStrategy,
+	force bool,
+	client client.Client,
+) (updated bool, err error) {
+	updated, err = false, nil
+	logger := log.WithName("UpdateSTS").WithName(name)
+
+	sts, err := QuerySTS(name, namespace, client)
+	if sts == nil || err != nil {
+		logger.Error(err, "Failed to get the stateful set",
+			"Name", name,
+			"Namespace", namespace,
+		)
+		return
 	}
 
-	stsLog.Info("Update", "strategy", strategy)
-
-	if strategy == "deleteFirst" {
-		versionInt, _ := strconv.Atoi(currentSTS.Spec.Template.ObjectMeta.Labels["version"])
-		newVersion := versionInt + 1
-		sts.Spec.Template.ObjectMeta.Labels["version"] = strconv.Itoa(newVersion)
-	} else {
-		sts.Spec.Template.ObjectMeta.Labels["version"] = currentSTS.Spec.Template.ObjectMeta.Labels["version"]
+	changed := false
+	if template != nil && (containersChanged(&sts.Spec.Template, template) || force) {
+		logger.Info("Some of container images or env changed, or force mode")
+		changed = true
+		sts.Spec.Template = *template
 	}
 
-	return true, reconcileClient.Update(context.TODO(), sts)
+	if replicas != nil && *replicas != *sts.Spec.Replicas {
+		logger.Info("Replicas changed",
+			"Current", *sts.Spec.Replicas,
+			"Intended", *replicas,
+		)
+		changed = true
+		sts.Spec.Replicas = replicas
+	}
+
+	if strategy != nil && !reflect.DeepEqual(strategy, &sts.Spec.UpdateStrategy) {
+		logger.Info("Update strategy changed")
+		changed = true
+		sts.Spec.UpdateStrategy = *strategy
+	}
+
+	if !changed {
+		return
+	}
+
+	if err = client.Update(context.TODO(), sts); err != nil {
+		return
+	}
+
+	updated = true
+	return
+}
+
+// UpdateServiceSTS safe update for service statefulsets
+func UpdateServiceSTS(instance v1.Object,
+	instanceType string,
+	sts *appsv1.StatefulSet,
+	force bool,
+	client client.Client,
+) (updated bool, err error) {
+	updated, err = false, nil
+
+	stsName := instance.GetName() + "-" + instanceType + "-statefulset"
+	stsNamespace := instance.GetNamespace()
+	stsTemplate := sts.Spec.Template
+	stsReplicas := sts.Spec.Replicas
+	zero := int32(0)
+	stsStrategy := appsv1.StatefulSetUpdateStrategy{
+		Type: appsv1.RollingUpdateStatefulSetStrategyType,
+		RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
+			Partition: &zero,
+		},
+	}
+
+	updated, err = UpdateSTS(stsName, stsNamespace, &stsTemplate, stsReplicas, &stsStrategy, force, client)
+	return
 }
 
 // SetInstanceActive sets the instance to active.
