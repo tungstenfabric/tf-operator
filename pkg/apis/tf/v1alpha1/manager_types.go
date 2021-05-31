@@ -84,9 +84,6 @@ type ManagerConfiguration struct {
 	// If specified, the pod's tolerations.
 	// +optional
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty" protobuf:"bytes,22,opt,name=tolerations"`
-	// Use 0.0.0.0 for isntrospection ports
-	// +optional
-	IntrospectListenAll *bool `json:"introspectListenAll,omitempty"`
 	// AuthParameters auth parameters
 	// +optional
 	AuthParameters *AuthParameters `json:"authParameters,omitempty"`
