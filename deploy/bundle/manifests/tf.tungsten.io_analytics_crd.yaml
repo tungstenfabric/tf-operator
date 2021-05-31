@@ -117,9 +117,6 @@ spec:
                   items:
                     type: string
                   type: array
-                introspectListenAll:
-                  description: Use 0.0.0.0 for isntrospection ports
-                  type: boolean
                 logLevel:
                   description: Kubernetes Cluster Configuration
                   enum:

@@ -88,9 +88,6 @@ type PodConfiguration struct {
 	// zero and not specified. Defaults to 1.
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty" protobuf:"varint,1,opt,name=replicas"`
-	// Use 0.0.0.0 for introspection ports
-	// +optional
-	IntrospectListenAll *bool `json:"introspectListenAll,omitempty"`
 	// Allow node-init container to tune sysctl options
 	// (for all deployers except opneshift it is done by node-init, in openshift - machineconfig)
 	// +optional
@@ -117,11 +114,7 @@ func (cc *PodConfiguration) GetReplicas() int32 {
 
 // IntrospectionListenAddress returns listen address for instrospection
 func (cc *PodConfiguration) IntrospectionListenAddress(addr string) string {
-	f := IntrospectListenAll
-	if cc != nil && cc.IntrospectListenAll != nil {
-		f = *cc.IntrospectListenAll
-	}
-	if f {
+	if IntrospectListenAll {
 		return "0.0.0.0"
 	}
 	return addr
