@@ -190,6 +190,11 @@ func (in *AnalyticsStatus) DeepCopyInto(out *AnalyticsStatus) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.Degraded != nil {
+		in, out := &in.Degraded, &out.Degraded
+		*out = new(bool)
+		**out = **in
+	}
 	if in.Nodes != nil {
 		in, out := &in.Nodes, &out.Nodes
 		*out = make(map[string]string, len(*in))
@@ -351,6 +356,11 @@ func (in *QueryEngineStatus) DeepCopyInto(out *QueryEngineStatus) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.Degraded != nil {
+		in, out := &in.Degraded, &out.Degraded
+		*out = new(bool)
+		**out = **in
+	}
 	if in.Nodes != nil {
 		in, out := &in.Nodes, &out.Nodes
 		*out = make(map[string]string, len(*in))
@@ -479,6 +489,11 @@ func (in *AnalyticsSnmpStatus) DeepCopyInto(out *AnalyticsSnmpStatus) {
 	*out = *in
 	if in.Active != nil {
 		in, out := &in.Active, &out.Active
+		*out = new(bool)
+		**out = **in
+	}
+	if in.Degraded != nil {
+		in, out := &in.Degraded, &out.Degraded
 		*out = new(bool)
 		**out = **in
 	}
@@ -633,6 +648,11 @@ func (in *AnalyticsAlarmStatus) DeepCopyInto(out *AnalyticsAlarmStatus) {
 	*out = *in
 	if in.Active != nil {
 		in, out := &in.Active, &out.Active
+		*out = new(bool)
+		**out = **in
+	}
+	if in.Degraded != nil {
+		in, out := &in.Degraded, &out.Degraded
 		*out = new(bool)
 		**out = **in
 	}
@@ -878,6 +898,11 @@ func (in *CassandraStatus) DeepCopyInto(out *CassandraStatus) {
 	*out = *in
 	if in.Active != nil {
 		in, out := &in.Active, &out.Active
+		*out = new(bool)
+		**out = **in
+	}
+	if in.Degraded != nil {
+		in, out := &in.Degraded, &out.Degraded
 		*out = new(bool)
 		**out = **in
 	}
@@ -1171,6 +1196,11 @@ func (in *ConfigStatus) DeepCopyInto(out *ConfigStatus) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.Degraded != nil {
+		in, out := &in.Degraded, &out.Degraded
+		*out = new(bool)
+		**out = **in
+	}
 	if in.Nodes != nil {
 		in, out := &in.Nodes, &out.Nodes
 		*out = make(map[string]string, len(*in))
@@ -1428,6 +1458,11 @@ func (in *ControlStatus) DeepCopyInto(out *ControlStatus) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.Degraded != nil {
+		in, out := &in.Degraded, &out.Degraded
+		*out = new(bool)
+		**out = **in
+	}
 	if in.Nodes != nil {
 		in, out := &in.Nodes, &out.Nodes
 		*out = make(map[string]string, len(*in))
@@ -1682,6 +1717,11 @@ func (in *KubemanagerStatus) DeepCopyInto(out *KubemanagerStatus) {
 	*out = *in
 	if in.Active != nil {
 		in, out := &in.Active, &out.Active
+		*out = new(bool)
+		**out = **in
+	}
+	if in.Degraded != nil {
+		in, out := &in.Degraded, &out.Degraded
 		*out = new(bool)
 		**out = **in
 	}
@@ -2237,6 +2277,11 @@ func (in *RabbitmqStatus) DeepCopyInto(out *RabbitmqStatus) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.Degraded != nil {
+		in, out := &in.Degraded, &out.Degraded
+		*out = new(bool)
+		**out = **in
+	}
 	if in.Nodes != nil {
 		in, out := &in.Nodes, &out.Nodes
 		*out = make(map[string]string, len(*in))
@@ -2395,6 +2440,11 @@ func (in *RedisStatus) DeepCopyInto(out *RedisStatus) {
 	*out = *in
 	if in.Active != nil {
 		in, out := &in.Active, &out.Active
+		*out = new(bool)
+		**out = **in
+	}
+	if in.Degraded != nil {
+		in, out := &in.Degraded, &out.Degraded
 		*out = new(bool)
 		**out = **in
 	}
@@ -3007,6 +3057,11 @@ func (in *WebuiStatus) DeepCopyInto(out *WebuiStatus) {
 			(*out)[key] = val
 		}
 	}
+	if in.Degraded != nil {
+		in, out := &in.Degraded, &out.Degraded
+		*out = new(bool)
+		**out = **in
+	}
 	out.Ports = in.Ports
 	if in.ServiceStatus != nil {
 		in, out := &in.ServiceStatus, &out.ServiceStatus
@@ -3196,6 +3251,11 @@ func (in *ZookeeperStatus) DeepCopyInto(out *ZookeeperStatus) {
 	*out = *in
 	if in.Active != nil {
 		in, out := &in.Active, &out.Active
+		*out = new(bool)
+		**out = **in
+	}
+	if in.Degraded != nil {
+		in, out := &in.Degraded, &out.Degraded
 		*out = new(bool)
 		**out = **in
 	}

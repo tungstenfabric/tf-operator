@@ -66,9 +66,10 @@ type RabbitmqConfiguration struct {
 
 // RabbitmqStatus +k8s:openapi-gen=true
 type RabbitmqStatus struct {
-	Active *bool             `json:"active,omitempty"`
-	Nodes  map[string]string `json:"nodes,omitempty"`
-	Secret string            `json:"secret,omitempty"`
+	Active   *bool             `json:"active,omitempty"`
+	Degraded *bool             `json:"degraded,omitempty"`
+	Nodes    map[string]string `json:"nodes,omitempty"`
+	Secret   string            `json:"secret,omitempty"`
 }
 
 // TCPListenOptionsConfig is configuration for RabbitMQ TCP listen
@@ -367,8 +368,8 @@ func (c *Rabbitmq) PodsCertSubjects(domain string, podList []corev1.Pod) []certi
 }
 
 // SetInstanceActive sets the Cassandra instance to active.
-func (c *Rabbitmq) SetInstanceActive(client client.Client, activeStatus *bool, sts *appsv1.StatefulSet, request reconcile.Request) error {
-	return SetInstanceActive(client, activeStatus, sts, request, c)
+func (c *Rabbitmq) SetInstanceActive(client client.Client, activeStatus *bool, degradedStatus *bool, sts *appsv1.StatefulSet, request reconcile.Request) error {
+	return SetInstanceActive(client, activeStatus, degradedStatus, sts, request, c)
 }
 
 func (c *Rabbitmq) ManageNodeStatus(podNameIPMap map[string]string,

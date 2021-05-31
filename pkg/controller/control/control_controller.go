@@ -426,8 +426,9 @@ func (r *ReconcileControl) Reconcile(request reconcile.Request) (reconcile.Resul
 		return requeueReconcile, nil
 	}
 
-	instance.Status.Active = &falseVal
-	if err = instance.SetInstanceActive(r.Client, instance.Status.Active, statefulSet, request); err != nil {
+	instance.Status.Active = new(bool)
+	instance.Status.Degraded = new(bool)
+	if err = instance.SetInstanceActive(r.Client, instance.Status.Active, instance.Status.Degraded, statefulSet, request); err != nil {
 		if v1alpha1.IsOKForRequeque(err) {
 			return requeueReconcile, nil
 		}
