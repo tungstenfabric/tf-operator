@@ -7,6 +7,9 @@ spec:
   - JSONPath: .status.active
     name: Active
     type: boolean
+  - JSONPath: .status.degraded
+    name: Degraded
+    type: boolean
   group: tf.tungsten.io
   names:
     kind: AnalyticsSnmp
@@ -230,6 +233,8 @@ spec:
           description: AnalyticsSnmpStatus is the Status for the Analytics SNMP API.
           properties:
             active:
+              type: boolean
+            degraded:
               type: boolean
             configChanged:
               type: boolean

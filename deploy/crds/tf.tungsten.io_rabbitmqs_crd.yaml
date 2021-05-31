@@ -235,6 +235,8 @@ spec:
           properties:
             active:
               type: boolean
+            degraded:
+              type: boolean
             nodes:
               additionalProperties:
                 type: string

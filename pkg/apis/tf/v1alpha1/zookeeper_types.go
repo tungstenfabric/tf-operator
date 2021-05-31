@@ -51,9 +51,10 @@ type ZookeeperConfiguration struct {
 // ZookeeperStatus defines the status of the zookeeper object.
 // +k8s:openapi-gen=true
 type ZookeeperStatus struct {
-	Active *bool                `json:"active,omitempty"`
-	Nodes  map[string]string    `json:"nodes,omitempty"`
-	Ports  ZookeeperStatusPorts `json:"ports,omitempty"`
+	Active   *bool                `json:"active,omitempty"`
+	Degraded *bool                `json:"degraded,omitempty"`
+	Nodes    map[string]string    `json:"nodes,omitempty"`
+	Ports    ZookeeperStatusPorts `json:"ports,omitempty"`
 }
 
 // ZookeeperStatusPorts defines the status of the ports of the zookeeper object.
@@ -214,9 +215,9 @@ func (c *Zookeeper) PodIPListAndIPMapFromInstance(instanceType string, request r
 	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, "")
 }
 
-// SetInstanceActive sets the Cassandra instance to active.
-func (c *Zookeeper) SetInstanceActive(client client.Client, activeStatus *bool, sts *appsv1.StatefulSet, request reconcile.Request) error {
-	return SetInstanceActive(client, activeStatus, sts, request, c)
+// SetInstanceActive sets the Zookeeper instance to active.
+func (c *Zookeeper) SetInstanceActive(client client.Client, activeStatus *bool, degradedStatus *bool, sts *appsv1.StatefulSet, request reconcile.Request) error {
+	return SetInstanceActive(client, activeStatus, degradedStatus, sts, request, c)
 }
 
 // ZookeeperPod is a pod with zookeper service. It is an inheritor of corev1.Pod.

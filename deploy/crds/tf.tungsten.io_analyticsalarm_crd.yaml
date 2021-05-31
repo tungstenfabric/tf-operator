@@ -7,6 +7,9 @@ spec:
   - JSONPath: .status.active
     name: Active
     type: boolean
+  - JSONPath: .status.degraded
+    name: Degraded
+    type: boolean
   group: tf.tungsten.io
   names:
     kind: AnalyticsAlarm
@@ -225,6 +228,8 @@ spec:
             API.
           properties:
             active:
+              type: boolean
+            degraded:
               type: boolean
             configChanged:
               type: boolean

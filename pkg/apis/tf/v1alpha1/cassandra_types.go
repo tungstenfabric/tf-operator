@@ -67,6 +67,7 @@ type CassandraConfiguration struct {
 // +k8s:openapi-gen=true
 type CassandraStatus struct {
 	Active        *bool                `json:"active,omitempty"`
+	Degraded      *bool                `json:"degraded,omitempty"`
 	Nodes         map[string]string    `json:"nodes,omitempty"`
 	Ports         CassandraStatusPorts `json:"ports,omitempty"`
 	ClusterIP     string               `json:"clusterIP,omitempty"`
@@ -514,6 +515,7 @@ func (c *Cassandra) UpdateStatus(cassandraConfig *CassandraConfiguration, podNam
 	// butsomtimes appear error:
 	// "Observed a panic: "invalid memory address or nil pointer dereference"
 	a := sts != nil && sts.Spec.Replicas != nil && sts.Status.ReadyReplicas >= *sts.Spec.Replicas/2+1
+	d := sts == nil || sts.Spec.Replicas == nil || sts.Status.ReadyReplicas < *sts.Spec.Replicas
 	if c.Status.Active == nil {
 		log.Info("Active", "new", a, "old", c.Status.Active)
 		c.Status.Active = new(bool)
@@ -523,6 +525,17 @@ func (c *Cassandra) UpdateStatus(cassandraConfig *CassandraConfiguration, podNam
 	if *c.Status.Active != a {
 		log.Info("Active", "new", a, "old", *c.Status.Active)
 		*c.Status.Active = a
+		changed = true
+	}
+	if c.Status.Degraded == nil {
+		log.Info("Degraded", "new", d, "old", c.Status.Degraded)
+		c.Status.Degraded = new(bool)
+		*c.Status.Degraded = d
+		changed = true
+	}
+	if *c.Status.Degraded != d {
+		log.Info("Degraded", "new", d, "old", *c.Status.Degraded)
+		*c.Status.Degraded = d
 		changed = true
 	}
 
