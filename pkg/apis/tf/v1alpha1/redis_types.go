@@ -161,16 +161,6 @@ func (c *Redis) AddSecretVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeCon
 	AddSecretVolumesToIntendedSTS(sts, volumeConfigMapMap)
 }
 
-// CreateSTS creates the STS.
-func (c *Redis) CreateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
-	return CreateSTS(sts, instanceType, request, reconcileClient)
-}
-
-// UpdateSTS updates the STS.
-func (c *Redis) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, client client.Client) (bool, error) {
-	return UpdateServiceSTS(c, instanceType, sts, false, client)
-}
-
 // SetInstanceActive sets the Redis instance to active
 func (c *Redis) SetInstanceActive(client client.Client, activeStatus *bool, sts *appsv1.StatefulSet, request reconcile.Request) error {
 	if err := client.Get(context.TODO(), types.NamespacedName{Name: sts.Name, Namespace: request.Namespace}, sts); err != nil {
