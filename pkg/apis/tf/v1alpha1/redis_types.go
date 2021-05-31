@@ -51,11 +51,8 @@ type RedisConfiguration struct {
 // RedisStatus defines the status of the redis object.
 // +k8s:openapi-gen=true
 type RedisStatus struct {
-	Active        *bool             `json:"active,omitempty"`
-	Degraded      *bool             `json:"degraded,omitempty"`
-	Nodes         map[string]string `json:"nodes,omitempty"`
-	ClusterIP     string            `json:"clusterIP,omitempty"`
-	ConfigChanged *bool             `json:"configChanged,omitempty"`
+	CommonStatus `json:",inline"`
+	ClusterIP    string `json:"clusterIP,omitempty"`
 }
 
 // RedisList contains a list of Redis.

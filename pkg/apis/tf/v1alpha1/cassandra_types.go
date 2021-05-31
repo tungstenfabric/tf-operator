@@ -67,12 +67,9 @@ type CassandraConfiguration struct {
 // CassandraStatus defines the status of the cassandra object.
 // +k8s:openapi-gen=true
 type CassandraStatus struct {
-	Active        *bool                `json:"active,omitempty"`
-	Degraded      *bool                `json:"degraded,omitempty"`
-	Nodes         map[string]string    `json:"nodes,omitempty"`
-	Ports         CassandraStatusPorts `json:"ports,omitempty"`
-	ClusterIP     string               `json:"clusterIP,omitempty"`
-	ConfigChanged *bool                `json:"configChanged,omitempty"`
+	CommonStatus `json:",inline"`
+	Ports        CassandraStatusPorts `json:"ports,omitempty"`
+	ClusterIP    string               `json:"clusterIP,omitempty"`
 }
 
 // CassandraStatusPorts defines the status of the ports of the cassandra object.

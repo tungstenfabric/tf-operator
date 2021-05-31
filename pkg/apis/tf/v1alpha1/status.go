@@ -1,41 +1,12 @@
 package v1alpha1
 
-import appsv1 "k8s.io/api/apps/v1"
-
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// Status is the status of the service.
+// CommonStatus is the common part of service status.
 // +k8s:openapi-gen=true
-type Status struct {
-	Active        bool  `json:"active,omitempty"`
-	Replicas      int32 `json:"replicas,omitempty"`
-	ReadyReplicas int32 `json:"readyReplicas,omitempty"`
-}
-
-func (s *Status) FromDeployment(d *appsv1.Deployment) {
-	expectedReplicas := int32(1)
-	if d.Spec.Replicas != nil {
-		expectedReplicas = *d.Spec.Replicas
-	}
-	s.Replicas = expectedReplicas
-	s.ReadyReplicas = d.Status.ReadyReplicas
-	if d.Status.ReadyReplicas == expectedReplicas {
-		s.Active = true
-	} else {
-		s.Active = false
-	}
-}
-
-func (s *Status) FromStatefulSet(d *appsv1.StatefulSet) {
-	expectedReplicas := int32(1)
-	if d.Spec.Replicas != nil {
-		expectedReplicas = *d.Spec.Replicas
-	}
-	s.Replicas = expectedReplicas
-	s.ReadyReplicas = d.Status.ReadyReplicas
-	if d.Status.ReadyReplicas == expectedReplicas {
-		s.Active = true
-	} else {
-		s.Active = false
-	}
+type CommonStatus struct {
+	Active        *bool             `json:"active,omitempty"`
+	Degraded      *bool             `json:"degraded,omitempty"`
+	Nodes         map[string]string `json:"nodes,omitempty"`
+	ConfigChanged *bool             `json:"configChanged,omitempty"`
 }

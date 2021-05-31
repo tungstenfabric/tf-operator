@@ -68,9 +68,11 @@ var webuiControl = &Control{
 		Namespace: "test-ns",
 	},
 	Status: ControlStatus{
-		Nodes: map[string]string{
-			"pod1": "1.1.1.1",
-			"pod2": "2.2.2.2",
+		CommonStatus: CommonStatus{
+			Nodes: map[string]string{
+				"pod1": "1.1.1.1",
+				"pod2": "2.2.2.2",
+			},
 		},
 	},
 }
@@ -81,9 +83,11 @@ var webuiCassandra = &Cassandra{
 		Namespace: "test-ns",
 	},
 	Status: CassandraStatus{
-		Nodes: map[string]string{
-			"pod1": "1.1.1.1",
-			"pod2": "2.2.2.2",
+		CommonStatus: CommonStatus{
+			Nodes: map[string]string{
+				"pod1": "1.1.1.1",
+				"pod2": "2.2.2.2",
+			},
 		},
 	},
 }
@@ -94,9 +98,11 @@ var webuiConfig = &Config{
 		Namespace: "test-ns",
 	},
 	Status: ConfigStatus{
-		Nodes: map[string]string{
-			"pod1": "1.1.1.1",
-			"pod2": "2.2.2.2",
+		CommonStatus: CommonStatus{
+			Nodes: map[string]string{
+				"pod1": "1.1.1.1",
+				"pod2": "2.2.2.2",
+			},
 		},
 	},
 }
@@ -107,9 +113,10 @@ var webuiAnalytics = &Analytics{
 		Namespace: "test-ns",
 	},
 	Status: AnalyticsStatus{
-		Nodes: map[string]string{
+		CommonStatus: CommonStatus{Nodes: map[string]string{
 			"pod1": "1.1.1.1",
 			"pod2": "2.2.2.2",
+		},
 		},
 	},
 }

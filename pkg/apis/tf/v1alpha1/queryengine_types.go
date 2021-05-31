@@ -65,11 +65,8 @@ type QueryEngineConfiguration struct {
 // QueryEngineStatus status of QueryEngine
 // +k8s:openapi-gen=true
 type QueryEngineStatus struct {
-	Active        *bool             `json:"active,omitempty"`
-	Degraded      *bool             `json:"degraded,omitempty"`
-	Nodes         map[string]string `json:"nodes,omitempty"`
-	Endpoint      string            `json:"endpoint,omitempty"`
-	ConfigChanged *bool             `json:"configChanged,omitempty"`
+	CommonStatus `json:",inline"`
+	Endpoint     string `json:"endpoint,omitempty"`
 }
 
 // QueryEngineList contains a list of QueryEngine.

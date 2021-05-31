@@ -64,12 +64,9 @@ type ControlConfiguration struct {
 // ControlStatus defines the observed state of Control.
 // +k8s:openapi-gen=true
 type ControlStatus struct {
-	Active        *bool                           `json:"active,omitempty"`
-	Degraded      *bool                           `json:"degraded,omitempty"`
-	Nodes         map[string]string               `json:"nodes,omitempty"`
+	CommonStatus  `json:",inline"`
 	Ports         ControlStatusPorts              `json:"ports,omitempty"`
 	ServiceStatus map[string]ControlServiceStatus `json:"serviceStatus,omitempty"`
-	ConfigChanged *bool                           `json:"configChanged,omitempty"`
 }
 
 // ControlServiceStatus status of control

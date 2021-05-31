@@ -66,10 +66,8 @@ type RabbitmqConfiguration struct {
 
 // RabbitmqStatus +k8s:openapi-gen=true
 type RabbitmqStatus struct {
-	Active   *bool             `json:"active,omitempty"`
-	Degraded *bool             `json:"degraded,omitempty"`
-	Nodes    map[string]string `json:"nodes,omitempty"`
-	Secret   string            `json:"secret,omitempty"`
+	CommonStatus `json:",inline"`
+	Secret       string `json:"secret,omitempty"`
 }
 
 // TCPListenOptionsConfig is configuration for RabbitMQ TCP listen

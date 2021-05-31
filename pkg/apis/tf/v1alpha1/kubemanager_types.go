@@ -47,10 +47,7 @@ type KubemanagerStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html
-	Active        *bool             `json:"active,omitempty"`
-	Degraded      *bool             `json:"degraded,omitempty"`
-	Nodes         map[string]string `json:"nodes,omitempty"`
-	ConfigChanged *bool             `json:"configChanged,omitempty"`
+	CommonStatus `json:",inline"`
 }
 
 // KubemanagerServiceConfiguration is the Spec for the kubemanagers API.

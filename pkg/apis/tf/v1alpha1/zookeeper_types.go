@@ -50,10 +50,8 @@ type ZookeeperConfiguration struct {
 // ZookeeperStatus defines the status of the zookeeper object.
 // +k8s:openapi-gen=true
 type ZookeeperStatus struct {
-	Active   *bool                `json:"active,omitempty"`
-	Degraded *bool                `json:"degraded,omitempty"`
-	Nodes    map[string]string    `json:"nodes,omitempty"`
-	Ports    ZookeeperStatusPorts `json:"ports,omitempty"`
+	CommonStatus `json:",inline"`
+	Ports        ZookeeperStatusPorts `json:"ports,omitempty"`
 }
 
 // ZookeeperStatusPorts defines the status of the ports of the zookeeper object.
