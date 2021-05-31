@@ -394,7 +394,7 @@ func (c *AnalyticsAlarm) UpdateSTS(sts *appsv1.StatefulSet, instanceType string,
 //PodsCertSubjects gets list of Vrouter pods certificate subjets which can be passed to the certificate API
 func (c *AnalyticsAlarm) PodsCertSubjects(domain string, podList []corev1.Pod) []certificates.CertificateSubject {
 	var altIPs PodAlternativeIPs
-	return PodsCertSubjects(domain, podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
+	return PodsCertSubjects(domain, podList, altIPs)
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.

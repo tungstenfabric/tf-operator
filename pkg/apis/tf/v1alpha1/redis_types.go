@@ -191,7 +191,7 @@ func (c *Redis) PodIPListAndIPMapFromInstance(instanceType string, request recon
 //PodsCertSubjects gets list of Redis pods certificate subjets which can be passed to the certificate API
 func (c *Redis) PodsCertSubjects(domain string, podList []corev1.Pod) []certificates.CertificateSubject {
 	var altIPs PodAlternativeIPs
-	return PodsCertSubjects(domain, podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
+	return PodsCertSubjects(domain, podList, altIPs)
 }
 
 // QuerySTS queries the Redis STS
