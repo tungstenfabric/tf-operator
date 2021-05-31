@@ -76,10 +76,7 @@ type AnalyticsSnmpConfiguration struct {
 // AnalyticsSnmpStatus is the Status for the Analytics SNMP API.
 // +k8s:openapi-gen=true
 type AnalyticsSnmpStatus struct {
-	Active        *bool             `json:"active,omitempty"`
-	Degraded      *bool             `json:"degraded,omitempty"`
-	ConfigChanged *bool             `json:"configChanged,omitempty"`
-	Nodes         map[string]string `json:"nodes,omitempty"`
+	CommonStatus `json:",inline"`
 }
 
 func init() {

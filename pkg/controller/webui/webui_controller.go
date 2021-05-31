@@ -459,8 +459,9 @@ func (r *ReconcileWebui) updateStatus(cr *v1alpha1.Webui, sts *appsv1.StatefulSe
 		sts); err != nil {
 		return err
 	}
-	cr.Status.FromStatefulSet(sts)
+	active := sts.Status.ReadyReplicas >= *sts.Spec.Replicas/2+1
 	degraded := sts.Status.ReadyReplicas < *sts.Spec.Replicas
+	cr.Status.Active = &active
 	cr.Status.Degraded = &degraded
 	r.updatePorts(cr)
 	if err := r.updateServiceStatus(cr); err != nil {

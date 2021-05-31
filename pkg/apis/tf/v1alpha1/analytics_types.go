@@ -82,11 +82,8 @@ type AnalyticsConfiguration struct {
 // AnalyticsStatus status of Analytics
 // +k8s:openapi-gen=true
 type AnalyticsStatus struct {
-	Active        *bool             `json:"active,omitempty"`
-	Degraded      *bool             `json:"degraded,omitempty"`
-	Nodes         map[string]string `json:"nodes,omitempty"`
-	Endpoint      string            `json:"endpoint,omitempty"`
-	ConfigChanged *bool             `json:"configChanged,omitempty"`
+	CommonStatus `json:",inline"`
+	Endpoint     string `json:"endpoint,omitempty"`
 }
 
 // AnalyticsList contains a list of Analytics.

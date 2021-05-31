@@ -17,9 +17,11 @@ func TestVrouterControlInstanceSelection(t *testing.T) {
 			Name: "control1",
 		},
 		Status: ControlStatus{
-			Nodes: map[string]string{
-				"pod1": "1.1.1.1",
-				"pod2": "2.2.2.2",
+			CommonStatus: CommonStatus{
+				Nodes: map[string]string{
+					"pod1": "1.1.1.1",
+					"pod2": "2.2.2.2",
+				},
 			},
 		},
 	}
@@ -29,8 +31,10 @@ func TestVrouterControlInstanceSelection(t *testing.T) {
 			Name: "control2",
 		},
 		Status: ControlStatus{
-			Nodes: map[string]string{
-				"pod3": "3.3.3.3",
+			CommonStatus: CommonStatus{
+				Nodes: map[string]string{
+					"pod3": "3.3.3.3",
+				},
 			},
 		},
 	}
