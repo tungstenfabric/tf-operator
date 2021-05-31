@@ -63,7 +63,6 @@ type QueryEngineConfiguration struct {
 	RabbitmqPassword          string       `json:"rabbitmqPassword,omitempty"`
 	RabbitmqVhost             string       `json:"rabbitmqVhost,omitempty"`
 	LogLevel                  string       `json:"logLevel,omitempty"`
-	Storage                   Storage      `json:"storage,omitempty"`
 }
 
 // QueryEngineStatus status of QueryEngine

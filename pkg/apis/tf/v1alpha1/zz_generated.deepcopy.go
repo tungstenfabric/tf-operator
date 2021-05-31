@@ -97,7 +97,6 @@ func (in *AnalyticsConfiguration) DeepCopyInto(out *AnalyticsConfiguration) {
 		*out = new(int)
 		**out = **in
 	}
-	out.Storage = in.Storage
 	if in.AnalyticsDataTTL != nil {
 		in, out := &in.AnalyticsDataTTL, &out.AnalyticsDataTTL
 		*out = new(int)
@@ -278,7 +277,6 @@ func (in *QueryEngineConfiguration) DeepCopyInto(out *QueryEngineConfiguration) 
 			}
 		}
 	}
-	out.Storage = in.Storage
 	return
 }
 
@@ -808,7 +806,6 @@ func (in *CassandraConfiguration) DeepCopyInto(out *CassandraConfiguration) {
 		*out = new(int)
 		**out = **in
 	}
-	out.Storage = in.Storage
 	return
 }
 
@@ -1063,7 +1060,6 @@ func (in *ConfigConfiguration) DeepCopyInto(out *ConfigConfiguration) {
 		*out = new(int)
 		**out = **in
 	}
-	out.Storage = in.Storage
 	if in.LinklocalServiceConfig != nil {
 		in, out := &in.LinklocalServiceConfig, &out.LinklocalServiceConfig
 		*out = new(LinklocalServiceConfig)
@@ -2315,7 +2311,6 @@ func (in *RedisConfiguration) DeepCopyInto(out *RedisConfiguration) {
 		*out = new(int)
 		**out = **in
 	}
-	out.Storage = in.Storage
 	return
 }
 
@@ -3116,7 +3111,6 @@ func (in *ZookeeperConfiguration) DeepCopyInto(out *ZookeeperConfiguration) {
 		*out = new(int)
 		**out = **in
 	}
-	out.Storage = in.Storage
 	return
 }
 

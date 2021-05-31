@@ -81,7 +81,6 @@ type ConfigConfiguration struct {
 	RabbitmqVhost               string                  `json:"rabbitmqVhost,omitempty"`
 	LogLevel                    string                  `json:"logLevel,omitempty"`
 	AAAMode                     AAAMode                 `json:"aaaMode,omitempty"`
-	Storage                     Storage                 `json:"storage,omitempty"`
 	FabricMgmtIP                string                  `json:"fabricMgmtIP,omitempty"`
 	LinklocalServiceConfig      *LinklocalServiceConfig `json:"linklocalServiceConfig,omitempty"`
 	UseExternalTFTP             *bool                   `json:"useExternalTFTP,omitempty"`

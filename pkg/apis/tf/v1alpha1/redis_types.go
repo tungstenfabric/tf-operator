@@ -46,7 +46,6 @@ type RedisConfiguration struct {
 	ClusterName   string       `json:"clusterName,omitempty"`
 	ListenAddress string       `json:"listenAddress,omitempty"`
 	RedisPort     *int         `json:"redisPort,omitempty"`
-	Storage       Storage      `json:"storage,omitempty"`
 }
 
 // RedisStatus defines the status of the redis object.
@@ -240,16 +239,6 @@ func (c *Redis) ConfigurationParameters() *RedisConfiguration {
 	redisConfiguration := &RedisConfiguration{}
 	var redisPort int
 
-	if c.Spec.ServiceConfiguration.Storage.Path == "" {
-		redisConfiguration.Storage.Path = "/var/lib/redis"
-	} else {
-		redisConfiguration.Storage.Path = c.Spec.ServiceConfiguration.Storage.Path
-	}
-	if c.Spec.ServiceConfiguration.Storage.Size == "" {
-		redisConfiguration.Storage.Size = "5Gi"
-	} else {
-		redisConfiguration.Storage.Size = c.Spec.ServiceConfiguration.Storage.Size
-	}
 	if c.Spec.ServiceConfiguration.RedisPort != nil {
 		redisPort = *c.Spec.ServiceConfiguration.RedisPort
 	} else {
