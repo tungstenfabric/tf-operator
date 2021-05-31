@@ -74,6 +74,7 @@ type WebUIServiceStatus struct {
 // +k8s:openapi-gen=true
 type WebuiStatus struct {
 	Status        `json:",inline"`
+	Degraded      *bool                            `json:"degraded,omitempty"`
 	Nodes         map[string]string                `json:"nodes,omitempty"`
 	Ports         WebUIStatusPorts                 `json:"ports,omitempty"`
 	ServiceStatus map[string]WebUIServiceStatusMap `json:"serviceStatus,omitempty"`
@@ -249,8 +250,8 @@ func (c *Webui) PodsCertSubjects(domain string, podList []corev1.Pod) []certific
 }
 
 // SetInstanceActive sets the Webui instance to active.
-func (c *Webui) SetInstanceActive(client client.Client, activeStatus *bool, sts *appsv1.StatefulSet, request reconcile.Request) error {
-	return SetInstanceActive(client, activeStatus, sts, request, c)
+func (c *Webui) SetInstanceActive(client client.Client, activeStatus *bool, degradedStatus *bool, sts *appsv1.StatefulSet, request reconcile.Request) error {
+	return SetInstanceActive(client, activeStatus, degradedStatus, sts, request, c)
 }
 
 // ManageNodeStatus updates nodes map

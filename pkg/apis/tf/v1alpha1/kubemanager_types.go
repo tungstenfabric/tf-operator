@@ -48,6 +48,7 @@ type KubemanagerStatus struct {
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html
 	Active        *bool             `json:"active,omitempty"`
+	Degraded      *bool             `json:"degraded,omitempty"`
 	Nodes         map[string]string `json:"nodes,omitempty"`
 	ConfigChanged *bool             `json:"configChanged,omitempty"`
 }
@@ -347,8 +348,8 @@ func (c *Kubemanager) PodsCertSubjects(domain string, podList []corev1.Pod) []ce
 }
 
 // SetInstanceActive sets the Kubemanager instance to active.
-func (c *Kubemanager) SetInstanceActive(client client.Client, activeStatus *bool, sts *appsv1.StatefulSet, request reconcile.Request) error {
-	return SetInstanceActive(client, activeStatus, sts, request, c)
+func (c *Kubemanager) SetInstanceActive(client client.Client, activeStatus *bool, degradedStatus *bool, sts *appsv1.StatefulSet, request reconcile.Request) error {
+	return SetInstanceActive(client, activeStatus, degradedStatus, sts, request, c)
 }
 
 // ManageNodeStatus updates node status

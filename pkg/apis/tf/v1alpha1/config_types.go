@@ -100,6 +100,7 @@ type LinklocalServiceConfig struct {
 // +k8s:openapi-gen=true
 type ConfigStatus struct {
 	Active        *bool             `json:"active,omitempty"`
+	Degraded      *bool             `json:"degraded,omitempty"`
 	Nodes         map[string]string `json:"nodes,omitempty"`
 	Endpoint      string            `json:"endpoint,omitempty"`
 	ConfigChanged *bool             `json:"configChanged,omitempty"`
@@ -528,11 +529,12 @@ func (c *Config) AddSecretVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeCo
 }
 
 // SetInstanceActive sets the Config instance to active
-func (c *Config) SetInstanceActive(client client.Client, activeStatus *bool, sts *appsv1.StatefulSet, request reconcile.Request) error {
+func (c *Config) SetInstanceActive(client client.Client, activeStatus *bool, degradedStstus *bool, sts *appsv1.StatefulSet, request reconcile.Request) error {
 	if err := client.Get(context.TODO(), types.NamespacedName{Name: sts.Name, Namespace: request.Namespace}, sts); err != nil {
 		return err
 	}
 	*activeStatus = sts.Status.ReadyReplicas >= *sts.Spec.Replicas/2+1
+	*degradedStstus = sts.Status.ReadyReplicas < *sts.Spec.Replicas
 	if err := client.Status().Update(context.TODO(), c); err != nil {
 		return err
 	}

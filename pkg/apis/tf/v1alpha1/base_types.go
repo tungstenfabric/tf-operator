@@ -721,7 +721,7 @@ func UpdateServiceSTS(instance v1.Object,
 }
 
 // SetInstanceActive sets the instance to active.
-func SetInstanceActive(client client.Client, activeStatus *bool, sts *appsv1.StatefulSet, request reconcile.Request, object runtime.Object) error {
+func SetInstanceActive(client client.Client, activeStatus *bool, degradedStatus *bool, sts *appsv1.StatefulSet, request reconcile.Request, object runtime.Object) error {
 	if err := client.Get(context.TODO(), types.NamespacedName{Name: sts.Name, Namespace: request.Namespace},
 		sts); err != nil {
 		return err
@@ -730,8 +730,10 @@ func SetInstanceActive(client client.Client, activeStatus *bool, sts *appsv1.Sta
 	if sts.Status.ReadyReplicas == *sts.Spec.Replicas {
 		active = true
 	}
+	degraded := sts.Status.ReadyReplicas < *sts.Spec.Replicas
 
 	*activeStatus = active
+	*degradedStatus = degraded
 	if err := client.Status().Update(context.TODO(), object); err != nil {
 		return err
 	}

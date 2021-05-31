@@ -81,6 +81,7 @@ type AnalyticsConfiguration struct {
 // +k8s:openapi-gen=true
 type AnalyticsStatus struct {
 	Active        *bool             `json:"active,omitempty"`
+	Degraded      *bool             `json:"degraded,omitempty"`
 	Nodes         map[string]string `json:"nodes,omitempty"`
 	Endpoint      string            `json:"endpoint,omitempty"`
 	ConfigChanged *bool             `json:"configChanged,omitempty"`
@@ -427,11 +428,13 @@ func (c *Analytics) AddSecretVolumesToIntendedSTS(sts *appsv1.StatefulSet, volum
 }
 
 // SetInstanceActive sets the Analytics instance to active
-func (c *Analytics) SetInstanceActive(client client.Client, activeStatus *bool, sts *appsv1.StatefulSet, request reconcile.Request) error {
+func (c *Analytics) SetInstanceActive(client client.Client, activeStatus *bool, degradedStatus *bool, sts *appsv1.StatefulSet, request reconcile.Request) error {
 	if err := client.Get(context.TODO(), types.NamespacedName{Name: sts.Name, Namespace: request.Namespace}, sts); err != nil {
 		return err
 	}
 	*activeStatus = sts.Status.ReadyReplicas >= *sts.Spec.Replicas/2+1
+	*degradedStatus = sts.Status.ReadyReplicas < *sts.Spec.Replicas
+
 	if err := client.Status().Update(context.TODO(), c); err != nil {
 		return err
 	}

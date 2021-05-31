@@ -19,6 +19,9 @@ spec:
   - JSONPath: .status.active
     name: Active
     type: boolean
+  - JSONPath: .status.degraded
+    name: Degraded
+    type: boolean
   group: tf.tungsten.io
   names:
     kind: Config
@@ -271,6 +274,8 @@ spec:
           description: ConfigStatus status of Config
           properties:
             active:
+              type: boolean
+            degraded:
               type: boolean
             configChanged:
               type: boolean

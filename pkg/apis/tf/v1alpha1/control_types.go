@@ -68,6 +68,7 @@ type ControlConfiguration struct {
 // +k8s:openapi-gen=true
 type ControlStatus struct {
 	Active        *bool                           `json:"active,omitempty"`
+	Degraded      *bool                           `json:"degraded,omitempty"`
 	Nodes         map[string]string               `json:"nodes,omitempty"`
 	Ports         ControlStatusPorts              `json:"ports,omitempty"`
 	ServiceStatus map[string]ControlServiceStatus `json:"serviceStatus,omitempty"`
@@ -471,8 +472,8 @@ func (c *Control) PodsCertSubjects(domain string, podList []corev1.Pod) []certif
 }
 
 // SetInstanceActive sets instance to active.
-func (c *Control) SetInstanceActive(client client.Client, activeStatus *bool, sts *appsv1.StatefulSet, request reconcile.Request) error {
-	return SetInstanceActive(client, activeStatus, sts, request, c)
+func (c *Control) SetInstanceActive(client client.Client, activeStatus *bool, degradedStatus *bool, sts *appsv1.StatefulSet, request reconcile.Request) error {
+	return SetInstanceActive(client, activeStatus, degradedStatus, sts, request, c)
 }
 
 func (c *Control) ManageNodeStatus(podNameIPMap map[string]string,

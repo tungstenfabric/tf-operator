@@ -19,6 +19,9 @@ spec:
   - JSONPath: .status.active
     name: Active
     type: boolean
+  - JSONPath: .status.degraded
+    name: Degraded
+    type: boolean
   group: tf.tungsten.io
   names:
     kind: Analytics
@@ -262,6 +265,8 @@ spec:
           description: AnalyticsStatus status of Analytics
           properties:
             active:
+              type: boolean
+            degraded:
               type: boolean
             configChanged:
               type: boolean
