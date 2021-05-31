@@ -59,9 +59,6 @@ type QueryEngineConfiguration struct {
 	CassandraInstance         string       `json:"analyticsCassandraInstance,omitempty"`
 	ZookeeperInstance         string       `json:"zookeeperInstance,omitempty"`
 	RedisInstance             string       `json:"redisInstance,omitempty"`
-	RabbitmqUser              string       `json:"rabbitmqUser,omitempty"`
-	RabbitmqPassword          string       `json:"rabbitmqPassword,omitempty"`
-	RabbitmqVhost             string       `json:"rabbitmqVhost,omitempty"`
 	LogLevel                  string       `json:"logLevel,omitempty"`
 }
 

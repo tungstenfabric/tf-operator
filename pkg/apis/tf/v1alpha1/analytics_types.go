@@ -62,9 +62,6 @@ type AnalyticsConfiguration struct {
 	CassandraInstance          string       `json:"cassandraInstance,omitempty"`
 	ZookeeperInstance          string       `json:"zookeeperInstance,omitempty"`
 	RedisInstance              string       `json:"redisInstance,omitempty"`
-	RabbitmqUser               string       `json:"rabbitmqUser,omitempty"`
-	RabbitmqPassword           string       `json:"rabbitmqPassword,omitempty"`
-	RabbitmqVhost              string       `json:"rabbitmqVhost,omitempty"`
 	LogLevel                   string       `json:"logLevel,omitempty"`
 	AAAMode                    AAAMode      `json:"aaaMode,omitempty"`
 	// Time (in hours) that the analytics object and log data stays in the Cassandra database. Defaults to 48 hours.
@@ -165,13 +162,13 @@ func (c *Analytics) InstanceConfiguration(configMapName string,
 
 	analyticsConfig := c.ConfigurationParameters()
 	if rabbitmqSecretUser == "" {
-		rabbitmqSecretUser = analyticsConfig.RabbitmqUser
+		rabbitmqSecretUser = RabbitmqUser
 	}
 	if rabbitmqSecretPassword == "" {
-		rabbitmqSecretPassword = analyticsConfig.RabbitmqPassword
+		rabbitmqSecretPassword = RabbitmqPassword
 	}
 	if rabbitmqSecretVhost == "" {
-		rabbitmqSecretVhost = analyticsConfig.RabbitmqVhost
+		rabbitmqSecretVhost = RabbitmqVhost
 	}
 	var collectorServerList, analyticsServerSpaceSeparatedList string
 	var podIPList []string
@@ -485,9 +482,6 @@ func (c *Analytics) ConfigurationParameters() AnalyticsConfiguration {
 	analyticsConfiguration := AnalyticsConfiguration{}
 	var analyticsPort int
 	var collectorPort int
-	var rabbitmqUser string
-	var rabbitmqPassword string
-	var rabbitmqVhost string
 	var logLevel string
 
 	if c.Spec.ServiceConfiguration.LogLevel != "" {
@@ -526,27 +520,6 @@ func (c *Analytics) ConfigurationParameters() AnalyticsConfiguration {
 		collectorIntrospectPort = CollectorIntrospectPort
 	}
 	analyticsConfiguration.CollectorIntrospectPort = &collectorIntrospectPort
-
-	if c.Spec.ServiceConfiguration.RabbitmqUser != "" {
-		rabbitmqUser = c.Spec.ServiceConfiguration.RabbitmqUser
-	} else {
-		rabbitmqUser = RabbitmqUser
-	}
-	analyticsConfiguration.RabbitmqUser = rabbitmqUser
-
-	if c.Spec.ServiceConfiguration.RabbitmqPassword != "" {
-		rabbitmqPassword = c.Spec.ServiceConfiguration.RabbitmqPassword
-	} else {
-		rabbitmqPassword = RabbitmqPassword
-	}
-	analyticsConfiguration.RabbitmqPassword = rabbitmqPassword
-
-	if c.Spec.ServiceConfiguration.RabbitmqVhost != "" {
-		rabbitmqVhost = c.Spec.ServiceConfiguration.RabbitmqVhost
-	} else {
-		rabbitmqVhost = RabbitmqVhost
-	}
-	analyticsConfiguration.RabbitmqVhost = rabbitmqVhost
 
 	analyticsConfiguration.AAAMode = c.Spec.ServiceConfiguration.AAAMode
 	if analyticsConfiguration.AAAMode == "" {

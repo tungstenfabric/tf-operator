@@ -408,14 +408,16 @@ spec:
                               type: array
                             logLevel:
                               type: string
-                            rabbitmqPassword:
-                              type: string
-                            rabbitmqUser:
-                              type: string
-                            rabbitmqVhost:
-                              type: string
                             redisInstance:
                               type: string
+                            storage:
+                              properties:
+                                path:
+                                  type: string
+                                size:
+                                  pattern: ^([0-9]+)([KMGTPE]i)?$
+                                  type: string
+                              type: object
                             zookeeperInstance:
                               type: string
                           type: object
