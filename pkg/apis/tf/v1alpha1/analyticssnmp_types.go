@@ -335,16 +335,6 @@ func (c *AnalyticsSnmp) InstanceConfiguration(configMapName string,
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }
 
-// CreateSTS creates the STS.
-func (c *AnalyticsSnmp) CreateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
-	return CreateSTS(sts, instanceType, request, reconcileClient)
-}
-
-// UpdateSTS updates the STS.
-func (c *AnalyticsSnmp) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, client client.Client) (bool, error) {
-	return UpdateServiceSTS(c, instanceType, sts, false, client)
-}
-
 //PodsCertSubjects gets list of Vrouter pods certificate subjets which can be passed to the certificate API
 func (c *AnalyticsSnmp) PodsCertSubjects(domain string, podList []corev1.Pod) []certificates.CertificateSubject {
 	var altIPs PodAlternativeIPs
