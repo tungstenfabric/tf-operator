@@ -546,7 +546,7 @@ func (r *ReconcileManager) processWebui(manager *v1alpha1.Manager, replicas int3
 	}
 	status := &v1alpha1.ServiceStatus{}
 	status.Name = &webui.Name
-	status.Active = &webui.Status.Active
+	status.Active = webui.Status.Active
 	manager.Status.Webui = status
 	return err
 }

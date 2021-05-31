@@ -108,11 +108,8 @@ type LinklocalServiceConfig struct {
 // ConfigStatus status of Config
 // +k8s:openapi-gen=true
 type ConfigStatus struct {
-	Active        *bool             `json:"active,omitempty"`
-	Degraded      *bool             `json:"degraded,omitempty"`
-	Nodes         map[string]string `json:"nodes,omitempty"`
-	Endpoint      string            `json:"endpoint,omitempty"`
-	ConfigChanged *bool             `json:"configChanged,omitempty"`
+	CommonStatus `json:",inline"`
+	Endpoint     string `json:"endpoint,omitempty"`
 }
 
 // ConfigList contains a list of Config.
