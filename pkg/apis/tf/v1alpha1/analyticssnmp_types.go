@@ -57,7 +57,6 @@ type AnalyticsSnmpSpec struct {
 type AnalyticsSnmpConfiguration struct {
 	CassandraInstance                 string       `json:"cassandraInstance,omitempty"`
 	ZookeeperInstance                 string       `json:"zookeeperInstance,omitempty"`
-	RabbitmqInstance                  string       `json:"rabbitmqInstance,omitempty"`
 	ConfigInstance                    string       `json:"configInstance,omitempty"`
 	AnalyticsInstance                 string       `json:"analyticsInstance,omitempty"`
 	LogFilePath                       string       `json:"logFilePath,omitempty"`
@@ -121,7 +120,7 @@ func (c *AnalyticsSnmp) InstanceConfiguration(configMapName string,
 	if err != nil {
 		return err
 	}
-	rabbitmqNodesInformation, err := NewRabbitmqClusterConfiguration(c.Spec.ServiceConfiguration.RabbitmqInstance, request.Namespace, client)
+	rabbitmqNodesInformation, err := NewRabbitmqClusterConfiguration(RabbitmqInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}

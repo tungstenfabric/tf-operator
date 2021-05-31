@@ -61,7 +61,6 @@ type AnalyticsConfiguration struct {
 	AnalyticsCassandraInstance string       `json:"analyticsCassandraInstance,omitempty"`
 	CassandraInstance          string       `json:"cassandraInstance,omitempty"`
 	ZookeeperInstance          string       `json:"zookeeperInstance,omitempty"`
-	RabbitmqInstance           string       `json:"rabbitmqInstance,omitempty"`
 	RedisInstance              string       `json:"redisInstance,omitempty"`
 	RabbitmqUser               string       `json:"rabbitmqUser,omitempty"`
 	RabbitmqPassword           string       `json:"rabbitmqPassword,omitempty"`
@@ -137,7 +136,7 @@ func (c *Analytics) InstanceConfiguration(configMapName string,
 	}
 
 	rabbitmqNodesInformation, err := NewRabbitmqClusterConfiguration(
-		c.Spec.ServiceConfiguration.RabbitmqInstance, request.Namespace, client)
+		RabbitmqInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}

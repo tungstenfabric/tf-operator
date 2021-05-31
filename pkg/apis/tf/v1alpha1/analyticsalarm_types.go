@@ -58,7 +58,6 @@ type AnalyticsAlarmSpec struct {
 type AnalyticsAlarmConfiguration struct {
 	CassandraInstance              string       `json:"cassandraInstance,omitempty"`
 	ZookeeperInstance              string       `json:"zookeeperInstance,omitempty"`
-	RabbitmqInstance               string       `json:"rabbitmqInstance,omitempty"`
 	RedisInstance                  string       `json:"redisInstance,omitempty"`
 	AnalyticsInstance              string       `json:"analyticsInstance,omitempty"`
 	ConfigInstance                 string       `json:"configInstance,omitempty"`
@@ -120,7 +119,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 	if err != nil {
 		return err
 	}
-	rabbitmqNodesInformation, err := NewRabbitmqClusterConfiguration(c.Spec.ServiceConfiguration.RabbitmqInstance, request.Namespace, client)
+	rabbitmqNodesInformation, err := NewRabbitmqClusterConfiguration(RabbitmqInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}

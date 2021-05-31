@@ -411,8 +411,6 @@ spec:
                               type: array
                             logLevel:
                               type: string
-                            rabbitmqInstance:
-                              type: string
                             rabbitmqPassword:
                               type: string
                             rabbitmqUser:
