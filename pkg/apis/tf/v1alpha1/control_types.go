@@ -444,16 +444,6 @@ func (c *Control) AddSecretVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeC
 	AddSecretVolumesToIntendedSTS(sts, volumeConfigMapMap)
 }
 
-// CreateSTS creates the STS.
-func (c *Control) CreateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
-	return CreateSTS(sts, instanceType, request, reconcileClient)
-}
-
-// UpdateSTS updates the STS.
-func (c *Control) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, client client.Client) (bool, error) {
-	return UpdateServiceSTS(c, instanceType, sts, false, client)
-}
-
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *Control) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
 	datanetwork := c.Spec.ServiceConfiguration.DataSubnet

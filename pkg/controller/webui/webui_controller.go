@@ -427,7 +427,7 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 		},
 	}
 
-	if created, err := instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil || created {
+	if created, err := v1alpha1.CreateServiceSTS(instance, instanceType, statefulSet, r.Client); err != nil || created {
 		if err != nil {
 			reqLogger.Error(err, "Failed to create the stateful set.")
 			return reconcile.Result{}, err
@@ -435,7 +435,7 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 		return requeueReconcile, err
 	}
 
-	if updated, err := instance.UpdateSTS(statefulSet, instanceType, r.Client); err != nil || updated {
+	if updated, err := v1alpha1.UpdateServiceSTS(instance, instanceType, statefulSet, false, r.Client); err != nil || updated {
 		if err != nil && !v1alpha1.IsOKForRequeque(err) {
 			reqLogger.Error(err, "Failed to update the stateful set.")
 			return reconcile.Result{}, err

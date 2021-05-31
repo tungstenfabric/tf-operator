@@ -320,7 +320,7 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	v1alpha1.DefaultSecurityContext(&statefulSet.Spec.Template.Spec)
 
 	// Create statefulset if it doesn't exist
-	if created, err := instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil || created {
+	if created, err := v1alpha1.CreateServiceSTS(instance, instanceType, statefulSet, r.Client); err != nil || created {
 		if err != nil {
 			reqLogger.Error(err, "Failed to create the stateful set.")
 			return reconcile.Result{}, err
@@ -329,7 +329,7 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	}
 
 	// Update StatefulSet if replicas or images changed
-	if updated, err := instance.UpdateSTS(statefulSet, instanceType, r.Client); err != nil || updated {
+	if updated, err := v1alpha1.UpdateServiceSTS(instance, instanceType, statefulSet, false, r.Client); err != nil || updated {
 		if err != nil && !v1alpha1.IsOKForRequeque(err) {
 			reqLogger.Error(err, "Failed to update the stateful set.")
 			return reconcile.Result{}, err

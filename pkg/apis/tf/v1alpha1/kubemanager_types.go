@@ -327,16 +327,6 @@ func (c *Kubemanager) AddSecretVolumesToIntendedSTS(sts *appsv1.StatefulSet, vol
 	AddSecretVolumesToIntendedSTS(sts, volumeConfigMapMap)
 }
 
-// CreateSTS creates the STS.
-func (c *Kubemanager) CreateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
-	return CreateSTS(sts, instanceType, request, reconcileClient)
-}
-
-// UpdateSTS updates the STS.
-func (c *Kubemanager) UpdateSTS(sts *appsv1.StatefulSet, instanceType string, client client.Client) (bool, error) {
-	return UpdateServiceSTS(c, instanceType, sts, false, client)
-}
-
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *Kubemanager) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
 	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, "")
