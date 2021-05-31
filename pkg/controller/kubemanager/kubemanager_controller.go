@@ -310,14 +310,14 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 	v1alpha1.AddCommonVolumes(&statefulSet.Spec.Template.Spec, instance.Spec.CommonConfiguration)
 	v1alpha1.DefaultSecurityContext(&statefulSet.Spec.Template.Spec)
 
-	if created, err := instance.CreateSTS(statefulSet, instanceType, request, r.Client); err != nil || created {
+	if created, err := v1alpha1.CreateServiceSTS(instance, instanceType, statefulSet, r.Client); err != nil || created {
 		if err != nil {
 			return reconcile.Result{}, err
 		}
 		return requeueReconcile, err
 	}
 
-	if updated, err := instance.UpdateSTS(statefulSet, instanceType, r.Client); err != nil || updated {
+	if updated, err := v1alpha1.UpdateServiceSTS(instance, instanceType, statefulSet, false, r.Client); err != nil || updated {
 		if err != nil {
 			return reconcile.Result{}, err
 		}

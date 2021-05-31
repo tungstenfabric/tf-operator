@@ -577,17 +577,27 @@ func QuerySTS(name string, namespace string, reconcileClient client.Client) (*ap
 	return sts, nil
 }
 
-// CreateSTS creates the STS.
-func CreateSTS(sts *appsv1.StatefulSet, instanceType string, request reconcile.Request, reconcileClient client.Client) (bool, error) {
-	_, err := QuerySTS(request.Name+"-"+instanceType+"-statefulset", request.Namespace, reconcileClient)
-	if err == nil {
-		return false, nil
-	}
-	if !k8serrors.IsNotFound(err) {
-		return false, err
+// CreateServiceSTS creates the service STS, if it is not exists.
+func CreateServiceSTS(instance v1.Object,
+	instanceType string,
+	sts *appsv1.StatefulSet,
+	client client.Client,
+) (created bool, err error) {
+	created, err = false, nil
+
+	stsName := instance.GetName() + "-" + instanceType + "-statefulset"
+	stsNamespace := instance.GetNamespace()
+
+	if _, err = QuerySTS(stsName, stsNamespace, client); err == nil || !k8serrors.IsNotFound(err) {
+		return
 	}
 
-	return true, reconcileClient.Create(context.TODO(), sts)
+	sts.Name = stsName
+	sts.Namespace = stsNamespace
+	if err = client.Create(context.TODO(), sts); err == nil {
+		created = true
+	}
+	return
 }
 
 // TODO: Make it more intellectual. Now it's checks only images and envs.
