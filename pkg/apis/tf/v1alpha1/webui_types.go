@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -92,36 +91,28 @@ func init() {
 }
 
 // InstanceConfiguration updates configmaps
-func (c *Webui) InstanceConfiguration(request reconcile.Request,
-	podList []corev1.Pod,
-	client client.Client) error {
-	instanceConfigMapName := request.Name + "-" + "webui" + "-configmap"
-	configMapInstanceDynamicConfig := &corev1.ConfigMap{}
-	err := client.Get(context.TODO(),
-		types.NamespacedName{Name: instanceConfigMapName, Namespace: request.Namespace},
-		configMapInstanceDynamicConfig)
+func (c *Webui) InstanceConfiguration(podList []corev1.Pod, client client.Client,
+) (data map[string]string, err error) {
+	data, err = make(map[string]string), nil
+
+	controlNodesInformation, err := NewControlClusterConfiguration(c.Spec.ServiceConfiguration.ControlInstance, c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 
-	controlNodesInformation, err := NewControlClusterConfiguration(c.Spec.ServiceConfiguration.ControlInstance, request.Namespace, client)
+	cassandraNodesInformation, err := NewCassandraClusterConfiguration(CassandraInstance, c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 
-	cassandraNodesInformation, err := NewCassandraClusterConfiguration(CassandraInstance, request.Namespace, client)
+	configNodesInformation, err := NewConfigClusterConfiguration(ConfigInstance, c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 
-	configNodesInformation, err := NewConfigClusterConfiguration(ConfigInstance, request.Namespace, client)
+	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(c.Spec.ServiceConfiguration.AnalyticsInstance, c.Namespace, client)
 	if err != nil {
-		return err
-	}
-
-	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(c.Spec.ServiceConfiguration.AnalyticsInstance, request.Namespace, client)
-	if err != nil {
-		return err
+		return
 	}
 
 	authConfig := c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters
@@ -131,7 +122,7 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 	controlXMPPIPListCommaSeparatedQuoted := configtemplates.JoinListWithSeparatorAndSingleQuotes(controlNodesInformation.ControlServerIPList, ",")
 	cassandraIPListCommaSeparatedQuoted := configtemplates.JoinListWithSeparatorAndSingleQuotes(cassandraNodesInformation.ServerIPList, ",")
 	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
-	var data = make(map[string]string)
+
 	for _, pod := range podList {
 		hostname := pod.Annotations["hostname"]
 		var webuiWebConfigBuffer bytes.Buffer
@@ -184,12 +175,8 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 		}
 		data["contrail-webui-userauth.js."+pod.Status.PodIP] = webuiAuthConfigBuffer.String()
 	}
-	configMapInstanceDynamicConfig.Data = data
-	err = client.Update(context.TODO(), configMapInstanceDynamicConfig)
-	if err != nil {
-		return err
-	}
-	return nil
+
+	return
 }
 
 // CreateSecret creates a secret.

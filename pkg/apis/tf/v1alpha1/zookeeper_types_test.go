@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,9 +9,7 @@ import (
 	"gopkg.in/ini.v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 var zookeeperPodList = []corev1.Pod{
@@ -36,38 +33,22 @@ var zookeeperPodList = []corev1.Pod{
 	},
 }
 
-var zookeeperRequest = reconcile.Request{
-	NamespacedName: types.NamespacedName{
-		Name:      "zookeeper1",
-		Namespace: "test-ns",
-	},
-}
-
-var zookeeperCM = &corev1.ConfigMap{
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "zookeeper1-zookeeper-configmap",
-		Namespace: "test-ns",
-	},
-}
-
 func TestZookeeperConfigMapWithDefaultValues(t *testing.T) {
 	scheme, err := SchemeBuilder.Build()
 	require.NoError(t, err, "Failed to build scheme")
 	require.NoError(t, corev1.SchemeBuilder.AddToScheme(scheme), "Failed to add CoreV1 into scheme")
 
-	cl := fake.NewFakeClientWithScheme(scheme, zookeeperCM)
+	cl := fake.NewFakeClientWithScheme(scheme)
 	zookeeper := Zookeeper{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "zookeeper1",
 			Namespace: "test-ns",
 		},
 	}
-	_ = zookeeper.InstanceConfiguration(zookeeperRequest, "zookeeper1-zookeeper-configmap", zookeeperPodList, cl)
+	data, err := zookeeper.InstanceConfiguration(zookeeperPodList, cl)
+	require.NoError(t, err)
 
-	var zookeeperConfigMap = &corev1.ConfigMap{}
-	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "zookeeper1-zookeeper-configmap", Namespace: "test-ns"}, zookeeperConfigMap), "Error while gathering zookeeper config map")
-
-	zookeeperConfig, err := ini.Load([]byte(zookeeperConfigMap.Data["log4j.properties"]))
+	zookeeperConfig, err := ini.Load([]byte(data["log4j.properties"]))
 	require.NoError(t, err)
 
 	assert.Equal(t, "INFO", zookeeperConfig.Section("").Key("zookeeper.root.logger").String())
@@ -80,7 +61,7 @@ func TestZookeeperConfigMapWithCustomValues(t *testing.T) {
 	require.NoError(t, err, "Failed to build scheme")
 	require.NoError(t, corev1.SchemeBuilder.AddToScheme(scheme), "Failed to add CoreV1 into scheme")
 
-	cl := fake.NewFakeClientWithScheme(scheme, zookeeperCM)
+	cl := fake.NewFakeClientWithScheme(scheme)
 	zookeeper := Zookeeper{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "zookeeper1",
@@ -92,12 +73,10 @@ func TestZookeeperConfigMapWithCustomValues(t *testing.T) {
 			},
 		},
 	}
-	_ = zookeeper.InstanceConfiguration(zookeeperRequest, "zookeeper1-zookeeper-configmap", zookeeperPodList, cl)
+	data, err := zookeeper.InstanceConfiguration(zookeeperPodList, cl)
+	require.NoError(t, err)
 
-	var zookeeperConfigMap = &corev1.ConfigMap{}
-	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "zookeeper1-zookeeper-configmap", Namespace: "test-ns"}, zookeeperConfigMap), "Error while gathering zookeeper config map")
-
-	zookeeperConfig, err := ini.Load([]byte(zookeeperConfigMap.Data["log4j.properties"]))
+	zookeeperConfig, err := ini.Load([]byte(data["log4j.properties"]))
 	require.NoError(t, err)
 
 	assert.Equal(t, "DEBUG", zookeeperConfig.Section("").Key("zookeeper.root.logger").String())

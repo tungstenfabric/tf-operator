@@ -94,15 +94,14 @@ func init() {
 }
 
 // InstanceConfiguration prepare rabbit configs
-func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
-	podList []corev1.Pod,
-	client client.Client) error {
+func (c *Rabbitmq) InstanceConfiguration(podList []corev1.Pod, client client.Client,
+) (data map[string]string, err error) {
+	data, err = make(map[string]string), nil
 
 	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
 
 	c.ConfigurationParameters()
 
-	var data = make(map[string]string)
 	for _, pod := range podList {
 		var rabbitmqPodConfig bytes.Buffer
 		err := configtemplates.RabbitmqPodConfig.Execute(&rabbitmqPodConfig, struct {
@@ -163,11 +162,11 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 	if c.Spec.ServiceConfiguration.Secret != "" {
 		secretName = c.Spec.ServiceConfiguration.Secret
 	} else {
-		secretName = request.Name + "-secret"
+		secretName = c.Name + "-secret"
 	}
-	err := client.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: request.Namespace}, secret)
+	err = client.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: c.Namespace}, secret)
 	if err != nil {
-		return err
+		return
 	}
 
 	saltedP := secret.Data["salted_password"]
@@ -191,38 +190,14 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 	}
 	data["definitions.json"] = rabbitmqDefinitionBuffer.String()
 
-	configMapInstanceDynamicConfig := &corev1.ConfigMap{}
-	err = client.Get(context.TODO(),
-		types.NamespacedName{Name: request.Name + "-" + "rabbitmq" + "-configmap", Namespace: request.Namespace},
-		configMapInstanceDynamicConfig)
-	if err != nil {
-		return err
-	}
-	configMapInstanceDynamicConfig.Data = data
-	err = client.Update(context.TODO(), configMapInstanceDynamicConfig)
-	if err != nil {
-		return err
-	}
-
-	configMapInstancConfig := &corev1.ConfigMap{}
-	err = client.Get(context.TODO(),
-		types.NamespacedName{Name: request.Name + "-" + "rabbitmq" + "-configmap-runner", Namespace: request.Namespace},
-		configMapInstancConfig)
-	if err != nil {
-		return err
-	}
 	var rabbitmqConfigBuffer bytes.Buffer
 	err = configtemplates.RabbitmqConfig.Execute(&rabbitmqConfigBuffer, struct{}{})
 	if err != nil {
 		panic(err)
 	}
-	configMapInstancConfig.Data = map[string]string{"run.sh": rabbitmqConfigBuffer.String()}
-	err = client.Update(context.TODO(), configMapInstancConfig)
-	if err != nil {
-		return err
-	}
+	data["run.sh"] = rabbitmqConfigBuffer.String()
 
-	return nil
+	return
 }
 
 func setRandomField(data map[string][]byte, field string, value string, size int) map[string][]byte {

@@ -386,8 +386,13 @@ func (r *ReconcileAnalytics) Reconcile(request reconcile.Request) (reconcile.Res
 			return reconcile.Result{}, err
 		}
 
-		if err = instance.InstanceConfiguration(configMapName, request, podIPList, r.Client); err != nil {
-			reqLogger.Error(err, "Failed to create InstanceConfiguration")
+		data, err := instance.InstanceConfiguration(podIPList, r.Client)
+		if err != nil {
+			reqLogger.Error(err, "Failed to get config data.")
+			return reconcile.Result{}, err
+		}
+		if err = v1alpha1.UpdateConfigMap(instance, instanceType, data, r.Client); err != nil {
+			reqLogger.Error(err, "Failed to update config map.")
 			return reconcile.Result{}, err
 		}
 

@@ -339,8 +339,13 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 
 	if len(podIPList) > 0 {
 
-		if err = instance.InstanceConfiguration(request, podIPList, r.Client); err != nil {
-			reqLogger.Error(err, "InstanceConfiguration failed")
+		data, err := instance.InstanceConfiguration(podIPList, r.Client)
+		if err != nil {
+			reqLogger.Error(err, "Failed to get config data.")
+			return reconcile.Result{}, err
+		}
+		if err = v1alpha1.UpdateConfigMap(instance, instanceType, data, r.Client); err != nil {
+			reqLogger.Error(err, "Failed to update config map.")
 			return reconcile.Result{}, err
 		}
 

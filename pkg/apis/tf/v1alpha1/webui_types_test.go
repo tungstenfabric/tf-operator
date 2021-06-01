@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,9 +9,7 @@ import (
 	"gopkg.in/ini.v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 var webuiPodList = []corev1.Pod{
@@ -33,20 +30,6 @@ var webuiPodList = []corev1.Pod{
 				"hostname": "pod2-host",
 			},
 		},
-	},
-}
-
-var webuiRequest = reconcile.Request{
-	NamespacedName: types.NamespacedName{
-		Name:      "webui1",
-		Namespace: "test-ns",
-	},
-}
-
-var webuiCM = &corev1.ConfigMap{
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "webui1-webui-configmap",
-		Namespace: "test-ns",
 	},
 }
 
@@ -129,7 +112,7 @@ func TestWebuiConfigMapWithDefaultValues(t *testing.T) {
 	require.NoError(t, err, "Failed to build scheme")
 	require.NoError(t, corev1.SchemeBuilder.AddToScheme(scheme), "Failed to add CoreV1 into scheme")
 
-	cl := fake.NewFakeClientWithScheme(scheme, webuiCM, webuiSecret, webuiAnalytics, webuiCassandra, webuiConfig, webuiControl)
+	cl := fake.NewFakeClientWithScheme(scheme, webuiSecret, webuiAnalytics, webuiCassandra, webuiConfig, webuiControl)
 	webui := Webui{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "webui1",
@@ -157,17 +140,16 @@ func TestWebuiConfigMapWithDefaultValues(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(t, webui.InstanceConfiguration(webuiRequest, webuiPodList, cl))
 
-	var webuiConfigMap = &corev1.ConfigMap{}
-	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "webui1-webui-configmap", Namespace: "test-ns"}, webuiConfigMap), "Error while gathering webui config map")
+	data, err := webui.InstanceConfiguration(webuiPodList, cl)
+	require.NoError(t, err)
 
-	webuiConfig, err := ini.Load([]byte(webuiConfigMap.Data["config.global.js.1.1.1.1"]))
+	webuiConfig, err := ini.Load([]byte(data["config.global.js.1.1.1.1"]))
 	require.NoError(t, err)
 
 	assert.Equal(t, "info", webuiConfig.Section("").Key("config.logs.level").String())
 
-	webuiConfig, err = ini.Load([]byte(webuiConfigMap.Data["config.global.js.2.2.2.2"]))
+	webuiConfig, err = ini.Load([]byte(data["config.global.js.2.2.2.2"]))
 	require.NoError(t, err)
 
 	assert.Equal(t, "info", webuiConfig.Section("").Key("config.logs.level").String())
@@ -178,7 +160,7 @@ func TestWebuiConfigMapWithCustomValues(t *testing.T) {
 	require.NoError(t, err, "Failed to build scheme")
 	require.NoError(t, corev1.SchemeBuilder.AddToScheme(scheme), "Failed to add CoreV1 into scheme")
 
-	cl := fake.NewFakeClientWithScheme(scheme, webuiCM, webuiSecret, webuiAnalytics, webuiCassandra, webuiConfig, webuiControl)
+	cl := fake.NewFakeClientWithScheme(scheme, webuiSecret, webuiAnalytics, webuiCassandra, webuiConfig, webuiControl)
 	webui := Webui{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "webui1",
@@ -207,17 +189,15 @@ func TestWebuiConfigMapWithCustomValues(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(t, webui.InstanceConfiguration(webuiRequest, webuiPodList, cl))
+	data, err := webui.InstanceConfiguration(webuiPodList, cl)
+	require.NoError(t, err)
 
-	var webuiConfigMap = &corev1.ConfigMap{}
-	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "webui1-webui-configmap", Namespace: "test-ns"}, webuiConfigMap), "Error while gathering webui config map")
-
-	webuiConfig, err := ini.Load([]byte(webuiConfigMap.Data["config.global.js.1.1.1.1"]))
+	webuiConfig, err := ini.Load([]byte(data["config.global.js.1.1.1.1"]))
 	require.NoError(t, err)
 
 	assert.Equal(t, "debug", webuiConfig.Section("").Key("config.logs.level").String())
 
-	webuiConfig, err = ini.Load([]byte(webuiConfigMap.Data["config.global.js.2.2.2.2"]))
+	webuiConfig, err = ini.Load([]byte(data["config.global.js.2.2.2.2"]))
 	require.NoError(t, err)
 
 	assert.Equal(t, "debug", webuiConfig.Section("").Key("config.logs.level").String())

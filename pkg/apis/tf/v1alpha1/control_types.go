@@ -135,41 +135,29 @@ func getPodDataIP(pod *corev1.Pod) (string, error) {
 }
 
 // InstanceConfiguration prepares control configmap
-func (c *Control) InstanceConfiguration(request reconcile.Request,
-	podList []corev1.Pod,
-	client client.Client) error {
-	instanceConfigMapName := request.Name + "-" + "control" + "-configmap"
-	configMapInstanceDynamicConfig := &corev1.ConfigMap{}
-	err := client.Get(context.TODO(),
-		types.NamespacedName{Name: instanceConfigMapName, Namespace: request.Namespace},
-		configMapInstanceDynamicConfig)
-	if err != nil {
-		return err
-	}
+func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Client,
+) (data map[string]string, err error) {
+	data, err = make(map[string]string), nil
 
 	cassandraNodesInformation, err := NewCassandraClusterConfiguration(CassandraInstance,
-		request.Namespace, client)
+		c.Namespace, client)
 	if err != nil {
-		return err
-	}
-
-	if err != nil {
-		return err
+		return
 	}
 
 	rabbitmqNodesInformation, err := NewRabbitmqClusterConfiguration(RabbitmqInstance,
-		request.Namespace, client)
+		c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 	var rabbitmqSecretUser string
 	var rabbitmqSecretPassword string
 	var rabbitmqSecretVhost string
 	if rabbitmqNodesInformation.Secret != "" {
 		rabbitmqSecret := &corev1.Secret{}
-		err = client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqNodesInformation.Secret, Namespace: request.Namespace}, rabbitmqSecret)
+		err = client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqNodesInformation.Secret, Namespace: c.Namespace}, rabbitmqSecret)
 		if err != nil {
-			return err
+			return
 		}
 		rabbitmqSecretUser = string(rabbitmqSecret.Data["user"])
 		rabbitmqSecretPassword = string(rabbitmqSecret.Data["password"])
@@ -177,15 +165,15 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 	}
 
 	configNodesInformation, err := NewConfigClusterConfiguration(ConfigInstance,
-		request.Namespace, client)
+		c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 
 	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(c.Spec.ServiceConfiguration.AnalyticsInstance,
-		request.Namespace, client)
+		c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 
 	controlConfig := c.ConfigurationParameters()
@@ -211,13 +199,14 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 	collectorEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(collectorEndpointList, " ")
 
 	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
-	var data = make(map[string]string)
+
 	for _, pod := range podList {
 		hostname := pod.Annotations["hostname"]
 		podIP := pod.Status.PodIP
-		podListenAddress, err := getPodDataIP(&pod)
-		if err != nil {
-			return err
+		podListenAddress, _err := getPodDataIP(&pod)
+		if _err != nil {
+			err = _err
+			return
 		}
 		instrospectListenAddress := c.Spec.CommonConfiguration.IntrospectionListenAddress(podIP)
 		var controlControlConfigBuffer bytes.Buffer
@@ -382,16 +371,14 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 		data["deprovision.py."+podIP] = controlDeProvisionBuffer.String()
 	}
 
-	configMapInstanceDynamicConfig.Data = data
-
 	// update with nodemanager runner
-	configMapInstanceDynamicConfig.Data["control-nodemanager-runner.sh"] = GetNodemanagerRunner()
+	data["control-nodemanager-runner.sh"] = GetNodemanagerRunner()
 
 	// update with provisioner configs
-	UpdateProvisionerConfigMapData("control-provisioner", configApiIPListCommaSeparated,
-		c.Spec.CommonConfiguration.AuthParameters, configMapInstanceDynamicConfig)
+	data["control-provisioner.sh"] = ProvisionerRunnerData("control-provisioner")
+	data["control-provisioner.env"] = ProvisionerEnvData(configApiIPListCommaSeparated, c.Spec.CommonConfiguration.AuthParameters)
 
-	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
+	return
 }
 
 // CreateConfigMap creates configmap

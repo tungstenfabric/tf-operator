@@ -92,43 +92,36 @@ func (c *AnalyticsAlarm) CreateConfigMap(configMapName string,
 }
 
 // InstanceConfiguration create config data
-func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
-	podList []corev1.Pod,
-	request reconcile.Request,
-	client client.Client) error {
-
-	configMapInstanceDynamicConfig := &corev1.ConfigMap{}
-	err := client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: request.Namespace}, configMapInstanceDynamicConfig)
-	if err != nil {
-		return err
-	}
+func (c *AnalyticsAlarm) InstanceConfiguration(podList []corev1.Pod, client client.Client,
+) (data map[string]string, err error) {
+	data, err = make(map[string]string), nil
 
 	cassandraNodesInformation, err := NewCassandraClusterConfiguration(CassandraInstance,
-		request.Namespace, client)
+		c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 	zookeeperNodesInformation, err := NewZookeeperClusterConfiguration(ZookeeperInstance,
-		request.Namespace, client)
+		c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
-	rabbitmqNodesInformation, err := NewRabbitmqClusterConfiguration(RabbitmqInstance, request.Namespace, client)
+	rabbitmqNodesInformation, err := NewRabbitmqClusterConfiguration(RabbitmqInstance, c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 	redisNodesInformation, err := NewRedisClusterConfiguration(RedisInstance,
-		request.Namespace, client)
+		c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
-	configNodesInformation, err := NewConfigClusterConfiguration(ConfigInstance, request.Namespace, client)
+	configNodesInformation, err := NewConfigClusterConfiguration(ConfigInstance, c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
-	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(c.Spec.ServiceConfiguration.AnalyticsInstance, request.Namespace, client)
+	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(c.Spec.ServiceConfiguration.AnalyticsInstance, c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 
 	var rabbitmqSecretUser string
@@ -136,9 +129,9 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 	var rabbitmqSecretVhost string
 	if rabbitmqNodesInformation.Secret != "" {
 		rabbitmqSecret := &corev1.Secret{}
-		err = client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqNodesInformation.Secret, Namespace: request.Namespace}, rabbitmqSecret)
+		err = client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqNodesInformation.Secret, Namespace: c.Namespace}, rabbitmqSecret)
 		if err != nil {
-			return err
+			return
 		}
 		rabbitmqSecretUser = string(rabbitmqSecret.Data["user"])
 		rabbitmqSecretPassword = string(rabbitmqSecret.Data["password"])
@@ -193,14 +186,13 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 	kafkaServerSpaceSeparatedList = strings.Join(podIPList, ":9092 ") + ":9092"
 
 	kafkaSecret := &corev1.Secret{}
-	if err = client.Get(context.TODO(), types.NamespacedName{Name: request.Name + "-secret", Namespace: request.Namespace}, kafkaSecret); err != nil {
-		return err
+	if err = client.Get(context.TODO(), types.NamespacedName{Name: c.Name + "-secret", Namespace: c.Namespace}, kafkaSecret); err != nil {
+		return
 	}
 
 	redisEndpointList := configtemplates.EndpointList(redisNodesInformation.ServerIPList, redisNodesInformation.ServerPort)
 	redisEndpointListSpaceSpearated := configtemplates.JoinListWithSeparator(redisEndpointList, " ")
 
-	var data = make(map[string]string)
 	for _, pod := range podList {
 		hostname := pod.Annotations["hostname"]
 		podIP := pod.Status.PodIP
@@ -256,9 +248,10 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 		data["tf-alarm-gen."+podIP] = alarmBuffer.String()
 
 		myidString := pod.Name[len(pod.Name)-1:]
-		myidInt, err := strconv.Atoi(myidString)
-		if err != nil {
-			return err
+		myidInt, _err := strconv.Atoi(myidString)
+		if _err != nil {
+			err = _err
+			return
 		}
 
 		var kafkaBuffer bytes.Buffer
@@ -347,18 +340,15 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 		data["vnc_api_lib.ini."+podIP] = vnciniBuffer.String()
 	}
 
-	configMapInstanceDynamicConfig.Data = data
-
 	// TODO: commonize for all services
 	// update with nodemanager runner
 	// TODO: till not splitted to different entities
-	configMapInstanceDynamicConfig.Data["analytics-alarm-nodemanager-runner.sh"] = GetNodemanagerRunner()
+	data["analytics-alarm-nodemanager-runner.sh"] = GetNodemanagerRunner()
 
 	// update with provisioner configs
-	UpdateProvisionerConfigMapData("analytics-alarm-provisioner", configApiIPCommaSeparated,
-		c.Spec.CommonConfiguration.AuthParameters, configMapInstanceDynamicConfig)
-
-	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
+	data["analytics-alarm-provisioner.sh"] = ProvisionerRunnerData("analytics-alarm-provisioner")
+	data["analytics-alarm-provisioner.env"] = ProvisionerEnvData(configApiIPCommaSeparated, c.Spec.CommonConfiguration.AuthParameters)
+	return
 }
 
 // CreateSecret creates a secret.

@@ -169,11 +169,6 @@ func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
-	configMap2, err := instance.CreateConfigMap(request.Name+"-"+instanceType+"-configmap-runner", r.Client, r.Scheme, request)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
 	secret, err := instance.CreateSecret(request.Name+"-secret", r.Client, r.Scheme, request)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -197,7 +192,6 @@ func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Resu
 	csrSignerCaVolumeName := request.Name + "-csr-signer-ca"
 	instance.AddVolumesToIntendedSTS(statefulSet, map[string]string{
 		configMap.Name:                     request.Name + "-" + instanceType + "-volume",
-		configMap2.Name:                    request.Name + "-" + instanceType + "-runner",
 		certificates.SignerCAConfigMapName: csrSignerCaVolumeName,
 	},
 	)
@@ -219,7 +213,12 @@ func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Resu
 	for idx, container := range statefulSet.Spec.Template.Spec.Containers {
 
 		if container.Name == "rabbitmq" {
-			command := []string{"bash", "/runner/run.sh"}
+			command := []string{"bash", "-c",
+				"while [[ ! -f /etc/contrailconfigmaps/run.sh ]]; do echo wait for config && sleep 1; done; " +
+					"cp -f /etc/contrailconfigmaps/run.sh ./run.sh; " +
+					"chmod 755 ./run.sh; " +
+					"./run.sh",
+			}
 			instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
 			if instanceContainer.Command == nil {
 				(&statefulSet.Spec.Template.Spec.Containers[idx]).Command = command
@@ -234,11 +233,6 @@ func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Resu
 			volumeMount := corev1.VolumeMount{
 				Name:      request.Name + "-" + instanceType + "-volume",
 				MountPath: "/etc/contrailconfigmaps",
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			volumeMount = corev1.VolumeMount{
-				Name:      request.Name + "-" + instanceType + "-runner",
-				MountPath: "/runner/",
 			}
 			volumeMountList = append(volumeMountList, volumeMount)
 			volumeMount = corev1.VolumeMount{
@@ -297,8 +291,13 @@ func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 
 	if len(podIPList) > 0 {
-		if err = instance.InstanceConfiguration(request, podIPList, r.Client); err != nil {
-			reqLogger.Error(err, "Failed to configurate instance.")
+		data, err := instance.InstanceConfiguration(podIPList, r.Client)
+		if err != nil {
+			reqLogger.Error(err, "Failed to get config data.")
+			return reconcile.Result{}, err
+		}
+		if err = v1alpha1.UpdateConfigMap(instance, instanceType, data, r.Client); err != nil {
+			reqLogger.Error(err, "Failed to update config map.")
 			return reconcile.Result{}, err
 		}
 		if err := r.ensureCertificatesExist(instance, podIPList, instanceType); err != nil {
