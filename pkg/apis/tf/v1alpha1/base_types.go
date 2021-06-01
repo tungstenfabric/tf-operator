@@ -15,6 +15,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -334,7 +335,7 @@ type PodAlternativeIPs struct {
 func PodsCertSubjects(domain string, podList []corev1.Pod, podAltIPs PodAlternativeIPs) []certificates.CertificateSubject {
 	var pods []certificates.CertificateSubject
 	for _, pod := range podList {
-        hostname := pod.Spec.NodeName
+		hostname := pod.Spec.NodeName
 		var alternativeIPs []string
 		if podAltIPs.ServiceIP != "" {
 			alternativeIPs = append(alternativeIPs, podAltIPs.ServiceIP)
@@ -659,6 +660,7 @@ func UpdateSTS(name string,
 		logger.Info("Some of container images or env changed, or force mode")
 		changed = true
 		sts.Spec.Template = *template
+		sts.Spec.Template.Labels["change-at"] = time.Now().Format("2006-01-02-15-04-05")
 	}
 
 	if replicas != nil && *replicas != *sts.Spec.Replicas {
