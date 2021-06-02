@@ -128,7 +128,7 @@ low_watermark2.message_severity_level=INVALID`))
 // AnalyticsNodemanagerConfig is the template of the Analytics Nodemanager service configuration.
 var AnalyticsNodemanagerConfig = template.Must(template.New("").Parse(`[DEFAULTS]
 http_server_ip={{ .InstrospectListenAddress }}
-log_file=/var/log/contrail/contrail-config-nodemgr.log
+log_file=/var/log/contrail/contrail-analytics-nodemgr.log
 log_level={{ .LogLevel }}
 log_local=1
 hostname={{ .Hostname }}
