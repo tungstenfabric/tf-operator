@@ -67,7 +67,7 @@ spec:
         terminationMessagePolicy: File
         volumeMounts:
         - mountPath: /var/log/cassandra
-          name: {{ .NodeType }}-cassandra-logs
+          name: contrail-logs
         - mountPath: /var/lib/cassandra
           name: {{ .NodeType }}-cassandra-data
       - name: nodemanager
@@ -104,7 +104,7 @@ spec:
       - hostPath:
           path: /var/log/contrail/{{ .NodeType }}
           type: ""
-        name: {{ .NodeType }}-cassandra-logs
+        name: contrail-logs
       - hostPath:
           path: /var/lib/contrail/{{ .NodeType }}
           type: ""
