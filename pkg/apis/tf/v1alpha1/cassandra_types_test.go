@@ -132,7 +132,6 @@ func TestCassandraConfigMapsWithDefaultValues(t *testing.T) {
 				},
 			},
 			ServiceConfiguration: CassandraConfiguration{
-				ConfigInstance:    "config1",
 				AnalyticsInstance: "analytics1",
 			},
 		},
@@ -246,7 +245,6 @@ func TestCassandraConfigMapsWithCustomValues(t *testing.T) {
 				},
 			},
 			ServiceConfiguration: CassandraConfiguration{
-				ConfigInstance:    "config1",
 				AnalyticsInstance: "analytics1",
 				CassandraParameters: CassandraConfigParameters{
 					CompactionThroughputMbPerSec:     22,

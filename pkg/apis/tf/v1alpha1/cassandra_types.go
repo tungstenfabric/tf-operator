@@ -48,7 +48,6 @@ type CassandraSpec struct {
 // +k8s:openapi-gen=true
 type CassandraConfiguration struct {
 	Containers          []*Container              `json:"containers,omitempty"`
-	ConfigInstance      string                    `json:"configInstance,omitempty"`
 	AnalyticsInstance   string                    `json:"analyticsInstance,omitempty"`
 	ListenAddress       string                    `json:"listenAddress,omitempty"`
 	Port                *int                      `json:"port,omitempty"`
@@ -140,7 +139,7 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 	sort.SliceStable(cassandraPodIPList, func(i, j int) bool { return cassandraPodIPList[i] < cassandraPodIPList[j] })
 	cassandraIPListCommaSeparated := strings.Join(cassandraPodIPList, ",")
 
-	configNodesInformation, err := NewConfigClusterConfiguration(c.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, client)
+	configNodesInformation, err := NewConfigClusterConfiguration(ConfigInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}
@@ -551,7 +550,7 @@ func (c *Cassandra) UpdateStatus(cassandraConfig *CassandraConfiguration, podNam
 
 // GetConfigNodes requests config api nodes
 func (c *Cassandra) GetConfigNodes(request reconcile.Request, clnt client.Client) ([]string, error) {
-	cfg, err := NewConfigClusterConfiguration(c.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, clnt)
+	cfg, err := NewConfigClusterConfiguration(ConfigInstance, request.Namespace, clnt)
 	if err != nil && !k8serrors.IsNotFound(err) {
 		return nil, err
 	}

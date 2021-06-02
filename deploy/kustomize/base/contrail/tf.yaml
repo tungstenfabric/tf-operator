@@ -18,9 +18,6 @@ spec:
         serviceConfiguration:
           logLevel: SYS_DEBUG
           zookeeperInstance: zookeeper1
-          analyticsCassandraInstance: configdb1
-          cassandraInstance: configdb1
-          configInstance: config1
           redisInstance: redis1
           containers:
           - name: analyticsapi
@@ -42,10 +39,8 @@ spec:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
           logLevel: SYS_DEBUG
-          configInstance: config1
           analyticsInstance: analytics1
           zookeeperInstance: zookeeper1
-          analyticsCassandraInstance: configdb1
           redisInstance: redis1
           containers:
           - name: queryengine
@@ -62,8 +57,6 @@ spec:
         serviceConfiguration:
           logLevel: SYS_DEBUG
           zookeeperInstance: zookeeper1
-          cassandraInstance: configdb1
-          configInstance: config1
           analyticsInstance: analytics1
           containers:
           - name: nodemanager
@@ -86,8 +79,6 @@ spec:
         serviceConfiguration:
           logLevel: SYS_DEBUG
           zookeeperInstance: zookeeper1
-          cassandraInstance: configdb1
-          configInstance: config1
           analyticsInstance: analytics1
           redisInstance: redis1
           containers:
@@ -109,7 +100,6 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
-          configInstance: config1
           analyticsInstance: analytics1
           containers:
           - name: cassandra
@@ -130,7 +120,6 @@ spec:
         serviceConfiguration:
           logLevel: SYS_DEBUG
           zookeeperInstance: zookeeper1
-          cassandraInstance: configdb1
           analyticsInstance: analytics1
           containers:
           - name: api
@@ -160,8 +149,6 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
-          cassandraInstance: configdb1
-          configInstance: config1
           analyticsInstance: analytics1
           logLevel: SYS_DEBUG
           containers:
@@ -187,8 +174,6 @@ spec:
         serviceConfiguration:
           logLevel: SYS_DEBUG
           zookeeperInstance: zookeeper1
-          cassandraInstance: configdb1
-          configInstance: config1
           analyticsInstance: analytics1
           ipFabricForwarding: false
           ipFabricSnat: true
@@ -237,10 +222,8 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
-          configInstance: config1
           analyticsInstance: analytics1
           controlInstance: control1
-          cassandraInstance: configdb1
           redisInstance: redis1
           logLevel: SYS_DEBUG
           containers:

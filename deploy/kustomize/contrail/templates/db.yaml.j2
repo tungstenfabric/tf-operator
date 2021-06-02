@@ -16,7 +16,6 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
-          configInstance: config1
           analyticsInstance: analytics1
           port: 9161
           storagePort: 7012
@@ -45,7 +44,6 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
-          configInstance: config1
           analyticsInstance: analytics1
           port: 9160
           storagePort: 7010
@@ -64,13 +62,5 @@ spec:
             image: contrail-nodemgr
           - name: provisioner
             image: contrail-provisioner
-    analytics:
-      spec:
-        serviceConfiguration:
-          analyticsCassandraInstance: analyticsdb1
-    queryengine:
-      spec:
-        serviceConfiguration:
-          analyticsCassandraInstance: analyticsdb1
 {%- endif -%}
 
