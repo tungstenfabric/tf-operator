@@ -366,7 +366,7 @@ func (c *Zookeeper) CommonStartupScript(command string, configs map[string]strin
 	}{
 		Command:        command,
 		Configs:        configs,
-		ConfigMapMount: "/zookeeper-conf",
+		ConfigMapMount: "/etc/contrailconfigmaps",
 		DstConfigPath:  "/var/lib/zookeeper",
 		CAFilePath:     certificates.SignerCAFilepath,
 	})
