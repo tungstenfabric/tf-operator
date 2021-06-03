@@ -55,8 +55,6 @@ type QueryEngineConfiguration struct {
 	AnalyticsdbIntrospectPort *int         `json:"analyticsdbIntrospectPort,omitempty"`
 	Containers                []*Container `json:"containers,omitempty"`
 	AnalyticsInstance         string       `json:"analyticsInstance,omitempty"`
-	ZookeeperInstance         string       `json:"zookeeperInstance,omitempty"`
-	RedisInstance             string       `json:"redisInstance,omitempty"`
 	LogLevel                  string       `json:"logLevel,omitempty"`
 }
 
@@ -102,7 +100,7 @@ func (c *QueryEngine) InstanceConfiguration(configMapName string,
 		return err
 	}
 
-	redisNodesInformation, err := NewRedisClusterConfiguration(c.Spec.ServiceConfiguration.RedisInstance,
+	redisNodesInformation, err := NewRedisClusterConfiguration(RedisInstance,
 		request.Namespace, client)
 	if err != nil {
 		return err

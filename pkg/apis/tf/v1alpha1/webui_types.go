@@ -53,7 +53,6 @@ type WebuiSpec struct {
 type WebuiConfiguration struct {
 	AnalyticsInstance string       `json:"analyticsInstance,omitempty"`
 	ControlInstance   string       `json:"controlInstance,omitempty"`
-	RedisInstance     string       `json:"redisInstance,omitempty"`
 	Containers        []*Container `json:"containers,omitempty"`
 }
 
