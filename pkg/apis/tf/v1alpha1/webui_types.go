@@ -69,9 +69,7 @@ type WebUIServiceStatus struct {
 
 // +k8s:openapi-gen=true
 type WebuiStatus struct {
-	Status        `json:",inline"`
-	Degraded      *bool                            `json:"degraded,omitempty"`
-	Nodes         map[string]string                `json:"nodes,omitempty"`
+	CommonStatus  `json:",inline"`
 	Ports         WebUIStatusPorts                 `json:"ports,omitempty"`
 	ServiceStatus map[string]WebUIServiceStatusMap `json:"serviceStatus,omitempty"`
 	Endpoint      string                           `json:"endpoint,omitempty"`

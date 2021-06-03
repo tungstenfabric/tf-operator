@@ -72,9 +72,11 @@ var config = &Config{
 		ServiceConfiguration: ConfigConfiguration{},
 	},
 	Status: ConfigStatus{
-		Nodes: map[string]string{
-			"pod1": "1.1.1.1",
-			"pod2": "2.2.2.2",
+		CommonStatus: CommonStatus{
+			Nodes: map[string]string{
+				"pod1": "1.1.1.1",
+				"pod2": "2.2.2.2",
+			},
 		},
 	},
 }

@@ -69,10 +69,7 @@ type AnalyticsAlarmConfiguration struct {
 // AnalyticsAlarmStatus is the Status for the Analytics Alarm API.
 // +k8s:openapi-gen=true
 type AnalyticsAlarmStatus struct {
-	Active        *bool             `json:"active,omitempty"`
-	Degraded      *bool             `json:"degraded,omitempty"`
-	ConfigChanged *bool             `json:"configChanged,omitempty"`
-	Nodes         map[string]string `json:"nodes,omitempty"`
+	CommonStatus `json:",inline"`
 }
 
 func init() {
