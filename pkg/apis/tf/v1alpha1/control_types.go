@@ -310,7 +310,7 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 		data["dns."+podIP] = controlDNSConfigBuffer.String()
 
 		var controlNodemanagerBuffer bytes.Buffer
-		err = configtemplates.ControlNodemanagerConfig.Execute(&controlNodemanagerBuffer, struct {
+		err = configtemplates.NodemanagerConfig.Execute(&controlNodemanagerBuffer, struct {
 			Hostname                 string
 			PodIP                    string
 			ListenAddress            string
@@ -319,7 +319,10 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 			CassandraPort            string
 			CassandraJmxPort         string
 			CAFilePath               string
+			MinimumDiskGB            int
 			LogLevel                 string
+			LogFile                  string
+			LogLocal                 string
 		}{
 			Hostname:                 hostname,
 			PodIP:                    podIP,

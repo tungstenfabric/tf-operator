@@ -437,7 +437,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 		data["servicemonitor."+podIP] = configServicemonitorConfigBuffer.String()
 
 		var configNodemanagerconfigConfigBuffer bytes.Buffer
-		err = configtemplates.ConfigNodemanagerConfigConfig.Execute(&configNodemanagerconfigConfigBuffer, struct {
+		err = configtemplates.NodemanagerConfig.Execute(&configNodemanagerconfigConfigBuffer, struct {
 			Hostname                 string
 			PodIP                    string
 			ListenAddress            string
@@ -446,7 +446,10 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			CassandraPort            string
 			CassandraJmxPort         string
 			CAFilePath               string
+			MinimumDiskGB            int
 			LogLevel                 string
+			LogFile                  string
+			LogLocal                 string
 		}{
 			Hostname:                 hostname,
 			PodIP:                    podIP,
