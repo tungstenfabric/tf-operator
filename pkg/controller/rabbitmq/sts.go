@@ -143,10 +143,10 @@ func GetSTS(instance *v1alpha1.Rabbitmq) *apps.StatefulSet {
 			Namespace: "default",
 		},
 		Spec: apps.StatefulSetSpec{
-			Selector:    &stsSelector,
-			ServiceName: "rabbitmq",
-			Replicas:    &replicas,
-			Template:    stsTemplate,
+			Selector:       &stsSelector,
+			Replicas:       &replicas,
+			UpdateStrategy: *v1alpha1.RollingUpdateStrategy(),
+			Template:       stsTemplate,
 		},
 	}
 }
