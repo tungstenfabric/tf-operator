@@ -329,6 +329,9 @@ func MergeCommonConfiguration(manager v1alpha1.ManagerConfiguration,
 	if len(instance.NodeSelector) == 0 && len(manager.NodeSelector) > 0 {
 		instance.NodeSelector = manager.NodeSelector
 	}
+	if instance.HostNetwork == nil && manager.HostNetwork != nil {
+		instance.HostNetwork = manager.HostNetwork
+	}
 	if len(instance.ImagePullSecrets) == 0 && len(manager.ImagePullSecrets) > 0 {
 		instance.ImagePullSecrets = manager.ImagePullSecrets
 	}

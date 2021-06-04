@@ -5,6 +5,8 @@ metadata:
   name: cluster1
   namespace: tf
 spec:
+  commonConfiguration:
+    hostNetwork: true
   services:
     analyticsSnmp:
       metadata:

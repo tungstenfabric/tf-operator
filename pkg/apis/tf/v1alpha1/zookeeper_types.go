@@ -347,7 +347,7 @@ func (c *Zookeeper) ConfigurationParameters() ZookeeperConfiguration {
 // PodsCertSubjects gets list of Zookeeper pods certificate subjets which can be passed to the certificate API
 func (c *Zookeeper) PodsCertSubjects(domain string, podList []corev1.Pod) []certificates.CertificateSubject {
 	var altIPs PodAlternativeIPs
-	return PodsCertSubjects(domain, podList, altIPs)
+	return PodsCertSubjects(domain, podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
 }
 
 // CommonStartupScript prepare common run service script
