@@ -14,8 +14,11 @@ spec:
   selector:
     matchLabels:
       app: redis
-  serviceName: "redis"
   replicas: 1
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0
   template:
     metadata:
       labels:

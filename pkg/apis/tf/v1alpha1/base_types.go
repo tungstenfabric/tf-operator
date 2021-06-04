@@ -635,18 +635,22 @@ func containersChanged(first *corev1.PodTemplateSpec,
 // Allowed fileds are template, replicas and updateStrategy (k8s restrinction).
 // Template will be updated just in case when some container images or container env changed (or use force).
 // Nil values to leave fields unchanged.
-func UpdateSTS(name string,
+func UpdateSTS(stsName string,
+	instanceType string,
 	namespace string,
 	template *corev1.PodTemplateSpec,
 	replicas *int32,
 	strategy *appsv1.StatefulSetUpdateStrategy,
 	force bool,
-	client client.Client,
+	cl client.Client,
 ) (updated bool, err error) {
+
+	name := stsName + "-" + instanceType + "-statefulset"
+
 	updated, err = false, nil
 	logger := log.WithName("UpdateSTS").WithName(name)
 
-	sts, err := QuerySTS(name, namespace, client)
+	sts, err := QuerySTS(name, namespace, cl)
 	if sts == nil || err != nil {
 		logger.Error(err, "Failed to get the stateful set",
 			"Name", name,
@@ -656,10 +660,12 @@ func UpdateSTS(name string,
 	}
 
 	changed := false
-	if template != nil && (containersChanged(&sts.Spec.Template, template) || force) {
+	if force || containersChanged(&sts.Spec.Template, template) {
 		logger.Info("Some of container images or env changed, or force mode")
 		changed = true
-		sts.Spec.Template = *template
+		if template != nil {
+			sts.Spec.Template = *template
+		}
 		sts.Spec.Template.Labels["change-at"] = time.Now().Format("2006-01-02-15-04-05")
 	}
 
@@ -682,12 +688,34 @@ func UpdateSTS(name string,
 		return
 	}
 
-	if err = client.Update(context.TODO(), sts); err != nil {
+	if err = cl.Update(context.TODO(), sts); err != nil {
 		return
 	}
 
+	if sts.Spec.UpdateStrategy.Type == appsv1.OnDeleteStatefulSetStrategyType {
+		logger.Info("Update OnDelete strategy")
+		opts := &client.DeleteAllOfOptions{}
+		opts.Namespace = namespace
+		opts.LabelSelector = labelSelector(stsName, instanceType)
+		pod := &corev1.Pod{}
+		if err = cl.DeleteAllOf(context.TODO(), pod, opts); err != nil {
+			return
+		}
+	}
+
+	logger.Info("Update done")
 	updated = true
 	return
+}
+
+func RollingUpdateStrategy() *appsv1.StatefulSetUpdateStrategy {
+	zero := int32(0)
+	return &appsv1.StatefulSetUpdateStrategy{
+		Type: appsv1.RollingUpdateStatefulSetStrategyType,
+		RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
+			Partition: &zero,
+		},
+	}
 }
 
 // UpdateServiceSTS safe update for service statefulsets
@@ -697,21 +725,11 @@ func UpdateServiceSTS(instance v1.Object,
 	force bool,
 	client client.Client,
 ) (updated bool, err error) {
-	updated, err = false, nil
-
-	stsName := instance.GetName() + "-" + instanceType + "-statefulset"
+	stsName := instance.GetName()
 	stsNamespace := instance.GetNamespace()
 	stsTemplate := sts.Spec.Template
 	stsReplicas := sts.Spec.Replicas
-	zero := int32(0)
-	stsStrategy := appsv1.StatefulSetUpdateStrategy{
-		Type: appsv1.RollingUpdateStatefulSetStrategyType,
-		RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
-			Partition: &zero,
-		},
-	}
-
-	updated, err = UpdateSTS(stsName, stsNamespace, &stsTemplate, stsReplicas, &stsStrategy, force, client)
+	updated, err = UpdateSTS(stsName, instanceType, stsNamespace, &stsTemplate, stsReplicas, &sts.Spec.UpdateStrategy, force, client)
 	return
 }
 
@@ -826,16 +844,29 @@ func GetDataAddresses(pod *corev1.Pod, instanceType string, cidr string) (string
 	return "", nil
 }
 
+func labelSelector(ownerName, instanceType string) labels.Selector {
+	return labels.SelectorFromSet(map[string]string{
+		"tf_manager": instanceType,
+		instanceType: ownerName})
+}
+
+func listOptions(ownerName, instanceType, namespace string) *client.ListOptions {
+	return &client.ListOptions{Namespace: namespace, LabelSelector: labelSelector(ownerName, instanceType)}
+}
+
+func selectPods(ownerName, instanceType, namespace string, clnt client.Client) (*corev1.PodList, error) {
+	listOps := listOptions(ownerName, instanceType, namespace)
+	pods := &corev1.PodList{}
+	err := clnt.List(context.TODO(), pods, listOps)
+	return pods, err
+}
+
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func PodIPListAndIPMapFromInstance(instanceType string,
 	request reconcile.Request,
 	clnt client.Client, datanetwork string) ([]corev1.Pod, map[string]string, error) {
 
-	labelSelector := labels.SelectorFromSet(map[string]string{"tf_manager": instanceType,
-		instanceType: request.Name})
-	listOps := &client.ListOptions{Namespace: request.Namespace, LabelSelector: labelSelector}
-	allPods := &corev1.PodList{}
-	err := clnt.List(context.TODO(), allPods, listOps)
+	allPods, err := selectPods(request.Name, instanceType, request.Namespace, clnt)
 	if err != nil || len(allPods.Items) == 0 {
 		return nil, nil, err
 	}

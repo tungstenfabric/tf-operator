@@ -14,7 +14,6 @@ spec:
   selector:
     matchLabels:
       app: queryengine
-  serviceName: "queryengine"
   replicas: 1
   updateStrategy:
     type: OnDelete
