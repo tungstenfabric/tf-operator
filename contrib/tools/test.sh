@@ -1,8 +1,10 @@
 #!/bin/bash -e
 
-[ "${DEBUG,,}" == "true" ] && set -x
+DEBUG=$(echo $DEBUG | tr '[:upper:]' '[:lower:]')
+[ "${DEBUG}" == "true" ] && set -x
 
-my_file="$(readlink -e "$0")"
+which greadlink >/dev/null 2>&1 && rlink='greadlink' || rlink='readlink'
+my_file="$($rlink -e "$0")"
 my_dir="$(dirname $my_file)"
 
 cd $my_dir/../..
