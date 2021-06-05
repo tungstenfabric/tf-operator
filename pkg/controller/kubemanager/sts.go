@@ -118,9 +118,8 @@ func GetSTS() *apps.StatefulSet {
 			Namespace: "default",
 		},
 		Spec: apps.StatefulSetSpec{
-			Selector:    &stsSelector,
-			ServiceName: "kubemanager",
-			Replicas:    &replicas,
+			Selector: &stsSelector,
+			Replicas: &replicas,
 			UpdateStrategy: apps.StatefulSetUpdateStrategy{
 				Type: apps.OnDeleteStatefulSetStrategyType,
 			},

@@ -15,7 +15,6 @@ spec:
   selector:
     matchLabels:
       tf_manager: analyticsalarm
-  serviceName: "analyticsalarm"
   replicas: 1
   updateStrategy:
     type: OnDelete
