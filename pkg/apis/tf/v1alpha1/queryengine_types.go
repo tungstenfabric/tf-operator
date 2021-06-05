@@ -78,41 +78,34 @@ func init() {
 }
 
 // InstanceConfiguration configures and updates configmaps
-func (c *QueryEngine) InstanceConfiguration(configMapName string,
-	request reconcile.Request,
-	podList []corev1.Pod,
-	client client.Client) error {
-
-	configMapInstanceDynamicConfig := &corev1.ConfigMap{}
-	err := client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: request.Namespace}, configMapInstanceDynamicConfig)
-	if err != nil {
-		return err
-	}
+func (c *QueryEngine) InstanceConfiguration(podList []corev1.Pod, client client.Client,
+) (data map[string]string, err error) {
+	data, err = make(map[string]string), nil
 
 	analyticsCassandraInstance, err := GetAnalyticsCassandraInstance(client)
 	if err != nil {
-		return err
+		return
 	}
 
 	cassandraNodesInformation, err := NewCassandraClusterConfiguration(
-		analyticsCassandraInstance, request.Namespace, client)
+		analyticsCassandraInstance, c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 
 	redisNodesInformation, err := NewRedisClusterConfiguration(RedisInstance,
-		request.Namespace, client)
+		c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 
-	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(c.Spec.ServiceConfiguration.AnalyticsInstance, request.Namespace, client)
+	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(c.Spec.ServiceConfiguration.AnalyticsInstance, c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
-	configNodesInformation, err := NewConfigClusterConfiguration(ConfigInstance, request.Namespace, client)
+	configNodesInformation, err := NewConfigClusterConfiguration(ConfigInstance, c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 
 	queryengineConfig := c.ConfigurationParameters()
@@ -136,7 +129,6 @@ func (c *QueryEngine) InstanceConfiguration(configMapName string,
 	redisEndpointList := configtemplates.EndpointList(redisNodesInformation.ServerIPList, redisNodesInformation.ServerPort)
 	redisEndpointListSpaceSpearated := configtemplates.JoinListWithSeparator(redisEndpointList, " ")
 
-	var data = make(map[string]string)
 	for _, pod := range podList {
 		hostname := pod.Annotations["hostname"]
 		podIP := pod.Status.PodIP
@@ -194,9 +186,7 @@ func (c *QueryEngine) InstanceConfiguration(configMapName string,
 		data["vnc_api_lib.ini."+podIP] = vncApiBuffer.String()
 	}
 
-	configMapInstanceDynamicConfig.Data = data
-
-	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
+	return
 }
 
 // CreateConfigMap makes default empty ConfigMap

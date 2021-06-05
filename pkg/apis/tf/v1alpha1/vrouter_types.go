@@ -85,13 +85,13 @@ type VrouterSpec struct {
 // VrouterConfiguration is the Spec for the vrouter API.
 // +k8s:openapi-gen=true
 type VrouterConfiguration struct {
-	Containers         []*Container  `json:"containers,omitempty"`
-	Gateway            string        `json:"gateway,omitempty"`
-	PhysicalInterface  string        `json:"physicalInterface,omitempty"`
-	MetaDataSecret     string        `json:"metaDataSecret,omitempty"`
-	ServiceAccount     string        `json:"serviceAccount,omitempty"`
-	ClusterRole        string        `json:"clusterRole,omitempty"`
-	ClusterRoleBinding string        `json:"clusterRoleBinding,omitempty"`
+	Containers         []*Container `json:"containers,omitempty"`
+	Gateway            string       `json:"gateway,omitempty"`
+	PhysicalInterface  string       `json:"physicalInterface,omitempty"`
+	MetaDataSecret     string       `json:"metaDataSecret,omitempty"`
+	ServiceAccount     string       `json:"serviceAccount,omitempty"`
+	ClusterRole        string       `json:"clusterRole,omitempty"`
+	ClusterRoleBinding string       `json:"clusterRoleBinding,omitempty"`
 	// What is it doing?
 	// VrouterEncryption   bool              `json:"vrouterEncryption,omitempty"`
 	// What is it doing?
@@ -894,7 +894,7 @@ func (c *Vrouter) DefaultAgentConfigMapData(configMap *corev1.ConfigMap, client 
 		configMap.Data["vrouter-nodemanager-runner.sh"] = GetNodemanagerRunner()
 	}
 	if configMap.Data["vrouter-provisioner.sh"] == "" {
-		UpdateProvisionerRunner("vrouter-provisioner", configMap)
+		configMap.Data["vrouter-provisioner.sh"] = ProvisionerRunnerData("vrouter-provisioner")
 	}
 	return client.Update(context.Background(), configMap)
 }

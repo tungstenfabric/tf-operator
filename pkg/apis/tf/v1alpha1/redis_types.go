@@ -70,20 +70,9 @@ func init() {
 }
 
 // InstanceConfiguration creates the redis instance configuration.
-func (c *Redis) InstanceConfiguration(request reconcile.Request,
-	podList []corev1.Pod,
-	client client.Client) error {
-	instanceType := "redis"
-	instanceConfigMapName := request.Name + "-" + instanceType + "-configmap"
-	configMapInstanceDynamicConfig := &corev1.ConfigMap{}
-	err := client.Get(context.TODO(),
-		types.NamespacedName{Name: instanceConfigMapName, Namespace: request.Namespace},
-		configMapInstanceDynamicConfig)
-	if err != nil {
-		return err
-	}
-
-	var data = make(map[string]string)
+func (c *Redis) InstanceConfiguration(podList []corev1.Pod, client client.Client,
+) (data map[string]string, err error) {
+	data, err = make(map[string]string), nil
 
 	for _, pod := range podList {
 		podIP := pod.Status.PodIP
@@ -102,9 +91,7 @@ func (c *Redis) InstanceConfiguration(request reconcile.Request,
 		data["stunnel."+podIP] = stunnelBuffer.String()
 	}
 
-	configMapInstanceDynamicConfig.Data = data
-
-	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
+	return
 }
 
 // CreateConfigMap creates a configmap for redis service.

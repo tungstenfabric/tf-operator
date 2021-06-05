@@ -1255,8 +1255,7 @@ func ProvisionerEnvData(configAPINodes string, authParams *AuthParameters) strin
 	return bufEnv.String()
 }
 
-// UpdateProvisionerRunner adds provisioner runner data
-func UpdateProvisionerRunner(configMapName string, configMap *corev1.ConfigMap) {
+func ProvisionerRunnerData(configMapName string) string {
 	var bufRun bytes.Buffer
 	err := templates.ProvisionerRunner.Execute(&bufRun, struct {
 		ConfigName string
@@ -1266,12 +1265,12 @@ func UpdateProvisionerRunner(configMapName string, configMap *corev1.ConfigMap) 
 	if err != nil {
 		panic(err)
 	}
-	configMap.Data[configMapName+".sh"] = bufRun.String()
+	return bufRun.String()
 }
 
 // UpdateProvisionerConfigMapData update provisioner data in config map
 func UpdateProvisionerConfigMapData(configMapName string, configAPINodes string, authParams *AuthParameters, configMap *corev1.ConfigMap) {
-	UpdateProvisionerRunner(configMapName, configMap)
+	configMap.Data[configMapName+".sh"] = ProvisionerRunnerData(configMapName)
 	configMap.Data[configMapName+".env"] = ProvisionerEnvData(configAPINodes, authParams)
 }
 
@@ -1724,4 +1723,17 @@ func GetAnalyticsCassandraInstance(client client.Client) (string, error) {
 	}
 
 	return analyticsCassandraInstance, nil
+}
+
+func UpdateConfigMap(instance v1.Object, instanceType string, data map[string]string, client client.Client) error {
+	namespacedName := types.NamespacedName{
+		Name:      instance.GetName() + "-" + instanceType + "-configmap",
+		Namespace: instance.GetNamespace(),
+	}
+	config := corev1.ConfigMap{}
+	if err := client.Get(context.TODO(), namespacedName, &config); err != nil {
+		return err
+	}
+	config.Data = data
+	return client.Update(context.TODO(), &config)
 }

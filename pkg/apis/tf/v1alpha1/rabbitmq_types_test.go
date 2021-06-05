@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,9 +9,7 @@ import (
 	"gopkg.in/ini.v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 var rabbitmqPodList = []corev1.Pod{
@@ -36,27 +33,6 @@ var rabbitmqPodList = []corev1.Pod{
 	},
 }
 
-var rabbitmqRequest = reconcile.Request{
-	NamespacedName: types.NamespacedName{
-		Name:      "rabbitmq1",
-		Namespace: "test-ns",
-	},
-}
-
-var rabbitmqCM = &corev1.ConfigMap{
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "rabbitmq1-rabbitmq-configmap",
-		Namespace: "test-ns",
-	},
-}
-
-var rabbitmqRunnerCM = &corev1.ConfigMap{
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "rabbitmq1-rabbitmq-configmap-runner",
-		Namespace: "test-ns",
-	},
-}
-
 var rabbitmqSecret = &corev1.Secret{
 	ObjectMeta: metav1.ObjectMeta{
 		Name:      "rabbitmq1-secret",
@@ -74,7 +50,7 @@ func TestRabbitmqConfigMapsWithDefaultValues(t *testing.T) {
 	require.NoError(t, err, "Failed to build scheme")
 	require.NoError(t, corev1.SchemeBuilder.AddToScheme(scheme), "Failed to add CoreV1 into scheme")
 
-	cl := fake.NewFakeClientWithScheme(scheme, rabbitmqCM, rabbitmqRunnerCM, rabbitmqSecret)
+	cl := fake.NewFakeClientWithScheme(scheme, rabbitmqSecret)
 	cph := "autoheal"
 	rabbitmq := Rabbitmq{
 		ObjectMeta: metav1.ObjectMeta{
@@ -88,12 +64,10 @@ func TestRabbitmqConfigMapsWithDefaultValues(t *testing.T) {
 		},
 	}
 
-	_ = rabbitmq.InstanceConfiguration(rabbitmqRequest, rabbitmqPodList, cl)
+	data, err := rabbitmq.InstanceConfiguration(rabbitmqPodList, cl)
+	require.NoError(t, err)
 
-	var rabbitmqConfigMap = &corev1.ConfigMap{}
-	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "rabbitmq1-rabbitmq-configmap", Namespace: "test-ns"}, rabbitmqConfigMap), "Error while gathering rabbitmq config map")
-
-	rabbitmqConfig, err := ini.Load([]byte(rabbitmqConfigMap.Data["rabbitmq.conf.1.1.1.1"]))
+	rabbitmqConfig, err := ini.Load([]byte(data["rabbitmq.conf.1.1.1.1"]))
 	require.NoError(t, err)
 
 	assert.Equal(t, "none", rabbitmqConfig.Section("").Key("listeners.tcp").String())
@@ -114,7 +88,7 @@ func TestRabbitmqConfigMapsWithDefaultValues(t *testing.T) {
 	assert.Equal(t, "rabbit@1.1.1.1", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.1").String())
 	assert.Equal(t, "rabbit@2.2.2.2", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.2").String())
 
-	rabbitmqConfig, err = ini.Load([]byte(rabbitmqConfigMap.Data["rabbitmq.conf.2.2.2.2"]))
+	rabbitmqConfig, err = ini.Load([]byte(data["rabbitmq.conf.2.2.2.2"]))
 	require.NoError(t, err)
 
 	assert.Equal(t, "none", rabbitmqConfig.Section("").Key("listeners.tcp").String())
@@ -141,7 +115,7 @@ func TestRabbitmqConfigMapsWithInetDistListenValues(t *testing.T) {
 	require.NoError(t, err, "Failed to build scheme")
 	require.NoError(t, corev1.SchemeBuilder.AddToScheme(scheme), "Failed to add CoreV1 into scheme")
 
-	cl := fake.NewFakeClientWithScheme(scheme, rabbitmqCM, rabbitmqRunnerCM, rabbitmqSecret)
+	cl := fake.NewFakeClientWithScheme(scheme, rabbitmqSecret)
 	cph := "autoheal"
 	rabbitmq := Rabbitmq{
 		ObjectMeta: metav1.ObjectMeta{
@@ -155,12 +129,10 @@ func TestRabbitmqConfigMapsWithInetDistListenValues(t *testing.T) {
 		},
 	}
 
-	_ = rabbitmq.InstanceConfiguration(rabbitmqRequest, rabbitmqPodList, cl)
+	data, err := rabbitmq.InstanceConfiguration(rabbitmqPodList, cl)
+	require.NoError(t, err)
 
-	var rabbitmqConfigMap = &corev1.ConfigMap{}
-	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "rabbitmq1-rabbitmq-configmap", Namespace: "test-ns"}, rabbitmqConfigMap), "Error while gathering rabbitmq config map")
-
-	rabbitmqConfig, err := ini.Load([]byte(rabbitmqConfigMap.Data["rabbitmq.conf.1.1.1.1"]))
+	rabbitmqConfig, err := ini.Load([]byte(data["rabbitmq.conf.1.1.1.1"]))
 	require.NoError(t, err)
 
 	assert.Equal(t, "none", rabbitmqConfig.Section("").Key("listeners.tcp").String())
@@ -181,7 +153,7 @@ func TestRabbitmqConfigMapsWithInetDistListenValues(t *testing.T) {
 	assert.Equal(t, "rabbit@1.1.1.1", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.1").String())
 	assert.Equal(t, "rabbit@2.2.2.2", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.2").String())
 
-	rabbitmqConfig, err = ini.Load([]byte(rabbitmqConfigMap.Data["rabbitmq.conf.2.2.2.2"]))
+	rabbitmqConfig, err = ini.Load([]byte(data["rabbitmq.conf.2.2.2.2"]))
 	require.NoError(t, err)
 
 	assert.Equal(t, "none", rabbitmqConfig.Section("").Key("listeners.tcp").String())
@@ -208,7 +180,7 @@ func TestRabbitmqConfigMapsWithTCPListenOptionsValues(t *testing.T) {
 	require.NoError(t, err, "Failed to build scheme")
 	require.NoError(t, corev1.SchemeBuilder.AddToScheme(scheme), "Failed to add CoreV1 into scheme")
 
-	cl := fake.NewFakeClientWithScheme(scheme, rabbitmqCM, rabbitmqRunnerCM, rabbitmqSecret)
+	cl := fake.NewFakeClientWithScheme(scheme, rabbitmqSecret)
 	backlog := 600
 	timeout := 700
 	trueVal := true
@@ -235,12 +207,10 @@ func TestRabbitmqConfigMapsWithTCPListenOptionsValues(t *testing.T) {
 		},
 	}
 
-	_ = rabbitmq.InstanceConfiguration(rabbitmqRequest, rabbitmqPodList, cl)
+	data, err := rabbitmq.InstanceConfiguration(rabbitmqPodList, cl)
+	require.NoError(t, err)
 
-	var rabbitmqConfigMap = &corev1.ConfigMap{}
-	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "rabbitmq1-rabbitmq-configmap", Namespace: "test-ns"}, rabbitmqConfigMap), "Error while gathering rabbitmq config map")
-
-	rabbitmqConfig, err := ini.Load([]byte(rabbitmqConfigMap.Data["rabbitmq.conf.1.1.1.1"]))
+	rabbitmqConfig, err := ini.Load([]byte(data["rabbitmq.conf.1.1.1.1"]))
 	require.NoError(t, err)
 
 	assert.Equal(t, "none", rabbitmqConfig.Section("").Key("listeners.tcp").String())
@@ -261,7 +231,7 @@ func TestRabbitmqConfigMapsWithTCPListenOptionsValues(t *testing.T) {
 	assert.Equal(t, "rabbit@1.1.1.1", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.1").String())
 	assert.Equal(t, "rabbit@2.2.2.2", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.2").String())
 
-	rabbitmqConfig, err = ini.Load([]byte(rabbitmqConfigMap.Data["rabbitmq.conf.2.2.2.2"]))
+	rabbitmqConfig, err = ini.Load([]byte(data["rabbitmq.conf.2.2.2.2"]))
 	require.NoError(t, err)
 
 	assert.Equal(t, "none", rabbitmqConfig.Section("").Key("listeners.tcp").String())
@@ -288,7 +258,7 @@ func TestRabbitmqConfigMapsWithAllValues(t *testing.T) {
 	require.NoError(t, err, "Failed to build scheme")
 	require.NoError(t, corev1.SchemeBuilder.AddToScheme(scheme), "Failed to add CoreV1 into scheme")
 
-	cl := fake.NewFakeClientWithScheme(scheme, rabbitmqCM, rabbitmqRunnerCM, rabbitmqSecret)
+	cl := fake.NewFakeClientWithScheme(scheme, rabbitmqSecret)
 	backlog := 600
 	timeout := 700
 	trueVal := true
@@ -315,12 +285,10 @@ func TestRabbitmqConfigMapsWithAllValues(t *testing.T) {
 		},
 	}
 
-	_ = rabbitmq.InstanceConfiguration(rabbitmqRequest, rabbitmqPodList, cl)
+	data, err := rabbitmq.InstanceConfiguration(rabbitmqPodList, cl)
+	require.NoError(t, err)
 
-	var rabbitmqConfigMap = &corev1.ConfigMap{}
-	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "rabbitmq1-rabbitmq-configmap", Namespace: "test-ns"}, rabbitmqConfigMap), "Error while gathering rabbitmq config map")
-
-	rabbitmqConfig, err := ini.Load([]byte(rabbitmqConfigMap.Data["rabbitmq.conf.1.1.1.1"]))
+	rabbitmqConfig, err := ini.Load([]byte(data["rabbitmq.conf.1.1.1.1"]))
 	require.NoError(t, err)
 
 	assert.Equal(t, "none", rabbitmqConfig.Section("").Key("listeners.tcp").String())
@@ -341,7 +309,7 @@ func TestRabbitmqConfigMapsWithAllValues(t *testing.T) {
 	assert.Equal(t, "rabbit@1.1.1.1", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.1").String())
 	assert.Equal(t, "rabbit@2.2.2.2", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.2").String())
 
-	rabbitmqConfig, err = ini.Load([]byte(rabbitmqConfigMap.Data["rabbitmq.conf.2.2.2.2"]))
+	rabbitmqConfig, err = ini.Load([]byte(data["rabbitmq.conf.2.2.2.2"]))
 	require.NoError(t, err)
 
 	assert.Equal(t, "none", rabbitmqConfig.Section("").Key("listeners.tcp").String())

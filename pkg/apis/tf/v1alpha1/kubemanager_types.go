@@ -94,50 +94,42 @@ func init() {
 }
 
 // InstanceConfiguration creates kubemanager's instance sonfiguration
-func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
-	podList []corev1.Pod,
-	client client.Client) error {
-	instanceConfigMapName := request.Name + "-" + "kubemanager" + "-configmap"
-	configMapInstanceDynamicConfig := &corev1.ConfigMap{}
-	if err := client.Get(
-		context.TODO(),
-		types.NamespacedName{Name: instanceConfigMapName, Namespace: request.Namespace},
-		configMapInstanceDynamicConfig); err != nil {
-		return err
-	}
+func (c *Kubemanager) InstanceConfiguration(podList []corev1.Pod, client client.Client,
+) (data map[string]string, err error) {
+	data, err = make(map[string]string), nil
 
 	cassandraNodesInformation, err := NewCassandraClusterConfiguration(
-		CassandraInstance, request.Namespace, client)
+		CassandraInstance, c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 	cassandraNodesInformation.FillWithDefaultValues()
 
 	zookeeperNodesInformation, err := NewZookeeperClusterConfiguration(
-		ZookeeperInstance, request.Namespace, client)
+		ZookeeperInstance, c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 	zookeeperNodesInformation.FillWithDefaultValues()
 
 	rabbitmqNodesInformation, err := NewRabbitmqClusterConfiguration(
-		RabbitmqInstance, request.Namespace, client)
+		RabbitmqInstance, c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 	rabbitmqNodesInformation.FillWithDefaultValues()
 
 	configNodesInformation, err := NewConfigClusterConfiguration(
-		ConfigInstance, request.Namespace, client)
+		ConfigInstance, c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 	configNodesInformation.FillWithDefaultValues()
 
 	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(
-		c.Spec.ServiceConfiguration.AnalyticsInstance, request.Namespace, client)
+		c.Spec.ServiceConfiguration.AnalyticsInstance, c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 	analyticsNodesInformation.FillWithDefaultValues()
 
@@ -146,9 +138,10 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 	var rabbitmqSecretVhost string
 	if rabbitmqNodesInformation.Secret != "" {
 		rabbitmqSecret := &corev1.Secret{}
-		err := client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqNodesInformation.Secret, Namespace: request.Namespace}, rabbitmqSecret)
-		if err != nil {
-			return err
+		_err := client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqNodesInformation.Secret, Namespace: c.Namespace}, rabbitmqSecret)
+		if _err != nil {
+			err = _err
+			return
 		}
 		rabbitmqSecretUser = string(rabbitmqSecret.Data["user"])
 		rabbitmqSecretPassword = string(rabbitmqSecret.Data["password"])
@@ -157,7 +150,7 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 
 	kubemanagerConfig, err := c.ConfigurationParameters(client)
 	if err != nil {
-		return err
+		return
 	}
 	if rabbitmqSecretUser == "" {
 		rabbitmqSecretUser = RabbitmqUser
@@ -170,7 +163,7 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 	}
 
 	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
-	var data = map[string]string{}
+
 	for _, pod := range podList {
 
 		configApiIPListCommaSeparated := configtemplates.JoinListWithSeparator(configNodesInformation.APIServerIPList, ",")
@@ -187,10 +180,10 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 		if c.Spec.ServiceConfiguration.SecretName != "" {
 			secretName = c.Spec.ServiceConfiguration.SecretName
 		} else {
-			secretName = request.Name + "-kubemanager-secret"
+			secretName = c.Name + "-kubemanager-secret"
 		}
-		if err := client.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: request.Namespace}, secret); err != nil {
-			return err
+		if err = client.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: c.Namespace}, secret); err != nil {
+			return
 		}
 		token := string(secret.Data["token"])
 		err = configtemplates.KubemanagerConfig.Execute(&kubemanagerConfigBuffer, struct {
@@ -281,8 +274,7 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 		data["vnc_api_lib.ini."+pod.Status.PodIP] = vncApiConfigBuffer.String()
 	}
 
-	configMapInstanceDynamicConfig.Data = data
-	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
+	return
 }
 
 // CreateConfigMap creates empty configmap

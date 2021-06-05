@@ -12,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -88,17 +87,18 @@ func init() {
 }
 
 // InstanceConfiguration creates the zookeeper instance configuration.
-func (c *Zookeeper) InstanceConfiguration(request reconcile.Request, confCMName string,
-	podList []corev1.Pod,
-	client client.Client) error {
+func (c *Zookeeper) InstanceConfiguration(podList []corev1.Pod, client client.Client,
+) (data map[string]string, err error) {
+	err = nil
+
 	zookeeperConfig := c.ConfigurationParameters()
 	pods := make([]corev1.Pod, len(podList))
 	copy(pods, podList)
 	sort.SliceStable(pods, func(i, j int) bool { return pods[i].Name < pods[j].Name })
 
-	confCMData, err := configtemplates.DynamicZookeeperConfig(pods, strconv.Itoa(*zookeeperConfig.ElectionPort), strconv.Itoa(*zookeeperConfig.ServerPort), strconv.Itoa(*zookeeperConfig.ClientPort))
+	data, err = configtemplates.DynamicZookeeperConfig(pods, strconv.Itoa(*zookeeperConfig.ElectionPort), strconv.Itoa(*zookeeperConfig.ServerPort), strconv.Itoa(*zookeeperConfig.ClientPort))
 	if err != nil {
-		return err
+		return
 	}
 	var zookeeperLogConfig bytes.Buffer
 	err = configtemplates.ZookeeperLogConfig.Execute(&zookeeperLogConfig, struct {
@@ -109,8 +109,8 @@ func (c *Zookeeper) InstanceConfiguration(request reconcile.Request, confCMName 
 	if err != nil {
 		panic(err)
 	}
-	confCMData["log4j.properties"] = zookeeperLogConfig.String()
-	confCMData["configuration.xsl"] = configtemplates.ZookeeperXslConfig
+	data["log4j.properties"] = zookeeperLogConfig.String()
+	data["configuration.xsl"] = configtemplates.ZookeeperXslConfig
 	var zookeeperConfigBuffer bytes.Buffer
 	err = configtemplates.ZookeeperStaticConfig.Execute(&zookeeperConfigBuffer, struct {
 		AdminEnableServer string
@@ -123,19 +123,9 @@ func (c *Zookeeper) InstanceConfiguration(request reconcile.Request, confCMName 
 		panic(err)
 	}
 	zookeeperStaticConfigString := zookeeperConfigBuffer.String()
-	confCMData["zoo.cfg"] = zookeeperStaticConfigString
+	data["zoo.cfg"] = zookeeperStaticConfigString
 
-	zookeeperConfigMap := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      confCMName,
-			Namespace: request.Namespace,
-		},
-	}
-	_, err = controllerutil.CreateOrUpdate(context.TODO(), client, zookeeperConfigMap, func() error {
-		zookeeperConfigMap.Data = confCMData
-		return nil
-	})
-	return err
+	return
 
 }
 

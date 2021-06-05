@@ -89,56 +89,49 @@ func init() {
 }
 
 // InstanceConfiguration configures and updates configmaps
-func (c *Analytics) InstanceConfiguration(configMapName string,
-	request reconcile.Request,
-	podList []corev1.Pod,
-	client client.Client) error {
-
-	configMapInstanceDynamicConfig := &corev1.ConfigMap{}
-	err := client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: request.Namespace}, configMapInstanceDynamicConfig)
-	if err != nil {
-		return err
-	}
+func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Client,
+) (data map[string]string, err error) {
+	data, err = make(map[string]string), nil
 
 	analyticsCassandraInstance, err := GetAnalyticsCassandraInstance(client)
 	if analyticsCassandraInstance == "" {
-		return err
+		return
 	}
 
 	analyticsdbCassandraNodesInformation, err := NewCassandraClusterConfiguration(
-		analyticsCassandraInstance, request.Namespace, client)
+		analyticsCassandraInstance, c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 
 	cassandraNodesInformation, err := NewCassandraClusterConfiguration(
-		CassandraInstance, request.Namespace, client)
+		CassandraInstance, c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 
 	zookeeperNodesInformation, err := NewZookeeperClusterConfiguration(
-		ZookeeperInstance, request.Namespace, client)
+		ZookeeperInstance, c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 
 	redisNodesInformation, err := NewRedisClusterConfiguration(
-		RedisInstance, request.Namespace, client)
+		RedisInstance, c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 
 	rabbitmqNodesInformation, err := NewRabbitmqClusterConfiguration(
-		RabbitmqInstance, request.Namespace, client)
+		RabbitmqInstance, c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 
 	configNodesInformation, err := NewConfigClusterConfiguration(
-		ConfigInstance, request.Namespace, client)
+		ConfigInstance, c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 
 	analyticsAuth := c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters
@@ -148,9 +141,9 @@ func (c *Analytics) InstanceConfiguration(configMapName string,
 	var rabbitmqSecretVhost string
 	if rabbitmqNodesInformation.Secret != "" {
 		rabbitmqSecret := &corev1.Secret{}
-		err = client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqNodesInformation.Secret, Namespace: request.Namespace}, rabbitmqSecret)
+		err = client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqNodesInformation.Secret, Namespace: c.Namespace}, rabbitmqSecret)
 		if err != nil {
-			return err
+			return
 		}
 		rabbitmqSecretUser = string(rabbitmqSecret.Data["user"])
 		rabbitmqSecretPassword = string(rabbitmqSecret.Data["password"])
@@ -200,7 +193,6 @@ func (c *Analytics) InstanceConfiguration(configMapName string,
 	redisEndpointList := configtemplates.EndpointList(redisNodesInformation.ServerIPList, redisNodesInformation.ServerPort)
 	redisEndpointListSpaceSpearated := configtemplates.JoinListWithSeparator(redisEndpointList, " ")
 
-	var data = make(map[string]string)
 	for _, pod := range podList {
 		hostname := pod.Annotations["hostname"]
 		podIP := pod.Status.PodIP
@@ -366,18 +358,14 @@ func (c *Analytics) InstanceConfiguration(configMapName string,
 		data["vnc_api_lib.ini."+podIP] = vncApiBuffer.String()
 	}
 
-	configMapInstanceDynamicConfig.Data = data
-
 	// update with nodemanager runner
-	nmr := GetNodemanagerRunner()
-
-	configMapInstanceDynamicConfig.Data["analytics-nodemanager-runner.sh"] = nmr
+	data["analytics-nodemanager-runner.sh"] = GetNodemanagerRunner()
 
 	// update with provisioner configs
-	UpdateProvisionerConfigMapData("analytics-provisioner", configApiIPListCommaSeparated,
-		c.Spec.CommonConfiguration.AuthParameters, configMapInstanceDynamicConfig)
+	data["analytics-provisioner.sh"] = ProvisionerRunnerData("analytics-provisioner")
+	data["analytics-provisioner.env"] = ProvisionerEnvData(configApiIPListCommaSeparated, c.Spec.CommonConfiguration.AuthParameters)
 
-	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
+	return
 }
 
 // CreateConfigMap makes default empty ConfigMap

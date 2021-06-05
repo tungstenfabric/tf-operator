@@ -113,41 +113,34 @@ func init() {
 }
 
 // InstanceConfiguration configures and updates configmaps
-func (c *Config) InstanceConfiguration(configMapName string,
-	request reconcile.Request,
-	podList []corev1.Pod,
-	client client.Client) error {
-
-	configMapInstanceDynamicConfig := &corev1.ConfigMap{}
-	err := client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: request.Namespace}, configMapInstanceDynamicConfig)
-	if err != nil {
-		return err
-	}
+func (c *Config) InstanceConfiguration(podList []corev1.Pod, client client.Client,
+) (data map[string]string, err error) {
+	data, err = make(map[string]string), nil
 
 	configAuth := c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters
 
 	cassandraNodesInformation, err := NewCassandraClusterConfiguration(
-		CassandraInstance, request.Namespace, client)
+		CassandraInstance, c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 
 	zookeeperNodesInformation, err := NewZookeeperClusterConfiguration(
-		ZookeeperInstance, request.Namespace, client)
+		ZookeeperInstance, c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 
 	rabbitmqNodesInformation, err := NewRabbitmqClusterConfiguration(
-		RabbitmqInstance, request.Namespace, client)
+		RabbitmqInstance, c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 
 	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(
-		c.Spec.ServiceConfiguration.AnalyticsInstance, request.Namespace, client)
+		c.Spec.ServiceConfiguration.AnalyticsInstance, c.Namespace, client)
 	if err != nil {
-		return err
+		return
 	}
 
 	var rabbitmqSecretUser string
@@ -155,9 +148,9 @@ func (c *Config) InstanceConfiguration(configMapName string,
 	var rabbitmqSecretVhost string
 	if rabbitmqNodesInformation.Secret != "" {
 		rabbitmqSecret := &corev1.Secret{}
-		err = client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqNodesInformation.Secret, Namespace: request.Namespace}, rabbitmqSecret)
+		err = client.Get(context.TODO(), types.NamespacedName{Name: rabbitmqNodesInformation.Secret, Namespace: c.Namespace}, rabbitmqSecret)
 		if err != nil {
-			return err
+			return
 		}
 		rabbitmqSecretUser = string(rabbitmqSecret.Data["user"])
 		rabbitmqSecretPassword = string(rabbitmqSecret.Data["password"])
@@ -195,7 +188,6 @@ func (c *Config) InstanceConfiguration(configMapName string,
 	zookeeperEndpointList := configtemplates.EndpointList(zookeeperNodesInformation.ServerIPList, zookeeperNodesInformation.ClientPort)
 	zookeeperEndpointListCommaSeparated := configtemplates.JoinListWithSeparator(zookeeperEndpointList, ",")
 
-	var data = make(map[string]string)
 	for _, pod := range podList {
 		hostname := pod.Annotations["hostname"]
 		podIP := pod.Status.PodIP
@@ -466,17 +458,14 @@ func (c *Config) InstanceConfiguration(configMapName string,
 		data["config-nodemgr.env."+podIP] = ""
 	}
 
-	configMapInstanceDynamicConfig.Data = data
-
 	// update with nodemanager runner
-	nmr := GetNodemanagerRunner()
-	configMapInstanceDynamicConfig.Data["config-nodemanager-runner.sh"] = nmr
+	data["config-nodemanager-runner.sh"] = GetNodemanagerRunner()
 
 	// update with provisioner configs
-	UpdateProvisionerConfigMapData("config-provisioner", apiServerList,
-		c.Spec.CommonConfiguration.AuthParameters, configMapInstanceDynamicConfig)
+	data["config-provisioner.sh"] = ProvisionerRunnerData("config-provisioner")
+	data["config-provisioner.env"] = ProvisionerEnvData(apiServerList, c.Spec.CommonConfiguration.AuthParameters)
 
-	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
+	return
 }
 
 // CreateConfigMap makes default empty ConfigMap
