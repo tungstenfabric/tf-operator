@@ -3,7 +3,6 @@ package analyticssnmp
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -295,7 +294,7 @@ func (r *ReconcileAnalyticsSnmp) Reconcile(request reconcile.Request) (reconcile
 	if err = r.Client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: request.Namespace}, newConfigMap); err != nil {
 		return reconcile.Result{}, err
 	}
-	*instance.Status.ConfigChanged = !reflect.DeepEqual(configMap.Data, newConfigMap.Data)
+	*instance.Status.ConfigChanged = !v1alpha1.CmpConfigMaps(configMap, newConfigMap)
 
 	if *instance.Status.ConfigChanged {
 		reqLogger.Info("Update StatefulSet: ConfigChanged")

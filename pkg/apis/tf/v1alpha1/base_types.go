@@ -118,6 +118,16 @@ func (cc *PodConfiguration) IntrospectionListenAddress(addr string) string {
 	return addr
 }
 
+func CmpConfigMaps(first, second *corev1.ConfigMap) bool {
+	if first.Data == nil {
+		first.Data = map[string]string{}
+	}
+	if second.Data == nil {
+		second.Data = map[string]string{}
+	}
+	return reflect.DeepEqual(first.Data, second.Data)
+}
+
 func (ss *ServiceStatus) ready() bool {
 	if ss == nil {
 		return false

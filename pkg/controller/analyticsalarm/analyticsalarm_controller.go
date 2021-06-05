@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"reflect"
 	"text/template"
 	"time"
 
@@ -301,7 +300,7 @@ func (r *ReconcileAnalyticsAlarm) Reconcile(request reconcile.Request) (reconcil
 	if err = r.Client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: request.Namespace}, newConfigMap); err != nil {
 		return reconcile.Result{}, err
 	}
-	*instance.Status.ConfigChanged = !reflect.DeepEqual(configMap.Data, newConfigMap.Data)
+	*instance.Status.ConfigChanged = !v1alpha1.CmpConfigMaps(configMap, newConfigMap)
 
 	if *instance.Status.ConfigChanged {
 		reqLogger.Info("Update StatefulSet: ConfigChanged")

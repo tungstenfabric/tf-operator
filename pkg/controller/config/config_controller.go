@@ -3,9 +3,8 @@ package config
 import (
 	"context"
 	"fmt"
-	"reflect"
-	"time"
 	"strings"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -642,7 +641,7 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 	if err = r.Client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: request.Namespace}, newConfigMap); err != nil {
 		return reconcile.Result{}, err
 	}
-	*instance.Status.ConfigChanged = !reflect.DeepEqual(configMap.Data, newConfigMap.Data)
+	*instance.Status.ConfigChanged = !v1alpha1.CmpConfigMaps(configMap, newConfigMap)
 
 	if *instance.Status.ConfigChanged {
 		reqLogger.Info("Update StatefulSet: ConfigChanged")
