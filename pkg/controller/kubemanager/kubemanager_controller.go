@@ -3,7 +3,6 @@ package kubemanager
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"time"
 
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
@@ -373,7 +372,7 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 		reqLogger.Error(err, "Failed to get the config map.")
 		return reconcile.Result{}, err
 	}
-	*instance.Status.ConfigChanged = !reflect.DeepEqual(configMap.Data, newConfigMap.Data)
+	*instance.Status.ConfigChanged = !v1alpha1.CmpConfigMaps(configMap, newConfigMap)
 
 	if *instance.Status.ConfigChanged {
 		reqLogger.Info("Update StatefulSet: ConfigChanged")

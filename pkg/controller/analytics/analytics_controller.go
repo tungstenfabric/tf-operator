@@ -2,7 +2,6 @@ package analytics
 
 import (
 	"context"
-	"reflect"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -219,7 +218,7 @@ func (r *ReconcileAnalytics) Reconcile(request reconcile.Request) (reconcile.Res
 
 	cassandraActive := cassandraInstance.IsActive(analyticsCassandraInstance, request.Namespace, r.Client)
 	rabbitmqActive := rabbitmqInstance.IsActive(v1alpha1.RabbitmqInstance, request.Namespace, r.Client)
-    zookeeperActive := zookeeperInstance.IsActive(v1alpha1.ZookeeperInstance, request.Namespace, r.Client)
+	zookeeperActive := zookeeperInstance.IsActive(v1alpha1.ZookeeperInstance, request.Namespace, r.Client)
 	redisActive := redisInstance.IsActive(v1alpha1.RedisInstance, request.Namespace, r.Client)
 	if !cassandraActive || !rabbitmqActive || !zookeeperActive || !redisActive {
 		reqLogger.Info("Dependencies not ready", "db", cassandraActive, "zk", zookeeperActive, "rmq", rabbitmqActive, "redis", redisActive)
@@ -423,7 +422,7 @@ func (r *ReconcileAnalytics) Reconcile(request reconcile.Request) (reconcile.Res
 		reqLogger.Error(err, "Failed to get the config map.")
 		return reconcile.Result{}, err
 	}
-	*instance.Status.ConfigChanged = !reflect.DeepEqual(configMap.Data, newConfigMap.Data)
+	*instance.Status.ConfigChanged = !v1alpha1.CmpConfigMaps(configMap, newConfigMap)
 
 	if *instance.Status.ConfigChanged {
 		reqLogger.Info("Update StatefulSet: ConfigChanged")
