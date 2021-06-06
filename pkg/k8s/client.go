@@ -18,8 +18,6 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 )
 
-const debug = false
-
 // GetConfig creates a *rest.Config for talking to a Kubernetes apiserver.
 // If --kubeconfig is set, will use the kubeconfig file at that location.  Otherwise will assume running
 // in cluster and use the cluster provided kubeconfig.
@@ -65,9 +63,6 @@ func GetConfig() (*rest.Config, error) {
 func GetClientConfig() (*rest.Config, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		if debug {
-			fmt.Printf("Unable to create config. Error: %+v\n", err)
-		}
 		err1 := err
 		kubeconfig := filepath.Join(os.Getenv("HOME"), ".kube", "config")
 		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
@@ -178,10 +173,6 @@ func ExecToPodThroughAPI(command []string, containerName, podName, namespace str
 		Stderr:    true,
 		TTY:       false,
 	}, parameterCodec)
-
-	if debug {
-		fmt.Println("Request URL:", req.URL().String())
-	}
 
 	exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
 	if err != nil {
