@@ -361,16 +361,15 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		return requeueReconcile, nil
 	}
 
-	if err := r.ensureCertificatesExist(instance, podList, clusterIP, instanceType); err != nil {
-		return reconcile.Result{}, err
-	}
-
 	minPods := 1
 	if instance.Spec.CommonConfiguration.Replicas != nil {
 		// to avoid change of seeds (seeds nodes are not to be changed)
 		minPods = int(*instance.Spec.CommonConfiguration.Replicas)/2 + 1
 	}
 	if len(podList) >= minPods {
+		if err := r.ensureCertificatesExist(instance, podList, clusterIP, instanceType); err != nil {
+			return reconcile.Result{}, err
+		}
 		if err = instance.InstanceConfiguration(request, podList, r.Client); err != nil {
 			return reconcile.Result{}, err
 		}
