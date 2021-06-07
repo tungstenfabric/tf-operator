@@ -20,6 +20,8 @@ spec:
         serviceConfiguration:
           logLevel: SYS_DEBUG
           zookeeperInstance: zookeeper1
+          cassandraInstance: configdb1
+          configInstance: config1
           containers:
           - name: nodemanager
             image: contrail-nodemgr
@@ -41,6 +43,8 @@ spec:
         serviceConfiguration:
           logLevel: SYS_DEBUG
           zookeeperInstance: zookeeper1
+          cassandraInstance: configdb1
+          configInstance: config1
           containers:
           - name: init
             image: python
@@ -62,6 +66,7 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
+          configInstance: config1
           containers:
           - name: cassandra
             image: contrail-external-cassandra
@@ -81,6 +86,7 @@ spec:
         serviceConfiguration:
           logLevel: SYS_DEBUG
           zookeeperInstance: zookeeper1
+          cassandraInstance: configdb1
           containers:
           - name: redis
             image: contrail-external-redis
@@ -123,6 +129,8 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
+          cassandraInstance: configdb1
+          configInstance: config1
           logLevel: SYS_DEBUG
           containers:
           - name: control
@@ -147,6 +155,8 @@ spec:
         serviceConfiguration:
           logLevel: SYS_DEBUG
           zookeeperInstance: zookeeper1
+          cassandraInstance: configdb1
+          configInstance: config1
           ipFabricForwarding: false
           ipFabricSnat: true
           hostNetworkService: true
@@ -203,7 +213,9 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
+          configInstance: config1
           controlInstance: control1
+          cassandraInstance: configdb1
           logLevel: SYS_DEBUG
           containers:
           - name: redis
