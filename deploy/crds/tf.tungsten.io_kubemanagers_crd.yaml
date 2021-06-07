@@ -101,9 +101,6 @@ spec:
                   items:
                     type: string
                   type: array
-                introspectListenAll:
-                  description: Use 0.0.0.0 for isntrospection ports
-                  type: boolean
                 logLevel:
                   description: Kubernetes Cluster Configuration
                   enum:
@@ -226,12 +223,6 @@ spec:
                   type: string
                 rabbitmqInstance:
                   type: string
-                rabbitmqPassword:
-                  type: string
-                rabbitmqUser:
-                  type: string
-                rabbitmqVhost:
-                  type: string
                 secretName:
                   type: string
                 serviceAccount:
@@ -248,18 +239,10 @@ spec:
           description: KubemanagerStatus is the Status for the kubemanagers API.
           properties:
             active:
-              description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
-                of cluster Important: Run "operator-sdk generate k8s" to regenerate
-                code after modifying this file Add custom validation using kubebuilder
-                tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html'
-              type: boolean
-            degraded:
-              description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
-                of cluster Important: Run "operator-sdk generate k8s" to regenerate
-                code after modifying this file Add custom validation using kubebuilder
-                tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html'
               type: boolean
             configChanged:
+              type: boolean
+            degraded:
               type: boolean
             nodes:
               additionalProperties:

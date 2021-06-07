@@ -2,7 +2,6 @@ package cassandra
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
@@ -206,19 +205,6 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	}
 
 	cassandraConfig := instance.ConfigurationParameters()
-	svc := r.Kubernetes.Service(request.Name+"-"+instanceType, corev1.ServiceTypeClusterIP,
-		map[int32]string{int32(*cassandraConfig.Port): ""}, instanceType, instance)
-
-	if err := svc.EnsureExists(); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	clusterIP := svc.ClusterIP()
-	if clusterIP == "" {
-		log.Info(fmt.Sprintf("cassandra service is not ready, clusterIP is empty"))
-		return reconcile.Result{}, nil
-	}
-	instance.Status.ClusterIP = clusterIP
 
 	statefulSet := GetSTS(cassandraConfig)
 	if err = instance.PrepareSTS(statefulSet, &instance.Spec.CommonConfiguration, request, r.Scheme); err != nil {
@@ -355,8 +341,8 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		// to avoid change of seeds (seeds nodes are not to be changed)
 		minPods = int(*instance.Spec.CommonConfiguration.Replicas)/2 + 1
 	}
-	if len(podList) >= minPods {
-		if err := r.ensureCertificatesExist(instance, podList, clusterIP, instanceType); err != nil {
+	if len(podList) >= int(minPods) {
+		if err := r.ensureCertificatesExist(instance, podList, "", instanceType); err != nil {
 			return reconcile.Result{}, err
 		}
 		if err = instance.InstanceConfiguration(request, podList, r.Client); err != nil {

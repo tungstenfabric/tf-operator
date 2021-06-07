@@ -114,9 +114,6 @@ spec:
                   items:
                     type: string
                   type: array
-                introspectListenAll:
-                  description: Use 0.0.0.0 for isntrospection ports
-                  type: boolean
                 logLevel:
                   description: Kubernetes Cluster Configuration
                   enum:
@@ -283,9 +280,6 @@ spec:
                               items:
                                 type: string
                               type: array
-                            introspectListenAll:
-                              description: Use 0.0.0.0 for isntrospection ports
-                              type: boolean
                             logLevel:
                               description: Kubernetes Cluster Configuration
                               enum:
@@ -412,6 +406,8 @@ spec:
                           type: boolean
                         configChanged:
                           type: boolean
+                        degraded:
+                          type: boolean
                         nodes:
                           additionalProperties:
                             type: string
@@ -513,9 +509,6 @@ spec:
                               items:
                                 type: string
                               type: array
-                            introspectListenAll:
-                              description: Use 0.0.0.0 for isntrospection ports
-                              type: boolean
                             logLevel:
                               description: Kubernetes Cluster Configuration
                               enum:
@@ -648,6 +641,8 @@ spec:
                           type: boolean
                         configChanged:
                           type: boolean
+                        degraded:
+                          type: boolean
                         nodes:
                           additionalProperties:
                             type: string
@@ -749,9 +744,6 @@ spec:
                                 items:
                                   type: string
                                 type: array
-                              introspectListenAll:
-                                description: Use 0.0.0.0 for isntrospection ports
-                                type: boolean
                               logLevel:
                                 description: Kubernetes Cluster Configuration
                                 enum:
@@ -892,14 +884,6 @@ spec:
                                 type: integer
                               startRPC:
                                 type: boolean
-                              storage:
-                                properties:
-                                  path:
-                                    type: string
-                                  size:
-                                    pattern: ^([0-9]+)([KMGTPE]i)?$
-                                    type: string
-                                type: object
                               storagePort:
                                 type: integer
                             type: object
@@ -912,9 +896,9 @@ spec:
                         properties:
                           active:
                             type: boolean
-                          clusterIP:
-                            type: string
                           configChanged:
+                            type: boolean
+                          degraded:
                             type: boolean
                           nodes:
                             additionalProperties:
@@ -1027,9 +1011,6 @@ spec:
                               items:
                                 type: string
                               type: array
-                            introspectListenAll:
-                              description: Use 0.0.0.0 for isntrospection ports
-                              type: boolean
                             logLevel:
                               description: Kubernetes Cluster Configuration
                               enum:
@@ -1183,24 +1164,12 @@ spec:
                               type: string
                             rabbitmqInstance:
                               type: string
-                            rabbitmqPassword:
-                              type: string
-                            rabbitmqUser:
-                              type: string
-                            rabbitmqVhost:
-                              type: string
                             schemaIntrospectPort:
                               type: integer
-                            storage:
-                              properties:
-                                path:
-                                  type: string
-                                size:
-                                  pattern: ^([0-9]+)([KMGTPE]i)?$
-                                  type: string
-                              type: object
                             svcMonitorIntrospectPort:
                               type: integer
+                            useExternalTFTP:
+                              type: boolean
                             zookeeperInstance:
                               type: string
                           type: object
@@ -1213,6 +1182,8 @@ spec:
                         active:
                           type: boolean
                         configChanged:
+                          type: boolean
+                        degraded:
                           type: boolean
                         endpoint:
                           type: string
@@ -1316,9 +1287,6 @@ spec:
                                 items:
                                   type: string
                                 type: array
-                              introspectListenAll:
-                                description: Use 0.0.0.0 for isntrospection ports
-                                type: boolean
                               logLevel:
                                 description: Kubernetes Cluster Configuration
                                 enum:
@@ -1438,12 +1406,6 @@ spec:
                                 type: string
                               rabbitmqInstance:
                                 type: string
-                              rabbitmqPassword:
-                                type: string
-                              rabbitmqUser:
-                                type: string
-                              rabbitmqVhost:
-                                type: string
                               xmppPort:
                                 type: integer
                             type: object
@@ -1456,6 +1418,8 @@ spec:
                           active:
                             type: boolean
                           configChanged:
+                            type: boolean
+                          degraded:
                             type: boolean
                           nodes:
                             additionalProperties:
@@ -1606,9 +1570,6 @@ spec:
                                 items:
                                   type: string
                                 type: array
-                              introspectListenAll:
-                                description: Use 0.0.0.0 for isntrospection ports
-                                type: boolean
                               logLevel:
                                 description: Kubernetes Cluster Configuration
                                 enum:
@@ -1740,12 +1701,6 @@ spec:
                                 type: string
                               rabbitmqInstance:
                                 type: string
-                              rabbitmqPassword:
-                                type: string
-                              rabbitmqUser:
-                                type: string
-                              rabbitmqVhost:
-                                type: string
                               secretName:
                                 type: string
                               serviceAccount:
@@ -1853,9 +1808,6 @@ spec:
                               items:
                                 type: string
                               type: array
-                            introspectListenAll:
-                              description: Use 0.0.0.0 for isntrospection ports
-                              type: boolean
                             logLevel:
                               description: Kubernetes Cluster Configuration
                               enum:
@@ -1994,6 +1946,10 @@ spec:
                       properties:
                         active:
                           type: boolean
+                        configChanged:
+                          type: boolean
+                        degraded:
+                          type: boolean
                         nodes:
                           additionalProperties:
                             type: string
@@ -2085,9 +2041,6 @@ spec:
                                 items:
                                   type: string
                                 type: array
-                              introspectListenAll:
-                                description: Use 0.0.0.0 for isntrospection ports
-                                type: boolean
                               logLevel:
                                 description: Kubernetes Cluster Configuration
                                 enum:
@@ -2215,10 +2168,6 @@ spec:
                               controlInstance:
                                 type: string
                               dataSubnet:
-                                description: DataSubnet allow to set alternative network in which
-                                  control, nodemanager and dns services are listening. Local pod address
-                                  from this subnet will be discovered and used for connection.
-                                pattern: ^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\/(3[0-2]|2[0-9]|1[0-9]|[0-9]))$
                                 type: string
                               distribution:
                                 type: string
@@ -2231,7 +2180,8 @@ spec:
                               envVariablesConfig:
                                 additionalProperties:
                                   type: string
-                                description: What is it doing?
+                                description: What is it doing? VrouterEncryption   bool              `json:"vrouterEncryption,omitempty"`
+                                  What is it doing? What is it doing?
                                 type: object
                               fabricSntHashTableSize:
                                 type: string
@@ -2244,10 +2194,8 @@ spec:
                                 type: integer
                               hypervisorType:
                                 type: string
-                              introspectListenAll:
-                                description: Introspect
-                                type: boolean
                               introspectSslEnable:
+                                description: Introspect
                                 type: boolean
                               k8sToken:
                                 description: Kubernetes
@@ -2487,9 +2435,6 @@ spec:
                               items:
                                 type: string
                               type: array
-                            introspectListenAll:
-                              description: Use 0.0.0.0 for isntrospection ports
-                              type: boolean
                             logLevel:
                               description: Kubernetes Cluster Configuration
                               enum:
@@ -2596,6 +2541,10 @@ spec:
                       properties:
                         active:
                           type: boolean
+                        configChanged:
+                          type: boolean
+                        degraded:
+                          type: boolean
                         endpoint:
                           type: string
                         nodes:
@@ -2609,12 +2558,6 @@ spec:
                             webUIHttpsPort:
                               type: integer
                           type: object
-                        readyReplicas:
-                          format: int32
-                          type: integer
-                        replicas:
-                          format: int32
-                          type: integer
                         serviceStatus:
                           additionalProperties:
                             additionalProperties:
@@ -2725,9 +2668,6 @@ spec:
                                 items:
                                   type: string
                                 type: array
-                              introspectListenAll:
-                                description: Use 0.0.0.0 for isntrospection ports
-                                type: boolean
                               logLevel:
                                 description: Kubernetes Cluster Configuration
                                 enum:
@@ -2833,14 +2773,6 @@ spec:
                                 type: integer
                               serverPort:
                                 type: integer
-                              storage:
-                                properties:
-                                  path:
-                                    type: string
-                                  size:
-                                    pattern: ^([0-9]+)([KMGTPE]i)?$
-                                    type: string
-                                type: object
                             type: object
                         required:
                         - serviceConfiguration
@@ -2850,6 +2782,10 @@ spec:
                           object.
                         properties:
                           active:
+                            type: boolean
+                          configChanged:
+                            type: boolean
+                          degraded:
                             type: boolean
                           nodes:
                             additionalProperties:

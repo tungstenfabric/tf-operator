@@ -19,9 +19,6 @@ spec:
   - JSONPath: .status.active
     name: Active
     type: boolean
-  - JSONPath: .status.degraded
-    name: Degraded
-    type: boolean
   group: tf.tungsten.io
   names:
     kind: Config
@@ -120,9 +117,6 @@ spec:
                   items:
                     type: string
                   type: array
-                introspectListenAll:
-                  description: Use 0.0.0.0 for isntrospection ports
-                  type: boolean
                 logLevel:
                   description: Kubernetes Cluster Configuration
                   enum:
@@ -267,22 +261,8 @@ spec:
                   type: string
                 rabbitmqInstance:
                   type: string
-                rabbitmqPassword:
-                  type: string
-                rabbitmqUser:
-                  type: string
-                rabbitmqVhost:
-                  type: string
                 schemaIntrospectPort:
                   type: integer
-                storage:
-                  properties:
-                    path:
-                      type: string
-                    size:
-                      pattern: ^([0-9]+)([KMGTPE]i)?$
-                      type: string
-                  type: object
                 svcMonitorIntrospectPort:
                   type: integer
                 useExternalTFTP:
@@ -298,9 +278,9 @@ spec:
           properties:
             active:
               type: boolean
-            degraded:
-              type: boolean
             configChanged:
+              type: boolean
+            degraded:
               type: boolean
             endpoint:
               type: string

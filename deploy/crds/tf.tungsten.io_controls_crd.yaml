@@ -101,9 +101,6 @@ spec:
                   items:
                     type: string
                   type: array
-                introspectListenAll:
-                  description: Use 0.0.0.0 for isntrospection ports
-                  type: boolean
                 logLevel:
                   description: Kubernetes Cluster Configuration
                   enum:
@@ -212,12 +209,6 @@ spec:
                   type: string
                 rabbitmqInstance:
                   type: string
-                rabbitmqPassword:
-                  type: string
-                rabbitmqUser:
-                  type: string
-                rabbitmqVhost:
-                  type: string
                 xmppPort:
                   type: integer
               type: object
@@ -229,9 +220,9 @@ spec:
           properties:
             active:
               type: boolean
-            degraded:
-              type: boolean
             configChanged:
+              type: boolean
+            degraded:
               type: boolean
             nodes:
               additionalProperties:

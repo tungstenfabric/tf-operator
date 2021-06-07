@@ -101,9 +101,6 @@ spec:
                   items:
                     type: string
                   type: array
-                introspectListenAll:
-                  description: Use 0.0.0.0 for isntrospection ports
-                  type: boolean
                 logLevel:
                   description: Kubernetes Cluster Configuration
                   enum:
@@ -234,14 +231,6 @@ spec:
                   type: integer
                 startRPC:
                   type: boolean
-                storage:
-                  properties:
-                    path:
-                      type: string
-                    size:
-                      pattern: ^([0-9]+)([KMGTPE]i)?$
-                      type: string
-                  type: object
                 storagePort:
                   type: integer
               type: object
@@ -253,11 +242,9 @@ spec:
           properties:
             active:
               type: boolean
-            degraded:
-              type: boolean
-            clusterIP:
-              type: string
             configChanged:
+              type: boolean
+            degraded:
               type: boolean
             nodes:
               additionalProperties:

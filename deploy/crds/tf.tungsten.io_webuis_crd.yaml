@@ -19,9 +19,6 @@ spec:
   - JSONPath: .status.active
     name: Active
     type: boolean
-  - JSONPath: .status.degraded
-    name: Degraded
-    type: boolean
   group: tf.tungsten.io
   names:
     kind: Webui
@@ -120,9 +117,6 @@ spec:
                   items:
                     type: string
                   type: array
-                introspectListenAll:
-                  description: Use 0.0.0.0 for isntrospection ports
-                  type: boolean
                 logLevel:
                   description: Kubernetes Cluster Configuration
                   enum:
@@ -222,6 +216,8 @@ spec:
           properties:
             active:
               type: boolean
+            configChanged:
+              type: boolean
             degraded:
               type: boolean
             endpoint:
@@ -237,12 +233,6 @@ spec:
                 webUIHttpsPort:
                   type: integer
               type: object
-            readyReplicas:
-              format: int32
-              type: integer
-            replicas:
-              format: int32
-              type: integer
             serviceStatus:
               additionalProperties:
                 additionalProperties:

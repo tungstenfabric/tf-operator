@@ -101,9 +101,6 @@ spec:
                   items:
                     type: string
                   type: array
-                introspectListenAll:
-                  description: Use 0.0.0.0 for isntrospection ports
-                  type: boolean
                 logLevel:
                   description: Kubernetes Cluster Configuration
                   enum:
@@ -199,14 +196,6 @@ spec:
                   type: integer
                 serverPort:
                   type: integer
-                storage:
-                  properties:
-                    path:
-                      type: string
-                    size:
-                      pattern: ^([0-9]+)([KMGTPE]i)?$
-                      type: string
-                  type: object
               type: object
           required:
           - serviceConfiguration
@@ -215,6 +204,8 @@ spec:
           description: ZookeeperStatus defines the status of the zookeeper object.
           properties:
             active:
+              type: boolean
+            configChanged:
               type: boolean
             degraded:
               type: boolean
