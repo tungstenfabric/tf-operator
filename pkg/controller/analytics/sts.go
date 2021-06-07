@@ -57,6 +57,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
+          securityContext:
+            capabilities:
+              add:
+                - SYS_PTRACE
         - name: nodemanager
           image: tungstenfabric/contrail-nodemgr:latest
           securityContext:
