@@ -28,7 +28,6 @@ import (
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=queryengine,scope=Namespaced
-// +kubebuilder:printcolumn:name="Endpoint",type=string,JSONPath=`.status.endpoint`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 // +kubebuilder:printcolumn:name="Active",type=boolean,JSONPath=`.status.active`
 type QueryEngine struct {
@@ -60,7 +59,6 @@ type QueryEngineConfiguration struct {
 // +k8s:openapi-gen=true
 type QueryEngineStatus struct {
 	CommonStatus `json:",inline"`
-	Endpoint     string `json:"endpoint,omitempty"`
 }
 
 // QueryEngineList contains a list of QueryEngine.
@@ -301,12 +299,6 @@ func (c *QueryEngine) ConfigurationParameters() QueryEngineConfiguration {
 	queryengineConfiguration.LogLevel = logLevel
 	return queryengineConfiguration
 
-}
-
-func (c *QueryEngine) SetEndpointInStatus(client client.Client, clusterIP string) error {
-	c.Status.Endpoint = clusterIP
-	err := client.Status().Update(context.TODO(), c)
-	return err
 }
 
 // CommonStartupScript prepare common run service script

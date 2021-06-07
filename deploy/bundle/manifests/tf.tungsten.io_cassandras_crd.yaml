@@ -220,8 +220,6 @@ spec:
           properties:
             active:
               type: boolean
-            clusterIP:
-              type: string
             configChanged:
               type: boolean
             degraded:

@@ -51,7 +51,6 @@ type RedisConfiguration struct {
 // +k8s:openapi-gen=true
 type RedisStatus struct {
 	CommonStatus `json:",inline"`
-	ClusterIP    string `json:"clusterIP,omitempty"`
 }
 
 // RedisList contains a list of Redis.

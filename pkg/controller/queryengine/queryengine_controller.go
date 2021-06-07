@@ -236,16 +236,6 @@ func (r *ReconcileQueryEngine) Reconcile(request reconcile.Request) (reconcile.R
 		return reconcile.Result{}, nil
 	}
 
-	servicePortsMap := map[int32]string{
-		int32(v1alpha1.AnalyticsdbPort): "queryengine",
-	}
-	queryengineService := r.Kubernetes.Service(request.Name+"-"+instanceType, corev1.ServiceTypeClusterIP, servicePortsMap, instanceType, instance)
-
-	if err := queryengineService.EnsureExists(); err != nil {
-		reqLogger.Error(err, "QueryEngine service doesnt exist")
-		return reconcile.Result{}, err
-	}
-
 	configMapName := request.Name + "-" + instanceType + "-configmap"
 	configMap, err := instance.CreateConfigMap(configMapName, r.Client, r.Scheme, request)
 	if err != nil {
@@ -384,14 +374,6 @@ func (r *ReconcileQueryEngine) Reconcile(request reconcile.Request) (reconcile.R
 			}
 			return requeueReconcile, nil
 		}
-	}
-
-	if instance.Status.Endpoint != queryengineService.ClusterIP() {
-		if err = instance.SetEndpointInStatus(r.Client, queryengineService.ClusterIP()); err != nil && !v1alpha1.IsOKForRequeque(err) {
-			reqLogger.Error(err, "Failed to set endpointIn status")
-			return reconcile.Result{}, err
-		}
-		return requeueReconcile, nil
 	}
 
 	falseVal := false

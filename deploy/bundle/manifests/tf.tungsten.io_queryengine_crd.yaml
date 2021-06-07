@@ -4,9 +4,6 @@ metadata:
   name: queryengine.tf.tungsten.io
 spec:
   additionalPrinterColumns:
-  - JSONPath: .status.endpoint
-    name: Endpoint
-    type: string
   - JSONPath: .metadata.creationTimestamp
     name: Age
     type: date
@@ -194,8 +191,6 @@ spec:
               type: boolean
             degraded:
               type: boolean
-            endpoint:
-              type: string
             nodes:
               additionalProperties:
                 type: string

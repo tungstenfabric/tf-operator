@@ -1007,8 +1007,6 @@ spec:
                         properties:
                           active:
                             type: boolean
-                          clusterIP:
-                            type: string
                           configChanged:
                             type: boolean
                           degraded:
@@ -1884,8 +1882,6 @@ spec:
                           type: boolean
                         degraded:
                           type: boolean
-                        endpoint:
-                          type: string
                         nodes:
                           additionalProperties:
                             type: string
@@ -2283,8 +2279,6 @@ spec:
                         properties:
                           active:
                             type: boolean
-                          clusterIP:
-                            type: string
                           configChanged:
                             type: boolean
                           degraded:
