@@ -15,7 +15,6 @@ spec:
   selector:
     matchLabels:
       tf_manager: analyticsalarm
-  replicas: 1
   updateStrategy:
     type: OnDelete
   template:

@@ -18,7 +18,6 @@ spec:
   selector:
     matchLabels:
       app: cassandra
-  replicas: 1
   updateStrategy:
     type: RollingUpdate
     rollingUpdate:

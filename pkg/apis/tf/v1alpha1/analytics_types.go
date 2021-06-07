@@ -29,8 +29,6 @@ import (
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=analytics,scope=Namespaced
-// +kubebuilder:printcolumn:name="Replicas",type=integer,JSONPath=`.status.replicas`
-// +kubebuilder:printcolumn:name="Ready_Replicas",type=integer,JSONPath=`.status.readyReplicas`
 // +kubebuilder:printcolumn:name="Endpoint",type=string,JSONPath=`.status.endpoint`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 // +kubebuilder:printcolumn:name="Active",type=boolean,JSONPath=`.status.active`

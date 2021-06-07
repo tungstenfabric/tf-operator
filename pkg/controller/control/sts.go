@@ -14,7 +14,6 @@ spec:
   selector:
     matchLabels:
       app: control
-  replicas: 1
   updateStrategy:
     type: RollingUpdate
     rollingUpdate:

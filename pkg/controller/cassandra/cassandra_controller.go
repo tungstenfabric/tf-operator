@@ -339,7 +339,7 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		return requeueReconcile, err
 	}
 
-	// Update StatefulSet if replicas or images changed
+	// Update StatefulSet if changed
 	if updated, err := v1alpha1.UpdateServiceSTS(instance, instanceType, statefulSet, false, r.Client); err != nil || updated {
 		if err != nil && !v1alpha1.IsOKForRequeque(err) {
 			reqLogger.Error(err, "Failed to update the stateful set.")
@@ -361,12 +361,13 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		return requeueReconcile, nil
 	}
 
-	minPods := 1
-	if instance.Spec.CommonConfiguration.Replicas != nil {
-		// to avoid change of seeds (seeds nodes are not to be changed)
-		minPods = int(*instance.Spec.CommonConfiguration.Replicas)/2 + 1
+	var minPods int32
+	if replicas, err := v1alpha1.GetReplicas(r.Client, statefulSet.Spec.Template.Spec.NodeSelector); err != nil {
+		return reconcile.Result{}, err
+	} else {
+		minPods = replicas/2 + 1
 	}
-	if len(podList) >= minPods {
+	if len(podList) >= int(minPods) {
 		if err := r.ensureCertificatesExist(instance, podList, clusterIP, instanceType); err != nil {
 			return reconcile.Result{}, err
 		}

@@ -97,10 +97,6 @@ type ManagerConfiguration struct {
 	// Kubernetes Cluster Configuration
 	// +optional
 	ClusterConfig *KubernetesClusterConfig `json:"clusterConfig,omitempty"`
-	// Number of desired pods. This is a pointer to distinguish between explicit
-	// zero and not specified. Defaults to 1.
-	// +optional
-	Replicas *int32 `json:"replicas,omitempty" protobuf:"varint,1,opt,name=replicas"`
 	// Kubernetes Cluster Configuration
 	// +kubebuilder:validation:Enum=info;debug;warning;error;critical;none
 	// +optional
@@ -130,7 +126,6 @@ type ManagerStatus struct {
 	Rabbitmq       *ServiceStatus   `json:"rabbitmq,omitempty"`
 	Redis          []*ServiceStatus `json:"redis,omitempty"`
 	CrdStatus      []CrdStatus      `json:"crdStatus,omitempty"`
-	Replicas       int32            `json:"replicas,omitempty"`
 	// +optional
 	// +patchMergeKey=type
 	// +patchStrategy=merge

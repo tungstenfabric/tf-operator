@@ -139,23 +139,6 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	nodes, err := r.getControllerNodes()
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	var replicas int32
-	if instance.Spec.CommonConfiguration.Replicas != nil {
-		replicas = *instance.Spec.CommonConfiguration.Replicas
-	} else {
-		replicas = r.getReplicas(nodes)
-		if replicas == 0 {
-			return reconcile.Result{}, nil
-		}
-	}
-
-	nodesHostAliases := r.getNodesHostAliases(nodes)
-
 	// set defaults if not set
 	if instance.Spec.CommonConfiguration.AuthParameters == nil {
 		instance.Spec.CommonConfiguration.AuthParameters = &v1alpha1.AuthParameters{}
@@ -166,7 +149,7 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	var requeueErr error = nil
-	if err := r.processVRouters(instance, replicas); err != nil {
+	if err := r.processVRouters(instance); err != nil {
 		if v1alpha1.IsOKForRequeque(err) {
 			log.Info("Failed to processVRouters, future rereconcile")
 			requeueErr = err
@@ -174,7 +157,7 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 		log.Error(err, "processVRouters")
 	}
 
-	if err := r.processRabbitMQ(instance, replicas); err != nil {
+	if err := r.processRabbitMQ(instance); err != nil {
 		if v1alpha1.IsOKForRequeque(err) {
 			log.Info("Failed to processRabbitMQ, future rereconcile")
 			requeueErr = err
@@ -182,7 +165,7 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 		log.Error(err, "processRabbitMQ")
 	}
 
-	if err := r.processCassandras(instance, replicas, nodesHostAliases); err != nil {
+	if err := r.processCassandras(instance); err != nil {
 		if v1alpha1.IsOKForRequeque(err) {
 			log.Info("Failed to processCassandras, future rereconcile")
 			requeueErr = err
@@ -190,7 +173,7 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 		log.Error(err, "processCassandras")
 	}
 
-	if err := r.processRedis(instance, replicas, nodesHostAliases); err != nil {
+	if err := r.processRedis(instance); err != nil {
 		if v1alpha1.IsOKForRequeque(err) {
 			log.Info("Failed to processRedis, future rereconcile")
 			requeueErr = err
@@ -198,7 +181,7 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 		log.Error(err, "processRedis")
 	}
 
-	if err := r.processZookeepers(instance, replicas); err != nil {
+	if err := r.processZookeepers(instance); err != nil {
 		if v1alpha1.IsOKForRequeque(err) {
 			log.Info("Failed to processZookeepers, future rereconcile")
 			requeueErr = err
@@ -206,7 +189,7 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 		log.Error(err, "processZookeepers")
 	}
 
-	if err := r.processControls(instance, replicas); err != nil {
+	if err := r.processControls(instance); err != nil {
 		if v1alpha1.IsOKForRequeque(err) {
 			log.Info("Failed to processControls, future rereconcile")
 			requeueErr = err
@@ -214,7 +197,7 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 		log.Error(err, "processControls")
 	}
 
-	if err := r.processConfig(instance, replicas, nodesHostAliases); err != nil {
+	if err := r.processConfig(instance); err != nil {
 		if v1alpha1.IsOKForRequeque(err) {
 			log.Info("Failed to processConfig, future rereconcile")
 			requeueErr = err
@@ -222,7 +205,7 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 		log.Error(err, "processConfig")
 	}
 
-	if err := r.processWebui(instance, replicas); err != nil {
+	if err := r.processWebui(instance); err != nil {
 		if v1alpha1.IsOKForRequeque(err) {
 			log.Info("Failed to processWebui, future rereconcile")
 			requeueErr = err
@@ -230,7 +213,7 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 		log.Error(err, "processWebui")
 	}
 
-	if err := r.processAnalytics(instance, replicas, nodesHostAliases); err != nil {
+	if err := r.processAnalytics(instance); err != nil {
 		if v1alpha1.IsOKForRequeque(err) {
 			log.Info("Failed to processAnalytics, future rereconcile")
 			requeueErr = err
@@ -238,7 +221,7 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 		log.Error(err, "processAnalytics")
 	}
 
-	if err := r.processQueryEngine(instance, replicas, nodesHostAliases); err != nil {
+	if err := r.processQueryEngine(instance); err != nil {
 		if v1alpha1.IsOKForRequeque(err) {
 			log.Info("Failed to processQueryEngine, future rereconcile")
 			requeueErr = err
@@ -246,7 +229,7 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 		log.Error(err, "processQueryEngine")
 	}
 
-	if err := r.processAnalyticsSnmp(instance, replicas); err != nil {
+	if err := r.processAnalyticsSnmp(instance); err != nil {
 		if v1alpha1.IsOKForRequeque(err) {
 			log.Info("Failed to processAnalyticsSnmp, future rereconcile")
 			requeueErr = err
@@ -254,7 +237,7 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 		log.Error(err, "processAnalyticsSnmp")
 	}
 
-	if err := r.processAnalyticsAlarm(instance, replicas); err != nil {
+	if err := r.processAnalyticsAlarm(instance); err != nil {
 		if v1alpha1.IsOKForRequeque(err) {
 			log.Info("Failed to processAnalyticsAlarm, future rereconcile")
 			requeueErr = err
@@ -262,7 +245,7 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 		log.Error(err, "processAnalyticsAlarm")
 	}
 
-	if err := r.processKubemanagers(instance, replicas); err != nil {
+	if err := r.processKubemanagers(instance); err != nil {
 		if v1alpha1.IsOKForRequeque(err) {
 			log.Info("Failed to processKubemanagers, future rereconcile")
 			requeueErr = err
@@ -297,49 +280,7 @@ func (r *ReconcileManager) setConditions(manager *v1alpha1.Manager) {
 	}}
 }
 
-func (r *ReconcileManager) getControllerNodes() ([]corev1.Node, error) {
-	nodeList := &corev1.NodeList{}
-	labels := client.MatchingLabels{"node-role.kubernetes.io/master": ""}
-	if err := r.client.List(context.Background(), nodeList, labels); err != nil {
-		return nil, err
-	}
-	return nodeList.Items, nil
-}
-
-func (r *ReconcileManager) getReplicas(nodes []corev1.Node) int32 {
-	nodesNumber := len(nodes)
-	if nodesNumber%2 == 0 && nodesNumber != 0 {
-		return int32(nodesNumber - 1)
-	}
-	return int32(nodesNumber)
-}
-
-func (r *ReconcileManager) getNodesHostAliases(nodes []corev1.Node) []corev1.HostAlias {
-	hostAliases := []corev1.HostAlias{}
-	for _, n := range nodes {
-		ip := ""
-		hostname := ""
-		for _, a := range n.Status.Addresses {
-			if a.Type == corev1.NodeInternalIP {
-				ip = a.Address
-			}
-			if a.Type == corev1.NodeHostName {
-				hostname = a.Address
-			}
-		}
-		if ip == "" || hostname == "" {
-			continue
-		}
-		hostAliases = append(hostAliases, corev1.HostAlias{
-			IP:        ip,
-			Hostnames: []string{hostname},
-		})
-	}
-
-	return hostAliases
-}
-
-func (r *ReconcileManager) processAnalytics(manager *v1alpha1.Manager, replicas int32, hostAliases []corev1.HostAlias) error {
+func (r *ReconcileManager) processAnalytics(manager *v1alpha1.Manager) error {
 	if manager.Spec.Services.Analytics == nil {
 		if manager.Status.Analytics != nil {
 			oldConfig := &v1alpha1.Analytics{}
@@ -365,12 +306,6 @@ func (r *ReconcileManager) processAnalytics(manager *v1alpha1.Manager, replicas 
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, analytics, func() error {
 		analytics.Spec = manager.Spec.Services.Analytics.Spec
 		analytics.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, analytics.Spec.CommonConfiguration)
-		if analytics.Spec.CommonConfiguration.Replicas == nil {
-			analytics.Spec.CommonConfiguration.Replicas = &replicas
-		}
-		if len(analytics.Spec.CommonConfiguration.HostAliases) == 0 {
-			analytics.Spec.CommonConfiguration.HostAliases = hostAliases
-		}
 		return controllerutil.SetControllerReference(manager, analytics, r.scheme)
 	})
 	if err != nil {
@@ -383,7 +318,7 @@ func (r *ReconcileManager) processAnalytics(manager *v1alpha1.Manager, replicas 
 	return nil
 }
 
-func (r *ReconcileManager) processQueryEngine(manager *v1alpha1.Manager, replicas int32, hostAliases []corev1.HostAlias) error {
+func (r *ReconcileManager) processQueryEngine(manager *v1alpha1.Manager) error {
 	if manager.Spec.Services.QueryEngine == nil {
 		if manager.Status.QueryEngine != nil {
 			oldConfig := &v1alpha1.QueryEngine{}
@@ -409,12 +344,6 @@ func (r *ReconcileManager) processQueryEngine(manager *v1alpha1.Manager, replica
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, queryengine, func() error {
 		queryengine.Spec = manager.Spec.Services.QueryEngine.Spec
 		queryengine.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, queryengine.Spec.CommonConfiguration)
-		if queryengine.Spec.CommonConfiguration.Replicas == nil {
-			queryengine.Spec.CommonConfiguration.Replicas = &replicas
-		}
-		if len(queryengine.Spec.CommonConfiguration.HostAliases) == 0 {
-			queryengine.Spec.CommonConfiguration.HostAliases = hostAliases
-		}
 		return controllerutil.SetControllerReference(manager, queryengine, r.scheme)
 	})
 	if err != nil {
@@ -427,7 +356,7 @@ func (r *ReconcileManager) processQueryEngine(manager *v1alpha1.Manager, replica
 	return nil
 }
 
-func (r *ReconcileManager) processAnalyticsSnmp(manager *v1alpha1.Manager, replicas int32) error {
+func (r *ReconcileManager) processAnalyticsSnmp(manager *v1alpha1.Manager) error {
 	if manager.Spec.Services.AnalyticsSnmp == nil {
 		if manager.Status.AnalyticsSnmp != nil {
 			oldAnalyticsSnmp := &v1alpha1.AnalyticsSnmp{}
@@ -453,9 +382,6 @@ func (r *ReconcileManager) processAnalyticsSnmp(manager *v1alpha1.Manager, repli
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, analyticsSnmp, func() error {
 		analyticsSnmp.Spec = manager.Spec.Services.AnalyticsSnmp.Spec
 		analyticsSnmp.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, analyticsSnmp.Spec.CommonConfiguration)
-		if analyticsSnmp.Spec.CommonConfiguration.Replicas == nil {
-			analyticsSnmp.Spec.CommonConfiguration.Replicas = &replicas
-		}
 		return controllerutil.SetControllerReference(manager, analyticsSnmp, r.scheme)
 	})
 	if err != nil {
@@ -468,7 +394,7 @@ func (r *ReconcileManager) processAnalyticsSnmp(manager *v1alpha1.Manager, repli
 	return err
 }
 
-func (r *ReconcileManager) processAnalyticsAlarm(manager *v1alpha1.Manager, replicas int32) error {
+func (r *ReconcileManager) processAnalyticsAlarm(manager *v1alpha1.Manager) error {
 	if manager.Spec.Services.AnalyticsAlarm == nil {
 		if manager.Status.AnalyticsAlarm != nil {
 			oldAnalyticsAlarm := &v1alpha1.AnalyticsAlarm{}
@@ -494,9 +420,6 @@ func (r *ReconcileManager) processAnalyticsAlarm(manager *v1alpha1.Manager, repl
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, analyticsAlarm, func() error {
 		analyticsAlarm.Spec = manager.Spec.Services.AnalyticsAlarm.Spec
 		analyticsAlarm.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, analyticsAlarm.Spec.CommonConfiguration)
-		if analyticsAlarm.Spec.CommonConfiguration.Replicas == nil {
-			analyticsAlarm.Spec.CommonConfiguration.Replicas = &replicas
-		}
 		return controllerutil.SetControllerReference(manager, analyticsAlarm, r.scheme)
 	})
 	if err != nil {
@@ -509,7 +432,7 @@ func (r *ReconcileManager) processAnalyticsAlarm(manager *v1alpha1.Manager, repl
 	return err
 }
 
-func (r *ReconcileManager) processZookeepers(manager *v1alpha1.Manager, replicas int32) error {
+func (r *ReconcileManager) processZookeepers(manager *v1alpha1.Manager) error {
 	for _, existingZookeeper := range manager.Status.Zookeepers {
 		found := false
 		for _, intendedZookeeper := range manager.Spec.Services.Zookeepers {
@@ -546,9 +469,6 @@ func (r *ReconcileManager) processZookeepers(manager *v1alpha1.Manager, replicas
 		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, zookeeper, func() error {
 			zookeeper.Spec = zookeeperService.Spec
 			zookeeper.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, zookeeper.Spec.CommonConfiguration)
-			if zookeeper.Spec.CommonConfiguration.Replicas == nil {
-				zookeeper.Spec.CommonConfiguration.Replicas = &replicas
-			}
 			return controllerutil.SetControllerReference(manager, zookeeper, r.scheme)
 		})
 		if err != nil {
@@ -564,7 +484,7 @@ func (r *ReconcileManager) processZookeepers(manager *v1alpha1.Manager, replicas
 	return nil
 }
 
-func (r *ReconcileManager) processCassandras(manager *v1alpha1.Manager, replicas int32, hostAliases []corev1.HostAlias) error {
+func (r *ReconcileManager) processCassandras(manager *v1alpha1.Manager) error {
 	for _, existingCassandra := range manager.Status.Cassandras {
 		found := false
 		for _, intendedCassandra := range manager.Spec.Services.Cassandras {
@@ -601,12 +521,6 @@ func (r *ReconcileManager) processCassandras(manager *v1alpha1.Manager, replicas
 		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, cassandra, func() error {
 			cassandra.Spec = cassandraService.Spec
 			cassandra.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, cassandra.Spec.CommonConfiguration)
-			if cassandra.Spec.CommonConfiguration.Replicas == nil {
-				cassandra.Spec.CommonConfiguration.Replicas = &replicas
-			}
-			if len(cassandra.Spec.CommonConfiguration.HostAliases) == 0 {
-				cassandra.Spec.CommonConfiguration.HostAliases = hostAliases
-			}
 			return controllerutil.SetControllerReference(manager, cassandra, r.scheme)
 		})
 		if err != nil {
@@ -621,7 +535,7 @@ func (r *ReconcileManager) processCassandras(manager *v1alpha1.Manager, replicas
 	return nil
 }
 
-func (r *ReconcileManager) processRedis(manager *v1alpha1.Manager, replicas int32, hostAliases []corev1.HostAlias) error {
+func (r *ReconcileManager) processRedis(manager *v1alpha1.Manager) error {
 	for _, existingRedis := range manager.Status.Redis {
 		found := false
 		for _, intendedRedis := range manager.Spec.Services.Redis {
@@ -661,12 +575,6 @@ func (r *ReconcileManager) processRedis(manager *v1alpha1.Manager, replicas int3
 				redis.Spec.ServiceConfiguration.ClusterName = manager.GetName()
 			}
 			redis.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, redis.Spec.CommonConfiguration)
-			if redis.Spec.CommonConfiguration.Replicas == nil {
-				redis.Spec.CommonConfiguration.Replicas = &replicas
-			}
-			if len(redis.Spec.CommonConfiguration.HostAliases) == 0 {
-				redis.Spec.CommonConfiguration.HostAliases = hostAliases
-			}
 			return controllerutil.SetControllerReference(manager, redis, r.scheme)
 		})
 		if err != nil {
@@ -681,7 +589,7 @@ func (r *ReconcileManager) processRedis(manager *v1alpha1.Manager, replicas int3
 	return nil
 }
 
-func (r *ReconcileManager) processWebui(manager *v1alpha1.Manager, replicas int32) error {
+func (r *ReconcileManager) processWebui(manager *v1alpha1.Manager) error {
 	if manager.Spec.Services.Webui == nil {
 		if manager.Status.Webui != nil {
 			oldWebUI := &v1alpha1.Webui{}
@@ -711,9 +619,6 @@ func (r *ReconcileManager) processWebui(manager *v1alpha1.Manager, replicas int3
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, webui, func() error {
 		webui.Spec = manager.Spec.Services.Webui.Spec
 		webui.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, webui.Spec.CommonConfiguration)
-		if webui.Spec.CommonConfiguration.Replicas == nil {
-			webui.Spec.CommonConfiguration.Replicas = &replicas
-		}
 		return controllerutil.SetControllerReference(manager, webui, r.scheme)
 	})
 	if err != nil {
@@ -726,7 +631,7 @@ func (r *ReconcileManager) processWebui(manager *v1alpha1.Manager, replicas int3
 	return err
 }
 
-func (r *ReconcileManager) processConfig(manager *v1alpha1.Manager, replicas int32, hostAliases []corev1.HostAlias) error {
+func (r *ReconcileManager) processConfig(manager *v1alpha1.Manager) error {
 	if manager.Spec.Services.Config == nil {
 		if manager.Status.Config != nil {
 			oldConfig := &v1alpha1.Config{}
@@ -756,12 +661,6 @@ func (r *ReconcileManager) processConfig(manager *v1alpha1.Manager, replicas int
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, config, func() error {
 		config.Spec = manager.Spec.Services.Config.Spec
 		config.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, config.Spec.CommonConfiguration)
-		if config.Spec.CommonConfiguration.Replicas == nil {
-			config.Spec.CommonConfiguration.Replicas = &replicas
-		}
-		if len(config.Spec.CommonConfiguration.HostAliases) == 0 {
-			config.Spec.CommonConfiguration.HostAliases = hostAliases
-		}
 		return controllerutil.SetControllerReference(manager, config, r.scheme)
 	})
 	if err != nil {
@@ -774,7 +673,7 @@ func (r *ReconcileManager) processConfig(manager *v1alpha1.Manager, replicas int
 	return nil
 }
 
-func (r *ReconcileManager) processKubemanagers(manager *v1alpha1.Manager, replicas int32) error {
+func (r *ReconcileManager) processKubemanagers(manager *v1alpha1.Manager) error {
 	for _, existingKubemanager := range manager.Status.Kubemanagers {
 		found := false
 		for _, intendedKubemanager := range manager.Spec.Services.Kubemanagers {
@@ -812,9 +711,6 @@ func (r *ReconcileManager) processKubemanagers(manager *v1alpha1.Manager, replic
 		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, kubemanager, func() error {
 			kubemanager.Spec.ServiceConfiguration = kubemanagerService.Spec.ServiceConfiguration
 			kubemanager.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, kubemanagerService.Spec.CommonConfiguration)
-			if kubemanager.Spec.CommonConfiguration.Replicas == nil {
-				kubemanager.Spec.CommonConfiguration.Replicas = &replicas
-			}
 			return controllerutil.SetControllerReference(manager, kubemanager, r.scheme)
 		})
 		if err != nil {
@@ -830,7 +726,7 @@ func (r *ReconcileManager) processKubemanagers(manager *v1alpha1.Manager, replic
 	return nil
 }
 
-func (r *ReconcileManager) processControls(manager *v1alpha1.Manager, replicas int32) error {
+func (r *ReconcileManager) processControls(manager *v1alpha1.Manager) error {
 	for _, existingControl := range manager.Status.Controls {
 		found := false
 		for _, intendedControl := range manager.Spec.Services.Controls {
@@ -867,9 +763,6 @@ func (r *ReconcileManager) processControls(manager *v1alpha1.Manager, replicas i
 		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, control, func() error {
 			control.Spec = controlService.Spec
 			control.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, control.Spec.CommonConfiguration)
-			if control.Spec.CommonConfiguration.Replicas == nil {
-				control.Spec.CommonConfiguration.Replicas = &replicas
-			}
 			return controllerutil.SetControllerReference(manager, control, r.scheme)
 		})
 		if err != nil {
@@ -885,7 +778,7 @@ func (r *ReconcileManager) processControls(manager *v1alpha1.Manager, replicas i
 	return nil
 }
 
-func (r *ReconcileManager) processRabbitMQ(manager *v1alpha1.Manager, replicas int32) error {
+func (r *ReconcileManager) processRabbitMQ(manager *v1alpha1.Manager) error {
 	if manager.Spec.Services.Rabbitmq == nil {
 		if manager.Status.Rabbitmq != nil {
 			oldRabbitMQ := &v1alpha1.Rabbitmq{}
@@ -915,9 +808,6 @@ func (r *ReconcileManager) processRabbitMQ(manager *v1alpha1.Manager, replicas i
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, rabbitMQ, func() error {
 		rabbitMQ.Spec = manager.Spec.Services.Rabbitmq.Spec
 		rabbitMQ.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, rabbitMQ.Spec.CommonConfiguration)
-		if rabbitMQ.Spec.CommonConfiguration.Replicas == nil {
-			rabbitMQ.Spec.CommonConfiguration.Replicas = &replicas
-		}
 		return controllerutil.SetControllerReference(manager, rabbitMQ, r.scheme)
 	})
 	if err != nil {
@@ -930,7 +820,7 @@ func (r *ReconcileManager) processRabbitMQ(manager *v1alpha1.Manager, replicas i
 	return err
 }
 
-func (r *ReconcileManager) processVRouters(manager *v1alpha1.Manager, replicas int32) error {
+func (r *ReconcileManager) processVRouters(manager *v1alpha1.Manager) error {
 	if len(manager.Spec.Services.Vrouters) == 0 {
 		return nil
 	}
@@ -967,9 +857,6 @@ func (r *ReconcileManager) processVRouters(manager *v1alpha1.Manager, replicas i
 		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, vRouter, func() error {
 			vRouter.Spec.ServiceConfiguration = vRouterService.Spec.ServiceConfiguration.VrouterConfiguration
 			vRouter.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, vRouterService.Spec.CommonConfiguration)
-			if vRouter.Spec.CommonConfiguration.Replicas == nil {
-				vRouter.Spec.CommonConfiguration.Replicas = &replicas
-			}
 			return controllerutil.SetControllerReference(manager, vRouter, r.scheme)
 		})
 		if err != nil {

@@ -72,28 +72,9 @@ spec:
                     keystoneSecretName:
                       type: string
                   type: object
-                hostAliases:
-                  description: HostAliases is an optional list of hosts and IPs that
-                    will be injected into the pod's hosts file if specified.
-                  items:
-                    description: HostAlias holds the mapping between IP and hostnames
-                      that will be injected as an entry in the pod's hosts file.
-                    properties:
-                      hostnames:
-                        description: Hostnames for the above IP address.
-                        items:
-                          type: string
-                        type: array
-                      ip:
-                        description: IP address of the host file entry.
-                        type: string
-                    type: object
-                  type: array
-                hostNetwork:
-                  description: Host networking requested for this pod. Use the host's
-                    network namespace. If this option is set, the ports that will
-                    be used must be specified. Default to false.
-                  type: boolean
+                distribution:
+                  description: OS family
+                  type: string
                 imagePullSecrets:
                   description: ImagePullSecrets is an optional list of references
                     to secrets in the same namespace to use for pulling any of the
@@ -101,9 +82,6 @@ spec:
                   items:
                     type: string
                   type: array
-                introspectListenAll:
-                  description: Use 0.0.0.0 for isntrospection ports
-                  type: boolean
                 logLevel:
                   description: Kubernetes Cluster Configuration
                   enum:
@@ -121,11 +99,6 @@ spec:
                     the pod to fit on a node. Selector which must match a node''s
                     labels for the pod to be scheduled on that node. More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/.'
                   type: object
-                replicas:
-                  description: Number of desired pods. This is a pointer to distinguish
-                    between explicit zero and not specified. Defaults to 1.
-                  format: int32
-                  type: integer
                 tolerations:
                   description: If specified, the pod's tolerations.
                   items:
@@ -221,12 +194,6 @@ spec:
                 controlInstance:
                   type: string
                 dataSubnet:
-                  description: DataSubnet allow to set alternative network in which
-                    control, nodemanager and dns services are listening. Local pod address
-                    from this subnet will be discovered and used for connection.
-                  pattern: ^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\/(3[0-2]|2[0-9]|1[0-9]|[0-9]))$
-                  type: string
-                distribution:
                   type: string
                 dnsServerPort:
                   description: DNS
@@ -237,7 +204,8 @@ spec:
                 envVariablesConfig:
                   additionalProperties:
                     type: string
-                  description: What is it doing?
+                  description: What is it doing? VrouterEncryption   bool              `json:"vrouterEncryption,omitempty"`
+                    What is it doing? What is it doing?
                   type: object
                 fabricSntHashTableSize:
                   type: string
@@ -250,10 +218,8 @@ spec:
                   type: integer
                 hypervisorType:
                   type: string
-                introspectListenAll:
-                  description: Introspect
-                  type: boolean
                 introspectSslEnable:
+                  description: Introspect
                   type: boolean
                 k8sToken:
                   description: Kubernetes
@@ -367,7 +333,6 @@ spec:
                   type: boolean
                 statsCollectorDestinationPath:
                   description: Collector
-                  type: string
                   type: string
                 subclaster:
                   description: XMPP
