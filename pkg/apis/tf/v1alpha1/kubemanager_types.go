@@ -59,6 +59,7 @@ type KubemanagerServiceConfiguration struct {
 	KubemanagerConfiguration `json:",inline"`
 	CassandraInstance        string `json:"cassandraInstance,omitempty"`
 	ZookeeperInstance        string `json:"zookeeperInstance,omitempty"`
+	RabbitmqInstance         string `json:"rabbitmqInstance,omitempty"`
 	ConfigInstance           string `json:"configInstance,omitempty"`
 }
 
@@ -126,7 +127,7 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 	zookeeperNodesInformation.FillWithDefaultValues()
 
 	rabbitmqNodesInformation, err := NewRabbitmqClusterConfiguration(
-		RabbitmqInstance, request.Namespace, client)
+		c.Spec.ServiceConfiguration.RabbitmqInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}

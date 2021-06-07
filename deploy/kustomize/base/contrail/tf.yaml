@@ -19,6 +19,7 @@ spec:
           logLevel: SYS_DEBUG
           zookeeperInstance: zookeeper1
           cassandraInstance: configdb1
+          rabbitmqInstance: rabbitmq1
           configInstance: config1
           containers:
           - name: nodemanager
@@ -42,6 +43,7 @@ spec:
           logLevel: SYS_DEBUG
           zookeeperInstance: zookeeper1
           cassandraInstance: configdb1
+          rabbitmqInstance: rabbitmq1
           configInstance: config1
           containers:
           - name: init
@@ -85,6 +87,7 @@ spec:
           logLevel: SYS_DEBUG
           zookeeperInstance: zookeeper1
           cassandraInstance: configdb1
+          rabbitmqInstance: rabbitmq1
           containers:
           - name: redis
             image: contrail-external-redis
@@ -128,6 +131,7 @@ spec:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
           cassandraInstance: configdb1
+          rabbitmqInstance: rabbitmq1
           configInstance: config1
           logLevel: SYS_DEBUG
           containers:
@@ -154,6 +158,7 @@ spec:
           logLevel: SYS_DEBUG
           zookeeperInstance: zookeeper1
           cassandraInstance: configdb1
+          rabbitmqInstance: rabbitmq1
           configInstance: config1
           ipFabricForwarding: false
           ipFabricSnat: true
