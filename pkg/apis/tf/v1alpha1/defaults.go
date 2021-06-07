@@ -248,6 +248,4 @@ const (
 	RabbitmqInstance                            string = "rabbitmq1"
 	CassandraInstance                           string = "configdb1"
 	ConfigInstance                              string = "config1"
-	RedisInstance                               string = "redis1"
-	ZookeeperInstance                           string = "zookeeper1"
 )
