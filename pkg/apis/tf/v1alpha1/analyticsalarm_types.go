@@ -56,7 +56,9 @@ type AnalyticsAlarmSpec struct {
 // AnalyticsAlarmConfiguration is the Spec for the Analytics Alarm API.
 // +k8s:openapi-gen=true
 type AnalyticsAlarmConfiguration struct {
+	CassandraInstance              string       `json:"cassandraInstance,omitempty"`
 	ZookeeperInstance              string       `json:"zookeeperInstance,omitempty"`
+	ConfigInstance                 string       `json:"configInstance,omitempty"`
 	LogFilePath                    string       `json:"logFilePath,omitempty"`
 	LogLevel                       string       `json:"logLevel,omitempty"`
 	LogLocal                       string       `json:"logLocal,omitempty"`
@@ -106,7 +108,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 		return err
 	}
 
-	cassandraNodesInformation, err := NewCassandraClusterConfiguration(CassandraInstance,
+	cassandraNodesInformation, err := NewCassandraClusterConfiguration(c.Spec.ServiceConfiguration.CassandraInstance,
 		request.Namespace, client)
 	if err != nil {
 		return err
@@ -120,7 +122,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 	if err != nil {
 		return err
 	}
-	configNodesInformation, err := NewConfigClusterConfiguration(ConfigInstance, request.Namespace, client)
+	configNodesInformation, err := NewConfigClusterConfiguration(c.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}

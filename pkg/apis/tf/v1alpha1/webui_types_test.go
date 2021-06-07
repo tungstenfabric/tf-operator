@@ -132,7 +132,9 @@ func TestWebuiConfigMapWithDefaultValues(t *testing.T) {
 				},
 			},
 			ServiceConfiguration: WebuiConfiguration{
+				ConfigInstance:    "config1",
 				ControlInstance:   "control1",
+				CassandraInstance: "configdb1",
 			},
 		},
 	}
@@ -181,7 +183,9 @@ func TestWebuiConfigMapWithCustomValues(t *testing.T) {
 				},
 			},
 			ServiceConfiguration: WebuiConfiguration{
+				ConfigInstance:    "config1",
 				ControlInstance:   "control1",
+				CassandraInstance: "configdb1",
 			},
 		},
 	}

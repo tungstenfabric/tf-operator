@@ -51,7 +51,9 @@ type WebuiSpec struct {
 // WebuiConfiguration is the Spec for the cassandras API.
 // +k8s:openapi-gen=true
 type WebuiConfiguration struct {
+	ConfigInstance    string       `json:"configInstance,omitempty"`
 	ControlInstance   string       `json:"controlInstance,omitempty"`
+	CassandraInstance string       `json:"cassandraInstance,omitempty"`
 	Containers        []*Container `json:"containers,omitempty"`
 }
 
@@ -110,12 +112,12 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 		return err
 	}
 
-	cassandraNodesInformation, err := NewCassandraClusterConfiguration(CassandraInstance, request.Namespace, client)
+	cassandraNodesInformation, err := NewCassandraClusterConfiguration(c.Spec.ServiceConfiguration.CassandraInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}
 
-	configNodesInformation, err := NewConfigClusterConfiguration(ConfigInstance, request.Namespace, client)
+	configNodesInformation, err := NewConfigClusterConfiguration(c.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}

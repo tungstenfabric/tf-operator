@@ -57,7 +57,9 @@ type KubemanagerStatus struct {
 // +k8s:openapi-gen=true
 type KubemanagerServiceConfiguration struct {
 	KubemanagerConfiguration `json:",inline"`
+	CassandraInstance        string `json:"cassandraInstance,omitempty"`
 	ZookeeperInstance        string `json:"zookeeperInstance,omitempty"`
+	ConfigInstance           string `json:"configInstance,omitempty"`
 }
 
 // KubemanagerConfiguration is the configuration for the kubemanagers API.
@@ -110,7 +112,7 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 	}
 
 	cassandraNodesInformation, err := NewCassandraClusterConfiguration(
-		CassandraInstance, request.Namespace, client)
+		c.Spec.ServiceConfiguration.CassandraInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}
@@ -131,7 +133,7 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 	rabbitmqNodesInformation.FillWithDefaultValues()
 
 	configNodesInformation, err := NewConfigClusterConfiguration(
-		ConfigInstance, request.Namespace, client)
+		c.Spec.ServiceConfiguration.ConfigInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}
