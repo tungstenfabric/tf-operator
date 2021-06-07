@@ -79,6 +79,7 @@ type ConfigConfiguration struct {
 	CollectorIntrospectPort     *int         `json:"collectorIntrospectPort,omitempty"`
 	CassandraInstance           string       `json:"cassandraInstance,omitempty"`
 	ZookeeperInstance           string       `json:"zookeeperInstance,omitempty"`
+	RabbitmqInstance            string       `json:"rabbitmqInstance,omitempty"`
 	LogLevel                    string       `json:"logLevel,omitempty"`
 	AAAMode                     AAAMode      `json:"aaaMode,omitempty"`
 	FabricMgmtIP                string       `json:"fabricMgmtIP,omitempty"`
@@ -152,7 +153,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 	}
 
 	rabbitmqNodesInformation, err := NewRabbitmqClusterConfiguration(
-		RabbitmqInstance, request.Namespace, client)
+		c.Spec.ServiceConfiguration.RabbitmqInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}
