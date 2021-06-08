@@ -375,6 +375,18 @@ func ZookeeperActiveChange() predicate.Funcs {
 	}
 }
 
+// Get two unstructured object: manager's CommonConfiguration and resource specific
+// CommonConfiguration from manager manifest.
+// Set or replace fields in CommonConfig by valyes from specific config and return result
+// structure
+func MergeUnstructuredCommonConfig(commonConfig map[string]interface{},
+	resourceConfig map[string]interface{}) map[string]interface{} {
+	for field, content := range resourceConfig {
+		commonConfig[field] = content
+	}
+	return commonConfig
+}
+
 // MergeCommonConfiguration combines common configuration of manager and service.
 func MergeCommonConfiguration(manager v1alpha1.ManagerConfiguration,
 	instance v1alpha1.PodConfiguration) v1alpha1.PodConfiguration {

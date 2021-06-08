@@ -201,13 +201,25 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Reconciling Webui")
 	instanceType := "webui"
+
+	// Check ZIU status
+	f, err := v1alpha1.CanReconcile("Webui", r.Client)
+	if err != nil {
+		log.Error(err, "When check webui ziu status")
+		return reconcile.Result{}, err
+	}
+	if !f {
+		log.Info("webui reconcile blocks by ZIU status")
+		return reconcile.Result{Requeue: true, RequeueAfter: v1alpha1.ZiuRestartTime}, nil
+	}
+
 	instance := &v1alpha1.Webui{}
 	configInstance := v1alpha1.Config{}
 	controlInstance := v1alpha1.Control{}
 	cassandraInstance := v1alpha1.Cassandra{}
 	redisInstance := v1alpha1.Redis{}
 
-	err := r.Client.Get(context.TODO(), request.NamespacedName, instance)
+	err = r.Client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil

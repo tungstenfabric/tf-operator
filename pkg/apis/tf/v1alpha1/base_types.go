@@ -94,6 +94,24 @@ type PodConfiguration struct {
 	Distribution *string `json:"distribution,omitempty"`
 }
 
+// Establishes ZIU staging
+var ZiuKinds = []string{
+	"Config",
+	"Analytics",
+	"AnalyticsAlarm",
+	"AnalyticsSnmp",
+	"Redis",
+	"QueryEngine",
+	"Cassandra",
+	"Zookeeper",
+	"Rabbitmq",
+	"Control",
+	"Webui",
+	"Kubemanager",
+}
+
+var ZiuRestartTime, _ = time.ParseDuration("20s")
+
 // IntrospectionListenAddress returns listen address for instrospection
 func (cc *PodConfiguration) IntrospectionListenAddress(addr string) string {
 	if IntrospectListenAll {
@@ -836,7 +854,7 @@ func listOptions(ownerName, instanceType, namespace string) *client.ListOptions 
 	return &client.ListOptions{Namespace: namespace, LabelSelector: labelSelector(ownerName, instanceType)}
 }
 
-func selectPods(ownerName, instanceType, namespace string, clnt client.Client) (*corev1.PodList, error) {
+func SelectPods(ownerName, instanceType, namespace string, clnt client.Client) (*corev1.PodList, error) {
 	listOps := listOptions(ownerName, instanceType, namespace)
 	pods := &corev1.PodList{}
 	err := clnt.List(context.TODO(), pods, listOps)
@@ -848,7 +866,7 @@ func PodIPListAndIPMapFromInstance(instanceType string,
 	request reconcile.Request,
 	clnt client.Client, datanetwork string) ([]corev1.Pod, map[string]string, error) {
 
-	allPods, err := selectPods(request.Name, instanceType, request.Namespace, clnt)
+	allPods, err := SelectPods(request.Name, instanceType, request.Namespace, clnt)
 	if err != nil || len(allPods.Items) == 0 {
 		return nil, nil, err
 	}
@@ -1728,4 +1746,59 @@ func GetReplicas(clnt client.Client, labels client.MatchingLabels) (nodesNumber 
 		}
 	}
 	return nodesNumber, err
+}
+
+func getManagerObject(clnt client.Client) (*Manager, error) {
+	mngr := &Manager{}
+	mngrName := types.NamespacedName{Name: "cluster1", Namespace: "tf"}
+	err := clnt.Get(context.Background(), mngrName, mngr)
+	return mngr, err
+}
+
+// Extract ZIU Status from cluster manager resource
+func GetZiuStage(clnt client.Client) (ZIUStatus, error) {
+	if mngr, err := getManagerObject(clnt); err == nil {
+		return mngr.Status.ZiuState, nil
+	} else {
+		return 0, err
+	}
+}
+
+// SetZiuStage sets ZIU stage
+func SetZiuStage(stage int, clnt client.Client) error {
+	if mngr, err := getManagerObject(clnt); err == nil {
+		mngr.Status.ZiuState = ZIUStatus(stage)
+		return clnt.Status().Update(context.Background(), mngr)
+	} else {
+		return err
+	}
+}
+
+// Function check reconsiler request against current ZIU stage and allow reconcile for controllers
+func CanReconcile(resourceKind string, clnt client.Client) (bool, error) {
+	ziuStage, err := GetZiuStage(clnt)
+	if err != nil {
+		return false, err
+	}
+	if ziuStage == -1 {
+		return true, nil
+	}
+	// Always block vrouter reconcile if ZIU is working
+	if resourceKind == "Vrouter" {
+		return false, nil
+	}
+	// Calculate current reconcile stage
+	resourceStage := -1
+	for index, kind := range ZiuKinds {
+		if kind == resourceKind {
+			resourceStage = index
+		}
+	}
+	if resourceStage == -1 {
+		// Reconsile blocks in case of error
+		// return false, InternalError{fmt.Sprintf("Kind %v is not allowed for ZIU", resourceKind)}
+		return false, fmt.Errorf("Kind %v is not allowed for ZIU", resourceKind)
+	}
+	log.Info(fmt.Sprintf("INFO: ZIU Stage resourceStage = %v, ziuStage = %v", resourceStage, ziuStage))
+	return int(ziuStage) > resourceStage, nil
 }

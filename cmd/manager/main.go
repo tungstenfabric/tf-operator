@@ -13,7 +13,9 @@ import (
 	_ "github.com/operator-framework/operator-sdk/pkg/metrics"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
 	"github.com/spf13/pflag"
+	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -22,6 +24,7 @@ import (
 	"github.com/tungstenfabric/tf-operator/pkg/apis"
 	"github.com/tungstenfabric/tf-operator/pkg/controller"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/kubemanager"
+	mgrController "github.com/tungstenfabric/tf-operator/pkg/controller/manager"
 )
 
 var log = logf.Log.WithName("cmd")
@@ -33,53 +36,79 @@ func printVersion() {
 }
 
 func runOperator(sigHandler <-chan struct{}) error {
-        namespace, err := k8sutil.GetWatchNamespace()
-        if err != nil {
-                log.Error(err, "Failed to get watch namespace")
-                os.Exit(1)
-        }
+	namespace, err := k8sutil.GetWatchNamespace()
+	if err != nil {
+		log.Error(err, "Failed to get watch namespace")
+		os.Exit(1)
+	}
 
-        // Get a config to talk to the apiserver.
-        cfg, err := config.GetConfig()
-        if err != nil {
-                log.Error(err, "")
-                os.Exit(1)
-        }
+	// Get a config to talk to the apiserver.
+	cfg, err := config.GetConfig()
+	if err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
 
-        // Create a new Cmd to provide shared dependencies and start components.
-        mgr, err := manager.New(cfg, manager.Options{
-                Namespace:               namespace,
-                MetricsBindAddress:      "0",
-                LeaderElection:          true,
-                LeaderElectionID:        "tf-manager-lock",
-                LeaderElectionNamespace: namespace,
-        })
-        if err != nil {
-                log.Error(err, "")
-                os.Exit(1)
-        }
+	// Create a new Cmd to provide shared dependencies and start components.
+	mgr, err := manager.New(cfg, manager.Options{
+		Namespace:               namespace,
+		MetricsBindAddress:      "0",
+		LeaderElection:          true,
+		LeaderElectionID:        "tf-manager-lock",
+		LeaderElectionNamespace: namespace,
+	})
+	if err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
 
-        log.Info("Registering Components.")
+	log.Info("Registering Components.")
 
-        // Setup Scheme for all resources.
-        if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
-                log.Error(err, "")
-                os.Exit(1)
-        }
+	// Setup Scheme for all resources.
+	if err = apis.AddToScheme(mgr.GetScheme()); err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
 
-        // Setup all Controllers.
-        if err := controller.AddToManager(mgr); err != nil {
-                log.Error(err, "")
-                os.Exit(1)
-        }
+	// Check is ZIU Required?
+	clnt, err := client.New(config.GetConfigOrDie(), client.Options{})
+	if err != nil {
+		log.Error(err, "Failed to create client")
+		os.Exit(1)
+	}
 
-        if err := kubemanager.Add(mgr); err != nil {
-                log.Error(err, "")
-                os.Exit(1)
-        }
+	f, err := mgrController.IsZiuRequired(clnt)
+	if err != nil {
+		log.Error(err, "try to check if ziu required")
+		os.Exit(1)
+	}
+	if f {
+		// We start ZIU process
+		log.Info("Start ZIU process")
+		err = v1alpha1.SetZiuStage(0, clnt)
+	} else {
+		// We not needed ZIU
+		log.Info("ZIU not needed")
+		err = v1alpha1.SetZiuStage(-1, clnt)
+	}
+	if err != nil {
+		log.Error(err, "Failed to Set ZIU Stage")
+		os.Exit(1)
+	}
 
-        log.Info("Starting")
-        return mgr.Start(sigHandler)
+	// Setup all Controllers.
+	if err := controller.AddToManager(mgr); err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
+
+	if err := kubemanager.Add(mgr); err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
+
+	log.Info("Starting")
+	return mgr.Start(sigHandler)
 }
 
 func main() {
@@ -109,7 +138,7 @@ func main() {
 
 	// Start the Cmd
 	for {
-		if err  := runOperator(sigHandler); err != nil {
+		if err := runOperator(sigHandler); err != nil {
 			delay := time.Duration(rand.Intn(5)) * time.Second
 			log.Error(err, fmt.Sprintf("Manager exited non-zero.. retry in %s sec", delay))
 			time.Sleep(time.Duration(rand.Intn(5)) * time.Second)

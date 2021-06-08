@@ -4,6 +4,7 @@ bazel-*
 !.vscode/launch.json
 .DS_Store
 build/_output/
+contrib/tools/bin/
 deploy/local_operator.yaml
 main
 .idea

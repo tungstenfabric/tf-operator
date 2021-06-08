@@ -3219,6 +3219,9 @@ spec:
                 name:
                   type: string
               type: object
+            ziuState:
+              description: ZIU status for orchestrating cluster ZIU process (-1 not needed 0 - not detected 1.. ZIU steps)
+              type: integer
             zookeepers:
               items:
                 description: ServiceStatus provides information on the current status

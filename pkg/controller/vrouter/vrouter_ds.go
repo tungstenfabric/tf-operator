@@ -125,7 +125,7 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 		corev1.EnvVar{
 			Name:  "SERVER_CA_CERTFILE",
 			Value: certificates.SignerCAFilepath,
-	},
+		},
 		corev1.EnvVar{
 			Name:  "SERVER_CERTFILE",
 			Value: "/etc/certificates/server-${POD_IP}.crt",
@@ -170,18 +170,17 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 		// is not available w/o image secret
 		core.Container{
 			Name:    "nodeinit-status-prefetch",
-			Image:	 "tungstenfabric/contrail-status:latest",
+			Image:   "tungstenfabric/contrail-status:latest",
 			Command: []string{"sh", "-c", "exit 0"},
 		},
 		// for password protected it is needed to prefetch contrail-tools image as it
 		// is not available w/o image secret
 		core.Container{
 			Name:    "nodeinit-tools-prefetch",
-			Image:	  "tungstenfabric/contrail-tools:latest",
+			Image:   "tungstenfabric/contrail-tools:latest",
 			Command: []string{"sh", "-c", "exit 0"},
 		},
 	)
-
 
 	var podContainers = []core.Container{
 		{

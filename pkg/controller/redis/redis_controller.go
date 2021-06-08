@@ -155,6 +155,18 @@ func (r *ReconcileRedis) Reconcile(request reconcile.Request) (reconcile.Result,
 	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Start")
 	instanceType := "redis"
+
+	// Check ZIU status
+	f, err := v1alpha1.CanReconcile("Redis", r.Client)
+	if err != nil {
+		log.Error(err, "When check redis ziu status")
+		return reconcile.Result{}, err
+	}
+	if !f {
+		log.Info("redis reconcile blocks by ZIU status")
+		return reconcile.Result{Requeue: true, RequeueAfter: v1alpha1.ZiuRestartTime}, nil
+	}
+
 	instance := &v1alpha1.Redis{}
 
 	if err := r.Client.Get(context.TODO(), request.NamespacedName, instance); err != nil && errors.IsNotFound(err) {

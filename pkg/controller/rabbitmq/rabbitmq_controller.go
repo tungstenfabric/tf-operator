@@ -151,8 +151,20 @@ func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Resu
 	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Reconciling Rabbitmq")
 	instanceType := "rabbitmq"
+
+	// Check ZIU status
+	f, err := v1alpha1.CanReconcile("Rabbitmq", r.Client)
+	if err != nil {
+		log.Error(err, "When check rabbitmq ziu status")
+		return reconcile.Result{}, err
+	}
+	if !f {
+		log.Info("rabbitmq reconcile blocks by ZIU status")
+		return reconcile.Result{Requeue: true, RequeueAfter: v1alpha1.ZiuRestartTime}, nil
+	}
+
 	instance := &v1alpha1.Rabbitmq{}
-	err := r.Client.Get(context.TODO(), request.NamespacedName, instance)
+	err = r.Client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil

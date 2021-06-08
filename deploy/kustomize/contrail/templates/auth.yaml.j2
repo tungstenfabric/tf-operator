@@ -40,4 +40,17 @@ spec:
     {%- if KEYSTONE_AUTH_PROJECT_DOMAIN_NAME is defined and KEYSTONE_AUTH_PROJECT_DOMAIN_NAME != "" %}
         projectDomainName: {{ KEYSTONE_AUTH_PROJECT_DOMAIN_NAME }}
     {%- endif %}
+  {% else %}
+      keystoneAuthParameters:
+        address: 127.0.0.1
+        adminPassword: contrail123
+        adminPort: 35357
+        adminTenant: admins
+        adminUsername: admin
+        authProtocol: https
+        insecure: true
+        port: 5000
+        projectDomainName: Defaults
+        region: RegionOne
+        userDomainName: Default
   {%- endif %}

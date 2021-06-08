@@ -152,8 +152,20 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Reconciling Zookeeper")
 	instanceType := "zookeeper"
+
+	// Check ZIU status
+	f, err := v1alpha1.CanReconcile("Zookeeper", r.Client)
+	if err != nil {
+		log.Error(err, "When check zookeeper ziu status")
+		return reconcile.Result{}, err
+	}
+	if !f {
+		log.Info("zookeeper reconcile blocks by ZIU status")
+		return reconcile.Result{Requeue: true, RequeueAfter: v1alpha1.ZiuRestartTime}, nil
+	}
+
 	instance := &v1alpha1.Zookeeper{}
-	err := r.Client.Get(context.TODO(), request.NamespacedName, instance)
+	err = r.Client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil

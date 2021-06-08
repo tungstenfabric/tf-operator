@@ -194,12 +194,23 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Reconciling Kubemanager")
 	instanceType := "kubemanager"
+
+	// Check ZIU status
+	f, err := v1alpha1.CanReconcile("Kubemanager", r.Client)
+	if err != nil {
+		log.Error(err, "When check kubemanager ziu status")
+		return reconcile.Result{}, err
+	}
+	if !f {
+		log.Info("kubemanager reconcile blocks by ZIU status")
+		return reconcile.Result{Requeue: true, RequeueAfter: v1alpha1.ZiuRestartTime}, nil
+	}
+
 	instance := &v1alpha1.Kubemanager{}
 	cassandraInstance := v1alpha1.Cassandra{}
 	zookeeperInstance := v1alpha1.Zookeeper{}
 	rabbitmqInstance := v1alpha1.Rabbitmq{}
 	configInstance := v1alpha1.Config{}
-	var err error
 
 	if err = r.Client.Get(context.TODO(), request.NamespacedName, instance); err != nil && errors.IsNotFound(err) {
 		return reconcile.Result{}, nil
