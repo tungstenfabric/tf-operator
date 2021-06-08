@@ -13,7 +13,6 @@ import (
 	"reflect"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -890,13 +889,11 @@ func NewCassandraClusterConfiguration(name string, namespace string, client clie
 		sort.SliceStable(nodes, func(i, j int) bool { return nodes[i] < nodes[j] })
 	}
 	config := instance.ConfigurationParameters()
-	endpoint := instance.Status.ClusterIP + ":" + strconv.Itoa(*config.Port)
 	clusterConfig := CassandraClusterConfiguration{
 		Port:         *config.Port,
 		CQLPort:      *config.CqlPort,
 		JMXPort:      *config.JmxLocalPort,
 		ServerIPList: nodes,
-		Endpoint:     endpoint,
 	}
 	return clusterConfig, nil
 }
@@ -1200,7 +1197,6 @@ type CassandraClusterConfiguration struct {
 	CQLPort      int      `json:"cqlPort,omitempty"`
 	JMXPort      int      `json:"jmxPort,omitempty"`
 	ServerIPList []string `json:"serverIPList,omitempty"`
-	Endpoint     string   `json:"endpoint,omitempty"`
 }
 
 // FillWithDefaultValues fills Cassandra config with default values

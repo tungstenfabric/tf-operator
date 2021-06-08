@@ -68,7 +68,6 @@ type CassandraConfiguration struct {
 type CassandraStatus struct {
 	CommonStatus `json:",inline"`
 	Ports        CassandraStatusPorts `json:"ports,omitempty"`
-	ClusterIP    string               `json:"clusterIP,omitempty"`
 }
 
 // CassandraStatusPorts defines the status of the ports of the cassandra object.
