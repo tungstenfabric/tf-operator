@@ -1400,13 +1400,6 @@ func schema_pkg_apis_tf_v1alpha1_CommonConfiguration(ref common.ReferenceCallbac
 							},
 						},
 					},
-					"replicas": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Number of desired pods. This is a pointer to distinguish between explicit zero and not specified. Defaults to 1.",
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
 				},
 			},
 		},

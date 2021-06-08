@@ -2027,13 +2027,6 @@ func (in *PodConfiguration) DeepCopyInto(out *PodConfiguration) {
 			(*out)[key] = val
 		}
 	}
-	if in.HostAliases != nil {
-		in, out := &in.HostAliases, &out.HostAliases
-		*out = make([]v1.HostAlias, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
-		}
-	}
 	if in.ImagePullSecrets != nil {
 		in, out := &in.ImagePullSecrets, &out.ImagePullSecrets
 		*out = make([]string, len(*in))
@@ -2045,11 +2038,6 @@ func (in *PodConfiguration) DeepCopyInto(out *PodConfiguration) {
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
-	}
-	if in.Replicas != nil {
-		in, out := &in.Replicas, &out.Replicas
-		*out = new(int32)
-		**out = **in
 	}
 	if in.AuthParameters != nil {
 		in, out := &in.AuthParameters, &out.AuthParameters

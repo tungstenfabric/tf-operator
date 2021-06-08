@@ -8,7 +8,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
@@ -63,7 +62,7 @@ type RedisList struct {
 	Items           []Redis `json:"items"`
 }
 
-var redisLog = logf.Log.WithName("controller_redis")
+// var redisLog = logf.Log.WithName("controller_redis")
 
 func init() {
 	SchemeBuilder.Register(&Redis{}, &RedisList{})
@@ -236,36 +235,6 @@ func (c *Redis) ConfigurationParameters() *RedisConfiguration {
 	}
 
 	return redisConfiguration
-}
-
-// UpdateStatus manages the status of the Redis nodes.
-func (c *Redis) UpdateStatus(redisConfig *RedisConfiguration, podNameIPMap map[string]string, sts *appsv1.StatefulSet) bool {
-	log := redisLog.WithName("UpdateStatus")
-	changed := false
-
-	if !reflect.DeepEqual(c.Status.Nodes, podNameIPMap) {
-		log.Info("Nodes", "new", podNameIPMap, "old", c.Status.Nodes)
-		c.Status.Nodes = podNameIPMap
-		changed = true
-	}
-
-	// TODO: uncleat why sts.Spec.Replicas might be nul:
-	// butsomtimes appear error:
-	// "Observed a panic: "invalid memory address or nil pointer dereference"
-	a := sts != nil && sts.Spec.Replicas != nil && sts.Status.ReadyReplicas >= *sts.Spec.Replicas/2+1
-	if c.Status.Active == nil {
-		log.Info("Active", "new", a, "old", c.Status.Active)
-		c.Status.Active = new(bool)
-		*c.Status.Active = a
-		changed = true
-	}
-	if *c.Status.Active != a {
-		log.Info("Active", "new", a, "old", *c.Status.Active)
-		*c.Status.Active = a
-		changed = true
-	}
-
-	return changed || (c.Status.ConfigChanged != nil && *c.Status.ConfigChanged)
 }
 
 // CommonStartupScript prepare common run service script

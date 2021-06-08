@@ -8,7 +8,6 @@ import (
 
 // GetSTS returns StatefulSet with Kubemanager
 func GetSTS() *apps.StatefulSet {
-	var replicas = int32(1)
 	var labelsMountPermission int32 = 0644
 
 	var podIPEnv = core.EnvVar{
@@ -119,7 +118,6 @@ func GetSTS() *apps.StatefulSet {
 		},
 		Spec: apps.StatefulSetSpec{
 			Selector: &stsSelector,
-			Replicas: &replicas,
 			UpdateStrategy: apps.StatefulSetUpdateStrategy{
 				Type: apps.OnDeleteStatefulSetStrategyType,
 			},

@@ -10,7 +10,6 @@ import (
 
 // GetSTS create default StatefulSet Rabbitmq object
 func GetSTS(instance *v1alpha1.Rabbitmq) *apps.StatefulSet {
-	var replicas = int32(1)
 	var labelsMountPermission int32 = 0644
 
 	var nodeEnv = []core.EnvVar{
@@ -143,7 +142,6 @@ func GetSTS(instance *v1alpha1.Rabbitmq) *apps.StatefulSet {
 		},
 		Spec: apps.StatefulSetSpec{
 			Selector:       &stsSelector,
-			Replicas:       &replicas,
 			UpdateStrategy: *v1alpha1.RollingUpdateStrategy(),
 			Template:       stsTemplate,
 		},

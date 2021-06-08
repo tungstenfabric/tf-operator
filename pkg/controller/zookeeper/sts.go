@@ -14,7 +14,6 @@ spec:
   selector:
     matchLabels:
       app: zookeeper
-  replicas: 1
   updateStrategy:
     type: RollingUpdate
     rollingUpdate:

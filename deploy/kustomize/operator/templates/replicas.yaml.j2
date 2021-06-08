@@ -1,8 +1,0 @@
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: tf-operator
-  namespace: tf
-spec:
-  replicas: {{ OPERATOR_REPLICAS | default(1) }}

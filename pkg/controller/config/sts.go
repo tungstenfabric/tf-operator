@@ -15,7 +15,6 @@ spec:
     matchLabels:
       app: config
   serviceName: "config"
-  replicas: 1
   updateStrategy:
     type: OnDelete
   template:

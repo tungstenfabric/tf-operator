@@ -74,21 +74,11 @@ type PodConfiguration struct {
 	// More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/.
 	// +optional
 	NodeSelector map[string]string `json:"nodeSelector,omitempty" protobuf:"bytes,7,rep,name=nodeSelector"`
-	// HostAliases is an optional list of hosts and IPs that will be injected into the pod's hosts
-	// file if specified.
-	// +optional
-	// +patchMergeKey=ip
-	// +patchStrategy=merge
-	HostAliases []corev1.HostAlias `json:"hostAliases,omitempty" patchStrategy:"merge" patchMergeKey:"ip" protobuf:"bytes,23,rep,name=hostAliases"`
 	// ImagePullSecrets is an optional list of references to secrets in the same namespace to use for pulling any of the images used by this PodSpec.
 	ImagePullSecrets []string `json:"imagePullSecrets,omitempty"`
 	// If specified, the pod's tolerations.
 	// +optional
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty" protobuf:"bytes,22,opt,name=tolerations"`
-	// Number of desired pods. This is a pointer to distinguish between explicit
-	// zero and not specified. Defaults to 1.
-	// +optional
-	Replicas *int32 `json:"replicas,omitempty" protobuf:"varint,1,opt,name=replicas"`
 	// Allow node-init container to tune sysctl options
 	// (for all deployers except opneshift it is done by node-init, in openshift - machineconfig)
 	// +optional
@@ -103,14 +93,6 @@ type PodConfiguration struct {
 	// OS family
 	// +optional
 	Distribution *string `json:"distribution,omitempty"`
-}
-
-//GetReplicas is used to get number of desired pods.
-func (cc *PodConfiguration) GetReplicas() int32 {
-	if cc.Replicas != nil {
-		return *cc.Replicas
-	}
-	return int32(1)
 }
 
 // IntrospectionListenAddress returns listen address for instrospection
@@ -458,19 +440,12 @@ func PrepareSTS(sts *appsv1.StatefulSet,
 func SetDeploymentCommonConfiguration(deployment *appsv1.Deployment,
 	commonConfiguration *PodConfiguration) *appsv1.Deployment {
 	var replicas = int32(1)
-	if commonConfiguration.Replicas != nil {
-		replicas = *commonConfiguration.Replicas
-	}
 	deployment.Spec.Replicas = &replicas
 	if len(commonConfiguration.Tolerations) > 0 {
 		deployment.Spec.Template.Spec.Tolerations = commonConfiguration.Tolerations
 	}
 	if len(commonConfiguration.NodeSelector) > 0 {
 		deployment.Spec.Template.Spec.NodeSelector = commonConfiguration.NodeSelector
-	}
-
-	if len(commonConfiguration.HostAliases) > 0 {
-		deployment.Spec.Template.Spec.HostAliases = commonConfiguration.HostAliases
 	}
 
 	if len(commonConfiguration.ImagePullSecrets) > 0 {
@@ -491,19 +466,12 @@ func SetDeploymentCommonConfiguration(deployment *appsv1.Deployment,
 func SetSTSCommonConfiguration(sts *appsv1.StatefulSet,
 	commonConfiguration *PodConfiguration) {
 	var replicas = int32(1)
-	if commonConfiguration.Replicas != nil {
-		replicas = *commonConfiguration.Replicas
-	}
 	sts.Spec.Replicas = &replicas
 	if len(commonConfiguration.Tolerations) > 0 {
 		sts.Spec.Template.Spec.Tolerations = commonConfiguration.Tolerations
 	}
 	if len(commonConfiguration.NodeSelector) > 0 {
 		sts.Spec.Template.Spec.NodeSelector = commonConfiguration.NodeSelector
-	}
-
-	if len(commonConfiguration.HostAliases) > 0 {
-		sts.Spec.Template.Spec.HostAliases = commonConfiguration.HostAliases
 	}
 
 	if len(commonConfiguration.ImagePullSecrets) > 0 {
@@ -585,21 +553,22 @@ func QuerySTS(name string, namespace string, reconcileClient client.Client) (*ap
 func CreateServiceSTS(instance v1.Object,
 	instanceType string,
 	sts *appsv1.StatefulSet,
-	client client.Client,
+	cl client.Client,
 ) (created bool, err error) {
 	created, err = false, nil
-
 	stsName := instance.GetName() + "-" + instanceType + "-statefulset"
 	stsNamespace := instance.GetNamespace()
-
-	if _, err = QuerySTS(stsName, stsNamespace, client); err == nil || !k8serrors.IsNotFound(err) {
+	if _, err = QuerySTS(stsName, stsNamespace, cl); err == nil || !k8serrors.IsNotFound(err) {
 		return
 	}
-
-	sts.Name = stsName
-	sts.Namespace = stsNamespace
-	if err = client.Create(context.TODO(), sts); err == nil {
-		created = true
+	var replicas int32
+	if replicas, err = GetReplicas(cl, sts.Spec.Template.Spec.NodeSelector); err == nil {
+		sts.Name = stsName
+		sts.Namespace = stsNamespace
+		sts.Spec.Replicas = &replicas
+		if err = cl.Create(context.TODO(), sts); err == nil {
+			created = true
+		}
 	}
 	return
 }
@@ -649,7 +618,6 @@ func UpdateSTS(stsName string,
 	instanceType string,
 	namespace string,
 	template *corev1.PodTemplateSpec,
-	replicas *int32,
 	strategy *appsv1.StatefulSetUpdateStrategy,
 	force bool,
 	cl client.Client,
@@ -679,13 +647,19 @@ func UpdateSTS(stsName string,
 		sts.Spec.Template.Labels["change-at"] = time.Now().Format("2006-01-02-15-04-05")
 	}
 
-	if replicas != nil && *replicas != *sts.Spec.Replicas {
-		logger.Info("Replicas changed",
-			"Current", *sts.Spec.Replicas,
-			"Intended", *replicas,
-		)
-		changed = true
-		sts.Spec.Replicas = replicas
+	replicas, err := GetReplicas(cl, template.Spec.NodeSelector)
+	if err != nil {
+		return
+	}
+
+	if replicas != *sts.Spec.Replicas {
+		if replicas < *sts.Spec.Replicas {
+			logger.Info("To reduce replicas delete STS manually", "Current", *sts.Spec.Replicas, "Intended", replicas)
+		} else {
+			logger.Info("Replicas changed", "Current", *sts.Spec.Replicas, "Intended", replicas)
+			changed = true
+			sts.Spec.Replicas = &replicas
+		}
 	}
 
 	if strategy != nil && !reflect.DeepEqual(strategy, &sts.Spec.UpdateStrategy) {
@@ -733,13 +707,12 @@ func UpdateServiceSTS(instance v1.Object,
 	instanceType string,
 	sts *appsv1.StatefulSet,
 	force bool,
-	client client.Client,
+	clnt client.Client,
 ) (updated bool, err error) {
 	stsName := instance.GetName()
 	stsNamespace := instance.GetNamespace()
 	stsTemplate := sts.Spec.Template
-	stsReplicas := sts.Spec.Replicas
-	updated, err = UpdateSTS(stsName, instanceType, stsNamespace, &stsTemplate, stsReplicas, &sts.Spec.UpdateStrategy, force, client)
+	updated, err = UpdateSTS(stsName, instanceType, stsNamespace, &stsTemplate, &sts.Spec.UpdateStrategy, force, clnt)
 	return
 }
 
@@ -1746,4 +1719,17 @@ func UpdateConfigMap(instance v1.Object, instanceType string, data map[string]st
 	}
 	config.Data = data
 	return client.Update(context.TODO(), &config)
+}
+
+func GetReplicas(clnt client.Client, labels client.MatchingLabels) (nodesNumber int32, err error) {
+	nodesNumber = 0
+	err = nil
+	nodeList := &corev1.NodeList{}
+	if err = clnt.List(context.Background(), nodeList, labels); err == nil {
+		nodesNumber = int32(len(nodeList.Items))
+		if nodesNumber == 0 {
+			return 0, fmt.Errorf("Cannot detect replicas by node selector %s", labels)
+		}
+	}
+	return nodesNumber, err
 }
