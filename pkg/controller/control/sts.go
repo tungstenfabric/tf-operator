@@ -44,6 +44,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
+          securityContext:
+            capabilities:
+              add:
+                - SYS_PTRACE
         - name: dns
           image: tungstenfabric/contrail-controller-control-dns:latest
           env:
@@ -51,6 +55,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
+          securityContext:
+            capabilities:
+              add:
+                - SYS_PTRACE
           volumeMounts:
             - mountPath: /etc/contrail
               name: etc-contrail

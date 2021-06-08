@@ -40,6 +40,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
+          securityContext:
+            capabilities:
+              add:
+                - SYS_PTRACE
           volumeMounts:
       volumes:
         - hostPath:
