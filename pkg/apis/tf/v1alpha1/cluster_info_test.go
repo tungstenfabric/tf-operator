@@ -91,8 +91,8 @@ sshKey: ssh-rsa`,
 
 var clusterInfoTestManager = Manager{
 	ObjectMeta: metav1.ObjectMeta{
-		Name:      "cluster-info-test-manager",
-		Namespace: "cluster-info-test-namespace",
+		Name:      "cluster1",
+		Namespace: "tf",
 	},
 	Spec: ManagerSpec{
 		CommonConfiguration: ManagerConfiguration{

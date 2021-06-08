@@ -1701,25 +1701,31 @@ func IsOKForRequeque(err error) bool {
 	return false
 }
 
-func GetAnalyticsCassandraInstance(client client.Client) (string, error) {
-	cassandras := &CassandraList{}
+func GetManagerObject(clnt client.Client) (*Manager, error) {
+	mngr := &Manager{}
+	mngrName := types.NamespacedName{Name: "cluster1", Namespace: "tf"}
+	err := clnt.Get(context.Background(), mngrName, mngr)
+	return mngr, err
+}
 
-	err := client.List(context.Background(), cassandras)
-	if err != nil {
+// Return name of casandra depending on setup
+func GetAnalyticsCassandraInstance(cl client.Client) (string, error) {
+	var mgr *Manager
+	var err error
+	if mgr, err = GetManagerObject(cl); err != nil {
 		return "", err
 	}
-	if len(cassandras.Items) == 0 {
-		return "", fmt.Errorf("CassandraList items is empty")
+	if len(mgr.Spec.Services.Cassandras) == 0 {
+		return "", fmt.Errorf("Cannot detect Analytics DB name - empty cassandra list")
 	}
-
-	analyticsCassandraInstance := CassandraInstance
-	for _, cassandra := range cassandras.Items {
-		if cassandra.Name == AnalyticsCassandraInstance {
-			analyticsCassandraInstance = cassandra.Name
+	name := CassandraInstance
+	for _, c := range mgr.Spec.Services.Cassandras {
+		if c.Name == AnalyticsCassandraInstance {
+			name = AnalyticsCassandraInstance
+			break
 		}
 	}
-
-	return analyticsCassandraInstance, nil
+	return name, nil
 }
 
 func UpdateConfigMap(instance v1.Object, instanceType string, data map[string]string, client client.Client) error {

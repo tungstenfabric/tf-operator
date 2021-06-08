@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"strconv"
@@ -11,10 +10,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -57,45 +52,6 @@ func ClusterDNSDomain(client client.Client) (string, error) {
 		return "", err
 	}
 	return cfg.Networking.DNSDomain, nil
-}
-
-// TODO: rework, as cluster info is a kind of info be available overall components
-// get Manager CommonConfig data from cluster
-func getManager(client client.Client) (*Manager, error) {
-	var mngr *Manager
-	// Get manager manifest
-	ul := &unstructured.UnstructuredList{}
-	ul.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "tf.tungsten.io",
-		Kind:    "ManagerList",
-		Version: "v1alpha1",
-	})
-	err := client.List(context.TODO(), ul)
-	if err != nil {
-		clusterInfoLog.Info(fmt.Sprintf("Error when try get manager list %v", err))
-		return mngr, err
-	}
-	managerName := ul.Items[0].GetName()
-	managerNamespace := ul.Items[0].GetNamespace()
-
-	u := &unstructured.Unstructured{}
-	u.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "tf.tungsten.io",
-		Kind:    "Manager",
-		Version: "v1alpha1",
-	})
-	err = client.Get(context.TODO(), types.NamespacedName{Name: managerName, Namespace: managerNamespace}, u)
-	if err != nil {
-		clusterInfoLog.Info(fmt.Sprintf("Error when try get manager list %v", err))
-		return mngr, err
-	}
-	// This is local Manager defined in this file above
-	err = runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, &mngr)
-	if err != nil {
-		clusterInfoLog.Info(fmt.Sprintf("Error DefaultUnstructuredConverter %v", err))
-		return mngr, err
-	}
-	return mngr, err
 }
 
 func yamlToStruct(yamlString string, structPointer interface{}) error {
@@ -256,7 +212,7 @@ func (c *KubernetesClusterConfig) fillWithClusterConfigMap() error {
 }
 
 func (c *KubernetesClusterConfig) fillWithManagerConfiguration(client client.Client) error {
-	manager, err := getManager(client)
+	manager, err := GetManagerObject(client)
 	if err != nil {
 		clusterInfoLog.Info(fmt.Sprintf("Error DefaultUnstructuredConverter %v", err))
 		return err
