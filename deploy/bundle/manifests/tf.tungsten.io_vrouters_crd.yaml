@@ -101,9 +101,6 @@ spec:
                   items:
                     type: string
                   type: array
-                introspectListenAll:
-                  description: Use 0.0.0.0 for isntrospection ports
-                  type: boolean
                 logLevel:
                   description: Kubernetes Cluster Configuration
                   enum:
@@ -221,10 +218,6 @@ spec:
                 controlInstance:
                   type: string
                 dataSubnet:
-                  description: DataSubnet allow to set alternative network in which
-                    control, nodemanager and dns services are listening. Local pod address
-                    from this subnet will be discovered and used for connection.
-                  pattern: ^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\/(3[0-2]|2[0-9]|1[0-9]|[0-9]))$
                   type: string
                 distribution:
                   type: string
@@ -237,7 +230,8 @@ spec:
                 envVariablesConfig:
                   additionalProperties:
                     type: string
-                  description: What is it doing?
+                  description: What is it doing? VrouterEncryption   bool              `json:"vrouterEncryption,omitempty"`
+                    What is it doing? What is it doing?
                   type: object
                 fabricSntHashTableSize:
                   type: string
@@ -250,10 +244,8 @@ spec:
                   type: integer
                 hypervisorType:
                   type: string
-                introspectListenAll:
-                  description: Introspect
-                  type: boolean
                 introspectSslEnable:
+                  description: Introspect
                   type: boolean
                 k8sToken:
                   description: Kubernetes
