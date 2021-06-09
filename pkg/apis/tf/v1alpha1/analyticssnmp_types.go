@@ -296,7 +296,7 @@ func (c *AnalyticsSnmp) InstanceConfiguration(podList []corev1.Pod, client clien
 			APIServerPort          string
 			CAFilePath             string
 			AuthMode               AuthenticationMode
-			KeystoneAuthParameters *KeystoneAuthParameters
+			KeystoneAuthParameters KeystoneAuthParameters
 			PodIP                  string
 		}{
 			APIServerList:          configApiIPCommaSeparated,

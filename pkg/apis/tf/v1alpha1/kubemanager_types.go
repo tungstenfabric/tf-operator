@@ -213,7 +213,7 @@ func (c *Kubemanager) InstanceConfiguration(podList []corev1.Pod, client client.
 			LogLevel                 string
 			PublicFIPPool            string
 			AuthMode                 AuthenticationMode
-			KeystoneAuthParameters   *KeystoneAuthParameters
+			KeystoneAuthParameters   KeystoneAuthParameters
 		}{
 			Token:                    token,
 			ListenAddress:            pod.Status.PodIP,
@@ -256,7 +256,7 @@ func (c *Kubemanager) InstanceConfiguration(podList []corev1.Pod, client client.
 			APIServerPort          string
 			CAFilePath             string
 			AuthMode               AuthenticationMode
-			KeystoneAuthParameters *KeystoneAuthParameters
+			KeystoneAuthParameters KeystoneAuthParameters
 			PodIP                  string
 		}{
 			APIServerList:          configApiIPListCommaSeparated,

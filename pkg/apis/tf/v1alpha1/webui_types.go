@@ -137,7 +137,7 @@ func (c *Webui) InstanceConfiguration(podList []corev1.Pod, client client.Client
 			CAFilePath             string
 			LogLevel               string
 			AuthMode               AuthenticationMode
-			KeystoneAuthParameters *KeystoneAuthParameters
+			KeystoneAuthParameters KeystoneAuthParameters
 		}{
 			PodIP:                  pod.Status.PodIP,
 			Hostname:               hostname,
@@ -162,7 +162,7 @@ func (c *Webui) InstanceConfiguration(podList []corev1.Pod, client client.Client
 		var webuiAuthConfigBuffer bytes.Buffer
 		err = configtemplates.WebuiAuthConfig.Execute(&webuiAuthConfigBuffer, struct {
 			AuthMode               AuthenticationMode
-			KeystoneAuthParameters *KeystoneAuthParameters
+			KeystoneAuthParameters KeystoneAuthParameters
 		}{
 			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 			KeystoneAuthParameters: authConfig,

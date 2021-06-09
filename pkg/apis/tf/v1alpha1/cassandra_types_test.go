@@ -127,7 +127,7 @@ func TestCassandraConfigMapsWithDefaultValues(t *testing.T) {
 		},
 		Spec: CassandraSpec{
 			CommonConfiguration: PodConfiguration{
-				AuthParameters: &AuthParameters{
+				AuthParameters: AuthParameters{
 					AuthMode: AuthenticationModeNoAuth,
 				},
 			},
@@ -231,9 +231,9 @@ func TestCassandraConfigMapsWithCustomValues(t *testing.T) {
 		},
 		Spec: CassandraSpec{
 			CommonConfiguration: PodConfiguration{
-				AuthParameters: &AuthParameters{
+				AuthParameters: AuthParameters{
 					AuthMode: AuthenticationModeKeystone,
-					KeystoneAuthParameters: &KeystoneAuthParameters{
+					KeystoneAuthParameters: KeystoneAuthParameters{
 						AuthProtocol:      "https",
 						Address:           "9.9.9.9",
 						AdminPort:         &keystoneTestPort,

@@ -120,9 +120,9 @@ func TestWebuiConfigMapWithDefaultValues(t *testing.T) {
 		},
 		Spec: WebuiSpec{
 			CommonConfiguration: PodConfiguration{
-				AuthParameters: &AuthParameters{
+				AuthParameters: AuthParameters{
 					AuthMode: "keystone",
-					KeystoneAuthParameters: &KeystoneAuthParameters{
+					KeystoneAuthParameters: KeystoneAuthParameters{
 						AuthProtocol:      "https",
 						Address:           "7.7.7.7",
 						Port:              &authTestPort,
@@ -168,9 +168,9 @@ func TestWebuiConfigMapWithCustomValues(t *testing.T) {
 		Spec: WebuiSpec{
 			CommonConfiguration: PodConfiguration{
 				LogLevel: "debug",
-				AuthParameters: &AuthParameters{
+				AuthParameters: AuthParameters{
 					AuthMode: "keystone",
-					KeystoneAuthParameters: &KeystoneAuthParameters{
+					KeystoneAuthParameters: KeystoneAuthParameters{
 						AuthProtocol:      "https",
 						Address:           "7.7.7.7",
 						Port:              &authTestPort,

@@ -235,7 +235,7 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 			APIServerPort          string
 			CAFilePath             string
 			AuthMode               AuthenticationMode
-			KeystoneAuthParameters *KeystoneAuthParameters
+			KeystoneAuthParameters KeystoneAuthParameters
 			PodIP                  string
 		}{
 			APIServerList:          apiServerIPListCommaSeparated,

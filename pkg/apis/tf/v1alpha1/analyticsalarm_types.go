@@ -323,7 +323,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(podList []corev1.Pod, client clie
 			APIServerPort          string
 			CAFilePath             string
 			AuthMode               AuthenticationMode
-			KeystoneAuthParameters *KeystoneAuthParameters
+			KeystoneAuthParameters KeystoneAuthParameters
 			PodIP                  string
 		}{
 			APIServerList:          configApiIPCommaSeparated,

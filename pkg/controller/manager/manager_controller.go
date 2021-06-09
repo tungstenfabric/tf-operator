@@ -516,10 +516,6 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	// set defaults if not set
-	if instance.Spec.CommonConfiguration.AuthParameters == nil {
-		instance.Spec.CommonConfiguration.AuthParameters = &v1alpha1.AuthParameters{}
-		instance.Spec.CommonConfiguration.AuthParameters.AuthMode = v1alpha1.AuthenticationModeNoAuth
-	}
 	if err := instance.Spec.CommonConfiguration.AuthParameters.Prepare(request.Namespace, r.client); err != nil {
 		return reconcile.Result{}, err
 	}

@@ -235,7 +235,7 @@ func (c *Config) InstanceConfiguration(podList []corev1.Pod, client client.Clien
 			APIServerPort          string
 			CAFilePath             string
 			AuthMode               AuthenticationMode
-			KeystoneAuthParameters *KeystoneAuthParameters
+			KeystoneAuthParameters KeystoneAuthParameters
 			PodIP                  string
 		}{
 			APIServerList:          apiServerList,
@@ -315,7 +315,7 @@ func (c *Config) InstanceConfiguration(podList []corev1.Pod, client client.Clien
 
 		var configKeystoneAuthConfBuffer bytes.Buffer
 		err = configtemplates.ConfigKeystoneAuthConf.Execute(&configKeystoneAuthConfBuffer, struct {
-			KeystoneAuthParameters *KeystoneAuthParameters
+			KeystoneAuthParameters KeystoneAuthParameters
 			CAFilePath             string
 			PodIP                  string
 			AuthMode               AuthenticationMode
@@ -612,7 +612,7 @@ func (c *Config) ConfigurationParameters() ConfigConfiguration {
 	if configConfiguration.AAAMode == "" {
 		configConfiguration.AAAMode = AAAModeNoAuth
 		ap := c.Spec.CommonConfiguration.AuthParameters
-		if ap != nil && ap.AuthMode == AuthenticationModeKeystone {
+		if ap.AuthMode == AuthenticationModeKeystone {
 			configConfiguration.AAAMode = AAAModeRBAC
 		}
 	}

@@ -28,9 +28,9 @@ const (
 // AuthParameters is Keystone auth options
 // +k8s:openapi-gen=true
 type AuthParameters struct {
-	AuthMode               AuthenticationMode      `json:"authMode,omitempty"`
-	KeystoneAuthParameters *KeystoneAuthParameters `json:"keystoneAuthParameters,omitempty"`
-	KeystoneSecretName     *string                 `json:"keystoneSecretName,omitempty"`
+	AuthMode               AuthenticationMode     `json:"authMode,omitempty"`
+	KeystoneAuthParameters KeystoneAuthParameters `json:"keystoneAuthParameters,omitempty"`
+	KeystoneSecretName     *string                `json:"keystoneSecretName,omitempty"`
 }
 
 // KeystoneAuthParameters keystone parameters
@@ -54,8 +54,8 @@ func (ap *AuthParameters) Prepare(namespace string, client client.Client) error 
 	if ap == nil {
 		panic(fmt.Errorf("AuthParameters is nil"))
 	}
-	if ap.KeystoneAuthParameters == nil {
-		ap.KeystoneAuthParameters = &KeystoneAuthParameters{}
+	if ap.AuthMode == "" {
+		ap.AuthMode = AuthenticationModeNoAuth
 	}
 	c := ap.KeystoneAuthParameters
 	if c.AdminUsername == "" {

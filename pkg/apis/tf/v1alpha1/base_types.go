@@ -84,7 +84,7 @@ type PodConfiguration struct {
 	TuneSysctl *bool `json:"tuneSysctl,omitempty"`
 	// AuthParameters auth parameters
 	// +optional
-	AuthParameters *AuthParameters `json:"authParameters,omitempty"`
+	AuthParameters AuthParameters `json:"authParameters,omitempty"`
 	// Kubernetes Cluster Configuration
 	// +kubebuilder:validation:Enum=info;debug;warning;error;critical;none
 	// +optional
@@ -1231,7 +1231,7 @@ func (c *CassandraClusterConfiguration) FillWithDefaultValues() {
 }
 
 // ProvisionerEnvData returns provisioner env data
-func ProvisionerEnvData(configAPINodes string, authParams *AuthParameters) string {
+func ProvisionerEnvData(configAPINodes string, authParams AuthParameters) string {
 	var bufEnv bytes.Buffer
 	err := templates.ProvisionerConfig.Execute(&bufEnv, struct {
 		ConfigAPINodes         string
@@ -1239,7 +1239,7 @@ func ProvisionerEnvData(configAPINodes string, authParams *AuthParameters) strin
 		Retries                string
 		Delay                  string
 		AuthMode               AuthenticationMode
-		KeystoneAuthParameters *KeystoneAuthParameters
+		KeystoneAuthParameters KeystoneAuthParameters
 	}{
 		ConfigAPINodes:         configAPINodes,
 		SignerCAFilepath:       certificates.SignerCAFilepath,
@@ -1266,7 +1266,7 @@ func ProvisionerRunnerData(configMapName string) string {
 }
 
 // UpdateProvisionerConfigMapData update provisioner data in config map
-func UpdateProvisionerConfigMapData(configMapName string, configAPINodes string, authParams *AuthParameters, configMap *corev1.ConfigMap) {
+func UpdateProvisionerConfigMapData(configMapName string, configAPINodes string, authParams AuthParameters, configMap *corev1.ConfigMap) {
 	configMap.Data[configMapName+".sh"] = ProvisionerRunnerData(configMapName)
 	configMap.Data[configMapName+".env"] = ProvisionerEnvData(configAPINodes, authParams)
 }

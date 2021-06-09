@@ -332,7 +332,7 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 			APIServerPort          string
 			CAFilePath             string
 			AuthMode               AuthenticationMode
-			KeystoneAuthParameters *KeystoneAuthParameters
+			KeystoneAuthParameters KeystoneAuthParameters
 			PodIP                  string
 		}{
 			APIServerList:          configApiIPListCommaSeparated,

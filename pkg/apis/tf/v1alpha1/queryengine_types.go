@@ -165,7 +165,7 @@ func (c *QueryEngine) InstanceConfiguration(podList []corev1.Pod, client client.
 			APIServerPort          string
 			CAFilePath             string
 			AuthMode               AuthenticationMode
-			KeystoneAuthParameters *KeystoneAuthParameters
+			KeystoneAuthParameters KeystoneAuthParameters
 			PodIP                  string
 		}{
 			APIServerList:          configApiIPCommaSeparated,

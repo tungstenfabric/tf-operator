@@ -89,7 +89,7 @@ type ManagerConfiguration struct {
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty" protobuf:"bytes,22,opt,name=tolerations"`
 	// AuthParameters auth parameters
 	// +optional
-	AuthParameters *AuthParameters `json:"authParameters,omitempty"`
+	AuthParameters AuthParameters `json:"authParameters,omitempty"`
 	// Allow node-init container to tune sysctl options
 	// (for all deployers except opneshift it is done by node-init, in openshift - machineconfig)
 	// +optional
