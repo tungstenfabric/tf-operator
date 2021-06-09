@@ -280,6 +280,7 @@ func (c *Vrouter) PrepareDaemonSet(ds *appsv1.DaemonSet,
 		instanceType: request.Name}
 	ds.Spec.Template.SetLabels(map[string]string{"tf_manager": instanceType,
 		instanceType: request.Name})
+	ds.Spec.UpdateStrategy.Type = "OnDelete"
 	ds.Spec.Template.Spec.Affinity = &corev1.Affinity{
 		PodAntiAffinity: &corev1.PodAntiAffinity{
 			RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{{
