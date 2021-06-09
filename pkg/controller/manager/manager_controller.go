@@ -343,6 +343,11 @@ func isServiceInstanceUpdated(kind string, serviceName string, isSlice bool, cln
 			return updatedFalse, nil
 		}
 	}
+	// Check if Service has Active status
+	if !v1alpha1.IsUnstructuredActive(kind, serviceName, "tf", clnt) {
+		return updatedFalse, nil
+	}
+
 	// All looks updated
 	return updatedTrue, nil
 }

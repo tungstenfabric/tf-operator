@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -22,8 +23,10 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -1800,5 +1803,47 @@ func CanReconcile(resourceKind string, clnt client.Client) (bool, error) {
 		return false, fmt.Errorf("Kind %v is not allowed for ZIU", resourceKind)
 	}
 	log.Info(fmt.Sprintf("INFO: ZIU Stage resourceStage = %v, ziuStage = %v", resourceStage, ziuStage))
-	return int(ziuStage) > resourceStage, nil
+	// Enable resource controller only for current ZIU stage to avoid extra pods restarts at the ZIU time
+	return int(ziuStage-1) == resourceStage, nil
+}
+
+type anyStatus struct {
+	Status CommonStatus
+}
+
+func unstrToStruct(u *unstructured.Unstructured, toStruct interface{}) error {
+	var err error
+	var j []byte
+	if j, err = u.MarshalJSON(); err != nil {
+		return err
+	}
+	if err = json.Unmarshal(j, toStruct); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Got some contrail resource from cluster and check is it active?
+func IsUnstructuredActive(kind string, name string, namespace string, clnt client.Client) bool {
+	var err error
+	u := &unstructured.Unstructured{}
+	u.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "tf.tungsten.io",
+		Kind:    kind,
+		Version: "v1alpha1",
+	})
+	if err = clnt.Get(context.Background(), client.ObjectKey{
+		Namespace: namespace,
+		Name:      name,
+	}, u); err != nil {
+		log.Error(err, "Cant get resource")
+		return false
+	}
+
+	var status anyStatus
+	if err = unstrToStruct(u, &status); err != nil {
+		log.Error(err, "Cant convert unstructured to structured")
+		return false
+	}
+	return *(status.Status.Active)
 }
