@@ -161,8 +161,6 @@ spec:
                   type: integer
                 alarmgenRedisAggregateDbOffset:
                   type: integer
-                analyticsInstance:
-                  type: string
                 containers:
                   items:
                     description: Container defines name, image and command.

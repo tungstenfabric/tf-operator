@@ -148,8 +148,6 @@ spec:
             serviceConfiguration:
               description: CassandraConfiguration is the Spec for the cassandras API.
               properties:
-                analyticsInstance:
-                  type: string
                 cassandraParameters:
                   description: CassandraConfigParameters defines additional parameters
                     for Cassandra confgiuration

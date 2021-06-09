@@ -543,8 +543,6 @@ spec:
                               type: integer
                             alarmgenRedisAggregateDbOffset:
                               type: integer
-                            analyticsInstance:
-                              type: string
                             containers:
                               items:
                                 description: Container defines name, image and command.
@@ -730,8 +728,6 @@ spec:
                           description: AnalyticsSnmpConfiguration is the Spec for
                             the Analytics SNMP API.
                           properties:
-                            analyticsInstance:
-                              type: string
                             containers:
                               items:
                                 description: Container defines name, image and command.
@@ -934,8 +930,6 @@ spec:
                             description: CassandraConfiguration is the Spec for the
                               cassandras API.
                             properties:
-                              analyticsInstance:
-                                type: string
                               cassandraParameters:
                                 description: CassandraConfigParameters defines additional
                                   parameters for Cassandra confgiuration
@@ -1178,8 +1172,6 @@ spec:
                               - noauth
                               - rbac
                               type: string
-                            analyticsInstance:
-                              type: string
                             apiIntrospectPort:
                               type: integer
                             apiPort:
@@ -1393,8 +1385,6 @@ spec:
                             description: ControlConfiguration is the Spec for the
                               controls API.
                             properties:
-                              analyticsInstance:
-                                type: string
                               asnNumber:
                                 type: integer
                               bgpPort:
@@ -1644,8 +1634,6 @@ spec:
                             description: KubemanagerServiceConfiguration is the Spec
                               for the kubemanagers API.
                             properties:
-                              analyticsInstance:
-                                type: string
                               cloudOrchestrator:
                                 type: string
                               clusterRole:
@@ -1847,8 +1835,6 @@ spec:
                           description: QueryEngineConfiguration is the Spec for the
                             AnalyticsDB query engine.
                           properties:
-                            analyticsInstance:
-                              type: string
                             analyticsdbIntrospectPort:
                               type: integer
                             analyticsdbPort:
@@ -2787,8 +2773,6 @@ spec:
                           description: WebuiConfiguration is the Spec for the cassandras
                             API.
                           properties:
-                            analyticsInstance:
-                              type: string
                             containers:
                               items:
                                 description: Container defines name, image and command.
@@ -3220,7 +3204,9 @@ spec:
                   type: string
               type: object
             ziuState:
-              description: ZIU status for orchestrating cluster ZIU process (-1 not needed 0 - not detected 1.. ZIU steps)
+              description: ZIU status for orchestrating cluster ZIU process -1 not
+                needed 0 not detected 1..x ziu stages
+              format: int32
               type: integer
             zookeepers:
               items:

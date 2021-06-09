@@ -153,8 +153,6 @@ spec:
               description: AnalyticsSnmpConfiguration is the Spec for the Analytics
                 SNMP API.
               properties:
-                analyticsInstance:
-                  type: string
                 containers:
                   items:
                     description: Container defines name, image and command.

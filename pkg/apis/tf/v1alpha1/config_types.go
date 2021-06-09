@@ -71,7 +71,6 @@ type ConfigConfiguration struct {
 	SchemaIntrospectPort        *int                    `json:"schemaIntrospectPort,omitempty"`
 	DeviceManagerIntrospectPort *int                    `json:"deviceManagerIntrospectPort,omitempty"`
 	SvcMonitorIntrospectPort    *int                    `json:"svcMonitorIntrospectPort,omitempty"`
-	AnalyticsInstance           string                  `json:"analyticsInstance,omitempty"`
 	LogLevel                    string                  `json:"logLevel,omitempty"`
 	AAAMode                     AAAMode                 `json:"aaaMode,omitempty"`
 	FabricMgmtIP                string                  `json:"fabricMgmtIP,omitempty"`
@@ -135,8 +134,7 @@ func (c *Config) InstanceConfiguration(podList []corev1.Pod, client client.Clien
 		return
 	}
 
-	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(
-		c.Spec.ServiceConfiguration.AnalyticsInstance, c.Namespace, client)
+	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(AnalyticsInstance, c.Namespace, client)
 	if err != nil {
 		return
 	}

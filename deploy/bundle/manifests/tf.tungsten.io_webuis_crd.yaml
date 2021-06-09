@@ -158,8 +158,6 @@ spec:
             serviceConfiguration:
               description: WebuiConfiguration is the Spec for the cassandras API.
               properties:
-                analyticsInstance:
-                  type: string
                 containers:
                   items:
                     description: Container defines name, image and command.

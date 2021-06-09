@@ -48,9 +48,8 @@ type WebuiSpec struct {
 // WebuiConfiguration is the Spec for the cassandras API.
 // +k8s:openapi-gen=true
 type WebuiConfiguration struct {
-	AnalyticsInstance string       `json:"analyticsInstance,omitempty"`
-	ControlInstance   string       `json:"controlInstance,omitempty"`
-	Containers        []*Container `json:"containers,omitempty"`
+	ControlInstance string       `json:"controlInstance,omitempty"`
+	Containers      []*Container `json:"containers,omitempty"`
 }
 
 // +k8s:openapi-gen=true
@@ -108,7 +107,7 @@ func (c *Webui) InstanceConfiguration(podList []corev1.Pod, client client.Client
 		return
 	}
 
-	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(c.Spec.ServiceConfiguration.AnalyticsInstance, c.Namespace, client)
+	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(AnalyticsInstance, c.Namespace, client)
 	if err != nil {
 		return
 	}

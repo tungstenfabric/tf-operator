@@ -149,8 +149,6 @@ spec:
               description: KubemanagerServiceConfiguration is the Spec for the kubemanagers
                 API.
               properties:
-                analyticsInstance:
-                  type: string
                 cloudOrchestrator:
                   type: string
                 clusterRole:

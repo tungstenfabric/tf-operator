@@ -48,7 +48,6 @@ type CassandraSpec struct {
 // +k8s:openapi-gen=true
 type CassandraConfiguration struct {
 	Containers          []*Container              `json:"containers,omitempty"`
-	AnalyticsInstance   string                    `json:"analyticsInstance,omitempty"`
 	ListenAddress       string                    `json:"listenAddress,omitempty"`
 	Port                *int                      `json:"port,omitempty"`
 	CqlPort             *int                      `json:"cqlPort,omitempty"`
@@ -143,7 +142,7 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 		return err
 	}
 
-	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(c.Spec.ServiceConfiguration.AnalyticsInstance, request.Namespace, client)
+	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(AnalyticsInstance, request.Namespace, client)
 	if err != nil {
 		return err
 	}

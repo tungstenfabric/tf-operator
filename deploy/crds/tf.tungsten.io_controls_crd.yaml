@@ -148,8 +148,6 @@ spec:
             serviceConfiguration:
               description: ControlConfiguration is the Spec for the controls API.
               properties:
-                analyticsInstance:
-                  type: string
                 asnNumber:
                   type: integer
                 bgpPort:

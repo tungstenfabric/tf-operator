@@ -156,8 +156,6 @@ spec:
               description: QueryEngineConfiguration is the Spec for the AnalyticsDB
                 query engine.
               properties:
-                analyticsInstance:
-                  type: string
                 analyticsdbIntrospectPort:
                   type: integer
                 analyticsdbPort:

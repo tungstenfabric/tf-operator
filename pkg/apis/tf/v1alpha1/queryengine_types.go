@@ -51,7 +51,6 @@ type QueryEngineConfiguration struct {
 	AnalyticsdbPort           *int         `json:"analyticsdbPort,omitempty"`
 	AnalyticsdbIntrospectPort *int         `json:"analyticsdbIntrospectPort,omitempty"`
 	Containers                []*Container `json:"containers,omitempty"`
-	AnalyticsInstance         string       `json:"analyticsInstance,omitempty"`
 	LogLevel                  string       `json:"logLevel,omitempty"`
 }
 
@@ -95,7 +94,7 @@ func (c *QueryEngine) InstanceConfiguration(podList []corev1.Pod, client client.
 		return
 	}
 
-	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(c.Spec.ServiceConfiguration.AnalyticsInstance, c.Namespace, client)
+	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(AnalyticsInstance, c.Namespace, client)
 	if err != nil {
 		return
 	}

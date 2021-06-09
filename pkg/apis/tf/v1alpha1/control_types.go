@@ -44,7 +44,6 @@ type ControlSpec struct {
 // +k8s:openapi-gen=true
 type ControlConfiguration struct {
 	Containers        []*Container `json:"containers,omitempty"`
-	AnalyticsInstance string       `json:"analyticsInstance,omitempty"`
 	BGPPort           *int         `json:"bgpPort,omitempty"`
 	ASNNumber         *int         `json:"asnNumber,omitempty"`
 	XMPPPort          *int         `json:"xmppPort,omitempty"`
@@ -170,7 +169,7 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 		return
 	}
 
-	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(c.Spec.ServiceConfiguration.AnalyticsInstance,
+	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(AnalyticsInstance,
 		c.Namespace, client)
 	if err != nil {
 		return

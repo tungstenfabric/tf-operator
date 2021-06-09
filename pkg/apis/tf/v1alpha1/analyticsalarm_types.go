@@ -56,7 +56,6 @@ type AnalyticsAlarmSpec struct {
 // AnalyticsAlarmConfiguration is the Spec for the Analytics Alarm API.
 // +k8s:openapi-gen=true
 type AnalyticsAlarmConfiguration struct {
-	AnalyticsInstance              string       `json:"analyticsInstance,omitempty"`
 	LogFilePath                    string       `json:"logFilePath,omitempty"`
 	LogLevel                       string       `json:"logLevel,omitempty"`
 	LogLocal                       string       `json:"logLocal,omitempty"`
@@ -119,7 +118,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(podList []corev1.Pod, client clie
 	if err != nil {
 		return
 	}
-	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(c.Spec.ServiceConfiguration.AnalyticsInstance, c.Namespace, client)
+	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(AnalyticsInstance, c.Namespace, client)
 	if err != nil {
 		return
 	}

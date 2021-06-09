@@ -55,7 +55,6 @@ type AnalyticsSnmpSpec struct {
 // AnalyticsSnmpConfiguration is the Spec for the Analytics SNMP API.
 // +k8s:openapi-gen=true
 type AnalyticsSnmpConfiguration struct {
-	AnalyticsInstance                 string       `json:"analyticsInstance,omitempty"`
 	LogFilePath                       string       `json:"logFilePath,omitempty"`
 	LogLevel                          string       `json:"logLevel,omitempty"`
 	LogLocal                          string       `json:"logLocal,omitempty"`
@@ -116,7 +115,7 @@ func (c *AnalyticsSnmp) InstanceConfiguration(podList []corev1.Pod, client clien
 	if err != nil {
 		return
 	}
-	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(c.Spec.ServiceConfiguration.AnalyticsInstance, c.Namespace, client)
+	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(AnalyticsInstance, c.Namespace, client)
 	if err != nil {
 		return
 	}

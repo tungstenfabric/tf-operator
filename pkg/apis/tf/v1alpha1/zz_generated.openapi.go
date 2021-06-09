@@ -197,36 +197,6 @@ func schema_pkg_apis_tf_v1alpha1_AnalyticsConfiguration(ref common.ReferenceCall
 							Format: "int32",
 						},
 					},
-					"analyticsCassandraInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"cassandraInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"zookeeperInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"rabbitmqInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"redisInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
 					"nodeManager": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"boolean"},
@@ -430,36 +400,6 @@ func schema_pkg_apis_tf_v1alpha1_QueryEngineConfiguration(ref common.ReferenceCa
 							Format: "int32",
 						},
 					},
-					"analyticsInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"analyticsCassandraInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"zookeeperInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"rabbitmqInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"redisInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
 					"rabbitmqUser": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
@@ -631,18 +571,6 @@ func schema_pkg_apis_tf_v1alpha1_AnalyticsSnmpConfiguration(ref common.Reference
 									},
 								},
 							},
-						},
-					},
-					"cassandraInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"zookeeperInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
 						},
 					},
 					"logFilePath": {
@@ -827,24 +755,6 @@ func schema_pkg_apis_tf_v1alpha1_AnalyticsAlarmConfiguration(ref common.Referenc
 									},
 								},
 							},
-						},
-					},
-					"cassandraInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"redisInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"zookeeperInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
 						},
 					},
 					"logFilePath": {
@@ -1501,30 +1411,6 @@ func schema_pkg_apis_tf_v1alpha1_ConfigConfiguration(ref common.ReferenceCallbac
 							Format: "int32",
 						},
 					},
-					"cassandraInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"zookeeperInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"analyticsInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"rabbitmqInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
 					"nodeManager": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"boolean"},
@@ -1802,12 +1688,6 @@ func schema_pkg_apis_tf_v1alpha1_ControlConfiguration(ref common.ReferenceCallba
 									},
 								},
 							},
-						},
-					},
-					"cassandraInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
 						},
 					},
 					"bgpPort": {
@@ -2097,24 +1977,6 @@ func schema_pkg_apis_tf_v1alpha1_KubemanagerConfiguration(ref common.ReferenceCa
 									},
 								},
 							},
-						},
-					},
-					"cassandraInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"zookeeperInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"rabbitmqInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
 						},
 					},
 					"serviceAccount": {
@@ -3006,12 +2868,6 @@ func schema_pkg_apis_tf_v1alpha1_VrouterConfiguration(ref common.ReferenceCallba
 							Format: "",
 						},
 					},
-					"cassandraInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
 					"gateway": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
@@ -3176,36 +3032,6 @@ func schema_pkg_apis_tf_v1alpha1_WebuiConfiguration(ref common.ReferenceCallback
 									},
 								},
 							},
-						},
-					},
-					"analyticsInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"configInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"controlInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"cassandraInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"redisInstance": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
 						},
 					},
 				},

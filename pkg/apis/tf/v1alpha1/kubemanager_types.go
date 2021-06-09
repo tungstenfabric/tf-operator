@@ -54,7 +54,6 @@ type KubemanagerStatus struct {
 // +k8s:openapi-gen=true
 type KubemanagerServiceConfiguration struct {
 	KubemanagerConfiguration `json:",inline"`
-	AnalyticsInstance        string `json:"analyticsInstance,omitempty"`
 }
 
 // KubemanagerConfiguration is the configuration for the kubemanagers API.
@@ -126,8 +125,7 @@ func (c *Kubemanager) InstanceConfiguration(podList []corev1.Pod, client client.
 	}
 	configNodesInformation.FillWithDefaultValues()
 
-	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(
-		c.Spec.ServiceConfiguration.AnalyticsInstance, c.Namespace, client)
+	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(AnalyticsInstance, c.Namespace, client)
 	if err != nil {
 		return
 	}

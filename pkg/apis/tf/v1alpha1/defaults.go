@@ -252,4 +252,5 @@ const (
 	ConfigInstance                              string = "config1"
 	RedisInstance                               string = "redis1"
 	ZookeeperInstance                           string = "zookeeper1"
+	AnalyticsInstance                           string = "analytics1"
 )
