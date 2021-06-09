@@ -68,6 +68,8 @@ type ServiceStatus struct {
 	Created *bool   `json:"created,omitempty"`
 }
 
+var isOpenshift bool
+
 // PodConfiguration is the common services struct.
 // +k8s:openapi-gen=true
 type PodConfiguration struct {
@@ -1852,4 +1854,27 @@ func IsUnstructuredActive(kind string, name string, namespace string, clnt clien
 		return false
 	}
 	return *(status.Status.Active)
+}
+
+func IsOpenshift() bool {
+	return isOpenshift
+}
+
+func SetDeployerType(client client.Client) error {
+	u := &unstructured.UnstructuredList{}
+	u.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "machineconfiguration.openshift.io",
+		Kind:    "MachineConfig",
+		Version: "v1",
+	})
+
+	if err := client.List(context.Background(), u); err != nil {
+		if strings.Contains(err.Error(), "no matches for kind \"MachineConfig\"") {
+			isOpenshift = false
+			return nil
+		}
+		return err
+	}
+	isOpenshift = true
+	return nil
 }
