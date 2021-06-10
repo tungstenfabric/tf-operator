@@ -239,11 +239,6 @@ func schema_pkg_apis_tf_v1alpha1_AnalyticsConfiguration(ref common.ReferenceCall
 							Format: "",
 						},
 					},
-					"storage": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Storage"),
-						},
-					},
 				},
 			},
 		},
@@ -422,11 +417,6 @@ func schema_pkg_apis_tf_v1alpha1_QueryEngineConfiguration(ref common.ReferenceCa
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
 							Format: "",
-						},
-					},
-					"storage": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Storage"),
 						},
 					},
 				},
@@ -983,11 +973,6 @@ func schema_pkg_apis_tf_v1alpha1_CassandraConfiguration(ref common.ReferenceCall
 							Format: "",
 						},
 					},
-					"storage": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Storage"),
-						},
-					},
 					"minimumDiskGB": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"integer"},
@@ -1155,11 +1140,6 @@ func schema_pkg_apis_tf_v1alpha1_RedisConfiguration(ref common.ReferenceCallback
 							Format: "int32",
 						},
 					},
-					"storage": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Storage"),
-						},
-					},
 				},
 			},
 		},
@@ -1274,13 +1254,6 @@ func schema_pkg_apis_tf_v1alpha1_CommonConfiguration(ref common.ReferenceCallbac
 									},
 								},
 							},
-						},
-					},
-					"hostNetwork": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Host networking requested for this pod. Use the host's network namespace. If this option is set, the ports that will be used must be specified. Default to false.",
-							Type:        []string{"boolean"},
-							Format:      "",
 						},
 					},
 					"imagePullSecrets": {
@@ -1451,11 +1424,6 @@ func schema_pkg_apis_tf_v1alpha1_ConfigConfiguration(ref common.ReferenceCallbac
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
 							Format: "",
-						},
-					},
-					"storage": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Storage"),
 						},
 					},
 					"fabricMgmtIP": {
@@ -3187,11 +3155,6 @@ func schema_pkg_apis_tf_v1alpha1_ZookeeperConfiguration(ref common.ReferenceCall
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"integer"},
 							Format: "int32",
-						},
-					},
-					"storage": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Storage"),
 						},
 					},
 				},
