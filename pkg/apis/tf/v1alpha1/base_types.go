@@ -1757,16 +1757,9 @@ func GetReplicas(clnt client.Client, labels client.MatchingLabels) (nodesNumber 
 	return nodesNumber, err
 }
 
-func getManagerObject(clnt client.Client) (*Manager, error) {
-	mngr := &Manager{}
-	mngrName := types.NamespacedName{Name: "cluster1", Namespace: "tf"}
-	err := clnt.Get(context.Background(), mngrName, mngr)
-	return mngr, err
-}
-
 // Extract ZIU Status from cluster manager resource
 func GetZiuStage(clnt client.Client) (ZIUStatus, error) {
-	if mngr, err := getManagerObject(clnt); err == nil {
+	if mngr, err := GetManagerObject(clnt); err == nil {
 		return mngr.Status.ZiuState, nil
 	} else {
 		return 0, err
@@ -1775,7 +1768,7 @@ func GetZiuStage(clnt client.Client) (ZIUStatus, error) {
 
 // SetZiuStage sets ZIU stage
 func SetZiuStage(stage int, clnt client.Client) error {
-	if mngr, err := getManagerObject(clnt); err == nil {
+	if mngr, err := GetManagerObject(clnt); err == nil {
 		mngr.Status.ZiuState = ZIUStatus(stage)
 		return clnt.Status().Update(context.Background(), mngr)
 	} else {
