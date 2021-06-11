@@ -165,7 +165,7 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, nil
 	}
 
-	configMapName := instance.Name + "-zookeeper-conf"
+	configMapName := instance.Name + "-" + instanceType + "-configmap"
 	if _, err := instance.CreateConfigMap(configMapName, r.Client, r.Scheme, request); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -208,7 +208,7 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 		container.VolumeMounts = append(container.VolumeMounts,
 			corev1.VolumeMount{
 				Name:      request.Name + "-" + instanceType + "-volume",
-				MountPath: "/zookeeper-conf",
+				MountPath: "/etc/contrailconfigmaps",
 			},
 			corev1.VolumeMount{
 				Name:      request.Name + "-secret-certificates",
