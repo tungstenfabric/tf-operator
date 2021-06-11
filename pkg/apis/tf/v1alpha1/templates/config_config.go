@@ -242,24 +242,3 @@ sandesh_ssl_enable=True
 sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
 sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 sandesh_ca_cert={{ .CAFilePath }}`))
-
-// ConfigNodemanagerConfigConfig is the template of the Config Nodemanager service configuration.
-var ConfigNodemanagerConfigConfig = template.Must(template.New("").Parse(`[DEFAULTS]
-http_server_ip={{ .InstrospectListenAddress }}
-log_file=/var/log/contrail/contrail-config-nodemgr.log
-log_level={{ .LogLevel }}
-log_local=1
-hostname={{ .Hostname }}
-hostip={{ .ListenAddress }}
-db_port={{ .CassandraPort }}
-db_jmx_port={{ .CassandraJmxPort }}
-db_use_ssl=True
-[COLLECTOR]
-server_list={{ .CollectorServerList }}
-[SANDESH]
-introspect_ssl_enable=True
-introspect_ssl_insecure=True
-sandesh_ssl_enable=True
-sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
-sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
-sandesh_ca_cert={{ .CAFilePath }}`))

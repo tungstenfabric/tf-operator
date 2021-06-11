@@ -298,7 +298,7 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 		data["dns."+podIP] = controlDNSConfigBuffer.String()
 
 		var controlNodemanagerBuffer bytes.Buffer
-		err = configtemplates.ControlNodemanagerConfig.Execute(&controlNodemanagerBuffer, struct {
+		err = configtemplates.NodemanagerConfig.Execute(&controlNodemanagerBuffer, struct {
 			Hostname                 string
 			PodIP                    string
 			ListenAddress            string
@@ -307,7 +307,10 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 			CassandraPort            string
 			CassandraJmxPort         string
 			CAFilePath               string
+			MinimumDiskGB            int
 			LogLevel                 string
+			LogFile                  string
+			LogLocal                 string
 		}{
 			Hostname:                 hostname,
 			PodIP:                    podIP,

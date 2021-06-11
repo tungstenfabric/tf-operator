@@ -288,7 +288,7 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 		data["collector."+podIP] = collectorBuffer.String()
 
 		var nodemanagerBuffer bytes.Buffer
-		err = configtemplates.AnalyticsNodemanagerConfig.Execute(&nodemanagerBuffer, struct {
+		err = configtemplates.NodemanagerConfig.Execute(&nodemanagerBuffer, struct {
 			Hostname                 string
 			PodIP                    string
 			ListenAddress            string
@@ -297,7 +297,10 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 			CassandraPort            string
 			CassandraJmxPort         string
 			CAFilePath               string
+			MinimumDiskGB            int
 			LogLevel                 string
+			LogFile                  string
+			LogLocal                 string
 		}{
 			Hostname:                 hostname,
 			PodIP:                    podIP,

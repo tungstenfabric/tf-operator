@@ -285,18 +285,19 @@ func (c *AnalyticsAlarm) InstanceConfiguration(podList []corev1.Pod, client clie
 
 		// TODO: commonize for all services
 		var nodemanagerBuffer bytes.Buffer
-		err = configtemplates.AnalyticsAlarmNodemanagerConfig.Execute(&nodemanagerBuffer, struct {
-			PodIP                    string
+		err = configtemplates.NodemanagerConfig.Execute(&nodemanagerBuffer, struct {
 			Hostname                 string
+			PodIP                    string
 			ListenAddress            string
 			InstrospectListenAddress string
-			LogFile                  string
-			LogLevel                 string
-			LogLocal                 string
+			CollectorServerList      string
 			CassandraPort            string
 			CassandraJmxPort         string
 			CAFilePath               string
-			CollectorServerList      string
+			MinimumDiskGB            int
+			LogLevel                 string
+			LogFile                  string
+			LogLocal                 string
 		}{
 			PodIP:                    podIP,
 			Hostname:                 hostname,

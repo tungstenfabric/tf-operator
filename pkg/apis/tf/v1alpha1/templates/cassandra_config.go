@@ -131,31 +131,6 @@ certfile = {{ .CAFilePath }}
 version = SSLv23
 `))
 
-// CassandraNodemanagerConfig is a template for nodemgr.{$POD_IP} file
-var CassandraNodemanagerConfig = template.Must(template.New("").Parse(`[DEFAULTS]
-http_server_ip={{ .InstrospectListenAddress }}
-log_file=/var/log/contrail/cassandra-nodemgr.log
-log_level={{ .LogLevel }}
-log_local=1
-hostname={{ .Hostname }}
-hostip={{ .ListenAddress }}
-db_port={{ .CqlPort }}
-db_jmx_port={{ .JmxLocalPort }}
-db_use_ssl=True
-minimum_diskGB={{ .MinimumDiskGB }}
-
-[COLLECTOR]
-server_list={{ .CollectorServerList }}
-
-[SANDESH]
-introspect_ssl_enable=True
-introspect_ssl_insecure=True
-sandesh_ssl_enable=True
-sandesh_keyfile=/etc/certificates/server-key-{{ .ListenAddress }}.pem
-sandesh_certfile=/etc/certificates/server-{{ .ListenAddress }}.crt
-sandesh_ca_cert={{ .CAFilePath }}
-`))
-
 // CassandraCommandTemplate start script
 var CassandraCommandTemplate = template.Must(template.New("").Parse(`#!/bin/bash
 set -ex;
