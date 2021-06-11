@@ -151,6 +151,13 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	srcAnalytics := &source.Kind{Type: &v1alpha1.Analytics{}}
+	analyticsHandler := resourceHandler(mgr.GetClient())
+	predAnalyticsSizeChange := utils.AnalyticsActiveChange()
+	if err = c.Watch(srcAnalytics, analyticsHandler, predAnalyticsSizeChange); err != nil {
+		return err
+	}
+
 	srcDS := &source.Kind{Type: &appsv1.DaemonSet{}}
 	dsHandler := &handler.EnqueueRequestForOwner{
 		IsController: true,
