@@ -1,0 +1,32 @@
+---
+apiVersion: v1
+kind: List
+items:
+- apiVersion: tf.tungsten.io/v1alpha1
+  kind: Vrouter
+  metadata:
+    labels:
+      tf_cluster: cluster1
+    name: vrouter1
+    namespace: tf
+  spec:
+    serviceConfiguration:
+      controlInstance: control1
+      containers:
+      - image: tungstenfabric/contrail-node-init:{{ .Tag }}
+        name: nodeinit
+      - image: tungstenfabric/contrail-vrouter-kernel-init:{{ .Tag }}
+        name: vrouterkernelinit
+      - image: tungstenfabric/contrail-vrouter-kernel-build-init:{{ .Tag }}
+        name: vrouterkernelbuildinit
+      - image: tungstenfabric/contrail-provisioner:{{ .Tag }}
+        name: provisioner
+      - image: tungstenfabric/contrail-nodemgr:{{ .Tag }}
+        name: nodemanager
+      - image: tungstenfabric/contrail-vrouter-agent:{{ .Tag }}
+        name: vrouteragent
+      - image: tungstenfabric/contrail-kubernetes-cni-init:{{ .Tag }}
+        name: vroutercni
+  status:
+    active: true
+    activeOnControllers: true

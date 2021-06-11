@@ -1,0 +1,25 @@
+---
+apiVersion: v1
+kind: List
+items:
+- apiVersion: tf.tungsten.io/v1alpha1
+  kind: Redis
+  metadata:
+    labels:
+      tf_cluster: cluster1
+    name: redis1
+    namespace: tf
+  spec:
+    commonConfiguration:
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+    serviceConfiguration:
+      containers:
+      - image: tungstenfabric/contrail-external-redis:{{ .Tag }}
+        name: redis
+      - image: tungstenfabric/contrail-external-stunnel:{{ .Tag }}
+        name: stunnel
+  status:
+    active: true
+    configChanged: false
+    degraded: false

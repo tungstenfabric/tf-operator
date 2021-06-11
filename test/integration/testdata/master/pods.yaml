@@ -1,0 +1,335 @@
+---
+apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      analytics: analytics1
+      statefulset.kubernetes.io/pod-name: analytics1-analytics-statefulset-0
+      tf_manager: analytics
+    name: analytics1-analytics-statefulset-0
+    namespace: tf
+  spec:
+    containers:
+    - image: tungstenfabric/contrail-analytics-api:{{ .Tag }}
+      name: analyticsapi
+    - image: tungstenfabric/contrail-analytics-collector:{{ .Tag }}
+      name: collector
+    - image: tungstenfabric/contrail-nodemgr:{{ .Tag }}
+      name: nodemanager
+    - image: tungstenfabric/contrail-provisioner:{{ .Tag }}
+      name: provisioner
+    hostname: analytics1-analytics-statefulset-0
+    nodeName: node1
+  status:
+    phase: Running
+    podIP: 10.0.0.225
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      analyticsalarm: analyticsalarm1
+      statefulset.kubernetes.io/pod-name: analyticsalarm1-analyticsalarm-statefulset-0
+      tf_manager: analyticsalarm
+    name: analyticsalarm1-analyticsalarm-statefulset-0
+    namespace: tf
+  spec:
+    containers:
+    - image: tungstenfabric/contrail-analytics-alarm-gen:{{ .Tag }}
+      name: analytics-alarm-gen
+    - image: tungstenfabric/contrail-external-kafka:{{ .Tag }}
+      name: kafka
+    - image: tungstenfabric/contrail-nodemgr:{{ .Tag }}
+      name: nodemanager
+    - image: tungstenfabric/contrail-provisioner:{{ .Tag }}
+      name: provisioner
+    hostname: analyticsalarm1-analyticsalarm-statefulset-0
+    nodeName: node1
+  status:
+    phase: Running
+    podIP: 10.0.0.225
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      cassandra: analyticsdb1
+      statefulset.kubernetes.io/pod-name: analyticsdb1-cassandra-statefulset-0
+      tf_manager: cassandra
+    name: analyticsdb1-cassandra-statefulset-0
+    namespace: tf
+  spec:
+    containers:
+    - image: tungstenfabric/contrail-external-cassandra:{{ .Tag }}
+      name: cassandra
+    - image: tungstenfabric/contrail-nodemgr:{{ .Tag }}
+      name: nodemanager
+    - image: tungstenfabric/contrail-provisioner:{{ .Tag }}
+      name: provisioner
+    hostname: analyticsdb1-cassandra-statefulset-0
+    nodeName: node1
+  status:
+    phase: Running
+    podIP: 10.0.0.225
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      analyticssnmp: analyticssnmp1
+      statefulset.kubernetes.io/pod-name: analyticssnmp1-analyticssnmp-statefulset-0
+      tf_manager: analyticssnmp
+    name: analyticssnmp1-analyticssnmp-statefulset-0
+    namespace: tf
+  spec:
+    containers:
+    - image: tungstenfabric/contrail-analytics-snmp-collector:{{ .Tag }}
+      name: analytics-snmp-collector
+    - image: tungstenfabric/contrail-nodemgr:{{ .Tag }}
+      name: nodemanager
+    - image: tungstenfabric/contrail-provisioner:{{ .Tag }}
+      name: provisioner
+    hostname: analyticssnmp1-analyticssnmp-statefulset-0
+    nodeName: node1
+  status:
+    phase: Running
+    podIP: 10.0.0.225
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      config: config1
+      statefulset.kubernetes.io/pod-name: config1-config-statefulset-0
+      tf_manager: config
+    name: config1-config-statefulset-0
+    namespace: tf
+  spec:
+    containers:
+    - image: tungstenfabric/contrail-controller-config-api:{{ .Tag }}
+      name: api
+    - image: tungstenfabric/contrail-controller-config-devicemgr:{{ .Tag }}
+      name: devicemanager
+    - image: tungstenfabric/contrail-controller-config-dnsmasq:{{ .Tag }}
+      name: dnsmasq
+    - image: tungstenfabric/contrail-controller-config-schema:{{ .Tag }}
+      name: schematransformer
+    - image: tungstenfabric/contrail-controller-config-svcmonitor:{{ .Tag }}
+      name: servicemonitor
+    - image: tungstenfabric/contrail-nodemgr:{{ .Tag }}
+      name: nodemanager
+    - image: tungstenfabric/contrail-provisioner:{{ .Tag }}
+      name: provisioner
+    hostname: config1-config-statefulset-0
+    nodeName: node1
+    initContainers:
+    - image: tungstenfabric/contrail-node-init:{{ .Tag }}
+      name: nodeinit
+    - image: tungstenfabric/contrail-status:{{ .Tag }}
+      name: nodeinit-status-prefetch
+    - image: tungstenfabric/contrail-tools:{{ .Tag }}
+      name: nodeinit-tools-prefetch
+  status:
+    phase: Running
+    podIP: 10.0.0.225
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      cassandra: configdb1
+      statefulset.kubernetes.io/pod-name: configdb1-cassandra-statefulset-0
+      tf_manager: cassandra
+    name: configdb1-cassandra-statefulset-0
+    namespace: tf
+  spec:
+    containers:
+    - image: tungstenfabric/contrail-external-cassandra:{{ .Tag }}
+      name: cassandra
+    - image: tungstenfabric/contrail-nodemgr:{{ .Tag }}
+      name: nodemanager
+    - image: tungstenfabric/contrail-provisioner:{{ .Tag }}
+      name: provisioner
+    hostname: configdb1-cassandra-statefulset-0
+    nodeName: node1
+  status:
+    phase: Running
+    podIP: 10.0.0.225
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      control: control1
+      statefulset.kubernetes.io/pod-name: control1-control-statefulset-0
+      tf_manager: control
+    name: control1-control-statefulset-0
+    namespace: tf
+  spec:
+    containers:
+    - image: tungstenfabric/contrail-controller-control-control:{{ .Tag }}
+      name: control
+    - image: tungstenfabric/contrail-controller-control-dns:{{ .Tag }}
+      name: dns
+    - image: tungstenfabric/contrail-controller-control-named:{{ .Tag }}
+      name: named
+    - image: tungstenfabric/contrail-nodemgr:{{ .Tag }}
+      name: nodemanager
+    - image: tungstenfabric/contrail-provisioner:{{ .Tag }}
+      name: provisioner
+    hostname: control1-control-statefulset-0
+    nodeName: node1
+  status:
+    phase: Running
+    podIP: 10.0.0.225
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      kubemanager: kubemanager1
+      statefulset.kubernetes.io/pod-name: kubemanager1-kubemanager-statefulset-0
+      tf_manager: kubemanager
+    name: kubemanager1-kubemanager-statefulset-0
+    namespace: tf
+  spec:
+    containers:
+    - image: tungstenfabric/contrail-kubernetes-kube-manager:{{ .Tag }}
+      name: kubemanager
+  status:
+    phase: Running
+    podIP: 10.0.0.225
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      queryengine: queryengine1
+      statefulset.kubernetes.io/pod-name: queryengine1-queryengine-statefulset-0
+      tf_manager: queryengine
+    name: queryengine1-queryengine-statefulset-0
+    namespace: tf
+  spec:
+    containers:
+    - image: tungstenfabric/contrail-analytics-query-engine:{{ .Tag }}
+      name: queryengine
+  status:
+    phase: Running
+    podIP: 10.0.0.225
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      rabbitmq: rabbitmq1
+      statefulset.kubernetes.io/pod-name: rabbitmq1-rabbitmq-statefulset-0
+      tf_manager: rabbitmq
+    name: rabbitmq1-rabbitmq-statefulset-0
+    namespace: tf
+  spec:
+    containers:
+    - image: tungstenfabric/contrail-external-rabbitmq:{{ .Tag }}
+      name: rabbitmq
+    hostname: rabbitmq1-rabbitmq-statefulset-0
+    nodeName: node1
+  status:
+    phase: Running
+    podIP: 10.0.0.225
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      redis: redis1
+      statefulset.kubernetes.io/pod-name: redis1-redis-statefulset-0
+      tf_manager: redis
+    name: redis1-redis-statefulset-0
+    namespace: tf
+  spec:
+    containers:
+    - image: tungstenfabric/contrail-external-redis:{{ .Tag }}
+      name: redis
+    - image: tungstenfabric/contrail-external-stunnel:{{ .Tag }}
+      name: stunnel
+    hostname: redis1-redis-statefulset-0
+    nodeName: node1
+  status:
+    phase: Running
+    podIP: 10.0.0.225
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      name: tf-operator
+    name: tf-operator-bb5646db4-vrdrh
+    namespace: tf
+  spec:
+    containers:
+    - image: tungstenfabric/tf-operator:{{ .Tag }}
+      name: tf-operator
+    nodeName: node1
+  status:
+    phase: Running
+    podIP: 10.0.0.225
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      tf_manager: vrouter
+      vrouter: vrouter1
+    name: vrouter1-vrouter-daemonset-ztk4s
+    namespace: tf
+  spec:
+    containers:
+    - image: tungstenfabric/contrail-provisioner:{{ .Tag }}
+      name: provisioner
+    - image: tungstenfabric/contrail-nodemgr:{{ .Tag }}
+      name: nodemanager
+    - image: tungstenfabric/contrail-vrouter-agent:{{ .Tag }}
+      name: vrouteragent
+    initContainers:
+    - image: tungstenfabric/contrail-vrouter-kernel-init:{{ .Tag }}
+      name: vrouterkernelinit
+    - image: tungstenfabric/contrail-kubernetes-cni-init:{{ .Tag }}
+      name: vroutercni
+    - image: tungstenfabric/contrail-node-init:{{ .Tag }}
+      name: nodeinit
+    - image: tungstenfabric/contrail-status:{{ .Tag }}
+      name: nodeinit-status-prefetch
+    - image: tungstenfabric/contrail-tools:{{ .Tag }}
+      name: nodeinit-tools-prefetch
+    nodeName: node1
+  status:
+    phase: Running
+    podIP: 10.0.0.225
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      statefulset.kubernetes.io/pod-name: webui1-webui-statefulset-0
+      tf_manager: webui
+      webui: webui1
+    name: webui1-webui-statefulset-0
+    namespace: tf
+  spec:
+    containers:
+    - image: tungstenfabric/contrail-controller-webui-web:{{ .Tag }}
+      name: webuiweb
+    - image: tungstenfabric/contrail-controller-webui-job:{{ .Tag }}
+      name: webuijob
+    hostname: webui1-webui-statefulset-0
+    nodeName: node1
+  status:
+    phase: Running
+    podIP: 10.0.0.225
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      statefulset.kubernetes.io/pod-name: zookeeper1-zookeeper-statefulset-0
+      tf_manager: zookeeper
+      zookeeper: zookeeper1
+    name: zookeeper1-zookeeper-statefulset-0
+    namespace: tf
+  spec:
+    containers:
+    - image: tungstenfabric/contrail-external-zookeeper:{{ .Tag }}
+      name: zookeeper
+    hostname: zookeeper1-zookeeper-statefulset-0
+    nodeName: node1
+  status:
+    phase: Running
+    podIP: 10.0.0.225

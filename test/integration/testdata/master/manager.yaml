@@ -1,0 +1,257 @@
+---
+apiVersion: v1
+kind: List
+items:
+- apiVersion: tf.tungsten.io/v1alpha1
+  kind: Manager
+  metadata:
+    name: cluster1
+    namespace: tf
+  spec:
+    services:
+      analytics:
+        metadata:
+          labels:
+            tf_cluster: cluster1
+          name: analytics1
+        spec:
+          commonConfiguration:
+            nodeSelector:
+              node-role.kubernetes.io/master: ""
+          serviceConfiguration:
+            containers:
+            - image: tungstenfabric/contrail-analytics-api:{{ .Tag }}
+              name: analyticsapi
+            - image: tungstenfabric/contrail-analytics-collector:{{ .Tag }}
+              name: collector
+            - image: tungstenfabric/contrail-nodemgr:{{ .Tag }}
+              name: nodemanager
+            - image: tungstenfabric/contrail-provisioner:{{ .Tag }}
+              name: provisioner
+      analyticsAlarm:
+        metadata:
+          labels:
+            tf_cluster: cluster1
+          name: analyticsalarm1
+        spec:
+          commonConfiguration:
+            nodeSelector:
+              node-role.kubernetes.io/master: ""
+          serviceConfiguration:
+            containers:
+            - image: tungstenfabric/contrail-nodemgr:{{ .Tag }}
+              name: nodemanager
+            - image: tungstenfabric/contrail-provisioner:{{ .Tag }}
+              name: provisioner
+            - image: tungstenfabric/contrail-analytics-alarm-gen:{{ .Tag }}
+              name: analytics-alarm-gen
+            - image: tungstenfabric/contrail-external-kafka:{{ .Tag }}
+              name: kafka
+      analyticsSnmp:
+        metadata:
+          labels:
+            tf_cluster: cluster1
+          name: analyticssnmp1
+        spec:
+          commonConfiguration:
+            nodeSelector:
+              node-role.kubernetes.io/master: ""
+          serviceConfiguration:
+            containers:
+            - image: tungstenfabric/contrail-nodemgr:{{ .Tag }}
+              name: nodemanager
+            - image: tungstenfabric/contrail-provisioner:{{ .Tag }}
+              name: provisioner
+            - image: tungstenfabric/contrail-analytics-snmp-collector:{{ .Tag }}
+              name: analytics-snmp-collector
+            - image: tungstenfabric/contrail-analytics-snmp-topology:{{ .Tag }}
+              name: analytics-snmp-topology
+      cassandras:
+      - metadata:
+          labels:
+            contrail_cluster: cluster1
+          name: configdb1
+        spec:
+          commonConfiguration:
+            nodeSelector:
+              node-role.kubernetes.io/master: ""
+          serviceConfiguration:
+            containers:
+            - image: tungstenfabric/contrail-external-cassandra:{{ .Tag }}
+              name: cassandra
+            - image: tungstenfabric/contrail-nodemgr:{{ .Tag }}
+              name: nodemanager
+            - image: tungstenfabric/contrail-provisioner:{{ .Tag }}
+              name: provisioner
+      - metadata:
+          labels:
+            contrail_cluster: cluster1
+          name: analyticsdb1
+        spec:
+          commonConfiguration:
+            nodeSelector:
+              node-role.kubernetes.io/master: ""
+          serviceConfiguration:
+            containers:
+            - image: tungstenfabric/contrail-external-cassandra:{{ .Tag }}
+              name: cassandra
+            - image: tungstenfabric/contrail-nodemgr:{{ .Tag }}
+              name: nodemanager
+            - image: tungstenfabric/contrail-provisioner:{{ .Tag }}
+              name: provisioner
+      config:
+        metadata:
+          labels:
+            tf_cluster: cluster1
+          name: config1
+        spec:
+          commonConfiguration:
+            nodeSelector:
+              node-role.kubernetes.io/master: ""
+          serviceConfiguration:
+            containers:
+            - image: tungstenfabric/contrail-controller-config-api:{{ .Tag }}
+              name: api
+            - image: tungstenfabric/contrail-controller-config-devicemgr:{{ .Tag }}
+              name: devicemanager
+            - image: tungstenfabric/contrail-controller-config-dnsmasq:{{ .Tag }}
+              name: dnsmasq
+            - image: tungstenfabric/contrail-controller-config-schema:{{ .Tag }}
+              name: schematransformer
+            - image: tungstenfabric/contrail-controller-config-svcmonitor:{{ .Tag }}
+              name: servicemonitor
+            - image: tungstenfabric/contrail-nodemgr:{{ .Tag }}
+              name: nodemanager
+            - image: tungstenfabric/contrail-node-init:{{ .Tag }}
+              name: nodeinit
+            - image: tungstenfabric/contrail-provisioner:{{ .Tag }}
+              name: provisioner
+      controls:
+      - metadata:
+          labels:
+            control_role: master
+            tf_cluster: cluster1
+          name: control1
+        spec:
+          commonConfiguration:
+            nodeSelector:
+              node-role.kubernetes.io/master: ""
+          serviceConfiguration:
+            containers:
+            - image: tungstenfabric/contrail-controller-control-control:{{ .Tag }}
+              name: control
+            - image: tungstenfabric/contrail-controller-control-dns:{{ .Tag }}
+              name: dns
+            - image: tungstenfabric/contrail-controller-control-named:{{ .Tag }}
+              name: named
+            - image: tungstenfabric/contrail-nodemgr:{{ .Tag }}
+              name: nodemanager
+            - image: tungstenfabric/contrail-provisioner:{{ .Tag }}
+              name: provisioner
+      kubemanager:
+        metadata:
+          labels:
+            tf_cluster: cluster1
+          name: kubemanager1
+        spec:
+          commonConfiguration:
+            nodeSelector:
+              node-role.kubernetes.io/master: ""
+          serviceConfiguration:
+            containers:
+            - image: tungstenfabric/contrail-kubernetes-kube-manager:{{ .Tag }}
+              name: kubemanager
+      queryengine:
+        metadata:
+          labels:
+            tf_cluster: cluster1
+          name: queryengine1
+        spec:
+          commonConfiguration:
+            nodeSelector:
+              node-role.kubernetes.io/master: ""
+          serviceConfiguration:
+            containers:
+            - image: tungstenfabric/contrail-analytics-query-engine:{{ .Tag }}
+              name: queryengine
+            logLevel: SYS_DEBUG
+      rabbitmq:
+        metadata:
+          labels:
+            tf_cluster: cluster1
+          name: rabbitmq1
+        spec:
+          commonConfiguration:
+            nodeSelector:
+              node-role.kubernetes.io/master: ""
+          serviceConfiguration:
+            containers:
+            - image: tungstenfabric/contrail-external-rabbitmq:{{ .Tag }}
+              name: rabbitmq
+      redis:
+      - metadata:
+          labels:
+            tf_cluster: cluster1
+          name: redis1
+        spec:
+          commonConfiguration:
+            nodeSelector:
+              node-role.kubernetes.io/master: ""
+          serviceConfiguration:
+            containers:
+            - image: tungstenfabric/contrail-external-redis:{{ .Tag }}
+              name: redis
+            - image: tungstenfabric/contrail-external-stunnel:{{ .Tag }}
+              name: stunnel
+      vrouters:
+      - metadata:
+          labels:
+            tf_cluster: cluster1
+          name: vrouter1
+        spec:
+          serviceConfiguration:
+            controlInstance: control1
+            containers:
+            - image: tungstenfabric/contrail-node-init:{{ .Tag }}
+              name: nodeinit
+            - image: tungstenfabric/contrail-vrouter-kernel-init:{{ .Tag }}
+              name: vrouterkernelinit
+            - image: tungstenfabric/contrail-vrouter-kernel-build-init:{{ .Tag }}
+              name: vrouterkernelbuildinit
+            - image: tungstenfabric/contrail-provisioner:{{ .Tag }}
+              name: provisioner
+            - image: tungstenfabric/contrail-nodemgr:{{ .Tag }}
+              name: nodemanager
+            - image: tungstenfabric/contrail-vrouter-agent:{{ .Tag }}
+              name: vrouteragent
+            - image: tungstenfabric/contrail-kubernetes-cni-init:{{ .Tag }}
+              name: vroutercni
+      webui:
+        metadata:
+          labels:
+            tf_cluster: cluster1
+          name: webui1
+        spec:
+          commonConfiguration:
+            nodeSelector:
+              node-role.kubernetes.io/master: ""
+          serviceConfiguration:
+            controlInstance: control1
+            containers:
+            - image: tungstenfabric/contrail-controller-webui-job:{{ .Tag }}
+              name: webuijob
+            - image: tungstenfabric/contrail-controller-webui-web:{{ .Tag }}
+              name: webuiweb
+      zookeeper:
+        metadata:
+          labels:
+            tf_cluster: cluster1
+          name: zookeeper1
+        spec:
+          commonConfiguration:
+            nodeSelector:
+              node-role.kubernetes.io/master: ""
+          serviceConfiguration:
+            containers:
+            - image: tungstenfabric/contrail-external-zookeeper:{{ .Tag }}
+              name: zookeeper
