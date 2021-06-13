@@ -358,7 +358,8 @@ func PodsCertSubjects(domain string, podList []corev1.Pod, hostNetwork *bool, po
 }
 
 // CreateConfigMap creates a config map based on the instance type.
-func CreateConfigMap(configMapName string,
+func CreateConfigMap(
+	configMapName string,
 	client client.Client,
 	scheme *runtime.Scheme,
 	request reconcile.Request,
@@ -370,8 +371,10 @@ func CreateConfigMap(configMapName string,
 	if err == nil {
 		if configMap.Data == nil {
 			configMap.Data = make(map[string]string)
+			configMap.Data[instanceType+"-nodemanager-runner.sh"] = GetNodemanagerRunner()
+			UpdateProvisionerRunner(instanceType+"-provisioner", configMap)
 		}
-		return configMap, err
+		return configMap, client.Update(context.TODO(), configMap)
 	}
 	if !k8serrors.IsNotFound(err) {
 		return nil, err
@@ -382,6 +385,8 @@ func CreateConfigMap(configMapName string,
 	configMap.SetLabels(map[string]string{"tf_manager": instanceType,
 		instanceType: request.Name})
 	configMap.Data = make(map[string]string)
+	configMap.Data[instanceType+"-nodemanager-runner.sh"] = GetNodemanagerRunner()
+	UpdateProvisionerRunner(instanceType+"-provisioner", configMap)
 	if err = controllerutil.SetControllerReference(object, configMap, scheme); err != nil {
 		return nil, err
 	}
@@ -880,6 +885,19 @@ func selectPods(ownerName, instanceType, namespace string, clnt client.Client) (
 	return pods, err
 }
 
+func GetNodes(labelSelector map[string]string, c client.Client) ([]corev1.Node, error) {
+	nodeList := &corev1.NodeList{}
+	var labels client.MatchingLabels = labelSelector
+	if err := c.List(context.Background(), nodeList, labels); err != nil {
+		return nil, err
+	}
+	return nodeList.Items, nil
+}
+
+func GetControllerNodes(c client.Client) ([]corev1.Node, error) {
+	return GetNodes(map[string]string{"node-role.kubernetes.io/master": ""}, c)
+}
+
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func PodIPListAndIPMapFromInstance(instanceType string,
 	request reconcile.Request,
@@ -1179,7 +1197,6 @@ func UpdateProvisionerRunner(configMapName string, configMap *corev1.ConfigMap) 
 
 // UpdateProvisionerConfigMapData update provisioner data in config map
 func UpdateProvisionerConfigMapData(configMapName string, configAPINodes string, authParams *AuthParameters, configMap *corev1.ConfigMap) {
-	UpdateProvisionerRunner(configMapName, configMap)
 	configMap.Data[configMapName+".env"] = ProvisionerEnvData(configAPINodes, authParams)
 }
 

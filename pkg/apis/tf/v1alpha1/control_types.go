@@ -207,7 +207,7 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 	configCollectorEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(configCollectorEndpointList, " ")
 
 	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
-	var data = make(map[string]string)
+
 	for _, pod := range podList {
 		hostname := pod.Annotations["hostname"]
 		podIP := pod.Status.PodIP
@@ -257,14 +257,14 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 		if err != nil {
 			panic(err)
 		}
-		data["control."+podIP] = controlControlConfigBuffer.String()
+		configMapInstanceDynamicConfig.Data["control."+podIP] = controlControlConfigBuffer.String()
 
 		var controlNamedConfigBuffer bytes.Buffer
 		err = configtemplates.ControlNamedConfig.Execute(&controlNamedConfigBuffer, struct{}{})
 		if err != nil {
 			panic(err)
 		}
-		data["named."+podIP] = controlNamedConfigBuffer.String()
+		configMapInstanceDynamicConfig.Data["named."+podIP] = controlNamedConfigBuffer.String()
 
 		var controlDNSConfigBuffer bytes.Buffer
 		err = configtemplates.ControlDNSConfig.Execute(&controlDNSConfigBuffer, struct {
@@ -303,10 +303,10 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 		if err != nil {
 			panic(err)
 		}
-		data["dns."+podIP] = controlDNSConfigBuffer.String()
+		configMapInstanceDynamicConfig.Data["dns."+podIP] = controlDNSConfigBuffer.String()
 
 		var controlNodemanagerBuffer bytes.Buffer
-		err = configtemplates.ControlNodemanagerConfig.Execute(&controlNodemanagerBuffer, struct {
+		err = configtemplates.NodemanagerConfig.Execute(&controlNodemanagerBuffer, struct {
 			Hostname                 string
 			PodIP                    string
 			ListenAddress            string
@@ -315,7 +315,10 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 			CassandraPort            string
 			CassandraJmxPort         string
 			CAFilePath               string
+			MinimumDiskGB            int
 			LogLevel                 string
+			LogFile                  string
+			LogLocal                 string
 		}{
 			Hostname:                 hostname,
 			PodIP:                    podIP,
@@ -330,9 +333,9 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 		if err != nil {
 			panic(err)
 		}
-		data["control-nodemgr.conf."+podIP] = controlNodemanagerBuffer.String()
+		configMapInstanceDynamicConfig.Data["control-nodemgr.conf."+podIP] = controlNodemanagerBuffer.String()
 		// empty env as no db tracking
-		data["control-nodemgr.env."+podIP] = ""
+		configMapInstanceDynamicConfig.Data["control-nodemgr.env."+podIP] = ""
 
 		var vncApiConfigBuffer bytes.Buffer
 		err = configtemplates.ConfigAPIVNC.Execute(&vncApiConfigBuffer, struct {
@@ -353,7 +356,7 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 		if err != nil {
 			panic(err)
 		}
-		data["vnc_api_lib.ini."+podIP] = vncApiConfigBuffer.String()
+		configMapInstanceDynamicConfig.Data["vnc_api_lib.ini."+podIP] = vncApiConfigBuffer.String()
 
 		var controlDeProvisionBuffer bytes.Buffer
 		// TODO: use auth options from config instead of defaults
@@ -375,13 +378,8 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 		if err != nil {
 			panic(err)
 		}
-		data["deprovision.py."+podIP] = controlDeProvisionBuffer.String()
+		configMapInstanceDynamicConfig.Data["deprovision.py."+podIP] = controlDeProvisionBuffer.String()
 	}
-
-	configMapInstanceDynamicConfig.Data = data
-
-	// update with nodemanager runner
-	configMapInstanceDynamicConfig.Data["control-nodemanager-runner.sh"] = GetNodemanagerRunner()
 
 	// update with provisioner configs
 	UpdateProvisionerConfigMapData("control-provisioner", configApiIPListCommaSeparated,

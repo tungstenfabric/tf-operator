@@ -211,7 +211,6 @@ func (c *Config) InstanceConfiguration(configMapName string,
 	zookeeperEndpointListCommaSeparated := configtemplates.JoinListWithSeparator(zookeeperEndpointList, ",")
 	zookeeperEndpointListSpaceSpearated := configtemplates.JoinListWithSeparator(zookeeperEndpointList, " ")
 
-	var data = make(map[string]string)
 	for _, pod := range podList {
 		hostname := pod.Annotations["hostname"]
 		podIP := pod.Status.PodIP
@@ -255,7 +254,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 		if err != nil {
 			panic(err)
 		}
-		data["api."+podIP] = configApiConfigBuffer.String()
+		configMapInstanceDynamicConfig.Data["api."+podIP] = configApiConfigBuffer.String()
 
 		var vncApiConfigBuffer bytes.Buffer
 		err = configtemplates.ConfigAPIVNC.Execute(&vncApiConfigBuffer, struct {
@@ -276,7 +275,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 		if err != nil {
 			panic(err)
 		}
-		data["vnc_api_lib.ini."+podIP] = vncApiConfigBuffer.String()
+		configMapInstanceDynamicConfig.Data["vnc_api_lib.ini."+podIP] = vncApiConfigBuffer.String()
 
 		fabricMgmtIP := podIP
 		if c.Spec.ServiceConfiguration.FabricMgmtIP != "" {
@@ -322,7 +321,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 		if err != nil {
 			panic(err)
 		}
-		data["devicemanager."+podIP] = configDevicemanagerConfigBuffer.String()
+		configMapInstanceDynamicConfig.Data["devicemanager."+podIP] = configDevicemanagerConfigBuffer.String()
 
 		var fabricAnsibleConfigBuffer bytes.Buffer
 		err = configtemplates.FabricAnsibleConf.Execute(&fabricAnsibleConfigBuffer, struct {
@@ -339,7 +338,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 		if err != nil {
 			panic(err)
 		}
-		data["contrail-fabric-ansible.conf."+podIP] = fabricAnsibleConfigBuffer.String()
+		configMapInstanceDynamicConfig.Data["contrail-fabric-ansible.conf."+podIP] = fabricAnsibleConfigBuffer.String()
 
 		var configKeystoneAuthConfBuffer bytes.Buffer
 		err = configtemplates.ConfigKeystoneAuthConf.Execute(&configKeystoneAuthConfBuffer, struct {
@@ -356,9 +355,9 @@ func (c *Config) InstanceConfiguration(configMapName string,
 		if err != nil {
 			panic(err)
 		}
-		data["contrail-keystone-auth.conf."+podIP] = configKeystoneAuthConfBuffer.String()
+		configMapInstanceDynamicConfig.Data["contrail-keystone-auth.conf."+podIP] = configKeystoneAuthConfBuffer.String()
 
-		data["dnsmasq."+podIP] = configtemplates.ConfigDNSMasqConfig
+		configMapInstanceDynamicConfig.Data["dnsmasq."+podIP] = configtemplates.ConfigDNSMasqConfig
 
 		// UseExternalTFTP
 		var configDNSMasqBuffer bytes.Buffer
@@ -370,7 +369,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 		if err != nil {
 			panic(err)
 		}
-		data["dnsmasq_base."+podIP] = configDNSMasqBuffer.String()
+		configMapInstanceDynamicConfig.Data["dnsmasq_base."+podIP] = configDNSMasqBuffer.String()
 
 		var configSchematransformerConfigBuffer bytes.Buffer
 		err = configtemplates.ConfigSchematransformerConfig.Execute(&configSchematransformerConfigBuffer, struct {
@@ -409,7 +408,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 		if err != nil {
 			panic(err)
 		}
-		data["schematransformer."+podIP] = configSchematransformerConfigBuffer.String()
+		configMapInstanceDynamicConfig.Data["schematransformer."+podIP] = configSchematransformerConfigBuffer.String()
 
 		var configServicemonitorConfigBuffer bytes.Buffer
 		err = configtemplates.ConfigServicemonitorConfig.Execute(&configServicemonitorConfigBuffer, struct {
@@ -450,7 +449,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 		if err != nil {
 			panic(err)
 		}
-		data["servicemonitor."+podIP] = configServicemonitorConfigBuffer.String()
+		configMapInstanceDynamicConfig.Data["servicemonitor."+podIP] = configServicemonitorConfigBuffer.String()
 
 		var configAnalyticsapiConfigBuffer bytes.Buffer
 		err = configtemplates.ConfigAnalyticsapiConfig.Execute(&configAnalyticsapiConfigBuffer, struct {
@@ -494,7 +493,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 		if err != nil {
 			panic(err)
 		}
-		data["analyticsapi."+podIP] = configAnalyticsapiConfigBuffer.String()
+		configMapInstanceDynamicConfig.Data["analyticsapi."+podIP] = configAnalyticsapiConfigBuffer.String()
 
 		var configCollectorConfigBuffer bytes.Buffer
 		err = configtemplates.ConfigCollectorConfig.Execute(&configCollectorConfigBuffer, struct {
@@ -539,7 +538,7 @@ func (c *Config) InstanceConfiguration(configMapName string,
 		if err != nil {
 			panic(err)
 		}
-		data["collector."+podIP] = configCollectorConfigBuffer.String()
+		configMapInstanceDynamicConfig.Data["collector."+podIP] = configCollectorConfigBuffer.String()
 
 		var configQueryEngineConfigBuffer bytes.Buffer
 		err = configtemplates.ConfigQueryEngineConfig.Execute(&configQueryEngineConfigBuffer, struct {
@@ -568,10 +567,10 @@ func (c *Config) InstanceConfiguration(configMapName string,
 		if err != nil {
 			panic(err)
 		}
-		data["queryengine."+podIP] = configQueryEngineConfigBuffer.String()
+		configMapInstanceDynamicConfig.Data["queryengine."+podIP] = configQueryEngineConfigBuffer.String()
 
 		var configNodemanagerconfigConfigBuffer bytes.Buffer
-		err = configtemplates.ConfigNodemanagerConfigConfig.Execute(&configNodemanagerconfigConfigBuffer, struct {
+		err = configtemplates.NodemanagerConfig.Execute(&configNodemanagerconfigConfigBuffer, struct {
 			Hostname                 string
 			PodIP                    string
 			ListenAddress            string
@@ -580,7 +579,10 @@ func (c *Config) InstanceConfiguration(configMapName string,
 			CassandraPort            string
 			CassandraJmxPort         string
 			CAFilePath               string
+			MinimumDiskGB            int
 			LogLevel                 string
+			LogFile                  string
+			LogLocal                 string
 		}{
 			Hostname:                 hostname,
 			PodIP:                    podIP,
@@ -595,9 +597,9 @@ func (c *Config) InstanceConfiguration(configMapName string,
 		if err != nil {
 			panic(err)
 		}
-		data["config-nodemgr.conf."+podIP] = configNodemanagerconfigConfigBuffer.String()
+		configMapInstanceDynamicConfig.Data["config-nodemgr.conf."+podIP] = configNodemanagerconfigConfigBuffer.String()
 		// empty env as no db tracking
-		data["config-nodemgr.env."+podIP] = ""
+		configMapInstanceDynamicConfig.Data["config-nodemgr.env."+podIP] = ""
 
 		var configNodemanageranalyticsConfigBuffer bytes.Buffer
 		err = configtemplates.ConfigNodemanagerAnalyticsConfig.Execute(&configNodemanageranalyticsConfigBuffer, struct {
@@ -624,9 +626,9 @@ func (c *Config) InstanceConfiguration(configMapName string,
 		if err != nil {
 			panic(err)
 		}
-		data["analytics-nodemgr.conf."+podIP] = configNodemanageranalyticsConfigBuffer.String()
+		configMapInstanceDynamicConfig.Data["analytics-nodemgr.conf."+podIP] = configNodemanageranalyticsConfigBuffer.String()
 		// empty env as no db tracking
-		data["analytics-nodemgr.env."+podIP] = ""
+		configMapInstanceDynamicConfig.Data["analytics-nodemgr.env."+podIP] = ""
 
 		var configStunnelConfigBuffer bytes.Buffer
 		err = configtemplates.ConfigStunnelConfig.Execute(&configStunnelConfigBuffer, struct {
@@ -639,16 +641,8 @@ func (c *Config) InstanceConfiguration(configMapName string,
 		if err != nil {
 			panic(err)
 		}
-		data["stunnel."+podIP] = configStunnelConfigBuffer.String()
+		configMapInstanceDynamicConfig.Data["stunnel."+podIP] = configStunnelConfigBuffer.String()
 	}
-
-	configMapInstanceDynamicConfig.Data = data
-
-	// update with nodemanager runner
-	nmr := GetNodemanagerRunner()
-	configMapInstanceDynamicConfig.Data["config-nodemanager-runner.sh"] = nmr
-	// TODO: till not splitted to different entities
-	configMapInstanceDynamicConfig.Data["analytics-nodemanager-runner.sh"] = nmr
 
 	// update with provisioner configs
 	UpdateProvisionerConfigMapData("config-provisioner", apiServerList,
@@ -902,13 +896,6 @@ func (c *Config) ConfigurationParameters() ConfigConfiguration {
 
 	return configConfiguration
 
-}
-
-// SetEndpointInStatus updates Endpoint in status
-func (c *Config) SetEndpointInStatus(client client.Client, clusterIP string) error {
-	c.Status.Endpoint = clusterIP
-	err := client.Status().Update(context.TODO(), c)
-	return err
 }
 
 // CommonStartupScript prepare common run service script

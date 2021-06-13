@@ -188,23 +188,27 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 		collectorEndpointList := configtemplates.EndpointList(configNodesInformation.CollectorServerIPList, configNodesInformation.CollectorPort)
 		collectorEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(collectorEndpointList, " ")
 		var nodeManagerConfigBuffer bytes.Buffer
-		err = configtemplates.CassandraNodemanagerConfig.Execute(&nodeManagerConfigBuffer, struct {
+		err = configtemplates.NodemanagerConfig.Execute(&nodeManagerConfigBuffer, struct {
+			Hostname                 string
+			PodIP                    string
 			ListenAddress            string
 			InstrospectListenAddress string
-			Hostname                 string
 			CollectorServerList      string
-			CqlPort                  string
-			JmxLocalPort             string
+			CassandraPort            string
+			CassandraJmxPort         string
 			CAFilePath               string
 			MinimumDiskGB            int
 			LogLevel                 string
+			LogFile                  string
+			LogLocal                 string
 		}{
 			ListenAddress:            pod.Status.PodIP,
+			PodIP:                    pod.Status.PodIP,
 			InstrospectListenAddress: c.Spec.CommonConfiguration.IntrospectionListenAddress(pod.Status.PodIP),
 			Hostname:                 pod.Annotations["hostname"],
 			CollectorServerList:      collectorEndpointListSpaceSeparated,
-			CqlPort:                  strconv.Itoa(*cassandraConfig.CqlPort),
-			JmxLocalPort:             strconv.Itoa(*cassandraConfig.JmxLocalPort),
+			CassandraPort:            strconv.Itoa(*cassandraConfig.CqlPort),
+			CassandraJmxPort:         strconv.Itoa(*cassandraConfig.JmxLocalPort),
 			CAFilePath:               certificates.SignerCAFilepath,
 			MinimumDiskGB:            *cassandraConfig.MinimumDiskGB,
 			// TODO: move to params
@@ -265,7 +269,7 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 	if err != nil {
 		return err
 	}
-	UpdateProvisionerConfigMapData("database-provisioner", configtemplates.JoinListWithSeparator(configNodes, ","),
+	UpdateProvisionerConfigMapData("cassandra-provisioner", configtemplates.JoinListWithSeparator(configNodes, ","),
 		c.Spec.CommonConfiguration.AuthParameters, configMapInstanceDynamicConfig)
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
@@ -287,13 +291,11 @@ func (c *Cassandra) CreateConfigMap(configMapName string,
 		return nil, err
 	}
 
-	configMap.Data["database-nodemanager-runner.sh"] = GetNodemanagerRunner()
-
 	configNodes, err := c.GetConfigNodes(request, client)
 	if err != nil {
 		return nil, err
 	}
-	UpdateProvisionerConfigMapData("database-provisioner", configtemplates.JoinListWithSeparator(configNodes, ","),
+	UpdateProvisionerConfigMapData("cassandra-provisioner", configtemplates.JoinListWithSeparator(configNodes, ","),
 		c.Spec.CommonConfiguration.AuthParameters, configMap)
 
 	cassandraSecret := &corev1.Secret{}

@@ -127,7 +127,6 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 	controlXMPPIPListCommaSeparatedQuoted := configtemplates.JoinListWithSeparatorAndSingleQuotes(controlNodesInformation.ControlServerIPList, ",")
 	cassandraIPListCommaSeparatedQuoted := configtemplates.JoinListWithSeparatorAndSingleQuotes(cassandraNodesInformation.ServerIPList, ",")
 	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
-	var data = make(map[string]string)
 	for _, pod := range podList {
 		hostname := pod.Annotations["hostname"]
 		var webuiWebConfigBuffer bytes.Buffer
@@ -165,7 +164,7 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 		if err != nil {
 			panic(err)
 		}
-		data["config.global.js."+pod.Status.PodIP] = webuiWebConfigBuffer.String()
+		configMapInstanceDynamicConfig.Data["config.global.js."+pod.Status.PodIP] = webuiWebConfigBuffer.String()
 		//fmt.Println("DATA ", data)
 		var webuiAuthConfigBuffer bytes.Buffer
 		err = configtemplates.WebuiAuthConfig.Execute(&webuiAuthConfigBuffer, struct {
@@ -178,9 +177,8 @@ func (c *Webui) InstanceConfiguration(request reconcile.Request,
 		if err != nil {
 			panic(err)
 		}
-		data["contrail-webui-userauth.js."+pod.Status.PodIP] = webuiAuthConfigBuffer.String()
+		configMapInstanceDynamicConfig.Data["contrail-webui-userauth.js."+pod.Status.PodIP] = webuiAuthConfigBuffer.String()
 	}
-	configMapInstanceDynamicConfig.Data = data
 	err = client.Update(context.TODO(), configMapInstanceDynamicConfig)
 	if err != nil {
 		return err

@@ -141,27 +141,6 @@ sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
 sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 sandesh_ca_cert={{ .CAFilePath }}`))
 
-// ControlNodemanagerConfig is the template of the Control Nodemanager service configuration.
-var ControlNodemanagerConfig = template.Must(template.New("").Parse(`[DEFAULTS]
-http_server_ip={{ .InstrospectListenAddress }}
-log_file=/var/log/contrail/contrail-control-nodemgr.log
-log_level={{ .LogLevel }}
-log_local=1
-hostname={{ .Hostname }}
-hostip={{ .ListenAddress }}
-db_port={{ .CassandraPort }}
-db_jmx_port={{ .CassandraJmxPort }}
-db_use_ssl=True
-[COLLECTOR]
-server_list={{ .CollectorServerList }}
-[SANDESH]
-introspect_ssl_enable=True
-introspect_ssl_insecure=True
-sandesh_ssl_enable=True
-sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
-sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
-sandesh_ca_cert={{ .CAFilePath }}`))
-
 // ControlDeProvisionConfig is the template of the Control de-provision script.
 // TODO:
 //  - support keystone

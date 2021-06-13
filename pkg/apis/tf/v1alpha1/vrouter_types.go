@@ -893,18 +893,6 @@ func (c *Vrouter) GetCNIConfig(client client.Client, request reconcile.Request) 
 	return contrailCNIBuffer.String(), nil
 }
 
-// DefaultAgentConfigMapData initial data (runners)
-// TODO: move to separate configmap
-func (c *Vrouter) DefaultAgentConfigMapData(configMap *corev1.ConfigMap, client client.Client) error {
-	if configMap.Data["vrouter-nodemanager-runner.sh"] == "" {
-		configMap.Data["vrouter-nodemanager-runner.sh"] = GetNodemanagerRunner()
-	}
-	if configMap.Data["vrouter-provisioner.sh"] == "" {
-		UpdateProvisionerRunner("vrouter-provisioner", configMap)
-	}
-	return client.Update(context.Background(), configMap)
-}
-
 // UpdateAgentParams updates configmap with params data
 func (c *Vrouter) UpdateAgentParams(vrouterPod *VrouterPod,
 	params string,
@@ -1123,12 +1111,11 @@ func (c *Vrouter) IsActiveOnControllers(clnt client.Client) (bool, error) {
 	if c.Status.Agents == nil {
 		return false, nil
 	}
-	controllerNodes := &corev1.NodeList{}
-	labels := client.MatchingLabels{"node-role.kubernetes.io/master": ""}
-	if err := clnt.List(context.Background(), controllerNodes, labels); err != nil {
+	nodes, err := GetControllerNodes(clnt)
+	if err != nil {
 		return false, err
 	}
-	for _, node := range controllerNodes.Items {
+	for _, node := range nodes {
 		if s := c.LookupAgentStatus(node.Name); s == nil || s.Status != "Ready" {
 			return false, nil
 		}

@@ -48,6 +48,9 @@ var rabbitmqCM = &corev1.ConfigMap{
 		Name:      "rabbitmq1-rabbitmq-configmap",
 		Namespace: "test-ns",
 	},
+	// use fake data to avoid nil map
+	// in real situation there are always runner scripts
+	Data: map[string]string{"runner.sh": ""},
 }
 
 var rabbitmqRunnerCM = &corev1.ConfigMap{

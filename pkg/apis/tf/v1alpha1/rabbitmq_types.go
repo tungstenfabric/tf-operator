@@ -98,11 +98,18 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 	podList []corev1.Pod,
 	client client.Client) error {
 
+	configMapInstanceDynamicConfig := &corev1.ConfigMap{}
+	err := client.Get(context.TODO(),
+		types.NamespacedName{Name: request.Name + "-" + "rabbitmq" + "-configmap", Namespace: request.Namespace},
+		configMapInstanceDynamicConfig)
+	if err != nil {
+		return err
+	}
+
 	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
 
 	c.ConfigurationParameters()
 
-	var data = make(map[string]string)
 	for _, pod := range podList {
 		var rabbitmqPodConfig bytes.Buffer
 		err := configtemplates.RabbitmqPodConfig.Execute(&rabbitmqPodConfig, struct {
@@ -125,22 +132,22 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 		if err != nil {
 			panic(err)
 		}
-		data["rabbitmq.conf."+pod.Status.PodIP] = rabbitmqPodConfig.String()
+		configMapInstanceDynamicConfig.Data["rabbitmq.conf."+pod.Status.PodIP] = rabbitmqPodConfig.String()
 		rabbitmqEnvConfigString := fmt.Sprintf("HOME=/var/lib/rabbitmq\n")
 		rabbitmqEnvConfigString = rabbitmqEnvConfigString + fmt.Sprintf("NODENAME=rabbit@%s\n", pod.Status.PodIP)
 
-		data["rabbitmq-env.conf."+pod.Status.PodIP] = rabbitmqEnvConfigString
+		configMapInstanceDynamicConfig.Data["rabbitmq-env.conf."+pod.Status.PodIP] = rabbitmqEnvConfigString
 	}
 
 	var rabbitmqNodes string
 	for _, pod := range podList {
 		myidString := pod.Name[len(pod.Name)-1:]
-		data[myidString] = pod.Status.PodIP
+		configMapInstanceDynamicConfig.Data[myidString] = pod.Status.PodIP
 		rabbitmqNodes = rabbitmqNodes + fmt.Sprintf("%s\n", pod.Status.PodIP)
 	}
 
-	data["rabbitmq.nodes"] = rabbitmqNodes
-	data["plugins.conf"] = "[rabbitmq_management,rabbitmq_management_agent,rabbitmq_peer_discovery_k8s]."
+	configMapInstanceDynamicConfig.Data["rabbitmq.nodes"] = rabbitmqNodes
+	configMapInstanceDynamicConfig.Data["plugins.conf"] = "[rabbitmq_management,rabbitmq_management_agent,rabbitmq_peer_discovery_k8s]."
 
 	// common env vars
 	rabbitmqCommonEnvString := fmt.Sprintf("export RABBITMQ_ERLANG_COOKIE=%s\n", c.Spec.ServiceConfiguration.ErlangCookie)
@@ -155,7 +162,7 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 	// TODO: for now tls is not enabled for dist & management ports
 	// rabbitmqCommonEnvString = rabbitmqCommonEnvString + fmt.Sprintf("export RABBITMQ_CTL_ERL_ARGS=\"-proto_dist inet_tls\"\n")
 
-	data["rabbitmq-common.env"] = rabbitmqCommonEnvString
+	configMapInstanceDynamicConfig.Data["rabbitmq-common.env"] = rabbitmqCommonEnvString
 
 	var secretName string
 	secret := &corev1.Secret{}
@@ -164,7 +171,7 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 	} else {
 		secretName = request.Name + "-secret"
 	}
-	err := client.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: request.Namespace}, secret)
+	err = client.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: request.Namespace}, secret)
 	if err != nil {
 		return err
 	}
@@ -188,16 +195,8 @@ func (c *Rabbitmq) InstanceConfiguration(request reconcile.Request,
 	if err != nil {
 		panic(err)
 	}
-	data["definitions.json"] = rabbitmqDefinitionBuffer.String()
+	configMapInstanceDynamicConfig.Data["definitions.json"] = rabbitmqDefinitionBuffer.String()
 
-	configMapInstanceDynamicConfig := &corev1.ConfigMap{}
-	err = client.Get(context.TODO(),
-		types.NamespacedName{Name: request.Name + "-" + "rabbitmq" + "-configmap", Namespace: request.Namespace},
-		configMapInstanceDynamicConfig)
-	if err != nil {
-		return err
-	}
-	configMapInstanceDynamicConfig.Data = data
 	err = client.Update(context.TODO(), configMapInstanceDynamicConfig)
 	if err != nil {
 		return err

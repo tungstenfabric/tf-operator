@@ -443,14 +443,14 @@ func (r *ReconcileAnalyticsSnmp) GetSTS(request reconcile.Request, instance *v1a
 
 		if container.Name == "nodemanager" {
 			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/analytics-snmp-nodemanager-runner.sh"}
+				command := []string{"bash", "/etc/contrailconfigmaps/analyticssnmp-nodemanager-runner.sh"}
 				container.Command = command
 			}
 		}
 
 		if container.Name == "provisioner" {
 			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/analytics-snmp-provisioner.sh"}
+				command := []string{"bash", "/etc/contrailconfigmaps/analyticssnmp-provisioner.sh"}
 				container.Command = command
 			}
 		}

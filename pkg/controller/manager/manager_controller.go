@@ -136,7 +136,7 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	nodes, err := r.getControllerNodes()
+	nodes, err := v1alpha1.GetControllerNodes(r.client)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -268,15 +268,6 @@ func (r *ReconcileManager) setConditions(manager *v1alpha1.Manager) {
 		Type:   v1alpha1.ManagerReady,
 		Status: readyStatus,
 	}}
-}
-
-func (r *ReconcileManager) getControllerNodes() ([]corev1.Node, error) {
-	nodeList := &corev1.NodeList{}
-	labels := client.MatchingLabels{"node-role.kubernetes.io/master": ""}
-	if err := r.client.List(context.Background(), nodeList, labels); err != nil {
-		return nil, err
-	}
-	return nodeList.Items, nil
 }
 
 func (r *ReconcileManager) getReplicas(nodes []corev1.Node) int32 {

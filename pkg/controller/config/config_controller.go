@@ -7,8 +7,8 @@ import (
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	core "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -489,7 +489,7 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 
 		case "nodemanageranalytics":
 			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/analytics-nodemanager-runner.sh"}
+				command := []string{"bash", "/etc/contrailconfigmaps/config-nodemanager-runner.sh"}
 				container.Command = command
 			}
 
@@ -538,7 +538,7 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 	if ic := utils.GetContainerFromList("nodeinit", instance.Spec.ServiceConfiguration.Containers); ic != nil {
 		statusImage = strings.Replace(ic.Image, "contrail-node-init", "contrail-status", 1)
 		toolsImage = strings.Replace(ic.Image, "contrail-node-init", "contrail-tools", 1)
-	} 
+	}
 
 	for idx := range statefulSet.Spec.Template.Spec.InitContainers {
 
@@ -555,7 +555,7 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 		case "nodeinit":
 			container.Env = append(container.Env,
 				core.EnvVar{
-					Name: "CONTRAIL_STATUS_IMAGE",
+					Name:  "CONTRAIL_STATUS_IMAGE",
 					Value: statusImage,
 				},
 			)
@@ -627,11 +627,6 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 		}
 	}
 
-	if err = instance.SetEndpointInStatus(r.Client, configService.ClusterIP()); err != nil {
-		reqLogger.Error(err, "Failed to set endpointIn status")
-		return reconcile.Result{}, err
-	}
-
 	falseVal := false
 	if instance.Status.ConfigChanged == nil {
 		instance.Status.ConfigChanged = &falseVal
@@ -663,6 +658,8 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 
 	instance.Status.Active = new(bool)
 	instance.Status.Degraded = new(bool)
+	instance.Status.Endpoint = configService.ClusterIP()
+
 	if err = instance.SetInstanceActive(r.Client, instance.Status.Active, instance.Status.Degraded, statefulSet, request); err != nil {
 		if v1alpha1.IsOKForRequeque(err) {
 			reqLogger.Info("Failed to set instance active, and reconcile is restarting.")

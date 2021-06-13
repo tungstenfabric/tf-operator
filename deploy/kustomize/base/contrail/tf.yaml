@@ -48,8 +48,6 @@ spec:
           rabbitmqInstance: rabbitmq1
           configInstance: config1
           containers:
-          - name: init
-            image: python
           - name: nodemanager
             image: contrail-nodemgr
           - name: provisioner

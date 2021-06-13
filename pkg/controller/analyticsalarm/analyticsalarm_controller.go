@@ -476,14 +476,14 @@ func (r *ReconcileAnalyticsAlarm) GetSTS(request reconcile.Request, instance *v1
 
 		if container.Name == "nodemanager" {
 			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/analytics-alarm-nodemanager-runner.sh"}
+				command := []string{"bash", "/etc/contrailconfigmaps/analyticsalarm-nodemanager-runner.sh"}
 				container.Command = command
 			}
 		}
 
 		if container.Name == "provisioner" {
 			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/analytics-alarm-provisioner.sh"}
+				command := []string{"bash", "/etc/contrailconfigmaps/analyticsalarm-provisioner.sh"}
 				container.Command = command
 			}
 		}

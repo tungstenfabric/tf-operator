@@ -193,7 +193,6 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 
 	redisServerSpaceSeparatedList := strings.Join(podIPList, ":6379 ") + ":6379"
 
-	var data = make(map[string]string)
 	for _, pod := range podList {
 		hostname := pod.Annotations["hostname"]
 		podIP := pod.Status.PodIP
@@ -246,7 +245,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 		if err != nil {
 			panic(err)
 		}
-		data["tf-alarm-gen."+podIP] = alarmBuffer.String()
+		configMapInstanceDynamicConfig.Data["tf-alarm-gen."+podIP] = alarmBuffer.String()
 
 		myidString := pod.Name[len(pod.Name)-1:]
 		myidInt, err := strconv.Atoi(myidString)
@@ -282,22 +281,23 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 		if err != nil {
 			panic(err)
 		}
-		data["kafka.config."+podIP] = kafkaBuffer.String()
+		configMapInstanceDynamicConfig.Data["kafka.config."+podIP] = kafkaBuffer.String()
 
 		// TODO: commonize for all services
 		var nodemanagerBuffer bytes.Buffer
-		err = configtemplates.AnalyticsAlarmNodemanagerConfig.Execute(&nodemanagerBuffer, struct {
-			PodIP                    string
+		err = configtemplates.NodemanagerConfig.Execute(&nodemanagerBuffer, struct {
 			Hostname                 string
+			PodIP                    string
 			ListenAddress            string
 			InstrospectListenAddress string
-			LogFile                  string
-			LogLevel                 string
-			LogLocal                 string
+			CollectorServerList      string
 			CassandraPort            string
 			CassandraJmxPort         string
 			CAFilePath               string
-			CollectorServerList      string
+			MinimumDiskGB            int
+			LogLevel                 string
+			LogFile                  string
+			LogLocal                 string
 		}{
 			PodIP:                    podIP,
 			Hostname:                 hostname,
@@ -313,9 +313,9 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 		if err != nil {
 			panic(err)
 		}
-		data["analytics-alarm-nodemgr.conf."+podIP] = nodemanagerBuffer.String()
+		configMapInstanceDynamicConfig.Data["analytics-alarm-nodemgr.conf."+podIP] = nodemanagerBuffer.String()
 		// empty env as no db tracking
-		data["analytics-alarm-nodemgr.env."+podIP] = ""
+		configMapInstanceDynamicConfig.Data["analytics-alarm-nodemgr.env."+podIP] = ""
 
 		// TODO: commonize for all services
 		var vnciniBuffer bytes.Buffer
@@ -337,18 +337,11 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 		if err != nil {
 			panic(err)
 		}
-		data["vnc_api_lib.ini."+podIP] = vnciniBuffer.String()
+		configMapInstanceDynamicConfig.Data["vnc_api_lib.ini."+podIP] = vnciniBuffer.String()
 	}
 
-	configMapInstanceDynamicConfig.Data = data
-
-	// TODO: commonize for all services
-	// update with nodemanager runner
-	// TODO: till not splitted to different entities
-	configMapInstanceDynamicConfig.Data["analytics-alarm-nodemanager-runner.sh"] = GetNodemanagerRunner()
-
 	// update with provisioner configs
-	UpdateProvisionerConfigMapData("analytics-alarm-provisioner", configApiIPCommaSeparated,
+	UpdateProvisionerConfigMapData("analyticsalarm-provisioner", configApiIPCommaSeparated,
 		c.Spec.CommonConfiguration.AuthParameters, configMapInstanceDynamicConfig)
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)

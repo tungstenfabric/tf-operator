@@ -2,8 +2,8 @@ package vrouter
 
 import (
 	"context"
-	"time"
 	"strings"
+	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -20,7 +20,6 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	core "k8s.io/api/core/v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
@@ -210,10 +209,6 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	if err = instance.DefaultAgentConfigMapData(configMapAgent, r.Client); err != nil {
-		reqLogger.Error(err, "DefaultAgentConfigMapData failed")
-		return reconcile.Result{}, err
-	}
 
 	secretCertificates, err := instance.CreateSecret(request.Name+"-secret-certificates", r.Client, r.Scheme, request)
 	if err != nil {
@@ -393,8 +388,8 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 
 		if container.Name == "nodeinit" {
 			statusImage := strings.Replace(container.Image, "contrail-node-init", "contrail-status", 1)
-			container.Env = append(container.Env, core.EnvVar{
-				Name: "CONTRAIL_STATUS_IMAGE",
+			container.Env = append(container.Env, corev1.EnvVar{
+				Name:  "CONTRAIL_STATUS_IMAGE",
 				Value: statusImage,
 			})
 		}
@@ -408,7 +403,7 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 		if container.Name == "nodeinit-tools-prefetch" {
 			if ic := utils.GetContainerFromList("nodeinit", instance.Spec.ServiceConfiguration.Containers); ic != nil {
 				container.Image = strings.Replace(ic.Image, "contrail-node-init", "contrail-tools", 1)
- 			}
+			}
 		}
 	}
 

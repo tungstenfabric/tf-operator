@@ -39,10 +39,6 @@ metadata:
                     "configInstance": "config1",
                     "containers": [
                       {
-                        "image": "python",
-                        "name": "init"
-                      },
-                      {
                         "image": "docker.io/tungstenfabric/contrail-nodemgr:R2011",
                         "name": "nodemanager"
                       },

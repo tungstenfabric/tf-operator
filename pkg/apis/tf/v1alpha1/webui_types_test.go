@@ -48,6 +48,9 @@ var webuiCM = &corev1.ConfigMap{
 		Name:      "webui1-webui-configmap",
 		Namespace: "test-ns",
 	},
+	// use fake data to avoid nil map
+	// in real situation there are always runner scripts
+	Data: map[string]string{"runner.sh": ""},
 }
 
 var webuiSecret = &corev1.Secret{

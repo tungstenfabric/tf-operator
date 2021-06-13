@@ -166,7 +166,7 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 	}
 
 	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
-	var data = map[string]string{}
+
 	for _, pod := range podList {
 
 		configApiIPListCommaSeparated := configtemplates.JoinListWithSeparator(configNodesInformation.APIServerIPList, ",")
@@ -253,7 +253,7 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 		if err != nil {
 			panic(err)
 		}
-		data["kubemanager."+pod.Status.PodIP] = kubemanagerConfigBuffer.String()
+		configMapInstanceDynamicConfig.Data["kubemanager."+pod.Status.PodIP] = kubemanagerConfigBuffer.String()
 
 		var vncApiConfigBuffer bytes.Buffer
 		err = configtemplates.ConfigAPIVNC.Execute(&vncApiConfigBuffer, struct {
@@ -274,10 +274,9 @@ func (c *Kubemanager) InstanceConfiguration(request reconcile.Request,
 		if err != nil {
 			panic(err)
 		}
-		data["vnc_api_lib.ini."+pod.Status.PodIP] = vncApiConfigBuffer.String()
+		configMapInstanceDynamicConfig.Data["vnc_api_lib.ini."+pod.Status.PodIP] = vncApiConfigBuffer.String()
 	}
 
-	configMapInstanceDynamicConfig.Data = data
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }
 

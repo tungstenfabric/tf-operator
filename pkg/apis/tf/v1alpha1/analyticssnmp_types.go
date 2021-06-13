@@ -167,7 +167,6 @@ func (c *AnalyticsSnmp) InstanceConfiguration(configMapName string,
 	sort.Strings(zookeeperEndpointList)
 	zookeeperEndpointListCommaSeparated := configtemplates.JoinListWithSeparator(zookeeperEndpointList, ",")
 
-	var data = make(map[string]string)
 	for _, pod := range podList {
 		hostname := pod.Annotations["hostname"]
 		podIP := pod.Status.PodIP
@@ -216,7 +215,7 @@ func (c *AnalyticsSnmp) InstanceConfiguration(configMapName string,
 		if err != nil {
 			panic(err)
 		}
-		data["tf-snmp-collector."+podIP] = collectorBuffer.String()
+		configMapInstanceDynamicConfig.Data["tf-snmp-collector."+podIP] = collectorBuffer.String()
 
 		var topologyBuffer bytes.Buffer
 		err = configtemplates.AnalyticsSnmpTopologyConfig.Execute(&topologyBuffer, struct {
@@ -262,22 +261,23 @@ func (c *AnalyticsSnmp) InstanceConfiguration(configMapName string,
 		if err != nil {
 			panic(err)
 		}
-		data["tf-topology."+podIP] = topologyBuffer.String()
+		configMapInstanceDynamicConfig.Data["tf-topology."+podIP] = topologyBuffer.String()
 
 		// TODO: commonize for all services
 		var nodemanagerBuffer bytes.Buffer
-		err = configtemplates.AnalyticsSnmpNodemanagerConfig.Execute(&nodemanagerBuffer, struct {
-			PodIP                    string
+		err = configtemplates.NodemanagerConfig.Execute(&nodemanagerBuffer, struct {
 			Hostname                 string
+			PodIP                    string
 			ListenAddress            string
 			InstrospectListenAddress string
-			LogFile                  string
-			LogLevel                 string
-			LogLocal                 string
+			CollectorServerList      string
 			CassandraPort            string
 			CassandraJmxPort         string
 			CAFilePath               string
-			CollectorServerList      string
+			MinimumDiskGB            int
+			LogLevel                 string
+			LogFile                  string
+			LogLocal                 string
 		}{
 			PodIP:                    podIP,
 			Hostname:                 hostname,
@@ -293,9 +293,9 @@ func (c *AnalyticsSnmp) InstanceConfiguration(configMapName string,
 		if err != nil {
 			panic(err)
 		}
-		data["analytics-snmp-nodemgr.conf."+podIP] = nodemanagerBuffer.String()
+		configMapInstanceDynamicConfig.Data["analytics-snmp-nodemgr.conf."+podIP] = nodemanagerBuffer.String()
 		// empty env as no db tracking
-		data["analytics-snmp-nodemgr.env."+podIP] = ""
+		configMapInstanceDynamicConfig.Data["analytics-snmp-nodemgr.env."+podIP] = ""
 
 		// TODO: commonize for all services
 		var vnciniBuffer bytes.Buffer
@@ -317,17 +317,11 @@ func (c *AnalyticsSnmp) InstanceConfiguration(configMapName string,
 		if err != nil {
 			panic(err)
 		}
-		data["vnc_api_lib.ini."+podIP] = vnciniBuffer.String()
+		configMapInstanceDynamicConfig.Data["vnc_api_lib.ini."+podIP] = vnciniBuffer.String()
 	}
 
-	configMapInstanceDynamicConfig.Data = data
-
-	// TODO: commonize for all services
-	// TODO: till not splitted to different entities
-	configMapInstanceDynamicConfig.Data["analytics-snmp-nodemanager-runner.sh"] = GetNodemanagerRunner()
-
 	// update with provisioner configs
-	UpdateProvisionerConfigMapData("analytics-snmp-provisioner", configApiIPCommaSeparated,
+	UpdateProvisionerConfigMapData("analyticssnmp-provisioner", configApiIPCommaSeparated,
 		c.Spec.CommonConfiguration.AuthParameters, configMapInstanceDynamicConfig)
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
