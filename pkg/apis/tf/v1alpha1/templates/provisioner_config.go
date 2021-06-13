@@ -46,5 +46,7 @@ while true ; do
   echo -e "INFO: $(date): config\n$(cat $cfg)"
   [ -z "$CONFIG_NODES" ] || break
 done
+export PROVISION_RETRIES=1000
+export PROVISION_DELAY=5
 exec /entrypoint.sh /usr/bin/tail -f /dev/null
 `))

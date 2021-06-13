@@ -358,14 +358,7 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 		}
 		data["vnc_api_lib.ini."+podIP] = vncApiBuffer.String()
 	}
-
-	// update with nodemanager runner
-	data["analytics-nodemanager-runner.sh"] = GetNodemanagerRunner()
-
-	// update with provisioner configs
-	data["analytics-provisioner.sh"] = ProvisionerRunnerData("analytics-provisioner")
 	data["analytics-provisioner.env"] = ProvisionerEnvData(configApiIPListCommaSeparated, c.Spec.CommonConfiguration.AuthParameters)
-
 	return
 }
 

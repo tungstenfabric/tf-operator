@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -277,11 +276,11 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 		}
 	}
 
-	configNodes, err := c.GetConfigNodes(request, client)
+	configNodes, err := GetConfigNodes(request.Namespace, client)
 	if err != nil {
 		return err
 	}
-	UpdateProvisionerConfigMapData(nodeType+"-provisioner", configtemplates.JoinListWithSeparator(configNodes, ","),
+	UpdateProvisionerConfigMapData("cassandra-provisioner", configNodes,
 		c.Spec.CommonConfiguration.AuthParameters, configMapInstanceDynamicConfig)
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
@@ -294,8 +293,6 @@ func (c *Cassandra) CreateConfigMap(configMapName string,
 	request reconcile.Request) (*corev1.ConfigMap, error) {
 
 	cassandraConfig := c.ConfigurationParameters()
-	nodeType := cassandraConfig.NodeType
-
 	configMap, err := CreateConfigMap(configMapName,
 		client,
 		scheme,
@@ -305,15 +302,6 @@ func (c *Cassandra) CreateConfigMap(configMapName string,
 	if err != nil {
 		return nil, err
 	}
-
-	configMap.Data[nodeType+"-nodemanager-runner.sh"] = GetNodemanagerRunner()
-
-	configNodes, err := c.GetConfigNodes(request, client)
-	if err != nil {
-		return nil, err
-	}
-	UpdateProvisionerConfigMapData(nodeType+"-provisioner", configtemplates.JoinListWithSeparator(configNodes, ","),
-		c.Spec.CommonConfiguration.AuthParameters, configMap)
 
 	cassandraSecret := &corev1.Secret{}
 	if err := client.Get(context.TODO(), types.NamespacedName{Name: request.Name + "-secret", Namespace: request.Namespace}, cassandraSecret); err != nil {
@@ -548,15 +536,6 @@ func (c *Cassandra) UpdateStatus(cassandraConfig *CassandraConfiguration, podNam
 	}
 
 	return changed || (c.Status.ConfigChanged != nil && *c.Status.ConfigChanged)
-}
-
-// GetConfigNodes requests config api nodes
-func (c *Cassandra) GetConfigNodes(request reconcile.Request, clnt client.Client) ([]string, error) {
-	cfg, err := NewConfigClusterConfiguration(ConfigInstance, request.Namespace, clnt)
-	if err != nil && !k8serrors.IsNotFound(err) {
-		return nil, err
-	}
-	return cfg.APIServerIPList, nil
 }
 
 // ConfigDataDiff compare configmaps and retursn list of services to be reloaded

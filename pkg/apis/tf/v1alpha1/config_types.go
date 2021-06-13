@@ -457,11 +457,7 @@ func (c *Config) InstanceConfiguration(podList []corev1.Pod, client client.Clien
 		data["config-nodemgr.env."+podIP] = ""
 	}
 
-	// update with nodemanager runner
-	data["config-nodemanager-runner.sh"] = GetNodemanagerRunner()
-
 	// update with provisioner configs
-	data["config-provisioner.sh"] = ProvisionerRunnerData("config-provisioner")
 	data["config-provisioner.env"] = ProvisionerEnvData(apiServerList, c.Spec.CommonConfiguration.AuthParameters)
 
 	return
@@ -647,13 +643,6 @@ func (c *Config) ConfigurationParameters() ConfigConfiguration {
 	configConfiguration.UseExternalTFTP = &useExternalTFTP
 
 	return configConfiguration
-}
-
-// SetEndpointInStatus updates Endpoint in status
-func (c *Config) SetEndpointInStatus(client client.Client, clusterIP string) error {
-	c.Status.Endpoint = clusterIP
-	err := client.Status().Update(context.TODO(), c)
-	return err
 }
 
 // CommonStartupScript prepare common run service script

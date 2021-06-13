@@ -339,15 +339,6 @@ func (c *AnalyticsAlarm) InstanceConfiguration(podList []corev1.Pod, client clie
 		}
 		data["vnc_api_lib.ini."+podIP] = vnciniBuffer.String()
 	}
-
-	// TODO: commonize for all services
-	// update with nodemanager runner
-	// TODO: till not splitted to different entities
-	data["analytics-alarm-nodemanager-runner.sh"] = GetNodemanagerRunner()
-
-	// update with provisioner configs
-	data["analytics-alarm-provisioner.sh"] = ProvisionerRunnerData("analytics-alarm-provisioner")
-	data["analytics-alarm-provisioner.env"] = ProvisionerEnvData(configApiIPCommaSeparated, c.Spec.CommonConfiguration.AuthParameters)
 	return
 }
 

@@ -364,7 +364,8 @@ func PodsCertSubjects(domain string, podList []corev1.Pod, podAltIPs PodAlternat
 }
 
 // CreateConfigMap creates a config map based on the instance type.
-func CreateConfigMap(configMapName string,
+func CreateConfigMap(
+	configMapName string,
 	client client.Client,
 	scheme *runtime.Scheme,
 	request reconcile.Request,
@@ -376,8 +377,10 @@ func CreateConfigMap(configMapName string,
 	if err == nil {
 		if configMap.Data == nil {
 			configMap.Data = make(map[string]string)
+			configMap.Data[instanceType+"-nodemanager-runner.sh"] = GetNodemanagerRunner()
+			configMap.Data[instanceType+"-provisioner.sh"] = ProvisionerRunnerData(instanceType + "-provisioner")
 		}
-		return configMap, err
+		return configMap, client.Update(context.TODO(), configMap)
 	}
 	if !k8serrors.IsNotFound(err) {
 		return nil, err
@@ -388,6 +391,8 @@ func CreateConfigMap(configMapName string,
 	configMap.SetLabels(map[string]string{"tf_manager": instanceType,
 		instanceType: request.Name})
 	configMap.Data = make(map[string]string)
+	configMap.Data[instanceType+"-nodemanager-runner.sh"] = GetNodemanagerRunner()
+	configMap.Data[instanceType+"-provisioner.sh"] = ProvisionerRunnerData(instanceType + "-provisioner")
 	if err = controllerutil.SetControllerReference(object, configMap, scheme); err != nil {
 		return nil, err
 	}
@@ -864,6 +869,28 @@ func SelectPods(ownerName, instanceType, namespace string, clnt client.Client) (
 	return pods, err
 }
 
+func GetNodes(labelSelector map[string]string, c client.Client) ([]corev1.Node, error) {
+	nodeList := &corev1.NodeList{}
+	var labels client.MatchingLabels = labelSelector
+	if err := c.List(context.Background(), nodeList, labels); err != nil {
+		return nil, err
+	}
+	return nodeList.Items, nil
+}
+
+func GetControllerNodes(c client.Client) ([]corev1.Node, error) {
+	return GetNodes(map[string]string{"node-role.kubernetes.io/master": ""}, c)
+}
+
+// GetConfigNodes requests config api nodes
+func GetConfigNodes(ns string, clnt client.Client) (string, error) {
+	cfg, err := NewConfigClusterConfiguration(ConfigInstance, ns, clnt)
+	if err != nil && !k8serrors.IsNotFound(err) {
+		return "", err
+	}
+	return configtemplates.JoinListWithSeparator(cfg.APIServerIPList, ","), nil
+}
+
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func PodIPListAndIPMapFromInstance(instanceType string,
 	request reconcile.Request,
@@ -1270,7 +1297,6 @@ func ProvisionerRunnerData(configMapName string) string {
 
 // UpdateProvisionerConfigMapData update provisioner data in config map
 func UpdateProvisionerConfigMapData(configMapName string, configAPINodes string, authParams AuthParameters, configMap *corev1.ConfigMap) {
-	configMap.Data[configMapName+".sh"] = ProvisionerRunnerData(configMapName)
 	configMap.Data[configMapName+".env"] = ProvisionerEnvData(configAPINodes, authParams)
 }
 
@@ -1731,7 +1757,13 @@ func GetAnalyticsCassandraInstance(cl client.Client) (string, error) {
 	return name, nil
 }
 
-func UpdateConfigMap(instance v1.Object, instanceType string, data map[string]string, client client.Client) error {
+func updateMap(values map[string]string, data *map[string]string) {
+	for k, v := range values {
+		(*data)[k] = v
+	}
+}
+
+func UpdateConfigMap(instance v1.Object, instanceType string, authParameters AuthParameters, data map[string]string, client client.Client) error {
 	namespacedName := types.NamespacedName{
 		Name:      instance.GetName() + "-" + instanceType + "-configmap",
 		Namespace: instance.GetNamespace(),
@@ -1740,7 +1772,15 @@ func UpdateConfigMap(instance v1.Object, instanceType string, data map[string]st
 	if err := client.Get(context.TODO(), namespacedName, &config); err != nil {
 		return err
 	}
-	config.Data = data
+	updateMap(data, &config.Data)
+
+	apiServersList, err := GetConfigNodes(instance.GetNamespace(), client)
+	if err != nil {
+		return err
+	}
+	// update with provisioner configs
+	UpdateProvisionerConfigMapData(instanceType+"-provisioner", apiServersList, authParameters, &config)
+
 	return client.Update(context.TODO(), &config)
 }
 

@@ -541,7 +541,7 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 			reqLogger.Error(err, "Failed to get config data.")
 			return reconcile.Result{}, err
 		}
-		if err = v1alpha1.UpdateConfigMap(instance, instanceType, data, r.Client); err != nil {
+		if err = v1alpha1.UpdateConfigMap(instance, instanceType, instance.Spec.CommonConfiguration.AuthParameters, data, r.Client); err != nil {
 			reqLogger.Error(err, "Failed to update config map.")
 			return reconcile.Result{}, err
 		}
@@ -553,11 +553,6 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 			}
 			return requeueReconcile, nil
 		}
-	}
-
-	if err = instance.SetEndpointInStatus(r.Client, configService.ClusterIP()); err != nil {
-		reqLogger.Error(err, "Failed to set endpointIn status")
-		return reconcile.Result{}, err
 	}
 
 	falseVal := false
@@ -591,6 +586,8 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 
 	instance.Status.Active = new(bool)
 	instance.Status.Degraded = new(bool)
+	instance.Status.Endpoint = configService.ClusterIP()
+
 	if err = instance.SetInstanceActive(r.Client, instance.Status.Active, instance.Status.Degraded, statefulSet, request); err != nil {
 		if v1alpha1.IsOKForRequeque(err) {
 			reqLogger.Info("Failed to set instance active, and reconcile is restarting.")

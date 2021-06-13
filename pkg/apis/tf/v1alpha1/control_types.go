@@ -373,11 +373,6 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 		data["deprovision.py."+podIP] = controlDeProvisionBuffer.String()
 	}
 
-	// update with nodemanager runner
-	data["control-nodemanager-runner.sh"] = GetNodemanagerRunner()
-
-	// update with provisioner configs
-	data["control-provisioner.sh"] = ProvisionerRunnerData("control-provisioner")
 	data["control-provisioner.env"] = ProvisionerEnvData(configApiIPListCommaSeparated, c.Spec.CommonConfiguration.AuthParameters)
 
 	return

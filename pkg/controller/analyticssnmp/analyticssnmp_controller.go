@@ -304,7 +304,7 @@ func (r *ReconcileAnalyticsSnmp) Reconcile(request reconcile.Request) (reconcile
 			reqLogger.Error(err, "Failed to get config data.")
 			return reconcile.Result{}, err
 		}
-		if err = v1alpha1.UpdateConfigMap(instance, instanceType, data, r.Client); err != nil {
+		if err = v1alpha1.UpdateConfigMap(instance, instanceType, instance.Spec.CommonConfiguration.AuthParameters, data, r.Client); err != nil {
 			reqLogger.Error(err, "Failed to update config map.")
 			return reconcile.Result{}, err
 		}
@@ -467,14 +467,14 @@ func (r *ReconcileAnalyticsSnmp) GetSTS(request reconcile.Request, instance *v1a
 
 		if container.Name == "nodemanager" {
 			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/analytics-snmp-nodemanager-runner.sh"}
+				command := []string{"bash", "/etc/contrailconfigmaps/analyticssnmp-nodemanager-runner.sh"}
 				container.Command = command
 			}
 		}
 
 		if container.Name == "provisioner" {
 			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/analytics-snmp-provisioner.sh"}
+				command := []string{"bash", "/etc/contrailconfigmaps/analyticssnmp-provisioner.sh"}
 				container.Command = command
 			}
 		}

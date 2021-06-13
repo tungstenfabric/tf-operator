@@ -291,20 +291,16 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 			}
 		}
 
-		nodeType := cassandraConfig.NodeType
-
 		if container.Name == "nodemanager" {
 			if container.Command == nil {
-				shell_script := "/etc/contrailconfigmaps/" + nodeType + "-nodemanager-runner.sh"
-				command := []string{"bash", shell_script}
+				command := []string{"bash", "/etc/contrailconfigmaps/cassandra-nodemanager-runner.sh"}
 				container.Command = command
 			}
 		}
 
 		if container.Name == "provisioner" {
 			if container.Command == nil {
-				shell_script := "/etc/contrailconfigmaps/" + nodeType + "-provisioner.sh"
-				command := []string{"bash", shell_script}
+				command := []string{"bash", "/etc/contrailconfigmaps/cassandra-provisioner.sh"}
 				container.Command = command
 			}
 		}
@@ -347,11 +343,11 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	}
 
 	// Preapare / udpate configmaps if pods are created
-	podList, podIPMap, err := instance.PodIPListAndIPMapFromInstance(instanceType, request, r.Client)
+	podIPList, podIPMap, err := instance.PodIPListAndIPMapFromInstance(instanceType, request, r.Client)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	if updated, err := v1alpha1.UpdatePodsAnnotations(podList, r.Client); updated || err != nil {
+	if updated, err := v1alpha1.UpdatePodsAnnotations(podIPList, r.Client); updated || err != nil {
 		if err != nil && !v1alpha1.IsOKForRequeque(err) {
 			reqLogger.Error(err, "Failed to update pods annotations.")
 			return reconcile.Result{}, err
@@ -365,11 +361,11 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	} else {
 		minPods = replicas/2 + 1
 	}
-	if len(podList) >= int(minPods) {
-		if err := r.ensureCertificatesExist(instance, podList, "", instanceType); err != nil {
+	if len(podIPList) >= int(minPods) {
+		if err := r.ensureCertificatesExist(instance, podIPList, "", instanceType); err != nil {
 			return reconcile.Result{}, err
 		}
-		if err = instance.InstanceConfiguration(request, podList, r.Client); err != nil {
+		if err = instance.InstanceConfiguration(request, podIPList, r.Client); err != nil {
 			return reconcile.Result{}, err
 		}
 	}
@@ -384,7 +380,7 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 	changedServices := make(map[*corev1.Pod][]string)
-	for _, pod := range podList {
+	for _, pod := range podIPList {
 		if diff := instance.ConfigDataDiff(&pod, configMap, newConfigMap); len(diff) > 0 {
 			changedServices[&pod] = diff
 		}

@@ -317,7 +317,7 @@ func (r *ReconcileAnalyticsAlarm) Reconcile(request reconcile.Request) (reconcil
 			reqLogger.Error(err, "Failed to get config data.")
 			return reconcile.Result{}, err
 		}
-		if err = v1alpha1.UpdateConfigMap(instance, instanceType, data, r.Client); err != nil {
+		if err = v1alpha1.UpdateConfigMap(instance, instanceType, instance.Spec.CommonConfiguration.AuthParameters, data, r.Client); err != nil {
 			reqLogger.Error(err, "Failed to update config map.")
 			return reconcile.Result{}, err
 		}
@@ -508,14 +508,14 @@ func (r *ReconcileAnalyticsAlarm) GetSTS(request reconcile.Request, instance *v1
 
 		if container.Name == "nodemanager" {
 			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/analytics-alarm-nodemanager-runner.sh"}
+				command := []string{"bash", "/etc/contrailconfigmaps/analyticsalarm-nodemanager-runner.sh"}
 				container.Command = command
 			}
 		}
 
 		if container.Name == "provisioner" {
 			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/analytics-alarm-provisioner.sh"}
+				command := []string{"bash", "/etc/contrailconfigmaps/analyticsalarm-provisioner.sh"}
 				container.Command = command
 			}
 		}

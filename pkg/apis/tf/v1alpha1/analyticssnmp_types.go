@@ -313,14 +313,6 @@ func (c *AnalyticsSnmp) InstanceConfiguration(podList []corev1.Pod, client clien
 		data["vnc_api_lib.ini."+podIP] = vnciniBuffer.String()
 	}
 
-	// TODO: commonize for all services
-	// TODO: till not splitted to different entities
-	data["analytics-snmp-nodemanager-runner.sh"] = GetNodemanagerRunner()
-
-	// update with provisioner configs
-	data["analytics-snmp-provisioner.sh"] = ProvisionerRunnerData("analytics-snmp-provisioner")
-	data["analytics-snmp-provisioner.env"] = ProvisionerEnvData(configApiIPCommaSeparated, c.Spec.CommonConfiguration.AuthParameters)
-
 	return
 }
 

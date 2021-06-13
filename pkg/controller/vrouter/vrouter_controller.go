@@ -19,7 +19,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	appsv1 "k8s.io/api/apps/v1"
-	core "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -217,10 +216,6 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	if err = instance.DefaultAgentConfigMapData(configMapAgent, r.Client); err != nil {
-		reqLogger.Error(err, "DefaultAgentConfigMapData failed")
-		return reconcile.Result{}, err
-	}
 
 	secretCertificates, err := instance.CreateSecret(request.Name+"-secret-certificates", r.Client, r.Scheme, request)
 	if err != nil {
@@ -232,7 +227,10 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 	analyticsNodes := instance.GetAnalyticsNodes(r.Client)
-	configNodes := instance.GetConfigNodes(r.Client)
+	configNodes, err := v1alpha1.GetConfigNodes(instance.Namespace, r.Client)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
 	controlNodes, err := instance.GetControlNodes(r.Client)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -398,7 +396,7 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 
 		if container.Name == "nodeinit" {
 			statusImage := strings.Replace(container.Image, "contrail-node-init", "contrail-status", 1)
-			container.Env = append(container.Env, core.EnvVar{
+			container.Env = append(container.Env, corev1.EnvVar{
 				Name:  "CONTRAIL_STATUS_IMAGE",
 				Value: statusImage,
 			})
