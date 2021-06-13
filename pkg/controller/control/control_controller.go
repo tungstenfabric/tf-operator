@@ -370,6 +370,13 @@ func (r *ReconcileControl) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	if len(podIPMap) > 0 {
+		// TODO: Services can be run on masters only, ensure that pods number is
+		if nodes, err := v1alpha1.GetControllerNodes(r.Client); err != nil || len(podIPList) < len(nodes) {
+			// to avoid redundand sts-es reloading configure only as STS pods are ready
+			reqLogger.Error(err, "Not enough pods are ready to generate configs %v < %v", len(podIPList), len(nodes))
+			return requeueReconcile, err
+		}
+
 		if err = r.ensureCertificatesExist(instance, podIPList, instanceType); err != nil {
 			reqLogger.Error(err, "Failed to ensure certificates exist.")
 			return reconcile.Result{}, err

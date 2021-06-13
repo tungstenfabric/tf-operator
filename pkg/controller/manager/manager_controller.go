@@ -145,7 +145,7 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 	if instance.Spec.CommonConfiguration.Replicas != nil {
 		replicas = *instance.Spec.CommonConfiguration.Replicas
 	} else {
-		replicas = r.getReplicas(nodes)
+		replicas = int32(len(nodes))
 		if replicas == 0 {
 			return reconcile.Result{}, nil
 		}
@@ -268,14 +268,6 @@ func (r *ReconcileManager) setConditions(manager *v1alpha1.Manager) {
 		Type:   v1alpha1.ManagerReady,
 		Status: readyStatus,
 	}}
-}
-
-func (r *ReconcileManager) getReplicas(nodes []corev1.Node) int32 {
-	nodesNumber := len(nodes)
-	if nodesNumber%2 == 0 && nodesNumber != 0 {
-		return int32(nodesNumber - 1)
-	}
-	return int32(nodesNumber)
 }
 
 func (r *ReconcileManager) getNodesHostAliases(nodes []corev1.Node) []corev1.HostAlias {

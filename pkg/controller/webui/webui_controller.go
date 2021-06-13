@@ -457,6 +457,13 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 	}
 
 	if len(podIPList) > 0 {
+		// TODO: Services can be run on masters only, ensure that pods number is
+		if nodes, err := v1alpha1.GetControllerNodes(r.Client); err != nil || len(podIPList) < len(nodes) {
+			// to avoid redundand sts-es reloading configure only as STS pods are ready
+			reqLogger.Error(err, "Not enough pods are ready to generate configs %v < %v", len(podIPList), len(nodes))
+			return requeueReconcile, err
+		}
+
 		if err = instance.InstanceConfiguration(request, podIPList, r.Client); err != nil {
 			log.Error(err, "InstanceConfiguration failed")
 			return reconcile.Result{}, err
