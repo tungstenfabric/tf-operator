@@ -35,10 +35,6 @@ metadata:
                     }
                   },
                   "serviceConfiguration": {
-                    "analyticsCassandraInstance": "configdb1",
-                    "cassandraInstance": "configdb1",
-                    "configInstance": "config1",
-                    "redisInstance": "redis1",
                     "containers": [
                       {
                         "image": "docker.io/tungstenfabric/contrail-analytics-api:latest",
@@ -58,8 +54,6 @@ metadata:
                       }
                     ],
                     "logLevel": "SYS_DEBUG",
-                    "rabbitmqInstance": "rabbitmq1",
-                    "zookeeperInstance": "zookeeper1"
                   }
                 }
               },
@@ -78,9 +72,6 @@ metadata:
                   },
                   "serviceConfiguration": {
                     "analyticsInstance": "analytics1",
-                    "cassandraInstance": "configdb1",
-                    "configInstance": "config1",
-                    "redisInstance": "redis1",
                     "containers": [
                       {
                         "image": "docker.io/tungstenfabric/contrail-nodemgr:latest",
@@ -100,8 +91,6 @@ metadata:
                       }
                     ],
                     "logLevel": "SYS_DEBUG",
-                    "rabbitmqInstance": "rabbitmq1",
-                    "zookeeperInstance": "zookeeper1"
                   }
                 }
               },
@@ -120,8 +109,6 @@ metadata:
                   },
                   "serviceConfiguration": {
                     "analyticsInstance": "analytics1",
-                    "cassandraInstance": "configdb1",
-                    "configInstance": "config1",
                     "containers": [
                       {
                         "image": "docker.io/tungstenfabric/contrail-nodemgr:latest",
@@ -141,8 +128,6 @@ metadata:
                       }
                     ],
                     "logLevel": "SYS_DEBUG",
-                    "rabbitmqInstance": "rabbitmq1",
-                    "zookeeperInstance": "zookeeper1"
                   }
                 }
               },
@@ -161,9 +146,6 @@ metadata:
                   },
                   "serviceConfiguration": {
                     "analyticsInstance": "analytics1",
-                    "analyticsCassandraInstance": "configdb1",
-                    "configInstance": "config1",
-                    "redisInstance": "redis1",
                     "containers": [
                       {
                         "image": "docker.io/tungstenfabric/contrail-analytics-query-engine:latest",
@@ -171,8 +153,6 @@ metadata:
                       },
                     ],
                     "logLevel": "SYS_DEBUG",
-                    "rabbitmqInstance": "rabbitmq1",
-                    "zookeeperInstance": "zookeeper1"
                   }
                 }
               },
@@ -192,7 +172,6 @@ metadata:
                     },
                     "serviceConfiguration": {
                       "analyticsInstance": "analytics1",
-                      "configInstance": "config1",
                       "containers": [
                         {
                           "image": "docker.io/tungstenfabric/contrail-external-cassandra:latest",
@@ -226,7 +205,6 @@ metadata:
                   },
                   "serviceConfiguration": {
                     "analyticsInstance": "analytics1",
-                    "cassandraInstance": "configdb1",
                     "containers": [
                       {
                         "image": "docker.io/tungstenfabric/contrail-controller-config-api:latest",
@@ -258,8 +236,6 @@ metadata:
                       }
                     ],
                     "logLevel": "SYS_DEBUG",
-                    "rabbitmqInstance": "rabbitmq1",
-                    "zookeeperInstance": "zookeeper1"
                   }
                 }
               },
@@ -280,8 +256,6 @@ metadata:
                     },
                     "serviceConfiguration": {
                       "analyticsInstance": "analytics1",
-                      "cassandraInstance": "configdb1",
-                      "configInstance": "config1",
                       "containers": [
                         {
                           "image": "docker.io/tungstenfabric/contrail-controller-control-control:latest",
@@ -305,7 +279,6 @@ metadata:
                         }
                       ],
                       "logLevel": "SYS_DEBUG",
-                      "rabbitmqInstance": "rabbitmq1"
                     }
                   }
                 }
@@ -326,8 +299,6 @@ metadata:
                     },
                     "serviceConfiguration": {
                       "analyticsInstance": "analytics1",
-                      "cassandraInstance": "configdb1",
-                      "configInstance": "config1",
                       "containers": [
                         {
                           "image": "docker.io/tungstenfabric/contrail-kubernetes-kube-manager:latest",
@@ -339,8 +310,6 @@ metadata:
                       "ipFabricSnat": true,
                       "kubernetesTokenFile": "/var/run/secrets/kubernetes.io/serviceaccount/token",
                       "logLevel": "SYS_DEBUG",
-                      "rabbitmqInstance": "rabbitmq1",
-                      "zookeeperInstance": "zookeeper1"
                     }
                   }
                 }
@@ -459,9 +428,6 @@ metadata:
                   },
                   "serviceConfiguration": {
                     "analyticsInstance": "analytics1",
-                    "cassandraInstance": "configdb1",
-                    "configInstance": "config1",
-                    "redisInstance": "redis1",
                     "containers": [
                       {
                         "image": "docker.io/tungstenfabric/contrail-controller-webui-job:latest",
