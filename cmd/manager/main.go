@@ -77,6 +77,12 @@ func runOperator(sigHandler <-chan struct{}) error {
 		os.Exit(1)
 	}
 
+	err = v1alpha1.SetDeployerType(clnt)
+	if err != nil {
+		log.Error(err, "Failed SetDeployerType()")
+		os.Exit(1)
+	}
+
 	f, err := mgrController.IsZiuRequired(clnt)
 	if err != nil {
 		log.Error(err, "try to check if ziu required")
