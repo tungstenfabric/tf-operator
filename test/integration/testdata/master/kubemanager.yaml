@@ -1,0 +1,20 @@
+---
+apiVersion: v1
+kind: List
+items:
+- apiVersion: tf.tungsten.io/v1alpha1
+  kind: Kubemanager
+  metadata:
+    labels:
+      tf_cluster: cluster1
+    name: kubemanager1
+    namespace: tf
+  spec:
+    serviceConfiguration:
+      containers:
+      - image: tungstenfabric/contrail-kubernetes-kube-manager:{{ .Tag }}
+        name: kubemanager
+  status:
+    active: true
+    configChanged: false
+    degraded: false

@@ -1,0 +1,22 @@
+---
+apiVersion: v1
+kind: List
+items:
+- apiVersion: tf.tungsten.io/v1alpha1
+  kind: Zookeeper
+  metadata:
+    labels:
+      tf_cluster: cluster1
+    name: zookeeper1
+    namespace: tf
+  spec:
+    commonConfiguration:
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+    serviceConfiguration:
+      containers:
+      - image: tungstenfabric/contrail-external-zookeeper:{{ .Tag }}
+        name: zookeeper
+  status:
+    active: true
+    degraded: false

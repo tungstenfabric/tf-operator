@@ -1,0 +1,22 @@
+---
+apiVersion: v1
+kind: List
+items:
+- apiVersion: tf.tungsten.io/v1alpha1
+  kind: Rabbitmq
+  metadata:
+    labels:
+      tf_cluster: cluster1
+    name: rabbitmq1
+    namespace: tf
+  spec:
+    commonConfiguration:
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+    serviceConfiguration:
+      containers:
+      - image: tungstenfabric/contrail-external-rabbitmq:{{ .Tag }}
+        name: rabbitmq
+  status:
+    active: true
+    degraded: false

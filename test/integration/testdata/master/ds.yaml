@@ -1,0 +1,44 @@
+---
+apiVersion: v1
+kind: List
+items:
+- apiVersion: apps/v1
+  kind: DaemonSet
+  metadata:
+    labels:
+      tf_manager: vrouter
+      vrouter: vrouter1
+      manager: tf-operator
+    name: vrouter1-vrouter-daemonset
+    namespace: tf
+  spec:
+    template:
+      spec:
+        containers:
+        - image: tungstenfabric/contrail-provisioner:{{ .Tag }}
+          name: provisioner
+        - image: tungstenfabric/contrail-nodemgr:{{ .Tag }}
+          name: nodemanager
+        - image: tungstenfabric/contrail-vrouter-agent:{{ .Tag }}
+          name: vrouteragent
+        initContainers:
+        - image: tungstenfabric/contrail-vrouter-kernel-init:{{ .Tag }}
+          name: vrouterkernelinit
+        - image: tungstenfabric/contrail-kubernetes-cni-init:{{ .Tag }}
+          name: vroutercni
+        - image: tungstenfabric/contrail-node-init:{{ .Tag }}
+          name: nodeinit
+        - image: tungstenfabric/contrail-tools:{{ .Tag }}
+          name: nodeinit-tools-prefetch
+    updateStrategy:
+      rollingUpdate:
+        maxUnavailable: 1
+      type: RollingUpdate
+  status:
+    currentNumberScheduled: 1
+    desiredNumberScheduled: 1
+    numberAvailable: 1
+    numberMisscheduled: 0
+    numberReady: 1
+    observedGeneration: 1
+    updatedNumberScheduled: 1

@@ -1,0 +1,44 @@
+---
+apiVersion: v1
+kind: List
+items:
+- apiVersion: tf.tungsten.io/v1alpha1
+  kind: Cassandra
+  metadata:
+    labels:
+      contrail_cluster: cluster1
+    name: analyticsdb1
+    namespace: tf
+  spec:
+    serviceConfiguration:
+      containers:
+      - image: tungstenfabric/contrail-external-cassandra:{{ .Tag }}
+        name: cassandra
+      - image: tungstenfabric/contrail-nodemgr:{{ .Tag }}
+        name: nodemanager
+      - image: tungstenfabric/contrail-provisioner:{{ .Tag }}
+        name: provisioner
+  status:
+    active: true
+    configChanged: false
+    degraded: false
+- apiVersion: tf.tungsten.io/v1alpha1
+  kind: Cassandra
+  metadata:
+    labels:
+      contrail_cluster: cluster1
+    name: configdb1
+    namespace: tf
+  spec:
+    serviceConfiguration:
+      containers:
+      - image: tungstenfabric/contrail-external-cassandra:{{ .Tag }}
+        name: cassandra
+      - image: tungstenfabric/contrail-nodemgr:{{ .Tag }}
+        name: nodemanager
+      - image: tungstenfabric/contrail-provisioner:{{ .Tag }}
+        name: provisioner
+  status:
+    active: true
+    configChanged: false
+    degraded: false

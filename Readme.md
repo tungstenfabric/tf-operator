@@ -145,3 +145,5 @@ docker push $target
 
 
 # [Generate operator bundle](deploy/bundle/Readme.md)
+
+# [Prepare testdata for integration unittests](test/integration/testdata/Readme.md)

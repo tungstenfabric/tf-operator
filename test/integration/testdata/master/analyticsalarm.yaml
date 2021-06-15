@@ -1,0 +1,26 @@
+---
+apiVersion: v1
+kind: List
+items:
+- apiVersion: tf.tungsten.io/v1alpha1
+  kind: AnalyticsAlarm
+  metadata:
+    labels:
+      tf_cluster: cluster1
+    name: analyticsalarm1
+    namespace: tf
+  spec:
+    serviceConfiguration:
+      containers:
+      - image: tungstenfabric/contrail-nodemgr:{{ .Tag }}
+        name: nodemanager
+      - image: tungstenfabric/contrail-provisioner:{{ .Tag }}
+        name: provisioner
+      - image: tungstenfabric/contrail-analytics-alarm-gen:{{ .Tag }}
+        name: analytics-alarm-gen
+      - image: tungstenfabric/contrail-external-kafka:{{ .Tag }}
+        name: kafka
+  status:
+    active: true
+    configChanged: false
+    degraded: false

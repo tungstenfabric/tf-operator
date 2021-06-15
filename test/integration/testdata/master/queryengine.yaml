@@ -1,0 +1,23 @@
+---
+apiVersion: v1
+kind: List
+items:
+- apiVersion: tf.tungsten.io/v1alpha1
+  kind: QueryEngine
+  metadata:
+    labels:
+      tf_cluster: cluster1
+    name: queryengine1
+    namespace: tf
+  spec:
+    commonConfiguration:
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+    serviceConfiguration:
+      containers:
+      - image: tungstenfabric/contrail-analytics-query-engine:{{ .Tag }}
+        name: queryengine
+  status:
+    active: true
+    configChanged: false
+    degraded: false

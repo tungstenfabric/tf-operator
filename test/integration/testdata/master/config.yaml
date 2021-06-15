@@ -1,0 +1,34 @@
+---
+apiVersion: v1
+kind: List
+items:
+- apiVersion: tf.tungsten.io/v1alpha1
+  kind: Config
+  metadata:
+    labels:
+      tf_cluster: cluster1
+    name: config1
+    namespace: tf
+  spec:
+    serviceConfiguration:
+      containers:
+      - image: tungstenfabric/contrail-controller-config-api:{{ .Tag }}
+        name: api
+      - image: tungstenfabric/contrail-controller-config-devicemgr:{{ .Tag }}
+        name: devicemanager
+      - image: tungstenfabric/contrail-controller-config-dnsmasq:{{ .Tag }}
+        name: dnsmasq
+      - image: tungstenfabric/contrail-controller-config-schema:{{ .Tag }}
+        name: schematransformer
+      - image: tungstenfabric/contrail-controller-config-svcmonitor:{{ .Tag }}
+        name: servicemonitor
+      - image: tungstenfabric/contrail-nodemgr:{{ .Tag }}
+        name: nodemanager
+      - image: tungstenfabric/contrail-node-init:{{ .Tag }}
+        name: nodeinit
+      - image: tungstenfabric/contrail-provisioner:{{ .Tag }}
+        name: provisioner
+  status:
+    active: true
+    configChanged: false
+    degraded: false

@@ -1,0 +1,88 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubeadm-config
+  namespace: kube-system
+data:
+  ClusterConfiguration: |
+    apiServer:
+      certSANs:
+      - kubernetes
+      - kubernetes.default
+      - kubernetes.default.svc
+      - kubernetes.default.svc.k8s
+      - 10.96.0.1
+      - localhost
+      - 127.0.0.1
+      - node1
+      - lb-apiserver.kubernetes.local
+      - 10.0.0.225
+      - node1.k8s
+      extraArgs:
+        allow-privileged: "true"
+        anonymous-auth: "True"
+        apiserver-count: "1"
+        authorization-mode: Node,RBAC
+        bind-address: 0.0.0.0
+        enable-aggregator-routing: "False"
+        endpoint-reconciler-type: lease
+        event-ttl: 1h0m0s
+        insecure-port: "0"
+        kubelet-preferred-address-types: InternalDNS,InternalIP,Hostname,ExternalDNS,ExternalIP
+        profiling: "False"
+        request-timeout: 1m0s
+        service-node-port-range: 30000-32767
+        storage-backend: etcd3
+      extraVolumes:
+      - hostPath: /etc/pki/tls
+        mountPath: /etc/pki/tls
+        name: etc-pki-tls
+        readOnly: true
+      - hostPath: /etc/pki/ca-trust
+        mountPath: /etc/pki/ca-trust
+        name: etc-pki-ca-trust
+        readOnly: true
+      timeoutForControlPlane: 5m0s
+    apiVersion: kubeadm.k8s.io/v1beta2
+    certificatesDir: /etc/kubernetes/ssl
+    clusterName: k8s
+    controlPlaneEndpoint: 10.0.0.225:6443
+    controllerManager:
+      extraArgs:
+        bind-address: 0.0.0.0
+        configure-cloud-routes: "false"
+        node-cidr-mask-size: "24"
+        node-monitor-grace-period: 40s
+        node-monitor-period: 5s
+        pod-eviction-timeout: 5m0s
+        profiling: "False"
+        terminated-pod-gc-threshold: "12500"
+    dns:
+      imageRepository: docker.io/coredns
+      imageTag: 1.6.7
+      type: CoreDNS
+    etcd:
+      external:
+        caFile: /etc/ssl/etcd/ssl/ca.pem
+        certFile: /etc/ssl/etcd/ssl/node-node1.pem
+        endpoints:
+        - https://10.0.0.225:2379
+        keyFile: /etc/ssl/etcd/ssl/node-node1-key.pem
+    imageRepository: k8s.gcr.io
+    kind: ClusterConfiguration
+    kubernetesVersion: v1.18.10
+    networking:
+      dnsDomain: k8s
+      podSubnet: 10.32.0.0/12
+      serviceSubnet: 10.96.0.0/12
+    scheduler:
+      extraArgs:
+        bind-address: 0.0.0.0
+  ClusterStatus: |
+    apiEndpoints:
+      node1:
+        advertiseAddress: 10.0.0.225
+        bindPort: 6443
+    apiVersion: kubeadm.k8s.io/v1beta2
+    kind: ClusterStatus
