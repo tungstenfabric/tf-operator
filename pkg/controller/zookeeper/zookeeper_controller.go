@@ -302,19 +302,29 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 	}
 
 	if len(podIPList) > 0 {
+		// TODO: Services can be run on masters only, ensure that pods number is
+		if nodes, err := v1alpha1.GetControllerNodes(r.Client); err != nil || len(podIPList) < len(nodes) {
+			// to avoid redundand sts-es reloading configure only as STS pods are ready
+			reqLogger.Error(err, "Not enough pods are ready to generate configs %v < %v", len(podIPList), len(nodes))
+			return requeueReconcile, err
+		}
+
 		data, err := instance.InstanceConfiguration(podIPList, r.Client)
 		if err != nil {
 			reqLogger.Error(err, "Failed to get config data.")
 			return reconcile.Result{}, err
 		}
+
 		if err = v1alpha1.UpdateConfigMap(instance, instanceType, instance.Spec.CommonConfiguration.AuthParameters, data, r.Client); err != nil {
 			reqLogger.Error(err, "Failed to update config map.")
 			return reconcile.Result{}, err
 		}
+
 		if err := v1alpha1.EnsureCertificatesExist(instance, podIPList, instanceType, r.Client, r.Scheme); err != nil {
 			reqLogger.Error(err, "Failed to ensure certificates exist.")
 			return reconcile.Result{}, err
 		}
+
 		if requeueNeeded, err := instance.ManageNodeStatus(podIPList, r.Client); err != nil || requeueNeeded {
 			if err != nil {
 				reqLogger.Error(err, "Failed to manage node status.")
