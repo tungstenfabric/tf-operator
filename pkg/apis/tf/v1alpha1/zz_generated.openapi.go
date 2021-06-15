@@ -1882,7 +1882,7 @@ func schema_pkg_apis_tf_v1alpha1_Kubemanager(ref common.ReferenceCallback) commo
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "Kubemanager is the Schema for the kubemanagers API.",
+				Description: "Kubemanager is the Schema for the kubemanager API.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -1926,7 +1926,7 @@ func schema_pkg_apis_tf_v1alpha1_KubemanagerConfiguration(ref common.ReferenceCa
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "KubemanagerConfiguration is the Spec for the kubemanagers API.",
+				Description: "KubemanagerConfiguration is the Spec for the kubemanager API.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"containers": {
@@ -2061,7 +2061,7 @@ func schema_pkg_apis_tf_v1alpha1_KubemanagerSpec(ref common.ReferenceCallback) c
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "KubemanagerSpec is the Spec for the kubemanagers API.",
+				Description: "KubemanagerSpec is the Spec for the kubemanager API.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"commonConfiguration": {
@@ -2248,16 +2248,9 @@ func schema_pkg_apis_tf_v1alpha1_ManagerStatus(ref common.ReferenceCallback) com
 							},
 						},
 					},
-					"kubemanagers": {
+					"kubemanager": {
 						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ServiceStatus"),
-									},
-								},
-							},
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ServiceStatus"),
 						},
 					},
 					"webui": {
@@ -2291,26 +2284,12 @@ func schema_pkg_apis_tf_v1alpha1_ManagerStatus(ref common.ReferenceCallback) com
 					},
 					"redis": {
 						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ServiceStatus"),
-									},
-								},
-							},
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ServiceStatus"),
 						},
 					},
-					"zookeepers": {
+					"zookeeper": {
 						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ServiceStatus"),
-									},
-								},
-							},
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.ServiceStatus"),
 						},
 					},
 					"rabbitmq": {
@@ -2610,16 +2589,9 @@ func schema_pkg_apis_tf_v1alpha1_Services(ref common.ReferenceCallback) common.O
 							},
 						},
 					},
-					"kubemanagers": {
+					"kubemanager": {
 						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Kubemanager"),
-									},
-								},
-							},
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Kubemanager"),
 						},
 					},
 					"webui": {
@@ -2663,16 +2635,9 @@ func schema_pkg_apis_tf_v1alpha1_Services(ref common.ReferenceCallback) common.O
 							},
 						},
 					},
-					"zookeepers": {
+					"zookeeper": {
 						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Zookeeper"),
-									},
-								},
-							},
+							Ref: ref("github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1.Zookeeper"),
 						},
 					},
 					"rabbitmq": {
@@ -3074,7 +3039,7 @@ func schema_pkg_apis_tf_v1alpha1_Zookeeper(ref common.ReferenceCallback) common.
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "Zookeeper is the Schema for the zookeepers API.",
+				Description: "Zookeeper is the Schema for the zookeeper API.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -3118,7 +3083,7 @@ func schema_pkg_apis_tf_v1alpha1_ZookeeperConfiguration(ref common.ReferenceCall
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ZookeeperConfiguration is the Spec for the zookeepers API.",
+				Description: "ZookeeperConfiguration is the Spec for the zookeeper API.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"containers": {
@@ -3163,7 +3128,7 @@ func schema_pkg_apis_tf_v1alpha1_ZookeeperSpec(ref common.ReferenceCallback) com
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ZookeeperSpec is the Spec for the zookeepers API.",
+				Description: "ZookeeperSpec is the Spec for the zookeeper API.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"commonConfiguration": {

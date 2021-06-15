@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 DEBUG=$(echo $DEBUG | tr '[:upper:]' '[:lower:]')
-[ "${DEBUG}" == "true" ] && set -x
+[ "${DEBUG}" != "true" ] || set -x
 
 which greadlink >/dev/null 2>&1 && rlink='greadlink' || rlink='readlink'
 my_file="$($rlink -e "$0")"
@@ -30,7 +30,9 @@ run_make lint
 run_make "modules verify-modules"
 
 printf "INFO: run go test\n\n"
-if ! go test -race ./... ; then
+opts="-race"
+[ "${DEBUG}" != "true" ] || opts+=" -v"
+if ! go test $opts ./... ; then
     printf "\nERROR: go test failed\n\n"
     res=1
 else

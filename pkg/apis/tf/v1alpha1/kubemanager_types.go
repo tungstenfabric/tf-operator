@@ -23,7 +23,7 @@ import (
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// Kubemanager is the Schema for the kubemanagers API.
+// Kubemanager is the Schema for the kubemanager API.
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
 type Kubemanager struct {
@@ -34,14 +34,14 @@ type Kubemanager struct {
 	Status KubemanagerStatus `json:"status,omitempty"`
 }
 
-// KubemanagerSpec is the Spec for the kubemanagers API.
+// KubemanagerSpec is the Spec for the kubemanager API.
 // +k8s:openapi-gen=true
 type KubemanagerSpec struct {
-	CommonConfiguration  PodConfiguration                `json:"commonConfiguration,omitempty"`
-	ServiceConfiguration KubemanagerServiceConfiguration `json:"serviceConfiguration"`
+	CommonConfiguration  PodConfiguration         `json:"commonConfiguration,omitempty"`
+	ServiceConfiguration KubemanagerConfiguration `json:"serviceConfiguration"`
 }
 
-// KubemanagerStatus is the Status for the kubemanagers API.
+// KubemanagerStatus is the Status for the kubemanager API.
 // +k8s:openapi-gen=true
 type KubemanagerStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
@@ -50,13 +50,7 @@ type KubemanagerStatus struct {
 	CommonStatus `json:",inline"`
 }
 
-// KubemanagerServiceConfiguration is the Spec for the kubemanagers API.
-// +k8s:openapi-gen=true
-type KubemanagerServiceConfiguration struct {
-	KubemanagerConfiguration `json:",inline"`
-}
-
-// KubemanagerConfiguration is the configuration for the kubemanagers API.
+// KubemanagerConfiguration is the configuration for the kubemanager API.
 // +k8s:openapi-gen=true
 type KubemanagerConfiguration struct {
 	Containers            []*Container `json:"containers,omitempty"`

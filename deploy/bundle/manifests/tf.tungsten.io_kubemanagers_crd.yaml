@@ -14,7 +14,7 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
-      description: Kubemanager is the Schema for the kubemanagers API.
+      description: Kubemanager is the Schema for the kubemanager API.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -29,7 +29,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: KubemanagerSpec is the Spec for the kubemanagers API.
+          description: KubemanagerSpec is the Spec for the kubemanager API.
           properties:
             commonConfiguration:
               description: PodConfiguration is the common services struct.
@@ -146,7 +146,7 @@ spec:
                   type: boolean
               type: object
             serviceConfiguration:
-              description: KubemanagerServiceConfiguration is the Spec for the kubemanagers
+              description: KubemanagerConfiguration is the configuration for the kubemanager
                 API.
               properties:
                 cloudOrchestrator:
@@ -204,7 +204,7 @@ spec:
           - serviceConfiguration
           type: object
         status:
-          description: KubemanagerStatus is the Status for the kubemanagers API.
+          description: KubemanagerStatus is the Status for the kubemanager API.
           properties:
             active:
               type: boolean

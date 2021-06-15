@@ -64,9 +64,9 @@ func Add(mgr manager.Manager) error {
 	if err := apiextensionsv1beta1.AddToScheme(scheme.Scheme); err != nil {
 		return err
 	}
-	reconcileManager := &ReconcileManager{client: mgr.GetClient(),
-		scheme:  mgr.GetScheme(),
-		manager: mgr,
+	reconcileManager := &ReconcileManager{Client: mgr.GetClient(),
+		Scheme:  mgr.GetScheme(),
+		Manager: mgr,
 	}
 	c, err := controller.New("manager-controller", mgr, controller.Options{Reconciler: reconcileManager})
 	if err != nil {
@@ -102,9 +102,9 @@ var _ reconcile.Reconciler = &ReconcileManager{}
 type ReconcileManager struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver.
-	client  client.Client
-	scheme  *runtime.Scheme
-	manager manager.Manager
+	Client  client.Client
+	Scheme  *runtime.Scheme
+	Manager manager.Manager
 }
 
 // Get kubemanager STS. If kubemanager STS not found looks like tf start first time - return false
@@ -147,7 +147,7 @@ func IsZiuRequired(clnt client.Client) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("Can't get manager manifest %v", err)
 	}
-	ss = strings.Split(manager.Spec.Services.Kubemanagers[0].Spec.ServiceConfiguration.Containers[0].Image, ":")
+	ss = strings.Split(manager.Spec.Services.Kubemanager.Spec.ServiceConfiguration.Containers[0].Image, ":")
 	kmManagerTag := ss[len(ss)-1]
 	if kmManagerTag == kmStsTag {
 		return false, nil
@@ -183,11 +183,11 @@ func iterateOverKindInstances(kind string,
 	clnt client.Client,
 	params map[string]interface{}) ([]map[string]interface{}, error) {
 
-	mngr := &v1alpha1.Manager{}
-	mngrName := types.NamespacedName{Name: "cluster1", Namespace: "tf"}
-	if err := clnt.Get(context.Background(), mngrName, mngr); err != nil {
+	mngr, err := v1alpha1.GetManagerObject(clnt)
+	if err != nil {
 		return nil, err
 	}
+
 	var service reflect.Value
 	var _tried_services string
 	for serviceName := range structs.Map(mngr.Spec.Services) {
@@ -204,17 +204,21 @@ func iterateOverKindInstances(kind string,
 
 	var res []map[string]interface{}
 	var subRes map[string]interface{}
-	var err error
 	if reflect.TypeOf(service.Interface()).Kind() == reflect.Slice {
 		for i := 0; i < service.Len(); i++ {
-			serviceInstanceName := structs.Map(service.Index(i).Interface())["ObjectMeta"].(map[string]interface{})["Name"].(string)
+			meta := getChildObjectByIface("ObjectMeta", service.Index(i).Interface())
+			serviceInstanceName := getIfaceField("Name", meta).(string)
 			if subRes, err = runFn(kind, serviceInstanceName, true, clnt, params); err != nil {
 				return nil, err
 			}
 			res = append(res, subRes)
 		}
 	} else {
-		serviceInstanceName := structs.Map(service.Interface())["ObjectMeta"].(map[string]interface{})["Name"].(string)
+		if reflect.ValueOf(service.Interface()).Kind() == reflect.Ptr && !reflect.ValueOf(service.Interface()).Elem().IsValid() {
+			panic(fmt.Errorf("Internatl error: invalide service iface kind %+v obj=%+v mgr=%+v", kind, service, mngr.Spec.Services))
+		}
+		meta := getChildObjectByIface("ObjectMeta", service.Interface())
+		serviceInstanceName := getIfaceField("Name", meta).(string)
 		if subRes, err = runFn(kind, serviceInstanceName, false, clnt, params); err != nil {
 			return nil, err
 		}
@@ -223,28 +227,101 @@ func iterateOverKindInstances(kind string,
 	return res, nil
 }
 
-// Get Kind based on ZIU Stage
-// Get manager unstructured spec for kind
-// For each instance of the service check if Instance is updated
-func isServiceUpdated(ziuStage int, clnt client.Client) (bool, error) {
-	kind := v1alpha1.ZiuKinds[ziuStage]
-	// Get manager as unstructured
+func getObjectKey(name string) client.ObjectKey {
+	return client.ObjectKey{
+		Namespace: "tf",
+		Name:      name,
+	}
+}
+
+func getClusterObjectKey() client.ObjectKey {
+	return getObjectKey("cluster1")
+}
+
+func getUnstructured(name string) *unstructured.Unstructured {
 	u := &unstructured.Unstructured{}
 	u.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "tf.tungsten.io",
-		Kind:    "Manager",
+		Kind:    name,
 		Version: "v1alpha1",
 	})
-	err := clnt.Get(context.Background(), client.ObjectKey{
-		Namespace: "tf",
-		Name:      "cluster1",
-	}, u)
+	return u
+}
+
+func getManagerUnstructured(clnt client.Client) (mgr *unstructured.Unstructured, err error) {
+	mgr = getUnstructured("Manager")
+	err = clnt.Get(context.Background(), getClusterObjectKey(), mgr)
+	return
+}
+
+func toMap(iface interface{}) map[string]interface{} {
+	val := reflect.ValueOf(iface)
+	kind := val.Kind()
+	switch kind {
+	case reflect.Map:
+		return iface.(map[string]interface{})
+	case reflect.Struct:
+		relType := val.Type()
+		res := map[string]interface{}{}
+		for idx := 0; idx < relType.NumField(); idx++ {
+			f := relType.Field(idx)
+			res[f.Name] = val.Field(idx).Interface()
+		}
+		return res
+	case reflect.Ptr:
+		if !val.Elem().IsValid() {
+			panic(fmt.Errorf("Internal error: kind %+v, invalid obj=%+v", kind, iface))
+		}
+		return toMap(val.Elem().Interface())
+	default:
+		panic(fmt.Errorf("Internal error: kind %+v cannot be convert to map, obj=%+v", kind, iface))
+	}
+}
+
+func GetChildObject(xPath string, obj map[string]interface{}) map[string]interface{} {
+	elements := strings.Split(xPath, "/")
+	if len(elements) == 0 || elements[0] == "" {
+		panic(fmt.Errorf("Internal error: xPath parameter cannot be empty %s", xPath))
+	}
+	if child, ok := obj[elements[0]]; ok {
+		cm := toMap(child)
+		if len(elements) == 1 {
+			return cm
+		}
+		return GetChildObject(strings.Join(elements[1:], "/"), cm)
+	}
+	panic(fmt.Errorf("Internal error: No child %s in object %+v", elements[0], obj))
+}
+
+func getChildObjectByIface(xPath string, iface interface{}) map[string]interface{} {
+	obj := toMap(iface)
+	if obj == nil {
+		panic(fmt.Errorf("Internal error: not Interface: %+v ", iface))
+	}
+	return GetChildObject(xPath, obj)
+}
+
+func getIfaceField(xPath string, iface interface{}) interface{} {
+	elements := strings.Split(xPath, "/")
+	if len(elements) != 1 || elements[0] == "" {
+		panic(fmt.Errorf("Internal error: xPath parameter now is not supported %s", xPath))
+	}
+	return toMap(iface)[elements[0]]
+}
+
+// Get Kind based on ZIU Stage
+// Get manager unstructured spec for kind
+// For each instance of the service check if Instance is updated
+func isServiceUpdated(ziuStage v1alpha1.ZIUStatus, clnt client.Client) (bool, error) {
+	kind := v1alpha1.ZiuKinds[ziuStage]
+	u, err := getManagerUnstructured(clnt)
 	if err != nil {
 		return false, err
 	}
 	params := map[string]interface{}{
 		"Manager": u.UnstructuredContent(),
 	}
+
 	resArr, err := iterateOverKindInstances(kind, isServiceInstanceUpdated, clnt, params)
 	if err != nil {
 		return false, err
@@ -269,16 +346,13 @@ func isServiceUpdated(ziuStage int, clnt client.Client) (bool, error) {
 // check if STS Updated Replicas is the same with Replicas
 // if it is return true, otherwise, return false
 func isServiceInstanceUpdated(kind string, serviceName string, isSlice bool, clnt client.Client, params map[string]interface{}) (map[string]interface{}, error) {
-	// TODO Remove if it works without reflect
-	// updatedFalse := map[string]interface{}{"Updated": reflect.ValueOf(false).Interface()}
-	// updatedTrue := map[string]interface{}{"Updated": reflect.ValueOf(true).Interface()}
 	updatedFalse := map[string]interface{}{"Updated": false}
 	updatedTrue := map[string]interface{}{"Updated": true}
+	var err error
 
 	// Got STS related to service instance
 	stsName := serviceName + "-" + strings.ToLower(kind) + "-statefulset"
 	sts := &appsv1.StatefulSet{}
-	var err error
 	if err = clnt.Get(context.Background(), types.NamespacedName{Name: stsName, Namespace: "tf"}, sts); err != nil {
 		if errors.IsNotFound(err) {
 			// We have to wait when sts will bw set up
@@ -289,36 +363,37 @@ func isServiceInstanceUpdated(kind string, serviceName string, isSlice bool, cln
 
 	// Find service instance spec in the manager spec
 	var u_service map[string]interface{}
-	services := params["Manager"].(map[string]interface{})["spec"].(map[string]interface{})["services"].(map[string]interface{})
+	services := GetChildObject("Manager/spec/services", params)
 	serviceNameByKind := getServiceNameByKind(kind, services)
 	if isSlice {
 		// Iterate over services of this kind and find service with proper name
-		for _, servData := range services[serviceNameByKind].([]interface{}) {
-			_srv := servData.(map[string]interface{})
-			if _srv["metadata"].(map[string]interface{})["name"].(string) == serviceName {
-				u_service = _srv
+		for _, serv := range services[serviceNameByKind].([]interface{}) {
+			if getChildObjectByIface("metadata", serv)["name"].(string) == serviceName {
+				u_service = serv.(map[string]interface{})
 				break
 			}
 		}
 	} else {
-		u_service = services[serviceNameByKind].(map[string]interface{})
+		u_service = GetChildObject(serviceNameByKind, services)
 	}
 	if len(u_service) == 0 {
 		return updatedFalse, fmt.Errorf("Failed to find service %s/%s by %s in object %+v", kind, serviceName, serviceNameByKind, services)
 	}
 
 	// Get name and image from the first container from manager service spec
-	managerContainer := u_service["spec"].(map[string]interface{})["serviceConfiguration"].(map[string]interface{})["containers"].([]interface{})[0].(map[string]interface{})
-	managerContainerName := managerContainer["name"].(string)
-	managerContainerImage := managerContainer["image"].(string)
+	managerContainerList := GetChildObject("spec/serviceConfiguration", u_service)["containers"].([]interface{})
+	if len(managerContainerList) == 0 {
+		return updatedFalse, fmt.Errorf("Empty %s/%s service containers list: %s", serviceNameByKind, serviceName, u_service)
+	}
+
+	managerContainerName := getIfaceField("name", managerContainerList[0]).(string)
+	managerContainerImage := getIfaceField("image", managerContainerList[0]).(string)
 
 	// Find a container with the same name in STS template
-	for _, container := range sts.Spec.Template.Spec.Containers {
-		// check if container image from manager manifest is the same with the image from deployed sts
-		if container.Name == managerContainerName && container.Image != managerContainerImage {
-			return updatedFalse, nil
-		}
+	if !checkContainersTag(managerContainerName, managerContainerImage, sts.Spec.Template.Spec.Containers) {
+		return updatedFalse, nil
 	}
+
 	// check if STS Updated Replicas is the same with Replicas
 	if sts.Status.Replicas != sts.Status.UpdatedReplicas {
 		return updatedFalse, nil
@@ -328,18 +403,9 @@ func isServiceInstanceUpdated(kind string, serviceName string, isSlice bool, cln
 	if pods, err = v1alpha1.SelectPods(serviceName, strings.ToLower(kind), "tf", clnt); err != nil {
 		return updatedFalse, err
 	}
-	// We have to see all pods required
-	if int(sts.Status.Replicas) != len(pods.Items) {
-		return updatedFalse, nil
-	}
-	podRes := true
 	for _, podItem := range pods.Items {
-		// We have to check contaier tag for all pods is the same with manager
-		podRes = podRes && checkPodTag(managerContainerName, managerContainerImage, &podItem)
-		// We have to see all pods are Running
-		podRes = podRes && (podItem.Status.Phase == corev1.PodPhase("Running"))
-
-		if !podRes {
+		if podItem.Status.Phase != corev1.PodPhase("Running") ||
+			!cmpContainers(sts.Spec.Template.Spec.Containers, podItem.Spec.Containers) {
 			return updatedFalse, nil
 		}
 	}
@@ -352,121 +418,89 @@ func isServiceInstanceUpdated(kind string, serviceName string, isSlice bool, cln
 	return updatedTrue, nil
 }
 
-func checkPodTag(managerContainerName string, managerContainerImage string, podItem *corev1.Pod) bool {
-	resContainer := false
-	for _, container := range podItem.Spec.Containers {
-		if (managerContainerName == container.Name) && (managerContainerImage == container.Image) {
-			resContainer = true
-			break
+func cmpContainers(stsContainers, podContainers []corev1.Container) bool {
+	for _, c := range stsContainers {
+		if !checkContainersTag(c.Name, c.Image, podContainers) {
+			return false
 		}
 	}
-	return resContainer
+	return true
+}
+
+func checkContainersTag(name, image string, containers []corev1.Container) bool {
+	for _, container := range containers {
+		if name == container.Name {
+			return image == container.Image
+		}
+	}
+	return false
 }
 
 // Extract by name and kind part of Manager manifest (resource spec) as unstructured
-func getUnstructuredSpec(kind string, name string, isSlice bool, clnt client.Client) (map[string]interface{}, error) {
-	// Getmanager as unstructured
-	u := &unstructured.Unstructured{}
-	u.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "tf.tungsten.io",
-		Kind:    "Manager",
-		Version: "v1alpha1",
-	})
-	err := clnt.Get(context.Background(), client.ObjectKey{
-		Namespace: "tf",
-		Name:      "cluster1",
-	}, u)
-	if err != nil {
-		return u.UnstructuredContent(), err
-	}
-	services := u.UnstructuredContent()["spec"].(map[string]interface{})["services"].(map[string]interface{})
+func getUnstructuredSpec(kind string, name string, isSlice bool, mgr *unstructured.Unstructured) (map[string]interface{}, error) {
+	services := GetChildObject("spec/services", mgr.UnstructuredContent())
 	// find right service: it's key in lowercase have to starts with kind
-	var service map[string]interface{}
+	var serviceSpec map[string]interface{}
 	serviceName := getServiceNameByKind(kind, services)
+	if serviceName == "" {
+		return nil, fmt.Errorf("No service %s in spec/services %s", kind, services)
+	}
 	if isSlice {
 		for _, serv := range services[serviceName].([]interface{}) {
-			if serv.(map[string]interface{})["metadata"].(map[string]interface{})["name"].(string) == name {
-				service = serv.(map[string]interface{})["spec"].(map[string]interface{})
+			if getChildObjectByIface("metadata", serv)["name"].(string) == name {
+				serviceSpec = getChildObjectByIface("spec", serv)
+				break
 			}
 		}
 	} else {
-		service = services[serviceName].(map[string]interface{})["spec"].(map[string]interface{})
+		serviceSpec = GetChildObject(serviceName+"/spec", services)
 	}
-	if len(service) == 0 {
-		return nil, fmt.Errorf("We can't find resource %v/%v by name %s in manager spec %+v", kind, name, serviceName, services)
+	if len(serviceSpec) == 0 {
+		return nil, fmt.Errorf("Failed to find %v/%v in manager spec by name %v", kind, name, serviceName)
 	}
-	return service, nil
+	return serviceSpec, nil
 }
 
 func updateResource(kind string, serviceName string, isSlice bool, clnt client.Client) error {
-	u_manager := &unstructured.Unstructured{}
-	u_manager.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "tf.tungsten.io",
-		Kind:    "Manager",
-		Version: "v1alpha1",
-	})
-	err := clnt.Get(context.Background(), client.ObjectKey{
-		Namespace: "tf",
-		Name:      "cluster1",
-	}, u_manager)
+	mgr, err := getManagerUnstructured(clnt)
 	if err != nil {
 		return err
 	}
-	managerCommonConf := u_manager.UnstructuredContent()["spec"].(map[string]interface{})["commonConfiguration"].(map[string]interface{})
+	spec, err := getUnstructuredSpec(kind, serviceName, isSlice, mgr)
+	if err != nil {
+		return err
+	}
+	res := getUnstructured(kind)
+	if err = clnt.Get(context.Background(), getObjectKey(serviceName), res); err != nil && !errors.IsNotFound(err) {
+		return err
+	}
+	createNew := errors.IsNotFound(err)
 
-	res := &unstructured.Unstructured{}
-	res.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "tf.tungsten.io",
-		Kind:    kind,
-		Version: "v1alpha1",
-	})
-	err = clnt.Get(context.Background(), client.ObjectKey{
-		Namespace: "tf",
-		Name:      serviceName,
-	}, res)
-	if err != nil {
-		return err
+	log.Info(fmt.Sprintf("DDDDD res_spec = %+v", spec))
+	managerCommonConf := GetChildObject("spec/commonConfiguration", mgr.UnstructuredContent())
+	spec["commonConfiguration"] = utils.MergeUnstructuredCommonConfig(managerCommonConf, spec["commonConfiguration"])
+	res.Object["spec"] = spec
+
+	if createNew {
+		// Create new
+		if err = clnt.Create(context.Background(), res); !errors.IsAlreadyExists(err) {
+			return err
+		}
+		return nil
 	}
-	res_spec, err := getUnstructuredSpec(kind, serviceName, isSlice, clnt)
-	if err != nil {
-		return err
-	}
-	res.Object["spec"] = res_spec
-	mergedCommonConf := utils.MergeUnstructuredCommonConfig(managerCommonConf, res_spec["commonConfiguration"].(map[string]interface{}))
-	res.Object["spec"].(map[string]interface{})["commonConfiguration"] = mergedCommonConf
-	err = clnt.Update(context.Background(), res)
-	return err
+	return clnt.Update(context.Background(), res)
 }
 
 func updateZiuResource(kind string, serviceName string, isSlice bool, clnt client.Client, params map[string]interface{}) (map[string]interface{}, error) {
 	fake := make(map[string]interface{})
-	// Check if resource is absend on cluster - create it, increate ZIU Stage and return
-	res := &unstructured.Unstructured{}
-	res.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "tf.tungsten.io",
-		Kind:    kind,
-		Version: "v1alpha1",
-	})
-	if err := clnt.Get(context.Background(), client.ObjectKey{
-		Namespace: "tf",
-		Name:      serviceName,
-	}, res); err != nil {
-		return fake, err
-	}
-
-	// We have resource in the cluster
-	if _, err := v1alpha1.QuerySTS(res.GetName()+"-"+strings.ToLower(kind)+"-statefulset", res.GetNamespace(), clnt); err != nil {
-		return fake, err
-	}
-	return nil, updateResource(kind, serviceName, isSlice, clnt)
+	return fake, updateResource(kind, serviceName, isSlice, clnt)
 }
 
-func updateZiuStage(ziuStage v1alpha1.ZIUStatus, clnt client.Client) error {
+func processZiuStage(ziuStage v1alpha1.ZIUStatus, clnt client.Client) error {
 	if _, err := iterateOverKindInstances(v1alpha1.ZiuKinds[ziuStage], updateZiuResource, clnt, nil); err != nil {
 		return err
 	}
 	return v1alpha1.SetZiuStage(int(ziuStage)+1, clnt)
-
 }
 
 func ReconcileZiu(clnt client.Client) (reconcile.Result, error) {
@@ -478,19 +512,17 @@ func ReconcileZiu(clnt client.Client) (reconcile.Result, error) {
 	restartTime, _ := time.ParseDuration("15s")
 	requeueResult := reconcile.Result{Requeue: true, RequeueAfter: restartTime}
 
+	// We have to wait previous stage updated and ready
 	if ziuStage > 0 {
-		// We have to wait previous stage updated and ready
-		if isUpdated, err := isServiceUpdated(int(ziuStage)-1, clnt); err != nil || !isUpdated {
+		if isUpdated, err := isServiceUpdated(ziuStage-1, clnt); err != nil || !isUpdated {
 			return requeueResult, err
 		}
 	}
-
 	if len(v1alpha1.ZiuKinds) == int(ziuStage) {
 		// ZIU have been finished - set stage to -1
 		return requeueResult, v1alpha1.SetZiuStage(-1, clnt)
 	}
-
-	return requeueResult, updateZiuStage(v1alpha1.ZIUStatus(ziuStage), clnt)
+	return requeueResult, processZiuStage(ziuStage, clnt)
 }
 
 // Reconcile reconciles the manager.
@@ -498,13 +530,13 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Reconciling Manager")
 
-	// Process ZIU if needed
-	if res, err := ReconcileZiu(r.client); err != nil || res.Requeue {
+	// Run ZIU Process if no error in status get
+	if res, err := ReconcileZiu(r.Client); err != nil || res.Requeue {
 		return res, err
 	}
 
 	instance := &v1alpha1.Manager{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	err := r.Client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil
@@ -521,7 +553,7 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	// set defaults if not set
-	if err := instance.Spec.CommonConfiguration.AuthParameters.Prepare(request.Namespace, r.client); err != nil {
+	if err := instance.Spec.CommonConfiguration.AuthParameters.Prepare(request.Namespace, r.Client); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -622,16 +654,16 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 		log.Error(err, "processAnalyticsAlarm")
 	}
 
-	if err := r.processKubemanagers(instance); err != nil {
+	if err := r.processKubemanager(instance); err != nil {
 		if v1alpha1.IsOKForRequeque(err) {
-			log.Info("Failed to processKubemanagers, future rereconcile")
+			log.Info("Failed to processKubemanager, future rereconcile")
 			requeueErr = err
 		}
-		log.Error(err, "processKubemanagers")
+		log.Error(err, "processKubemanager")
 	}
 
 	r.setConditions(instance)
-	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
+	if err := r.Client.Status().Update(context.TODO(), instance); err != nil {
 		if v1alpha1.IsOKForRequeque(err) {
 			log.Info("Failed to update status, and reconcile is restarting.")
 			return requeueReconcile, nil
@@ -668,7 +700,7 @@ func (r *ReconcileManager) processAnalytics(manager *v1alpha1.Manager) error {
 					"tf_cluster": manager.Name,
 				},
 			}
-			err := r.client.Delete(context.TODO(), oldConfig)
+			err := r.Client.Delete(context.TODO(), oldConfig)
 			if err != nil && !errors.IsNotFound(err) {
 				return err
 			}
@@ -680,10 +712,10 @@ func (r *ReconcileManager) processAnalytics(manager *v1alpha1.Manager) error {
 	analytics := &v1alpha1.Analytics{}
 	analytics.ObjectMeta = manager.Spec.Services.Analytics.ObjectMeta
 	analytics.ObjectMeta.Namespace = manager.Namespace
-	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, analytics, func() error {
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, analytics, func() error {
 		analytics.Spec = manager.Spec.Services.Analytics.Spec
 		analytics.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, analytics.Spec.CommonConfiguration)
-		return controllerutil.SetControllerReference(manager, analytics, r.scheme)
+		return controllerutil.SetControllerReference(manager, analytics, r.Scheme)
 	})
 	if err != nil {
 		return err
@@ -706,7 +738,7 @@ func (r *ReconcileManager) processQueryEngine(manager *v1alpha1.Manager) error {
 					"tf_cluster": manager.Name,
 				},
 			}
-			err := r.client.Delete(context.TODO(), oldConfig)
+			err := r.Client.Delete(context.TODO(), oldConfig)
 			if err != nil && !errors.IsNotFound(err) {
 				return err
 			}
@@ -718,10 +750,10 @@ func (r *ReconcileManager) processQueryEngine(manager *v1alpha1.Manager) error {
 	queryengine := &v1alpha1.QueryEngine{}
 	queryengine.ObjectMeta = manager.Spec.Services.QueryEngine.ObjectMeta
 	queryengine.ObjectMeta.Namespace = manager.Namespace
-	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, queryengine, func() error {
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, queryengine, func() error {
 		queryengine.Spec = manager.Spec.Services.QueryEngine.Spec
 		queryengine.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, queryengine.Spec.CommonConfiguration)
-		return controllerutil.SetControllerReference(manager, queryengine, r.scheme)
+		return controllerutil.SetControllerReference(manager, queryengine, r.Scheme)
 	})
 	if err != nil {
 		return err
@@ -744,7 +776,7 @@ func (r *ReconcileManager) processAnalyticsSnmp(manager *v1alpha1.Manager) error
 					"tf_cluster": manager.Name,
 				},
 			}
-			err := r.client.Delete(context.TODO(), oldAnalyticsSnmp)
+			err := r.Client.Delete(context.TODO(), oldAnalyticsSnmp)
 			if err != nil && !errors.IsNotFound(err) {
 				return err
 			}
@@ -756,10 +788,10 @@ func (r *ReconcileManager) processAnalyticsSnmp(manager *v1alpha1.Manager) error
 	analyticsSnmp := &v1alpha1.AnalyticsSnmp{}
 	analyticsSnmp.ObjectMeta = manager.Spec.Services.AnalyticsSnmp.ObjectMeta
 	analyticsSnmp.ObjectMeta.Namespace = manager.Namespace
-	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, analyticsSnmp, func() error {
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, analyticsSnmp, func() error {
 		analyticsSnmp.Spec = manager.Spec.Services.AnalyticsSnmp.Spec
 		analyticsSnmp.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, analyticsSnmp.Spec.CommonConfiguration)
-		return controllerutil.SetControllerReference(manager, analyticsSnmp, r.scheme)
+		return controllerutil.SetControllerReference(manager, analyticsSnmp, r.Scheme)
 	})
 	if err != nil {
 		return err
@@ -782,7 +814,7 @@ func (r *ReconcileManager) processAnalyticsAlarm(manager *v1alpha1.Manager) erro
 					"tf_cluster": manager.Name,
 				},
 			}
-			err := r.client.Delete(context.TODO(), oldAnalyticsAlarm)
+			err := r.Client.Delete(context.TODO(), oldAnalyticsAlarm)
 			if err != nil && !errors.IsNotFound(err) {
 				return err
 			}
@@ -794,10 +826,10 @@ func (r *ReconcileManager) processAnalyticsAlarm(manager *v1alpha1.Manager) erro
 	analyticsAlarm := &v1alpha1.AnalyticsAlarm{}
 	analyticsAlarm.ObjectMeta = manager.Spec.Services.AnalyticsAlarm.ObjectMeta
 	analyticsAlarm.ObjectMeta.Namespace = manager.Namespace
-	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, analyticsAlarm, func() error {
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, analyticsAlarm, func() error {
 		analyticsAlarm.Spec = manager.Spec.Services.AnalyticsAlarm.Spec
 		analyticsAlarm.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, analyticsAlarm.Spec.CommonConfiguration)
-		return controllerutil.SetControllerReference(manager, analyticsAlarm, r.scheme)
+		return controllerutil.SetControllerReference(manager, analyticsAlarm, r.Scheme)
 	})
 	if err != nil {
 		return err
@@ -810,54 +842,42 @@ func (r *ReconcileManager) processAnalyticsAlarm(manager *v1alpha1.Manager) erro
 }
 
 func (r *ReconcileManager) processZookeepers(manager *v1alpha1.Manager) error {
-	for _, existingZookeeper := range manager.Status.Zookeepers {
-		found := false
-		for _, intendedZookeeper := range manager.Spec.Services.Zookeepers {
-			if *existingZookeeper.Name == intendedZookeeper.Name {
-				found = true
-				break
-			}
-		}
-		if !found {
-			oldZookeeper := &v1alpha1.Zookeeper{}
-			oldZookeeper.ObjectMeta = v1.ObjectMeta{
+	if manager.Spec.Services.Zookeeper == nil {
+		if manager.Status.Zookeeper != nil {
+			old := &v1alpha1.Zookeeper{}
+			old.ObjectMeta = v1.ObjectMeta{
 				Namespace: manager.Namespace,
-				Name:      *existingZookeeper.Name,
+				Name:      *manager.Status.Zookeeper.Name,
 				Labels: map[string]string{
 					"tf_cluster": manager.Name,
 				},
 			}
-			err := r.client.Delete(context.TODO(), oldZookeeper)
+			err := r.Client.Delete(context.TODO(), old)
 			if err != nil && !errors.IsNotFound(err) {
 				return err
 			}
+			manager.Status.Zookeeper = nil
 		}
-	}
-
-	if !manager.IsVrouterActiveOnControllers(r.client) {
 		return nil
 	}
 
-	var zookeeperServiceStatus []*v1alpha1.ServiceStatus
-	for _, zookeeperService := range manager.Spec.Services.Zookeepers {
-		zookeeper := &v1alpha1.Zookeeper{}
-		zookeeper.ObjectMeta = zookeeperService.ObjectMeta
-		zookeeper.ObjectMeta.Namespace = manager.Namespace
-		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, zookeeper, func() error {
-			zookeeper.Spec = zookeeperService.Spec
-			zookeeper.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, zookeeper.Spec.CommonConfiguration)
-			return controllerutil.SetControllerReference(manager, zookeeper, r.scheme)
-		})
-		if err != nil {
-			return err
-		}
-		status := &v1alpha1.ServiceStatus{}
-		status.Name = &zookeeper.Name
-		status.Active = zookeeper.Status.Active
-		zookeeperServiceStatus = append(zookeeperServiceStatus, status)
+	if !manager.IsVrouterActiveOnControllers(r.Client) {
+		return nil
 	}
 
-	manager.Status.Zookeepers = zookeeperServiceStatus
+	zookeeper := &v1alpha1.Zookeeper{}
+	zookeeper.ObjectMeta = manager.Spec.Services.Zookeeper.ObjectMeta
+	zookeeper.ObjectMeta.Namespace = manager.Namespace
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, zookeeper, func() error {
+		zookeeper.Spec = manager.Spec.Services.Zookeeper.Spec
+		zookeeper.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, zookeeper.Spec.CommonConfiguration)
+		return controllerutil.SetControllerReference(manager, zookeeper, r.Scheme)
+	})
+	if err != nil {
+		return err
+	}
+	status := &v1alpha1.ServiceStatus{Name: &zookeeper.Name, Active: zookeeper.Status.Active}
+	manager.Status.Zookeeper = status
 	return nil
 }
 
@@ -879,14 +899,14 @@ func (r *ReconcileManager) processCassandras(manager *v1alpha1.Manager) error {
 					"tf_cluster": manager.Name,
 				},
 			}
-			err := r.client.Delete(context.TODO(), oldCassandra)
+			err := r.Client.Delete(context.TODO(), oldCassandra)
 			if err != nil && !errors.IsNotFound(err) {
 				return err
 			}
 		}
 	}
 
-	if !manager.IsVrouterActiveOnControllers(r.client) {
+	if !manager.IsVrouterActiveOnControllers(r.Client) {
 		return nil
 	}
 
@@ -895,10 +915,10 @@ func (r *ReconcileManager) processCassandras(manager *v1alpha1.Manager) error {
 		cassandra := &v1alpha1.Cassandra{}
 		cassandra.ObjectMeta = cassandraService.ObjectMeta
 		cassandra.ObjectMeta.Namespace = manager.Namespace
-		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, cassandra, func() error {
+		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, cassandra, func() error {
 			cassandra.Spec = cassandraService.Spec
 			cassandra.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, cassandra.Spec.CommonConfiguration)
-			return controllerutil.SetControllerReference(manager, cassandra, r.scheme)
+			return controllerutil.SetControllerReference(manager, cassandra, r.Scheme)
 		})
 		if err != nil {
 			return err
@@ -930,14 +950,14 @@ func (r *ReconcileManager) processRedis(manager *v1alpha1.Manager) error {
 					"tf_cluster": manager.Name,
 				},
 			}
-			err := r.client.Delete(context.TODO(), oldRedis)
+			err := r.Client.Delete(context.TODO(), oldRedis)
 			if err != nil && !errors.IsNotFound(err) {
 				return err
 			}
 		}
 	}
 
-	if !manager.IsVrouterActiveOnControllers(r.client) {
+	if !manager.IsVrouterActiveOnControllers(r.Client) {
 		return nil
 	}
 
@@ -946,23 +966,22 @@ func (r *ReconcileManager) processRedis(manager *v1alpha1.Manager) error {
 		redis := &v1alpha1.Redis{}
 		redis.ObjectMeta = redisService.ObjectMeta
 		redis.ObjectMeta.Namespace = manager.Namespace
-		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, redis, func() error {
+		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, redis, func() error {
 			redis.Spec = redisService.Spec
 			if redis.Spec.ServiceConfiguration.ClusterName == "" {
 				redis.Spec.ServiceConfiguration.ClusterName = manager.GetName()
 			}
 			redis.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, redis.Spec.CommonConfiguration)
-			return controllerutil.SetControllerReference(manager, redis, r.scheme)
+			return controllerutil.SetControllerReference(manager, redis, r.Scheme)
 		})
 		if err != nil {
 			return err
 		}
-		status := &v1alpha1.ServiceStatus{}
-		status.Name = &redis.Name
-		status.Active = redis.Status.Active
+		status := &v1alpha1.ServiceStatus{Name: &redis.Name, Active: redis.Status.Active}
 		redisStatusList = append(redisStatusList, status)
 	}
 	manager.Status.Redis = redisStatusList
+
 	return nil
 }
 
@@ -977,7 +996,7 @@ func (r *ReconcileManager) processWebui(manager *v1alpha1.Manager) error {
 					"tf_cluster": manager.Name,
 				},
 			}
-			err := r.client.Delete(context.TODO(), oldWebUI)
+			err := r.Client.Delete(context.TODO(), oldWebUI)
 			if err != nil && !errors.IsNotFound(err) {
 				return err
 			}
@@ -986,24 +1005,22 @@ func (r *ReconcileManager) processWebui(manager *v1alpha1.Manager) error {
 		return nil
 	}
 
-	if !manager.IsVrouterActiveOnControllers(r.client) {
+	if !manager.IsVrouterActiveOnControllers(r.Client) {
 		return nil
 	}
 
 	webui := &v1alpha1.Webui{}
 	webui.ObjectMeta = manager.Spec.Services.Webui.ObjectMeta
 	webui.ObjectMeta.Namespace = manager.Namespace
-	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, webui, func() error {
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, webui, func() error {
 		webui.Spec = manager.Spec.Services.Webui.Spec
 		webui.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, webui.Spec.CommonConfiguration)
-		return controllerutil.SetControllerReference(manager, webui, r.scheme)
+		return controllerutil.SetControllerReference(manager, webui, r.Scheme)
 	})
 	if err != nil {
 		return err
 	}
-	status := &v1alpha1.ServiceStatus{}
-	status.Name = &webui.Name
-	status.Active = webui.Status.Active
+	status := &v1alpha1.ServiceStatus{Name: &webui.Name, Active: webui.Status.Active}
 	manager.Status.Webui = status
 	return err
 }
@@ -1019,7 +1036,7 @@ func (r *ReconcileManager) processConfig(manager *v1alpha1.Manager) error {
 					"tf_cluster": manager.Name,
 				},
 			}
-			err := r.client.Delete(context.TODO(), oldConfig)
+			err := r.Client.Delete(context.TODO(), oldConfig)
 			if err != nil && !errors.IsNotFound(err) {
 				return err
 			}
@@ -1028,17 +1045,17 @@ func (r *ReconcileManager) processConfig(manager *v1alpha1.Manager) error {
 		return nil
 	}
 
-	if !manager.IsVrouterActiveOnControllers(r.client) {
+	if !manager.IsVrouterActiveOnControllers(r.Client) {
 		return nil
 	}
 
 	config := &v1alpha1.Config{}
 	config.ObjectMeta = manager.Spec.Services.Config.ObjectMeta
 	config.ObjectMeta.Namespace = manager.Namespace
-	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, config, func() error {
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, config, func() error {
 		config.Spec = manager.Spec.Services.Config.Spec
 		config.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, config.Spec.CommonConfiguration)
-		return controllerutil.SetControllerReference(manager, config, r.scheme)
+		return controllerutil.SetControllerReference(manager, config, r.Scheme)
 	})
 	if err != nil {
 		return err
@@ -1050,56 +1067,42 @@ func (r *ReconcileManager) processConfig(manager *v1alpha1.Manager) error {
 	return nil
 }
 
-func (r *ReconcileManager) processKubemanagers(manager *v1alpha1.Manager) error {
-	for _, existingKubemanager := range manager.Status.Kubemanagers {
-		found := false
-		for _, intendedKubemanager := range manager.Spec.Services.Kubemanagers {
-			if *existingKubemanager.Name == intendedKubemanager.Name {
-				found = true
-				break
-			}
-		}
-		if !found {
-			oldKubemanager := &v1alpha1.Kubemanager{}
-			oldKubemanager.ObjectMeta = v1.ObjectMeta{
+func (r *ReconcileManager) processKubemanager(manager *v1alpha1.Manager) error {
+	if manager.Spec.Services.Kubemanager == nil {
+		if manager.Status.Kubemanager != nil {
+			old := &v1alpha1.Kubemanager{}
+			old.ObjectMeta = v1.ObjectMeta{
 				Namespace: manager.Namespace,
-				Name:      *existingKubemanager.Name,
+				Name:      *manager.Status.Kubemanager.Name,
 				Labels: map[string]string{
 					"tf_cluster": manager.Name,
 				},
 			}
-			err := r.client.Delete(context.TODO(), oldKubemanager)
+			err := r.Client.Delete(context.TODO(), old)
 			if err != nil && !errors.IsNotFound(err) {
 				return err
 			}
+			manager.Status.Kubemanager = nil
 		}
-	}
-
-	if !manager.IsVrouterActiveOnControllers(r.client) {
 		return nil
 	}
 
-	var kubemanagerServiceStatus []*v1alpha1.ServiceStatus
-
-	for _, kubemanagerService := range manager.Spec.Services.Kubemanagers {
-		kubemanager := &v1alpha1.Kubemanager{}
-		kubemanager.ObjectMeta = kubemanagerService.ObjectMeta
-		kubemanager.ObjectMeta.Namespace = manager.Namespace
-		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, kubemanager, func() error {
-			kubemanager.Spec.ServiceConfiguration = kubemanagerService.Spec.ServiceConfiguration
-			kubemanager.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, kubemanagerService.Spec.CommonConfiguration)
-			return controllerutil.SetControllerReference(manager, kubemanager, r.scheme)
-		})
-		if err != nil {
-			return err
-		}
-		status := &v1alpha1.ServiceStatus{}
-		status.Name = &kubemanager.Name
-		status.Active = kubemanager.Status.Active
-		kubemanagerServiceStatus = append(kubemanagerServiceStatus, status)
+	if !manager.IsVrouterActiveOnControllers(r.Client) {
+		return nil
 	}
 
-	manager.Status.Kubemanagers = kubemanagerServiceStatus
+	kubemanager := &v1alpha1.Kubemanager{}
+	kubemanager.ObjectMeta = manager.Spec.Services.Kubemanager.ObjectMeta
+	kubemanager.ObjectMeta.Namespace = manager.Namespace
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, kubemanager, func() error {
+		kubemanager.Spec = manager.Spec.Services.Kubemanager.Spec
+		kubemanager.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, kubemanager.Spec.CommonConfiguration)
+		return controllerutil.SetControllerReference(manager, kubemanager, r.Scheme)
+	})
+	if err != nil {
+		return err
+	}
+	manager.Status.Kubemanager = &v1alpha1.ServiceStatus{Name: &kubemanager.Name, Active: kubemanager.Status.Active}
 	return nil
 }
 
@@ -1121,14 +1124,14 @@ func (r *ReconcileManager) processControls(manager *v1alpha1.Manager) error {
 					"tf_cluster": manager.Name,
 				},
 			}
-			err := r.client.Delete(context.TODO(), oldControl)
+			err := r.Client.Delete(context.TODO(), oldControl)
 			if err != nil && !errors.IsNotFound(err) {
 				return err
 			}
 		}
 	}
 
-	if !manager.IsVrouterActiveOnControllers(r.client) {
+	if !manager.IsVrouterActiveOnControllers(r.Client) {
 		return nil
 	}
 
@@ -1137,10 +1140,10 @@ func (r *ReconcileManager) processControls(manager *v1alpha1.Manager) error {
 		control := &v1alpha1.Control{}
 		control.ObjectMeta = controlService.ObjectMeta
 		control.ObjectMeta.Namespace = manager.Namespace
-		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, control, func() error {
+		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, control, func() error {
 			control.Spec = controlService.Spec
 			control.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, control.Spec.CommonConfiguration)
-			return controllerutil.SetControllerReference(manager, control, r.scheme)
+			return controllerutil.SetControllerReference(manager, control, r.Scheme)
 		})
 		if err != nil {
 			return err
@@ -1166,7 +1169,7 @@ func (r *ReconcileManager) processRabbitMQ(manager *v1alpha1.Manager) error {
 					"tf_cluster": manager.Name,
 				},
 			}
-			err := r.client.Delete(context.TODO(), oldRabbitMQ)
+			err := r.Client.Delete(context.TODO(), oldRabbitMQ)
 			if err != nil && !errors.IsNotFound(err) {
 				return err
 			}
@@ -1175,17 +1178,17 @@ func (r *ReconcileManager) processRabbitMQ(manager *v1alpha1.Manager) error {
 		return nil
 	}
 
-	if !manager.IsVrouterActiveOnControllers(r.client) {
+	if !manager.IsVrouterActiveOnControllers(r.Client) {
 		return nil
 	}
 
 	rabbitMQ := &v1alpha1.Rabbitmq{}
 	rabbitMQ.ObjectMeta = manager.Spec.Services.Rabbitmq.ObjectMeta
 	rabbitMQ.ObjectMeta.Namespace = manager.Namespace
-	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, rabbitMQ, func() error {
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, rabbitMQ, func() error {
 		rabbitMQ.Spec = manager.Spec.Services.Rabbitmq.Spec
 		rabbitMQ.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, rabbitMQ.Spec.CommonConfiguration)
-		return controllerutil.SetControllerReference(manager, rabbitMQ, r.scheme)
+		return controllerutil.SetControllerReference(manager, rabbitMQ, r.Scheme)
 	})
 	if err != nil {
 		return err
@@ -1198,9 +1201,6 @@ func (r *ReconcileManager) processRabbitMQ(manager *v1alpha1.Manager) error {
 }
 
 func (r *ReconcileManager) processVRouters(manager *v1alpha1.Manager) error {
-	if len(manager.Spec.Services.Vrouters) == 0 {
-		return nil
-	}
 	for _, existingVRouter := range manager.Status.Vrouters {
 		found := false
 		for _, intendedVRouter := range manager.Spec.Services.Vrouters {
@@ -1218,7 +1218,7 @@ func (r *ReconcileManager) processVRouters(manager *v1alpha1.Manager) error {
 					"tf_cluster": manager.Name,
 				},
 			}
-			err := r.client.Delete(context.TODO(), oldVRouter)
+			err := r.Client.Delete(context.TODO(), oldVRouter)
 			if err != nil && !errors.IsNotFound(err) {
 				return err
 			}
@@ -1227,14 +1227,13 @@ func (r *ReconcileManager) processVRouters(manager *v1alpha1.Manager) error {
 
 	var vRouterServiceStatus []*v1alpha1.ServiceStatus
 	for _, vRouterService := range manager.Spec.Services.Vrouters {
-
 		vRouter := &v1alpha1.Vrouter{}
 		vRouter.ObjectMeta = vRouterService.ObjectMeta
 		vRouter.ObjectMeta.Namespace = manager.Namespace
-		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, vRouter, func() error {
-			vRouter.Spec.ServiceConfiguration = vRouterService.Spec.ServiceConfiguration.VrouterConfiguration
+		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, vRouter, func() error {
+			vRouter.Spec.ServiceConfiguration = vRouterService.Spec.ServiceConfiguration
 			vRouter.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, vRouterService.Spec.CommonConfiguration)
-			return controllerutil.SetControllerReference(manager, vRouter, r.scheme)
+			return controllerutil.SetControllerReference(manager, vRouter, r.Scheme)
 		})
 		if err != nil {
 			return err
@@ -1250,7 +1249,7 @@ func (r *ReconcileManager) processVRouters(manager *v1alpha1.Manager) error {
 }
 
 func (r *ReconcileManager) processCSRSignerCaConfigMap(manager *v1alpha1.Manager) error {
-	caCertificate := certificates.NewCACertificate(r.client, r.scheme, manager, "manager")
+	caCertificate := certificates.NewCACertificate(r.Client, r.Scheme, manager, "manager")
 	if err := caCertificate.EnsureExists(); err != nil {
 		return err
 	}
@@ -1259,13 +1258,13 @@ func (r *ReconcileManager) processCSRSignerCaConfigMap(manager *v1alpha1.Manager
 	csrSignerCaConfigMap.ObjectMeta.Name = certificates.SignerCAConfigMapName
 	csrSignerCaConfigMap.ObjectMeta.Namespace = manager.Namespace
 
-	_, err := controllerutil.CreateOrUpdate(context.Background(), r.client, csrSignerCaConfigMap, func() error {
+	_, err := controllerutil.CreateOrUpdate(context.Background(), r.Client, csrSignerCaConfigMap, func() error {
 		csrSignerCAValue, err := caCertificate.GetCaCert()
 		if err != nil {
 			return err
 		}
 		csrSignerCaConfigMap.Data = map[string]string{certificates.SignerCAFilename: string(csrSignerCAValue)}
-		return controllerutil.SetControllerReference(manager, csrSignerCaConfigMap, r.scheme)
+		return controllerutil.SetControllerReference(manager, csrSignerCaConfigMap, r.Scheme)
 	})
 
 	return err

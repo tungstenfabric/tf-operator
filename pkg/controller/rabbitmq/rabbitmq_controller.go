@@ -226,6 +226,8 @@ func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Resu
 			}},
 		},
 	}
+
+	utils.CleanupContainers(&statefulSet.Spec.Template.Spec, instance.Spec.ServiceConfiguration.Containers)
 	for idx, container := range statefulSet.Spec.Template.Spec.Containers {
 
 		if container.Name == "rabbitmq" {

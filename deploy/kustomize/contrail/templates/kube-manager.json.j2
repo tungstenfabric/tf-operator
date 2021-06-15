@@ -7,7 +7,7 @@
 {%- if KUBERNETES_PUBLIC_FIP_POOL is defined -%}
   {
     "op": "replace",
-    "path": "/spec/services/kubemanagers/0/spec/serviceConfiguration/publicFIPPool",
+    "path": "/spec/services/kubemanager/spec/serviceConfiguration/publicFIPPool",
     "value": "{{ KUBERNETES_PUBLIC_FIP_POOL }}"
   }
 {%- endif -%}

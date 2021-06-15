@@ -1834,6 +1834,11 @@ func SetZiuStage(stage int, clnt client.Client) error {
 	}
 }
 
+func InitZiu(clnt client.Client) (err error) {
+	err = SetZiuStage(0, clnt)
+	return
+}
+
 // Function check reconsiler request against current ZIU stage and allow reconcile for controllers
 func CanReconcile(resourceKind string, clnt client.Client) (bool, error) {
 	ziuStage, err := GetZiuStage(clnt)

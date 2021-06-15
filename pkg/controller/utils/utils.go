@@ -379,9 +379,11 @@ func ZookeeperActiveChange() predicate.Funcs {
 // CommonConfiguration from manager manifest.
 // Set or replace fields in CommonConfig by valyes from specific config and return result
 // structure
-func MergeUnstructuredCommonConfig(commonConfig map[string]interface{},
-	resourceConfig map[string]interface{}) map[string]interface{} {
-	for field, content := range resourceConfig {
+func MergeUnstructuredCommonConfig(
+	commonConfig map[string]interface{},
+	resourceConfig interface{}) interface{} {
+
+	for field, content := range resourceConfig.(map[string]interface{}) {
 		commonConfig[field] = content
 	}
 	return commonConfig
@@ -452,4 +454,21 @@ func PodPhaseChanges(podLabels map[string]string) predicate.Funcs {
 			return false
 		},
 	}
+}
+
+func CleanupContainers(pod *corev1.PodSpec, spec []*v1alpha1.Container) {
+	var list []corev1.Container
+	for idx := range pod.Containers {
+		if GetContainerFromList(pod.Containers[idx].Name, spec) != nil {
+			list = append(list, pod.Containers[idx])
+		}
+	}
+	pod.Containers = list
+	list = []corev1.Container{}
+	for idx := range pod.InitContainers {
+		if GetContainerFromList(pod.InitContainers[idx].Name, spec) != nil {
+			list = append(list, pod.InitContainers[idx])
+		}
+	}
+	pod.InitContainers = list
 }
