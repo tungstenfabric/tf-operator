@@ -71,7 +71,6 @@ type ConfigConfiguration struct {
 	SchemaIntrospectPort        *int                    `json:"schemaIntrospectPort,omitempty"`
 	DeviceManagerIntrospectPort *int                    `json:"deviceManagerIntrospectPort,omitempty"`
 	SvcMonitorIntrospectPort    *int                    `json:"svcMonitorIntrospectPort,omitempty"`
-	LogLevel                    string                  `json:"logLevel,omitempty"`
 	AAAMode                     AAAMode                 `json:"aaaMode,omitempty"`
 	FabricMgmtIP                string                  `json:"fabricMgmtIP,omitempty"`
 	LinklocalServiceConfig      *LinklocalServiceConfig `json:"linklocalServiceConfig,omitempty"`
@@ -184,6 +183,8 @@ func (c *Config) InstanceConfiguration(podList []corev1.Pod, client client.Clien
 	zookeeperEndpointList := configtemplates.EndpointList(zookeeperNodesInformation.ServerIPList, zookeeperNodesInformation.ClientPort)
 	zookeeperEndpointListCommaSeparated := configtemplates.JoinListWithSeparator(zookeeperEndpointList, ",")
 
+	logLevel := ConvertLogLevel(c.Spec.CommonConfiguration.LogLevel)
+
 	for _, pod := range podList {
 		hostname := pod.Annotations["hostname"]
 		podIP := pod.Status.PodIP
@@ -221,7 +222,7 @@ func (c *Config) InstanceConfiguration(podList []corev1.Pod, client client.Clien
 			RabbitmqVhost:            rabbitmqSecretVhost,
 			AuthMode:                 c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 			AAAMode:                  configConfig.AAAMode,
-			LogLevel:                 configConfig.LogLevel,
+			LogLevel:                 logLevel,
 			CAFilePath:               certificates.SignerCAFilepath,
 		})
 		if err != nil {
@@ -287,7 +288,7 @@ func (c *Config) InstanceConfiguration(podList []corev1.Pod, client client.Clien
 			RabbitmqUser:                rabbitmqSecretUser,
 			RabbitmqPassword:            rabbitmqSecretPassword,
 			RabbitmqVhost:               rabbitmqSecretVhost,
-			LogLevel:                    configConfig.LogLevel,
+			LogLevel:                    logLevel,
 			FabricMgmtIP:                fabricMgmtIP,
 			CAFilePath:                  certificates.SignerCAFilepath,
 		})
@@ -305,7 +306,7 @@ func (c *Config) InstanceConfiguration(podList []corev1.Pod, client client.Clien
 		}{
 			PodIP:               podIP,
 			CollectorServerList: collectorEndpointListSpaceSeparated,
-			LogLevel:            configConfig.LogLevel,
+			LogLevel:            logLevel,
 			CAFilePath:          certificates.SignerCAFilepath,
 		})
 		if err != nil {
@@ -375,7 +376,7 @@ func (c *Config) InstanceConfiguration(podList []corev1.Pod, client client.Clien
 			RabbitmqUser:             rabbitmqSecretUser,
 			RabbitmqPassword:         rabbitmqSecretPassword,
 			RabbitmqVhost:            rabbitmqSecretVhost,
-			LogLevel:                 configConfig.LogLevel,
+			LogLevel:                 logLevel,
 			CAFilePath:               certificates.SignerCAFilepath,
 		})
 		if err != nil {
@@ -416,7 +417,7 @@ func (c *Config) InstanceConfiguration(podList []corev1.Pod, client client.Clien
 			RabbitmqPassword:         rabbitmqSecretPassword,
 			RabbitmqVhost:            rabbitmqSecretVhost,
 			AAAMode:                  configConfig.AAAMode,
-			LogLevel:                 configConfig.LogLevel,
+			LogLevel:                 logLevel,
 			CAFilePath:               certificates.SignerCAFilepath,
 		})
 		if err != nil {
@@ -447,7 +448,7 @@ func (c *Config) InstanceConfiguration(podList []corev1.Pod, client client.Clien
 			CassandraPort:            strconv.Itoa(cassandraNodesInformation.CQLPort),
 			CassandraJmxPort:         strconv.Itoa(cassandraNodesInformation.JMXPort),
 			CAFilePath:               certificates.SignerCAFilepath,
-			LogLevel:                 configConfig.LogLevel,
+			LogLevel:                 logLevel,
 		})
 		if err != nil {
 			panic(err)
@@ -554,14 +555,7 @@ func (c *Config) IsActive(name string, namespace string, client client.Client) b
 func (c *Config) ConfigurationParameters() ConfigConfiguration {
 	configConfiguration := ConfigConfiguration{}
 	var apiPort int
-	var logLevel string
 
-	if c.Spec.ServiceConfiguration.LogLevel != "" {
-		logLevel = c.Spec.ServiceConfiguration.LogLevel
-	} else {
-		logLevel = LogLevel
-	}
-	configConfiguration.LogLevel = logLevel
 	if c.Spec.ServiceConfiguration.APIPort != nil {
 		apiPort = *c.Spec.ServiceConfiguration.APIPort
 	} else {

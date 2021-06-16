@@ -56,7 +56,6 @@ type AnalyticsSnmpSpec struct {
 // +k8s:openapi-gen=true
 type AnalyticsSnmpConfiguration struct {
 	LogFilePath                       string       `json:"logFilePath,omitempty"`
-	LogLevel                          string       `json:"logLevel,omitempty"`
 	LogLocal                          string       `json:"logLocal,omitempty"`
 	SnmpCollectorScanFrequency        *int         `json:"snmpCollectorScanFrequency,omitempty"`
 	SnmpCollectorFastScanFrequency    *int         `json:"snmpCollectorFastScanFrequency,omitempty"`
@@ -160,6 +159,8 @@ func (c *AnalyticsSnmp) InstanceConfiguration(podList []corev1.Pod, client clien
 	sort.Strings(zookeeperEndpointList)
 	zookeeperEndpointListCommaSeparated := configtemplates.JoinListWithSeparator(zookeeperEndpointList, ",")
 
+	logLevel := ConvertLogLevel(c.Spec.CommonConfiguration.LogLevel)
+
 	for _, pod := range podList {
 		hostname := pod.Annotations["hostname"]
 		podIP := pod.Status.PodIP
@@ -203,7 +204,7 @@ func (c *AnalyticsSnmp) InstanceConfiguration(podList []corev1.Pod, client clien
 			RabbitmqPassword:         rabbitmqSecretPassword,
 			CAFilePath:               certificates.SignerCAFilepath,
 			// TODO: move to params
-			LogLevel: "SYS_DEBUG",
+			LogLevel:                 logLevel,
 		})
 		if err != nil {
 			panic(err)
@@ -249,7 +250,7 @@ func (c *AnalyticsSnmp) InstanceConfiguration(podList []corev1.Pod, client clien
 			RabbitmqPassword:         rabbitmqSecretPassword,
 			CAFilePath:               certificates.SignerCAFilepath,
 			// TODO: move to params
-			LogLevel: "SYS_DEBUG",
+			LogLevel:                 logLevel,
 		})
 		if err != nil {
 			panic(err)
@@ -281,7 +282,7 @@ func (c *AnalyticsSnmp) InstanceConfiguration(podList []corev1.Pod, client clien
 			CAFilePath:               certificates.SignerCAFilepath,
 			CollectorServerList:      collectorEndpointListSpaceSeparated,
 			// TODO: move to params
-			LogLevel: "SYS_DEBUG",
+			LogLevel:                 logLevel,
 		})
 		if err != nil {
 			panic(err)

@@ -70,7 +70,6 @@ type KubemanagerConfiguration struct {
 	IPFabricSnat          *bool        `json:"ipFabricSnat,omitempty"`
 	HostNetworkService    *bool        `json:"hostNetworkService,omitempty"`
 	KubernetesTokenFile   string       `json:"kubernetesTokenFile,omitempty"`
-	LogLevel              string       `json:"logLevel,omitempty"`
 	PublicFIPPool         string       `json:"publicFIPPool,omitempty"`
 }
 
@@ -234,7 +233,7 @@ func (c *Kubemanager) InstanceConfiguration(podList []corev1.Pod, client client.
 			RabbitmqPassword:         rabbitmqSecretPassword,
 			RabbitmqVhost:            rabbitmqSecretVhost,
 			CAFilePath:               certificates.SignerCAFilepath,
-			LogLevel:                 kubemanagerConfig.LogLevel,
+			LogLevel:                 ConvertLogLevel(c.Spec.CommonConfiguration.LogLevel),
 			PublicFIPPool:            kubemanagerConfig.PublicFIPPool,
 			AuthMode:                 c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 			KeystoneAuthParameters:   c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters,
@@ -348,11 +347,6 @@ func (c *Kubemanager) ConfigurationParameters(client client.Client) (*Kubemanage
 		return nil, err
 	}
 
-	var logLevel string = LogLevel
-	if c.Spec.ServiceConfiguration.LogLevel != "" {
-		logLevel = c.Spec.ServiceConfiguration.LogLevel
-	}
-
 	var cloudOrchestrator string = CloudOrchestrator
 	if c.Spec.ServiceConfiguration.CloudOrchestrator != "" {
 		cloudOrchestrator = c.Spec.ServiceConfiguration.CloudOrchestrator
@@ -395,7 +389,6 @@ func (c *Kubemanager) ConfigurationParameters(client client.Client) (*Kubemanage
 	}
 
 	kubemanagerConfiguration := &KubemanagerConfiguration{}
-	kubemanagerConfiguration.LogLevel = logLevel
 	kubemanagerConfiguration.CloudOrchestrator = cloudOrchestrator
 	kubemanagerConfiguration.KubernetesClusterName = cinfo.ClusterName
 	kubemanagerConfiguration.KubernetesAPIServer = kubernetesAPIServer

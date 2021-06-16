@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"runtime"
 	"time"
+	"strconv"
 
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
@@ -76,8 +77,9 @@ func runOperator(sigHandler <-chan struct{}) error {
 	err = v1alpha1.SetDeployerType(clnt)
 	if err != nil {
 		log.Error(err, "Failed SetDeployerType()")
-		os.Exit(1)
+		return err
 	}
+	log.Info("IsOpenshift() returned "+strconv.FormatBool(v1alpha1.IsOpenshift()))
 
 	f, err := mgrController.IsZiuRequired(clnt)
 	if err != nil {

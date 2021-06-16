@@ -55,7 +55,6 @@ type AnalyticsConfiguration struct {
 	CollectorPort              *int         `json:"collectorPort,omitempty"`
 	AnalyticsApiIntrospectPort *int         `json:"analyticsIntrospectPort,omitempty"`
 	CollectorIntrospectPort    *int         `json:"collectorIntrospectPort,omitempty"`
-	LogLevel                   string       `json:"logLevel,omitempty"`
 	AAAMode                    AAAMode      `json:"aaaMode,omitempty"`
 	// Time (in hours) that the analytics object and log data stays in the Cassandra database. Defaults to 48 hours.
 	AnalyticsDataTTL *int `json:"analyticsDataTTL,omitempty"`
@@ -191,6 +190,8 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 	redisEndpointList := configtemplates.EndpointList(redisNodesInformation.ServerIPList, redisNodesInformation.ServerPort)
 	redisEndpointListSpaceSpearated := configtemplates.JoinListWithSeparator(redisEndpointList, " ")
 
+	logLevel := ConvertLogLevel(c.Spec.CommonConfiguration.LogLevel)
+
 	for _, pod := range podList {
 		hostname := pod.Annotations["hostname"]
 		podIP := pod.Status.PodIP
@@ -233,7 +234,7 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 			RabbitmqVhost:              rabbitmqSecretVhost,
 			AAAMode:                    analyticsConfig.AAAMode,
 			CAFilePath:                 certificates.SignerCAFilepath,
-			LogLevel:                   analyticsConfig.LogLevel,
+			LogLevel:                  logLevel,
 		})
 		if err != nil {
 			panic(err)
@@ -275,7 +276,7 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 			RabbitmqUser:                   rabbitmqSecretUser,
 			RabbitmqPassword:               rabbitmqSecretPassword,
 			RabbitmqVhost:                  rabbitmqSecretVhost,
-			LogLevel:                       analyticsConfig.LogLevel,
+			LogLevel:                        logLevel,
 			CAFilePath:                     certificates.SignerCAFilepath,
 			AnalyticsDataTTL:               strconv.Itoa(*analyticsConfig.AnalyticsDataTTL),
 			AnalyticsConfigAuditTTL:        strconv.Itoa(*analyticsConfig.AnalyticsConfigAuditTTL),
@@ -310,7 +311,7 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 			CassandraPort:            strconv.Itoa(cassandraNodesInformation.CQLPort),
 			CassandraJmxPort:         strconv.Itoa(cassandraNodesInformation.JMXPort),
 			CAFilePath:               certificates.SignerCAFilepath,
-			LogLevel:                 analyticsConfig.LogLevel,
+			LogLevel:                  logLevel,
 		})
 		if err != nil {
 			panic(err)
@@ -455,14 +456,6 @@ func (c *Analytics) ConfigurationParameters() AnalyticsConfiguration {
 	analyticsConfiguration := AnalyticsConfiguration{}
 	var analyticsPort int
 	var collectorPort int
-	var logLevel string
-
-	if c.Spec.ServiceConfiguration.LogLevel != "" {
-		logLevel = c.Spec.ServiceConfiguration.LogLevel
-	} else {
-		logLevel = LogLevel
-	}
-	analyticsConfiguration.LogLevel = logLevel
 
 	if c.Spec.ServiceConfiguration.AnalyticsPort != nil {
 		analyticsPort = *c.Spec.ServiceConfiguration.AnalyticsPort

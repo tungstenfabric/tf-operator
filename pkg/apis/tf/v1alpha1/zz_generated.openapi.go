@@ -221,12 +221,6 @@ func schema_pkg_apis_tf_v1alpha1_AnalyticsConfiguration(ref common.ReferenceCall
 							Format: "",
 						},
 					},
-					"logLevel": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
 					"authMode": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
@@ -413,12 +407,6 @@ func schema_pkg_apis_tf_v1alpha1_QueryEngineConfiguration(ref common.ReferenceCa
 							Format: "",
 						},
 					},
-					"logLevel": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
 				},
 			},
 		},
@@ -564,12 +552,6 @@ func schema_pkg_apis_tf_v1alpha1_AnalyticsSnmpConfiguration(ref common.Reference
 						},
 					},
 					"logFilePath": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"logLevel": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
 							Format: "",
@@ -748,12 +730,6 @@ func schema_pkg_apis_tf_v1alpha1_AnalyticsAlarmConfiguration(ref common.Referenc
 						},
 					},
 					"logFilePath": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"logLevel": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
 							Format: "",
@@ -1397,12 +1373,6 @@ func schema_pkg_apis_tf_v1alpha1_ConfigConfiguration(ref common.ReferenceCallbac
 						},
 					},
 					"rabbitmqVhost": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"logLevel": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
 							Format: "",

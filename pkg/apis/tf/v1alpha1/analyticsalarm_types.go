@@ -57,7 +57,6 @@ type AnalyticsAlarmSpec struct {
 // +k8s:openapi-gen=true
 type AnalyticsAlarmConfiguration struct {
 	LogFilePath                    string       `json:"logFilePath,omitempty"`
-	LogLevel                       string       `json:"logLevel,omitempty"`
 	LogLocal                       string       `json:"logLocal,omitempty"`
 	AlarmgenRedisAggregateDbOffset *int         `json:"alarmgenRedisAggregateDbOffset,omitempty"`
 	AlarmgenPartitions             *int         `json:"alarmgenPartitions,omitempty"`
@@ -192,6 +191,8 @@ func (c *AnalyticsAlarm) InstanceConfiguration(podList []corev1.Pod, client clie
 	redisEndpointList := configtemplates.EndpointList(redisNodesInformation.ServerIPList, redisNodesInformation.ServerPort)
 	redisEndpointListSpaceSpearated := configtemplates.JoinListWithSeparator(redisEndpointList, " ")
 
+	logLevel := ConvertLogLevel(c.Spec.CommonConfiguration.LogLevel)
+
 	for _, pod := range podList {
 		hostname := pod.Annotations["hostname"]
 		podIP := pod.Status.PodIP
@@ -239,7 +240,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(podList []corev1.Pod, client clie
 			RedisServerList:          redisEndpointListSpaceSpearated,
 			CAFilePath:               certificates.SignerCAFilepath,
 			// TODO: move to params
-			LogLevel: "SYS_DEBUG",
+			LogLevel:                 logLevel,
 		})
 		if err != nil {
 			panic(err)
@@ -276,7 +277,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(podList []corev1.Pod, client clie
 			TruststorePassword: string(kafkaSecret.Data["truststorePassword"]),
 			CAFilePath:         certificates.SignerCAFilepath,
 			// TODO: move to params
-			LogLevel: "SYS_DEBUG",
+			LogLevel:           logLevel,
 		})
 		if err != nil {
 			panic(err)
@@ -308,7 +309,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(podList []corev1.Pod, client clie
 			CAFilePath:               certificates.SignerCAFilepath,
 			CollectorServerList:      collectorEndpointListSpaceSeparated,
 			// TODO: move to params
-			LogLevel: "SYS_DEBUG",
+			LogLevel:                 logLevel,
 		})
 		if err != nil {
 			panic(err)

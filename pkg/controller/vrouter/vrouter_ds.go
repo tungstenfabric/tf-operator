@@ -149,7 +149,7 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 			MountPath: "/dev",
 		},
 	}
-	if c.Spec.CommonConfiguration.TuneSysctl != nil && *c.Spec.CommonConfiguration.TuneSysctl {
+	if !v1alpha1.IsOpenshift() {
 		podInitContainerMounts = append(podInitContainerMounts,
 			core.VolumeMount{
 				Name:      "host-sysctl",
@@ -350,7 +350,7 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 			},
 		},
 	}
-	if c.Spec.CommonConfiguration.TuneSysctl != nil && *c.Spec.CommonConfiguration.TuneSysctl {
+	if !v1alpha1.IsOpenshift() {
 		podVolumes = append(podVolumes,
 			core.Volume{
 				Name: "host-sysctl",

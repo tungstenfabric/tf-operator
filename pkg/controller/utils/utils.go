@@ -401,18 +401,14 @@ func MergeCommonConfiguration(manager v1alpha1.ManagerConfiguration,
 	if len(instance.Tolerations) == 0 && len(manager.Tolerations) > 0 {
 		instance.Tolerations = manager.Tolerations
 	}
-	if instance.TuneSysctl == nil {
-		if manager.TuneSysctl != nil {
-			instance.TuneSysctl = manager.TuneSysctl
-		} else {
-			trueVal := true
-			instance.TuneSysctl = &trueVal
-		}
-	}
 	// TODO: auth always from manager, no specific to services
 	instance.AuthParameters = manager.AuthParameters
-	if instance.LogLevel == "" && manager.LogLevel != "" {
-		instance.LogLevel = manager.LogLevel
+	if instance.LogLevel == "" {
+		if manager.LogLevel != "" {
+			instance.LogLevel = manager.LogLevel
+		} else {
+			instance.LogLevel = v1alpha1.LogLevel
+		}
 	}
 	if instance.Distribution == nil && manager.Distribution != nil {
 		instance.Distribution = manager.Distribution

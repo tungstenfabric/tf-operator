@@ -16,7 +16,6 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
-          logLevel: SYS_DEBUG
           containers:
           - name: analyticsapi
             image: contrail-analytics-api
@@ -36,7 +35,6 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
-          logLevel: SYS_DEBUG
           analyticsInstance: analytics1
           containers:
           - name: queryengine
@@ -51,7 +49,6 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
-          logLevel: SYS_DEBUG
           analyticsInstance: analytics1
           containers:
           - name: nodemanager
@@ -72,7 +69,6 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
-          logLevel: SYS_DEBUG
           analyticsInstance: analytics1
           containers:
           - name: nodemanager
@@ -111,7 +107,6 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
-          logLevel: SYS_DEBUG
           analyticsInstance: analytics1
           containers:
           - name: api
@@ -142,7 +137,6 @@ spec:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
           analyticsInstance: analytics1
-          logLevel: SYS_DEBUG
           containers:
           - name: control
             image: contrail-controller-control-control
@@ -164,7 +158,6 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
-          logLevel: SYS_DEBUG
           analyticsInstance: analytics1
           ipFabricForwarding: false
           ipFabricSnat: true
@@ -183,7 +176,6 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
-          logLevel: SYS_DEBUG
           containers:
           - name: rabbitmq
             image: contrail-external-rabbitmq
@@ -197,7 +189,6 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
-          logLevel: SYS_DEBUG
           containers:
           - name: redis
             image: contrail-external-redis
@@ -215,7 +206,6 @@ spec:
         serviceConfiguration:
           analyticsInstance: analytics1
           controlInstance: control1
-          logLevel: SYS_DEBUG
           containers:
           - name: webuijob
             image: contrail-controller-webui-job
@@ -231,7 +221,6 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
-          logLevel: SYS_DEBUG
           containers:
             - name: zookeeper
               image: contrail-external-zookeeper

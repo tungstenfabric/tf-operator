@@ -465,6 +465,20 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 		toolsImage = strings.Replace(ic.Image, "contrail-node-init", "contrail-tools", 1)
 	}
 
+	extraVolumes := !v1alpha1.IsOpenshift() && !v1alpha1.IsVrouterExists(r.Client)
+
+	if extraVolumes {
+	statefulSet.Spec.Template.Spec.Volumes = append(statefulSet.Spec.Template.Spec.Volumes,
+			core.Volume{
+				Name: "host-sysctl",
+				VolumeSource: core.VolumeSource{
+					HostPath: &core.HostPathVolumeSource{
+						Path: "/etc/sysctl.d",
+					},
+				},
+			})
+	}
+
 	for idx := range statefulSet.Spec.Template.Spec.InitContainers {
 
 		container := &statefulSet.Spec.Template.Spec.InitContainers[idx]
@@ -484,6 +498,13 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 					Value: statusImage,
 				},
 			)
+			if extraVolumes {
+				container.VolumeMounts = append(container.VolumeMounts,
+					core.VolumeMount{
+						Name:      "host-sysctl",
+						MountPath: "/etc/sysctl.d",
+					})
+			}
 
 		case "nodeinit-status-prefetch":
 			if container.Command == nil {

@@ -1,7 +1,7 @@
 package v1alpha1
 
 const (
-	LogLevel                                    string = "SYS_NOTICE"
+	LogLevel                                    string = "debug"
 	LogDir                                      string = "/var/log/contrail"
 	LogLocal                                    int    = 1
 	EncapPriority                               string = "MPLSoUDP,MPLSoGRE,VXLAN"
@@ -253,4 +253,10 @@ const (
 	RedisInstance                               string = "redis1"
 	ZookeeperInstance                           string = "zookeeper1"
 	AnalyticsInstance                           string = "analytics1"
+	OpenShiftClusterName                        string = "test"
+	OpenShiftPodSubnet                          string = "10.128.0.0/14"
+	OpenShiftServiceSubnet                      string = "172.30.0.0/16"
+	OpenShiftDNSDomain                          string = "example.com"
+	OpenShiftCNIConfigPath                      string = "/etc/kubernetes/cni"
+	OpenShiftCNIBinaryPath                      string = "/var/lib/cni/bin"
 )

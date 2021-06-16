@@ -55,7 +55,6 @@ type ControlConfiguration struct {
 	// script.
 	// +kubebuilder:validation:Pattern=`^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\/(3[0-2]|2[0-9]|1[0-9]|[0-9]))$`
 	DataSubnet string `json:"dataSubnet,omitempty"`
-	LogLevel   string `json:"logLevel,omitempty"`
 }
 
 // ControlStatus defines the observed state of Control.
@@ -199,6 +198,8 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 
 	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
 
+	logLevel := ConvertLogLevel(c.Spec.CommonConfiguration.LogLevel)
+
 	for _, pod := range podList {
 		hostname := pod.Annotations["hostname"]
 		podIP := pod.Status.PodIP
@@ -244,7 +245,7 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 			RabbitmqPassword:         rabbitmqSecretPassword,
 			RabbitmqVhost:            rabbitmqSecretVhost,
 			CAFilePath:               certificates.SignerCAFilepath,
-			LogLevel:                 controlConfig.LogLevel,
+			LogLevel:                 logLevel,
 		})
 		if err != nil {
 			panic(err)
@@ -290,7 +291,7 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 			RabbitmqPassword:         rabbitmqSecretPassword,
 			RabbitmqVhost:            rabbitmqSecretVhost,
 			CAFilePath:               certificates.SignerCAFilepath,
-			LogLevel:                 controlConfig.LogLevel,
+			LogLevel:                 logLevel,
 		})
 		if err != nil {
 			panic(err)
@@ -320,7 +321,7 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 			CassandraPort:            strconv.Itoa(cassandraNodesInformation.CQLPort),
 			CassandraJmxPort:         strconv.Itoa(cassandraNodesInformation.JMXPort),
 			CAFilePath:               certificates.SignerCAFilepath,
-			LogLevel:                 controlConfig.LogLevel,
+			LogLevel:                 logLevel,
 		})
 		if err != nil {
 			panic(err)
@@ -481,13 +482,6 @@ func (c *Control) ConfigurationParameters() ControlConfiguration {
 	var xmppPort int
 	var dnsPort int
 	var dnsIntrospectPort int
-	var logLevel string
-
-	if c.Spec.ServiceConfiguration.LogLevel != "" {
-		logLevel = c.Spec.ServiceConfiguration.LogLevel
-	} else {
-		logLevel = LogLevel
-	}
 
 	if c.Spec.ServiceConfiguration.BGPPort != nil {
 		bgpPort = *c.Spec.ServiceConfiguration.BGPPort
@@ -524,7 +518,6 @@ func (c *Control) ConfigurationParameters() ControlConfiguration {
 	controlConfiguration.XMPPPort = &xmppPort
 	controlConfiguration.DNSPort = &dnsPort
 	controlConfiguration.DNSIntrospectPort = &dnsIntrospectPort
-	controlConfiguration.LogLevel = logLevel
 
 	return controlConfiguration
 }

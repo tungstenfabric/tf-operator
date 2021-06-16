@@ -202,6 +202,19 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 		}
 		cassandraCqlShrcConfigString := cassandraCqlShrcBuffer.String()
 
+		logLevels := map[string]string {
+			"info":		"INFO",
+			"debug":	"DEBUG",
+			"error":	"ERROR",
+		}
+
+		logLevel := "INFO"
+
+		if logLevels[c.Spec.CommonConfiguration.LogLevel] != "" {
+			logLevel = logLevels[c.Spec.CommonConfiguration.LogLevel]
+		}
+
+
 		collectorEndpointList := configtemplates.EndpointList(analyticsNodesInformation.CollectorServerIPList, analyticsNodesInformation.CollectorPort)
 		collectorEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(collectorEndpointList, " ")
 		var nodeManagerConfigBuffer bytes.Buffer
@@ -229,7 +242,7 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 			CAFilePath:               certificates.SignerCAFilepath,
 			MinimumDiskGB:            *cassandraConfig.MinimumDiskGB,
 			// TODO: move to params
-			LogLevel: "SYS_DEBUG",
+			LogLevel:                 logLevel,
 		})
 		if err != nil {
 			panic(err)

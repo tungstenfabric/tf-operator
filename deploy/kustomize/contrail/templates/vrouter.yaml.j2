@@ -20,7 +20,6 @@ spec:
         name: vrouter1
       spec:
         serviceConfiguration:
-          logLevel: SYS_DEBUG
           controlInstance: control1
 {%- if CNI_MTU is defined and CNI_MTU != "" %}
           cniMTU: {{ CNI_MTU }}

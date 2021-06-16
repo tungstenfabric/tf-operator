@@ -149,11 +149,6 @@ spec:
                         type: string
                     type: object
                   type: array
-                tuneSysctl:
-                  description: Allow node-init container to tune sysctl options (for
-                    all deployers except opneshift it is done by node-init, in openshift
-                    - machineconfig)
-                  type: boolean
               type: object
             serviceConfiguration:
               description: ConfigConfiguration is the Spec for the Config API.
@@ -200,8 +195,6 @@ spec:
                     port:
                       type: integer
                   type: object
-                logLevel:
-                  type: string
                 schemaIntrospectPort:
                   type: integer
                 svcMonitorIntrospectPort:

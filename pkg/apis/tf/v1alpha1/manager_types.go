@@ -56,13 +56,6 @@ type ManagerConfiguration struct {
 	// AuthParameters auth parameters
 	// +optional
 	AuthParameters AuthParameters `json:"authParameters,omitempty"`
-	// Allow node-init container to tune sysctl options
-	// (for all deployers except opneshift it is done by node-init, in openshift - machineconfig)
-	// +optional
-	TuneSysctl *bool `json:"tuneSysctl,omitempty"`
-	// Kubernetes Cluster Configuration
-	// +optional
-	ClusterConfig *KubernetesClusterConfig `json:"clusterConfig,omitempty"`
 	// Kubernetes Cluster Configuration
 	// +kubebuilder:validation:Enum=info;debug;warning;error;critical;none
 	// +optional

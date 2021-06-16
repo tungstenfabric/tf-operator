@@ -139,11 +139,6 @@ spec:
                         type: string
                     type: object
                   type: array
-                tuneSysctl:
-                  description: Allow node-init container to tune sysctl options (for
-                    all deployers except opneshift it is done by node-init, in openshift
-                    - machineconfig)
-                  type: boolean
               type: object
             serviceConfiguration:
               description: KubemanagerConfiguration is the configuration for the kubemanager
@@ -186,8 +181,6 @@ spec:
                 kubernetesClusterName:
                   type: string
                 kubernetesTokenFile:
-                  type: string
-                logLevel:
                   type: string
                 podSubnet:
                   type: string

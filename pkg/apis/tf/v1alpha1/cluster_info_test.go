@@ -94,18 +94,6 @@ var clusterInfoTestManager = Manager{
 		Name:      "cluster1",
 		Namespace: "tf",
 	},
-	Spec: ManagerSpec{
-		CommonConfiguration: ManagerConfiguration{
-			ClusterConfig: &KubernetesClusterConfig{
-				ClusterName: "cluster-name-from-manager",
-				Networking: KubernetesClusterNetworking{
-					CNIConfig: CNIConfig{
-						BinaryPath: "cni-binary-path-from-manager",
-					},
-				},
-			},
-		},
-	},
 }
 
 func TestClusterParametersKubeadmExists(t *testing.T) {
@@ -132,8 +120,8 @@ func TestClusterParametersKubeadmExists(t *testing.T) {
 	require.NoError(t, err, "ClusterParameters ends with error")
 
 	// Fields from manager
-	assert.Equal(t, "cluster-name-from-manager", clusterParameters.ClusterName)
-	assert.Equal(t, "cni-binary-path-from-manager", clusterParameters.Networking.CNIConfig.BinaryPath)
+	assert.Equal(t, "kubernetes", clusterParameters.ClusterName)
+	assert.Equal(t, CNIBinaryPath, clusterParameters.Networking.CNIConfig.BinaryPath)
 	// Fields from kubeadm-config
 	assert.Equal(t, "cluster.local", clusterParameters.Networking.DNSDomain)
 	assert.Equal(t, "10.96.0.0/12", clusterParameters.Networking.ServiceSubnet)
@@ -180,8 +168,8 @@ func TestClusterParametersClusterConfigExists(t *testing.T) {
 	require.NoError(t, err, "ClusterParameters ends with error")
 
 	// Fields from manager
-	assert.Equal(t, "cluster-name-from-manager", clusterParameters.ClusterName)
-	assert.Equal(t, "cni-binary-path-from-manager", clusterParameters.Networking.CNIConfig.BinaryPath)
+	assert.Equal(t, OpenShiftClusterName, clusterParameters.ClusterName)
+	assert.Equal(t, CNIBinaryPath, clusterParameters.Networking.CNIConfig.BinaryPath)
 	// Fields from kubeadm-config
 	assert.Equal(t, "test.example.com", clusterParameters.Networking.DNSDomain)
 	assert.Equal(t, "172.30.0.0/16", clusterParameters.Networking.ServiceSubnet)
@@ -189,5 +177,5 @@ func TestClusterParametersClusterConfigExists(t *testing.T) {
 	// Default fields
 	assert.Equal(t, CNIConfigPath, clusterParameters.Networking.CNIConfig.ConfigPath)
 
-	assert.Equal(t, "api.cluster-name-from-manager.test.example.com:"+strconv.Itoa(KubernetesApiSSLPort), clusterParameters.ControlPlaneEndpoint)
+	assert.Equal(t, "api."+OpenShiftClusterName+".test.example.com:"+strconv.Itoa(KubernetesApiSSLPort), clusterParameters.ControlPlaneEndpoint)
 }

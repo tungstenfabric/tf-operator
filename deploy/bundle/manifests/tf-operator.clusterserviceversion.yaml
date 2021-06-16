@@ -53,7 +53,6 @@ metadata:
                         "name": "provisioner"
                       }
                     ],
-                    "logLevel": "SYS_DEBUG",
                   }
                 }
               },
@@ -90,7 +89,6 @@ metadata:
                         "name": "kafka"
                       }
                     ],
-                    "logLevel": "SYS_DEBUG",
                   }
                 }
               },
@@ -127,7 +125,6 @@ metadata:
                         "name": "analytics-snmp-topology"
                       }
                     ],
-                    "logLevel": "SYS_DEBUG",
                   }
                 }
               },
@@ -152,7 +149,6 @@ metadata:
                         "name": "queryengine"
                       },
                     ],
-                    "logLevel": "SYS_DEBUG",
                   }
                 }
               },
@@ -235,7 +231,6 @@ metadata:
                         "name": "provisioner"
                       }
                     ],
-                    "logLevel": "SYS_DEBUG",
                   }
                 }
               },
@@ -278,7 +273,6 @@ metadata:
                           "name": "provisioner"
                         }
                       ],
-                      "logLevel": "SYS_DEBUG",
                     }
                   }
                 }
@@ -309,7 +303,6 @@ metadata:
                       "ipFabricForwarding": false,
                       "ipFabricSnat": true,
                       "kubernetesTokenFile": "/var/run/secrets/kubernetes.io/serviceaccount/token",
-                      "logLevel": "SYS_DEBUG",
                     }
                   }
                 }
@@ -333,8 +326,7 @@ metadata:
                         "image": "docker.io/tungstenfabric/contrail-external-rabbitmq:latest",
                         "name": "rabbitmq"
                       }
-                    ],
-                    "logLevel": "SYS_DEBUG"
+                    ]
                   }
                 }
               },
@@ -408,7 +400,6 @@ metadata:
                         }
                       ],
                       "controlInstance": "control1",
-                      "logLevel": "SYS_DEBUG",
                     }
                   }
                 }
@@ -438,8 +429,7 @@ metadata:
                         "name": "webuiweb"
                       }
                     ],
-                    "controlInstance": "control1",
-                    "logLevel": "SYS_DEBUG"
+                    "controlInstance": "control1"
                   }
                 }
               },
@@ -463,8 +453,7 @@ metadata:
                           "image": "docker.io/tungstenfabric/contrail-external-zookeeper:latest",
                           "name": "zookeeper"
                         }
-                      ],
-                      "logLevel": "SYS_DEBUG"
+                      ]
                     }
                   }
                 }

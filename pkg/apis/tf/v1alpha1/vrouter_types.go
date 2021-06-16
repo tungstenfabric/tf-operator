@@ -148,7 +148,6 @@ type VrouterConfiguration struct {
 
 	// Logging
 	LogDir   string `json:"logDir,omitempty"`
-	LogLevel string `json:"logLevel,omitempty"`
 	LogLocal *int   `json:"logLocal,omitempty"`
 
 	// Metadata
@@ -510,9 +509,6 @@ func (c *Vrouter) VrouterConfigurationParameters(client client.Client) (*Vrouter
 	defCert := "/etc/certificates/server-${POD_IP}.crt"
 	defKey := "/etc/certificates/server-key-${POD_IP}.pem"
 
-	if vrouterConfiguration.LogLevel == "" {
-		vrouterConfiguration.LogLevel = LogLevel
-	}
 	if vrouterConfiguration.LogLocal == nil {
 		ll := LogLocal
 		vrouterConfiguration.LogLocal = &ll
@@ -706,9 +702,11 @@ func (c *Vrouter) GetParamsEnv(clnt client.Client, clusterParams *ClusterParams)
 	err = configtemplates.VRouterAgentParams.Execute(&vrouterManifestParamsEnv, struct {
 		ServiceConfig VrouterConfiguration
 		ClusterParams ClusterParams
+		LogLevel      string
 	}{
 		ServiceConfig: *vrouterConfig,
 		ClusterParams: *clusterParams,
+		LogLevel:      ConvertLogLevel(c.Spec.CommonConfiguration.LogLevel),
 	})
 	if err != nil {
 		panic(err)

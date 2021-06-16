@@ -1783,16 +1783,6 @@ func (in *ManagerConfiguration) DeepCopyInto(out *ManagerConfiguration) {
 		}
 	}
 	in.AuthParameters.DeepCopyInto(&out.AuthParameters)
-	if in.TuneSysctl != nil {
-		in, out := &in.TuneSysctl, &out.TuneSysctl
-		*out = new(bool)
-		**out = **in
-	}
-	if in.ClusterConfig != nil {
-		in, out := &in.ClusterConfig, &out.ClusterConfig
-		*out = new(KubernetesClusterConfig)
-		**out = **in
-	}
 	if in.Distribution != nil {
 		in, out := &in.Distribution, &out.Distribution
 		*out = new(string)

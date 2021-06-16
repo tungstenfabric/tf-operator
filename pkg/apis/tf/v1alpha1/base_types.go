@@ -83,10 +83,6 @@ type PodConfiguration struct {
 	// If specified, the pod's tolerations.
 	// +optional
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty" protobuf:"bytes,22,opt,name=tolerations"`
-	// Allow node-init container to tune sysctl options
-	// (for all deployers except opneshift it is done by node-init, in openshift - machineconfig)
-	// +optional
-	TuneSysctl *bool `json:"tuneSysctl,omitempty"`
 	// AuthParameters auth parameters
 	// +optional
 	AuthParameters AuthParameters `json:"authParameters,omitempty"`
@@ -1931,4 +1927,25 @@ func SetDeployerType(client client.Client) error {
 	}
 	isOpenshift = true
 	return nil
+}
+
+func IsVrouterExists(client client.Client) bool {
+	vrouter := &VrouterList{}
+	err := client.List(context.Background(), vrouter)
+	return len(vrouter.Items) != 0 && err == nil
+}
+
+func ConvertLogLevel(logLevel string) string {
+	logLevels := map[string]string {
+		"info":     "SYS_INFO",
+		"debug":    "SYS_DEBUG",
+		"warning":  "SYS_WARN",
+		"error":    "SYS_ERR",
+		"critical": "SYS_CRIT",
+		"none":     "",
+	}
+	if logLevels[logLevel] == "" {
+		return logLevel
+	}
+	return logLevels[logLevel]
 }

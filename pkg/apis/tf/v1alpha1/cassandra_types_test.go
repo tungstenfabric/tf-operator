@@ -112,16 +112,6 @@ var cassandraTypesTestManager = Manager{
 		Services: Services{
 			Cassandras: getCassandras([]string{"configdb1"}),
 		},
-		CommonConfiguration: ManagerConfiguration{
-			ClusterConfig: &KubernetesClusterConfig{
-				ClusterName: "cluster-name-from-manager",
-				Networking: KubernetesClusterNetworking{
-					CNIConfig: CNIConfig{
-						BinaryPath: "cni-binary-path-from-manager",
-					},
-				},
-			},
-		},
 	},
 }
 

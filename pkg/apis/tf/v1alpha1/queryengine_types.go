@@ -51,7 +51,6 @@ type QueryEngineConfiguration struct {
 	AnalyticsdbPort           *int         `json:"analyticsdbPort,omitempty"`
 	AnalyticsdbIntrospectPort *int         `json:"analyticsdbIntrospectPort,omitempty"`
 	Containers                []*Container `json:"containers,omitempty"`
-	LogLevel                  string       `json:"logLevel,omitempty"`
 }
 
 // QueryEngineStatus status of QueryEngine
@@ -103,7 +102,6 @@ func (c *QueryEngine) InstanceConfiguration(podList []corev1.Pod, client client.
 		return
 	}
 
-	queryengineConfig := c.ConfigurationParameters()
 	var podIPList []string
 	for _, pod := range podList {
 		podIPList = append(podIPList, pod.Status.PodIP)
@@ -151,7 +149,7 @@ func (c *QueryEngine) InstanceConfiguration(podList []corev1.Pod, client client.
 			RedisServerList:          redisEndpointListSpaceSpearated,
 			CAFilePath:               certificates.SignerCAFilepath,
 			AnalyticsDataTTL:         strconv.Itoa(analyticsNodesInformation.AnalyticsDataTTL),
-			LogLevel:                 queryengineConfig.LogLevel,
+			LogLevel:                 ConvertLogLevel(c.Spec.CommonConfiguration.LogLevel),
 		})
 		if err != nil {
 			panic(err)
@@ -275,7 +273,6 @@ func (c *QueryEngine) IsActive(name string, namespace string, client client.Clie
 func (c *QueryEngine) ConfigurationParameters() QueryEngineConfiguration {
 	queryengineConfiguration := QueryEngineConfiguration{}
 	var analyticsdbPort int
-	var logLevel string
 
 	if c.Spec.ServiceConfiguration.AnalyticsdbPort != nil {
 		analyticsdbPort = *c.Spec.ServiceConfiguration.AnalyticsdbPort
@@ -284,12 +281,6 @@ func (c *QueryEngine) ConfigurationParameters() QueryEngineConfiguration {
 	}
 	queryengineConfiguration.AnalyticsdbPort = &analyticsdbPort
 
-	if c.Spec.ServiceConfiguration.LogLevel != "" {
-		logLevel = c.Spec.ServiceConfiguration.LogLevel
-	} else {
-		logLevel = LogLevel
-	}
-	queryengineConfiguration.LogLevel = logLevel
 	return queryengineConfiguration
 
 }

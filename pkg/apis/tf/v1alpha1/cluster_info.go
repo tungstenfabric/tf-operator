@@ -111,12 +111,21 @@ func (to *KubernetesClusterConfig) replaceFields(from KubernetesClusterConfig) *
 }
 
 func (c *KubernetesClusterConfig) fillWithDefaultValues() {
-	c.ClusterName = KubernetesClusterName
-	c.Networking.DNSDomain = KubernetesDNSDomainName
-	c.Networking.PodSubnet = KubernetesPodSubnet
-	c.Networking.ServiceSubnet = KubernetesServiceSubnet
-	c.Networking.CNIConfig.ConfigPath = CNIConfigPath
-	c.Networking.CNIConfig.BinaryPath = CNIBinaryPath
+	if !IsOpenshift() {
+		c.ClusterName = KubernetesClusterName
+		c.Networking.DNSDomain = KubernetesDNSDomainName
+		c.Networking.PodSubnet = KubernetesPodSubnet
+		c.Networking.ServiceSubnet = KubernetesServiceSubnet
+		c.Networking.CNIConfig.ConfigPath = CNIConfigPath
+		c.Networking.CNIConfig.BinaryPath = CNIBinaryPath
+	} else {
+		c.ClusterName = OpenShiftClusterName
+		c.Networking.DNSDomain = OpenShiftDNSDomain
+		c.Networking.PodSubnet = OpenShiftPodSubnet
+		c.Networking.ServiceSubnet = OpenShiftServiceSubnet
+		c.Networking.CNIConfig.ConfigPath = OpenShiftCNIConfigPath
+		c.Networking.CNIConfig.BinaryPath = OpenShiftCNIBinaryPath
+	}
 }
 
 func (c *KubernetesClusterConfig) fillWithKubeadmConfigMap() error {
@@ -211,23 +220,9 @@ func (c *KubernetesClusterConfig) fillWithClusterConfigMap() error {
 	return nil
 }
 
-func (c *KubernetesClusterConfig) fillWithManagerConfiguration(client client.Client) error {
-	manager, err := GetManagerObject(client)
-	if err != nil {
-		clusterInfoLog.Info(fmt.Sprintf("Error DefaultUnstructuredConverter %v", err))
-		return err
-	}
-
-	managerClusterConfig := manager.Spec.CommonConfiguration.ClusterConfig
-	if managerClusterConfig != nil {
-		*c = *managerClusterConfig
-	}
-	return nil
-}
-
 // ClusterParameters returns cluster configuration, merged from manager configuration and system configmaps
 func ClusterParameters(client client.Client) (*KubernetesClusterConfig, error) {
-	var defaultConfig, kubeadmConfig, clusterConfig, managerConfig KubernetesClusterConfig
+	var defaultConfig, kubeadmConfig, clusterConfig KubernetesClusterConfig
 
 	defaultConfig.fillWithDefaultValues()
 
@@ -239,12 +234,9 @@ func ClusterParameters(client client.Client) (*KubernetesClusterConfig, error) {
 		return nil, err
 	}
 
-	if err := managerConfig.fillWithManagerConfiguration(client); err != nil {
-		return nil, err
-	}
 
 	resultConfig := defaultConfig.replaceFields(kubeadmConfig).
-		replaceFields(clusterConfig).replaceFields(managerConfig)
+		replaceFields(clusterConfig)
 
 	if resultConfig.ControlPlaneEndpoint == "" {
 		resultConfig.ControlPlaneEndpoint = fmt.Sprintf("api.%v.%v:%v",
