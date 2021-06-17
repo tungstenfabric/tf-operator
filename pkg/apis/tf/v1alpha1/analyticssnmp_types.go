@@ -312,6 +312,8 @@ func (c *AnalyticsSnmp) InstanceConfiguration(podList []corev1.Pod, client clien
 		}
 		data["vnc_api_lib.ini."+podIP] = vnciniBuffer.String()
 	}
+	data["analyticssnmp-provisioner.env"] = ProvisionerEnvData(configApiIPCommaSeparated,
+		"", "", c.Spec.CommonConfiguration.AuthParameters)
 
 	return
 }

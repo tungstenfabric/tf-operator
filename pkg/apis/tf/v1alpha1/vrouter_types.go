@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"net"
 	"reflect"
 	"sort"
 	"strconv"
@@ -659,32 +658,6 @@ type ClusterParams struct {
 	ControlNodes   string
 }
 
-// GetControlNodes returns control nodes list (str comma separated)
-func (c *Vrouter) GetControlNodes(clnt client.Client) (string, error) {
-	control := &Control{}
-	if err := clnt.Get(context.TODO(), types.NamespacedName{
-		Namespace: c.Namespace,
-		Name:      c.Spec.ServiceConfiguration.ControlInstance,
-	}, control); errors.IsNotFound(err) {
-		return "", nil
-	} else if err != nil {
-		return "", err
-	}
-	var ipList []string
-	for _, ip := range control.Status.Nodes {
-		cidr := c.Spec.ServiceConfiguration.DataSubnet
-		if cidr != "" {
-			_, network, _ := net.ParseCIDR(cidr)
-			if !network.Contains(net.ParseIP(ip)) {
-				continue
-			}
-		}
-		ipList = append(ipList, ip)
-	}
-	sort.Strings(ipList)
-	return strings.Join(ipList, ","), nil
-}
-
 // GetAnalyticsNodes returns analytics nodes list (str comma separated)
 func (c *Vrouter) GetAnalyticsNodes(clnt client.Client) string {
 	ips, _ := c.GetNodesByLabels(clnt, client.MatchingLabels{"tf_manager": "analytics"})
@@ -904,8 +877,8 @@ func (c *Vrouter) UpdateAgentConfigMapForPod(vrouterPod *VrouterPod,
 	configMap.Data["vrouter-nodemgr.env."+podIP] = ""
 
 	// update with provisioner configs
-	UpdateProvisionerConfigMapData("vrouter-provisioner", clusterParams.ConfigNodes,
-		c.Spec.CommonConfiguration.AuthParameters, configMap)
+	configMap.Data["vrouter-provisioner.env."+podIP] = ProvisionerEnvData(clusterParams.ConfigNodes, clusterParams.ControlNodes,
+		vrouterPod.Pod.Annotations["hostname"], c.Spec.CommonConfiguration.AuthParameters)
 
 	return client.Update(context.Background(), configMap)
 }
@@ -922,9 +895,7 @@ func (c *Vrouter) RemoveAgentConfigMapForPod(vrouterPod *VrouterPod,
 	delete(configMap.Data, "vnc_api_lib.ini."+podIP)
 	delete(configMap.Data, "vrouter-nodemgr.conf."+podIP)
 	delete(configMap.Data, "vrouter-nodemgr.env."+podIP)
-
-	// remove provisioner configs
-	RemoveProvisionerConfigMapData("vrouter-provisioner", configMap)
+	delete(configMap.Data, "vrouter-provisioner.env."+podIP)
 
 	return client.Update(context.Background(), configMap)
 }
@@ -933,7 +904,8 @@ func (c *Vrouter) RemoveAgentConfigMapForPod(vrouterPod *VrouterPod,
 func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouterPod *VrouterPod, configMap *corev1.ConfigMap, clnt client.Client) (bool, error) {
 
 	log := vrouter_log.WithName("UpdateAgent").WithValues("nodeName", nodeName)
-	controlNodesList, err := c.GetControlNodes(clnt)
+	controlNodesList, err := GetControlNodes(c.GetNamespace(), c.Spec.ServiceConfiguration.ControlInstance,
+	c.Spec.ServiceConfiguration.DataSubnet, clnt)
 	if err != nil {
 		return true, err
 	}
@@ -1016,7 +988,8 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 		return false, nil
 	}
 
-	provData := ProvisionerEnvData(clusterParams.ConfigNodes, c.Spec.CommonConfiguration.AuthParameters)
+	provData := ProvisionerEnvData(clusterParams.ConfigNodes, clusterParams.ControlNodes,
+		vrouterPod.Pod.Annotations["hostname"], c.Spec.CommonConfiguration.AuthParameters)
 
 	// wait till new files is delivered to agent
 	eq, err := vrouterPod.IsAgentConfigsAvaliable(c, provData, configMap)
@@ -1081,7 +1054,7 @@ func (vrouterPod *VrouterPod) IsAgentConfigsAvaliable(vrouter *Vrouter, provisio
 		return eq, nil
 	}
 
-	path = "/etc/contrailconfigmaps/vrouter-provisioner.env"
+	path = "/etc/contrailconfigmaps/vrouter-provisioner.env." + podIP
 	eq, err = vrouterPod.IsFileInAgentContainerEqualTo(path, provisionerData)
 	if err != nil || !eq {
 		log.Info("vrouter-provisioner.env not ready", "err", err)

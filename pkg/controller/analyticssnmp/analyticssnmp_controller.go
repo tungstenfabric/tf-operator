@@ -309,7 +309,7 @@ func (r *ReconcileAnalyticsSnmp) Reconcile(request reconcile.Request) (reconcile
 			reqLogger.Error(err, "Failed to get config data.")
 			return reconcile.Result{}, err
 		}
-		if err = v1alpha1.UpdateConfigMap(instance, instanceType, instance.Spec.CommonConfiguration.AuthParameters, data, r.Client); err != nil {
+		if err = v1alpha1.UpdateConfigMap(instance, instanceType, data, r.Client); err != nil {
 			reqLogger.Error(err, "Failed to update config map.")
 			return reconcile.Result{}, err
 		}

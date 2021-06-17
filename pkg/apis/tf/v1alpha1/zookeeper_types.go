@@ -125,7 +125,6 @@ func (c *Zookeeper) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 	data["zoo.cfg"] = zookeeperStaticConfigString
 
 	return
-
 }
 
 // CreateConfigMap creates a configmap for zookeeper service.

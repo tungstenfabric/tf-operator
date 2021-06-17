@@ -31,23 +31,6 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 			},
 		},
 		{
-			// TODO: remove after tf-container-builder support PROVISION_HOSTNAME
-			Name: "VROUTER_HOSTNAME",
-			ValueFrom: &core.EnvVarSource{
-				FieldRef: &core.ObjectFieldSelector{
-					FieldPath: "metadata.annotations['hostname']",
-				},
-			},
-		},
-		{
-			Name: "PROVISION_HOSTNAME",
-			ValueFrom: &core.EnvVarSource{
-				FieldRef: &core.ObjectFieldSelector{
-					FieldPath: "metadata.annotations['hostname']",
-				},
-			},
-		},
-		{
 			Name:  "CLOUD_ORCHESTRATOR",
 			Value: cloudOrchestrator,
 		},

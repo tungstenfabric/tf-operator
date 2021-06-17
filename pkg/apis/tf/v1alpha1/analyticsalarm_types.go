@@ -339,6 +339,9 @@ func (c *AnalyticsAlarm) InstanceConfiguration(podList []corev1.Pod, client clie
 		}
 		data["vnc_api_lib.ini."+podIP] = vnciniBuffer.String()
 	}
+	data["analyticsalarm-provisioner.env"] = ProvisionerEnvData(configApiIPCommaSeparated,
+		"", "", c.Spec.CommonConfiguration.AuthParameters)
+
 	return
 }
 

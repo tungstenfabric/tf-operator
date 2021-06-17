@@ -171,6 +171,8 @@ func (c *Webui) InstanceConfiguration(podList []corev1.Pod, client client.Client
 		}
 		data["contrail-webui-userauth.js."+pod.Status.PodIP] = webuiAuthConfigBuffer.String()
 	}
+	data["webui-provisioner.env"] = ProvisionerEnvData(configApiIPListCommaSeparatedQuoted,
+		"", "", c.Spec.CommonConfiguration.AuthParameters)
 
 	return
 }
