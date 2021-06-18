@@ -529,18 +529,9 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Reconciling Manager")
 
-	// Run ZIU Process if no error in status get
-	if res, err := ReconcileZiu(r.Client); err != nil || res.Requeue {
-		return res, err
-	}
-
-	instance := &v1alpha1.Manager{}
-	err := r.Client.Get(context.TODO(), request.NamespacedName, instance)
+	instance, err := v1alpha1.GetManagerObject(r.Client)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			return reconcile.Result{}, nil
-		}
-		return reconcile.Result{}, err
+		return requeueReconcile, err
 	}
 
 	if !instance.GetDeletionTimestamp().IsZero() {
@@ -549,6 +540,11 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 
 	if err := r.processCSRSignerCaConfigMap(instance); err != nil {
 		return reconcile.Result{}, fmt.Errorf("Failed to prepare CA: err=%+v", err)
+	}
+
+	// Run ZIU Process if no error in status get
+	if res, err := ReconcileZiu(r.Client); err != nil || res.Requeue {
+		return res, err
 	}
 
 	// set defaults if not set
