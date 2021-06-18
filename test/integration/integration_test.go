@@ -296,6 +296,7 @@ func TestReconcileManager(t *testing.T) {
 	stage, err := v1alpha1.GetZiuStage(clnt)
 	require.NoError(t, err)
 	require.Equal(t, -1, int(stage))
+
 	result, err := reconcileManager.Reconcile(reconcileRequest)
 	require.NoError(t, err)
 	require.Equal(t, reconcile.Result{}, result)

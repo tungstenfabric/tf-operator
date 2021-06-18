@@ -712,7 +712,7 @@ func UpdateSTS(stsName string,
 
 	changed := false
 	if force || containersChanged(&sts.Spec.Template, template) {
-		logger.Info("Some of container images or env changed, or force mode")
+		logger.Info("Some of container images or env changed, or force mode: force=%v", force)
 		changed = true
 		if template != nil {
 			sts.Spec.Template = *template
@@ -1986,7 +1986,7 @@ func IsVrouterExists(client client.Client) bool {
 }
 
 func ConvertLogLevel(logLevel string) string {
-	logLevels := map[string]string {
+	logLevels := map[string]string{
 		"info":     "SYS_INFO",
 		"debug":    "SYS_DEBUG",
 		"warning":  "SYS_WARN",
