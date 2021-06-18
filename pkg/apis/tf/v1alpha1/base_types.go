@@ -712,7 +712,7 @@ func UpdateSTS(stsName string,
 
 	changed := false
 	if force || containersChanged(&sts.Spec.Template, template) {
-		logger.Info("Some of container images or env changed, or force mode: force=%v", force)
+		logger.Info("Some of container images or env changed, or force mode", "force", force)
 		changed = true
 		if template != nil {
 			sts.Spec.Template = *template

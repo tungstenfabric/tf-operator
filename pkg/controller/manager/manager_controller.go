@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/fatih/structs"
+	"github.com/go-logr/logr"
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
 )
@@ -475,10 +476,10 @@ func updateResource(kind string, serviceName string, isSlice bool, clnt client.C
 	}
 	createNew := errors.IsNotFound(err)
 
-	log.Info(fmt.Sprintf("DDDDD res_spec = %+v", spec))
 	managerCommonConf := GetChildObject("spec/commonConfiguration", mgr.UnstructuredContent())
 	spec["commonConfiguration"] = utils.MergeUnstructuredCommonConfig(managerCommonConf, spec["commonConfiguration"])
 	res.Object["spec"] = spec
+	log.Info(fmt.Sprintf("Service %s/%s spec: %+v", kind, serviceName, spec))
 
 	if createNew {
 		// Create new
@@ -502,9 +503,12 @@ func processZiuStage(ziuStage v1alpha1.ZIUStatus, clnt client.Client) error {
 	return v1alpha1.SetZiuStage(int(ziuStage)+1, clnt)
 }
 
-func ReconcileZiu(clnt client.Client) (reconcile.Result, error) {
+func ReconcileZiu(log logr.Logger, clnt client.Client) (reconcile.Result, error) {
+	reqLogger := log.WithName("ZIU")
+
 	ziuStage, err := v1alpha1.GetZiuStage(clnt)
 	if err != nil || ziuStage < 0 {
+		reqLogger.Error(err, "Error in ZIU")
 		return reconcile.Result{}, err
 	}
 
@@ -514,13 +518,16 @@ func ReconcileZiu(clnt client.Client) (reconcile.Result, error) {
 	// We have to wait previous stage updated and ready
 	if ziuStage > 0 {
 		if isUpdated, err := isServiceUpdated(ziuStage-1, clnt); err != nil || !isUpdated {
+			reqLogger.Info("Wait for updating services", "ziuStage", ziuStage, "err", err)
 			return requeueResult, err
 		}
 	}
 	if len(v1alpha1.ZiuKinds) == int(ziuStage) {
 		// ZIU have been finished - set stage to -1
+		reqLogger.Info("ZIU done")
 		return requeueResult, v1alpha1.SetZiuStage(-1, clnt)
 	}
+	reqLogger.Info("Process ZIU stage", "ziuStage", ziuStage)
 	return requeueResult, processZiuStage(ziuStage, clnt)
 }
 
@@ -543,7 +550,7 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	// Run ZIU Process if no error in status get
-	if res, err := ReconcileZiu(r.Client); err != nil || res.Requeue {
+	if res, err := ReconcileZiu(reqLogger, r.Client); err != nil || res.Requeue {
 		return res, err
 	}
 
