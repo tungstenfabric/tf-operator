@@ -14,11 +14,15 @@
 bases:
 - ../../base/operator
 
+{%- if TF_ROOT_CA_CERT_BASE64 is defined and TF_ROOT_CA_KEY_BASE64 is defined %}
 resources:
   - ca-secret.yaml
+{%- endif %}
 
+{%- if IMAGE_PULL_SECRETS is defined and IMAGE_PULL_SECRETS != "" %}
 patchesStrategicMerge:
   - image-secrets.yaml
+{%- endif %}
 
 images:
 - name: tf-operator
