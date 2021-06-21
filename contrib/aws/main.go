@@ -25,6 +25,7 @@ const (
 var ports = [...]port{
 	{5995, 5995, protocolTCP},
 	{6379, 6379, protocolTCP},
+	{6389, 6389, protocolTCP},
 	{5920, 5920, protocolTCP},
 	{5921, 5921, protocolTCP},
 	{4369, 4369, protocolTCP},

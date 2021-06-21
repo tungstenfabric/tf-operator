@@ -40,10 +40,9 @@ type RedisSpec struct {
 // RedisConfiguration is the Spec for the redis API.
 // +k8s:openapi-gen=true
 type RedisConfiguration struct {
-	Containers    []*Container `json:"containers,omitempty"`
-	ClusterName   string       `json:"clusterName,omitempty"`
-	ListenAddress string       `json:"listenAddress,omitempty"`
-	RedisPort     *int         `json:"redisPort,omitempty"`
+	Containers  []*Container `json:"containers,omitempty"`
+	ClusterName string       `json:"clusterName,omitempty"`
+	RedisPort   *int         `json:"redisPort,omitempty"`
 }
 
 // RedisStatus defines the status of the redis object.
@@ -71,16 +70,17 @@ func (c *Redis) InstanceConfiguration(podList []corev1.Pod, client client.Client
 ) (data map[string]string, err error) {
 	data, err = make(map[string]string), nil
 
+	params := c.ConfigurationParameters()
 	for _, pod := range podList {
 		podIP := pod.Status.PodIP
 
 		var stunnelBuffer bytes.Buffer
 		err = configtemplates.StunnelConfig.Execute(&stunnelBuffer, struct {
-			RedisListenAddress string
-			RedisServerPort    string
+			ListenAddress string
+			RedisPort     int
 		}{
-			RedisListenAddress: podIP,
-			RedisServerPort:    "6379",
+			ListenAddress: podIP,
+			RedisPort:     *params.RedisPort,
 		})
 		if err != nil {
 			panic(err)
@@ -215,17 +215,12 @@ func (c *Redis) IsUpgrading(name string, namespace string, client client.Client)
 func (c *Redis) ConfigurationParameters() *RedisConfiguration {
 	redisConfiguration := &RedisConfiguration{}
 	var redisPort int
-
 	if c.Spec.ServiceConfiguration.RedisPort != nil {
 		redisPort = *c.Spec.ServiceConfiguration.RedisPort
 	} else {
 		redisPort = RedisPort
 	}
 	redisConfiguration.RedisPort = &redisPort
-	if redisConfiguration.ListenAddress == "" {
-		redisConfiguration.ListenAddress = "auto"
-	}
-
 	return redisConfiguration
 }
 

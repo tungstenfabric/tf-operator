@@ -250,6 +250,9 @@ spec:
                   type: string
                 kubernetesPodSubnet:
                   type: string
+                l3mhCidr:
+                  description: L3MH
+                  type: string
                 logDir:
                   description: Logging
                   type: string

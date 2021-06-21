@@ -1098,12 +1098,6 @@ func schema_pkg_apis_tf_v1alpha1_RedisConfiguration(ref common.ReferenceCallback
 							Format: "",
 						},
 					},
-					"listenAddress": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
 					"redisPort": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"integer"},

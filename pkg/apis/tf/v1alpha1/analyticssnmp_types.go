@@ -118,6 +118,11 @@ func (c *AnalyticsSnmp) InstanceConfiguration(podList []corev1.Pod, client clien
 		return
 	}
 
+	redisNodesInformation, err := NewRedisClusterConfiguration(RedisInstance, c.Namespace, client)
+	if err != nil {
+		return
+	}
+
 	var rabbitmqSecretUser string
 	var rabbitmqSecretPassword string
 	var rabbitmqSecretVhost string
@@ -187,6 +192,7 @@ func (c *AnalyticsSnmp) InstanceConfiguration(podList []corev1.Pod, client clien
 			RabbitmqUser                      string
 			RabbitmqPassword                  string
 			CAFilePath                        string
+			RedisPort                         int
 		}{
 			PodIP:                    podIP,
 			Hostname:                 hostname,
@@ -202,8 +208,9 @@ func (c *AnalyticsSnmp) InstanceConfiguration(podList []corev1.Pod, client clien
 			RabbitmqUser:             rabbitmqSecretUser,
 			RabbitmqPassword:         rabbitmqSecretPassword,
 			CAFilePath:               SignerCAFilepath,
+			RedisPort:                redisNodesInformation.ServerPort,
 			// TODO: move to params
-			LogLevel:                 logLevel,
+			LogLevel: logLevel,
 		})
 		if err != nil {
 			panic(err)
@@ -249,7 +256,7 @@ func (c *AnalyticsSnmp) InstanceConfiguration(podList []corev1.Pod, client clien
 			RabbitmqPassword:         rabbitmqSecretPassword,
 			CAFilePath:               SignerCAFilepath,
 			// TODO: move to params
-			LogLevel:                 logLevel,
+			LogLevel: logLevel,
 		})
 		if err != nil {
 			panic(err)
@@ -281,7 +288,7 @@ func (c *AnalyticsSnmp) InstanceConfiguration(podList []corev1.Pod, client clien
 			CAFilePath:               SignerCAFilepath,
 			CollectorServerList:      collectorEndpointListSpaceSeparated,
 			// TODO: move to params
-			LogLevel:                 logLevel,
+			LogLevel: logLevel,
 		})
 		if err != nil {
 			panic(err)

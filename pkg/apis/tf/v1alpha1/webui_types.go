@@ -111,6 +111,11 @@ func (c *Webui) InstanceConfiguration(podList []corev1.Pod, client client.Client
 		return
 	}
 
+	redisNodesInformation, err := NewRedisClusterConfiguration(RedisInstance, c.Namespace, client)
+	if err != nil {
+		return
+	}
+
 	authConfig := c.Spec.CommonConfiguration.AuthParameters.KeystoneAuthParameters
 
 	configApiIPListCommaSeparatedQuoted := configtemplates.JoinListWithSeparatorAndSingleQuotes(configNodesInformation.APIServerIPList, ",")
@@ -133,6 +138,7 @@ func (c *Webui) InstanceConfiguration(podList []corev1.Pod, client client.Client
 			DnsNodePort            string
 			CassandraServerList    string
 			CassandraPort          string
+			RedisPort              int
 			CAFilePath             string
 			LogLevel               string
 			AuthMode               AuthenticationMode
@@ -148,6 +154,7 @@ func (c *Webui) InstanceConfiguration(podList []corev1.Pod, client client.Client
 			DnsNodePort:            strconv.Itoa(controlNodesInformation.DNSIntrospectPort),
 			CassandraServerList:    cassandraIPListCommaSeparatedQuoted,
 			CassandraPort:          strconv.Itoa(cassandraNodesInformation.CQLPort),
+			RedisPort:              redisNodesInformation.ServerPort,
 			AuthMode:               c.Spec.CommonConfiguration.AuthParameters.AuthMode,
 			KeystoneAuthParameters: authConfig,
 			CAFilePath:             SignerCAFilepath,

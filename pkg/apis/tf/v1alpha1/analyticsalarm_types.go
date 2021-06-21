@@ -107,8 +107,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(podList []corev1.Pod, client clie
 	if err != nil {
 		return
 	}
-	redisNodesInformation, err := NewRedisClusterConfiguration(RedisInstance,
-		c.Namespace, client)
+	redisNodesInformation, err := NewRedisClusterConfiguration(RedisInstance, c.Namespace, client)
 	if err != nil {
 		return
 	}
@@ -220,6 +219,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(podList []corev1.Pod, client clie
 			RabbitmqUser                   string
 			RabbitmqPassword               string
 			RedisServerList                string
+			RedisPort                      int
 			CAFilePath                     string
 		}{
 			PodIP:                    podIP,
@@ -237,9 +237,10 @@ func (c *AnalyticsAlarm) InstanceConfiguration(podList []corev1.Pod, client clie
 			RabbitmqUser:             rabbitmqSecretUser,
 			RabbitmqPassword:         rabbitmqSecretPassword,
 			RedisServerList:          redisEndpointListSpaceSpearated,
+			RedisPort:                redisNodesInformation.ServerPort,
 			CAFilePath:               SignerCAFilepath,
 			// TODO: move to params
-			LogLevel:                 logLevel,
+			LogLevel: logLevel,
 		})
 		if err != nil {
 			panic(err)
@@ -276,7 +277,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(podList []corev1.Pod, client clie
 			TruststorePassword: string(kafkaSecret.Data["truststorePassword"]),
 			CAFilePath:         SignerCAFilepath,
 			// TODO: move to params
-			LogLevel:           logLevel,
+			LogLevel: logLevel,
 		})
 		if err != nil {
 			panic(err)
@@ -308,7 +309,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(podList []corev1.Pod, client clie
 			CAFilePath:               SignerCAFilepath,
 			CollectorServerList:      collectorEndpointListSpaceSeparated,
 			// TODO: move to params
-			LogLevel:                 logLevel,
+			LogLevel: logLevel,
 		})
 		if err != nil {
 			panic(err)

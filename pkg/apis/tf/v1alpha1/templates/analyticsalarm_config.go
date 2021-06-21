@@ -41,7 +41,7 @@ kafka_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
 kafka_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 kafka_ca_cert={{ .CAFilePath }}
 [REDIS]
-redis_server_port=6379
+redis_server_port={{ .RedisPort }}
 redis_uve_list={{ .RedisServerList }}
 redis_password=
 redis_use_ssl=True
@@ -54,4 +54,5 @@ introspect_ssl_insecure=True
 sandesh_ssl_enable=True
 sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
 sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
-sandesh_ca_cert={{ .CAFilePath }}`))
+sandesh_ca_cert={{ .CAFilePath }}
+`))

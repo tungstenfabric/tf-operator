@@ -1217,14 +1217,6 @@ func (c *ConfigClusterConfiguration) FillWithDefaultValues() {
 	}
 }
 
-// FillWithDefaultValues sets the default port values if they are set to the
-// zero value
-func (c *RedisClusterConfiguration) FillWithDefaultValues() {
-	if c.ServerPort == 0 {
-		c.ServerPort = RedisPort
-	}
-}
-
 // ControlClusterConfiguration stores all information about services' endpoints
 // under the Contrail Control
 type ControlClusterConfiguration struct {

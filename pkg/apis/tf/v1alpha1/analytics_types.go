@@ -209,6 +209,7 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 			RabbitmqServerList         string
 			CollectorServerList        string
 			RedisServerList            string
+			RedisPort                  int
 			RabbitmqUser               string
 			RabbitmqPassword           string
 			RabbitmqVhost              string
@@ -228,6 +229,7 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 			RabbitmqServerList:         rabbitmqSSLEndpointListCommaSeparated,
 			CollectorServerList:        collectorServerList,
 			RedisServerList:            redisEndpointListSpaceSpearated,
+			RedisPort:                  redisNodesInformation.ServerPort,
 			RabbitmqUser:               rabbitmqSecretUser,
 			RabbitmqPassword:           rabbitmqSecretPassword,
 			RabbitmqVhost:              rabbitmqSecretVhost,
@@ -261,6 +263,7 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 			AnalyticsConfigAuditTTL        string
 			AnalyticsStatisticsTTL         string
 			AnalyticsFlowTTL               string
+			RedisPort                      int
 		}{
 			Hostname:                       hostname,
 			PodIP:                          podIP,
@@ -281,6 +284,7 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 			AnalyticsConfigAuditTTL:        strconv.Itoa(*analyticsConfig.AnalyticsConfigAuditTTL),
 			AnalyticsStatisticsTTL:         strconv.Itoa(*analyticsConfig.AnalyticsStatisticsTTL),
 			AnalyticsFlowTTL:               strconv.Itoa(*analyticsConfig.AnalyticsFlowTTL),
+			RedisPort:                      redisNodesInformation.ServerPort,
 		})
 		if err != nil {
 			panic(err)

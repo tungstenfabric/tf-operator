@@ -27,7 +27,7 @@ analytics_api_ssl_certfile = /etc/certificates/server-{{ .PodIP }}.crt
 analytics_api_ssl_keyfile = /etc/certificates/server-key-{{ .PodIP }}.pem
 analytics_api_ssl_ca_cert = {{ .CAFilePath }}
 [REDIS]
-redis_query_port=6379
+redis_query_port={{ .RedisPort }}
 redis_uve_list={{ .RedisServerList }}
 redis_password=
 redis_use_ssl=True
@@ -82,7 +82,7 @@ port=3514
 api_server_list={{ .ApiServerList }}
 api_server_use_ssl=True
 [REDIS]
-port=6379
+port={{ .RedisPort }}
 server=127.0.0.1
 password=
 [CONFIGDB]

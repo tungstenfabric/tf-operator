@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
@@ -222,6 +223,7 @@ func (r *ReconcileRedis) Reconcile(request reconcile.Request) (reconcile.Result,
 	}
 
 	utils.CleanupContainers(&statefulSet.Spec.Template.Spec, instance.Spec.ServiceConfiguration.Containers)
+	redisPort := *instance.ConfigurationParameters().RedisPort
 	for idx := range statefulSet.Spec.Template.Spec.Containers {
 
 		container := &statefulSet.Spec.Template.Spec.Containers[idx]
@@ -245,7 +247,7 @@ func (r *ReconcileRedis) Reconcile(request reconcile.Request) (reconcile.Result,
 		case "redis":
 			if container.Command == nil {
 				command := []string{"bash", "-c",
-					"exec redis-server --lua-time-limit 15000 --dbfilename '' --bind 127.0.0.1 --port 6379",
+					fmt.Sprintf("exec redis-server --lua-time-limit 15000 --dbfilename '' --bind 127.0.0.1 --port %d", redisPort),
 				}
 				container.Command = command
 			}
@@ -255,7 +257,7 @@ func (r *ReconcileRedis) Reconcile(request reconcile.Request) (reconcile.Result,
 				PeriodSeconds:    3,
 				Handler: corev1.Handler{
 					Exec: &corev1.ExecAction{
-						Command: []string{"sh", "-c", "redis-cli -h 127.0.0.1 -p 6379 ping"},
+						Command: []string{"sh", "-c", fmt.Sprintf("redis-cli -h 127.0.0.1 -p %d ping", redisPort)},
 					},
 				},
 			}
@@ -264,7 +266,7 @@ func (r *ReconcileRedis) Reconcile(request reconcile.Request) (reconcile.Result,
 				PeriodSeconds:    3,
 				Handler: corev1.Handler{
 					Exec: &corev1.ExecAction{
-						Command: []string{"sh", "-c", "redis-cli -h 127.0.0.1 -p 6379 ping"},
+						Command: []string{"sh", "-c", fmt.Sprintf("redis-cli -h 127.0.0.1 -p %d ping", redisPort)},
 					},
 				},
 			}

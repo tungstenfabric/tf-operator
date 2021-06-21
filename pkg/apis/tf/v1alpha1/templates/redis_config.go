@@ -11,5 +11,6 @@ pid=/var/run/stunnel/stunnel.pid
 sslVersion=TLSv1.2
 foreground=yes
 [redis]
-accept={{ .RedisListenAddress }}:{{ .RedisServerPort }}
-connect=127.0.0.1:{{ .RedisServerPort }}`))
+accept={{ .ListenAddress }}:{{ .RedisPort }}
+connect=127.0.0.1:{{ .RedisPort }}
+`))

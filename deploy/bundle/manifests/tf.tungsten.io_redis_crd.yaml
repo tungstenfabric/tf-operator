@@ -159,8 +159,6 @@ spec:
                         type: string
                     type: object
                   type: array
-                listenAddress:
-                  type: string
                 redisPort:
                   type: integer
               type: object

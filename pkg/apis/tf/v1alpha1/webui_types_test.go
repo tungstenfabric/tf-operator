@@ -104,6 +104,13 @@ var webuiAnalytics = &Analytics{
 	},
 }
 
+var webuiRedis = &Redis{
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      "redis1",
+		Namespace: "test-ns",
+	},
+}
+
 var authTestPort = 9999
 var authTestPassword = "test-pass"
 
@@ -112,7 +119,7 @@ func TestWebuiConfigMapWithDefaultValues(t *testing.T) {
 	require.NoError(t, err, "Failed to build scheme")
 	require.NoError(t, corev1.SchemeBuilder.AddToScheme(scheme), "Failed to add CoreV1 into scheme")
 
-	cl := fake.NewFakeClientWithScheme(scheme, webuiSecret, webuiAnalytics, webuiCassandra, webuiConfig, webuiControl)
+	cl := fake.NewFakeClientWithScheme(scheme, webuiSecret, webuiAnalytics, webuiCassandra, webuiConfig, webuiControl, webuiRedis)
 	webui := Webui{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "webui1",
@@ -159,7 +166,7 @@ func TestWebuiConfigMapWithCustomValues(t *testing.T) {
 	require.NoError(t, err, "Failed to build scheme")
 	require.NoError(t, corev1.SchemeBuilder.AddToScheme(scheme), "Failed to add CoreV1 into scheme")
 
-	cl := fake.NewFakeClientWithScheme(scheme, webuiSecret, webuiAnalytics, webuiCassandra, webuiConfig, webuiControl)
+	cl := fake.NewFakeClientWithScheme(scheme, webuiSecret, webuiAnalytics, webuiCassandra, webuiConfig, webuiControl, webuiRedis)
 	webui := Webui{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "webui1",

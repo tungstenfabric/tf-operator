@@ -141,7 +141,7 @@ config.maxActiveJobs = 10;
 config.CONTRAIL_SERVICE_RETRY_TIME = 300000; //5 minutes
 
 config.redisDBIndex = 3;
-config.redis_server_port = '6379';
+config.redis_server_port = '{{ .RedisPort }}';
 config.redis_server_ip = '127.0.0.1';
 config.redis_dump_file = '/var/lib/redis/dump-webui.rdb';
 config.redis_password = '';
