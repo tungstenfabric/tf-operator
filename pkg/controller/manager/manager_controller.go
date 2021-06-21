@@ -508,7 +508,9 @@ func ReconcileZiu(log logr.Logger, clnt client.Client) (reconcile.Result, error)
 
 	ziuStage, err := v1alpha1.GetZiuStage(clnt)
 	if err != nil || ziuStage < 0 {
-		reqLogger.Error(err, "Error in ZIU")
+		if err != nil {
+			reqLogger.Error(err, "Error in ZIU")
+		}
 		return reconcile.Result{}, err
 	}
 
