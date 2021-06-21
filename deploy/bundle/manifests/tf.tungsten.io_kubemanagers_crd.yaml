@@ -146,10 +146,6 @@ spec:
               properties:
                 cloudOrchestrator:
                   type: string
-                clusterRole:
-                  type: string
-                clusterRoleBinding:
-                  type: string
                 containers:
                   items:
                     description: Container defines name, image and command.
@@ -178,17 +174,11 @@ spec:
                   type: integer
                 kubernetesAPIServer:
                   type: string
-                kubernetesClusterName:
-                  type: string
                 kubernetesTokenFile:
                   type: string
                 podSubnet:
                   type: string
                 publicFIPPool:
-                  type: string
-                secretName:
-                  type: string
-                serviceAccount:
                   type: string
                 serviceSubnet:
                   type: string

@@ -84,13 +84,10 @@ type VrouterSpec struct {
 // VrouterConfiguration is the Spec for the vrouter API.
 // +k8s:openapi-gen=true
 type VrouterConfiguration struct {
-	Containers         []*Container `json:"containers,omitempty"`
-	Gateway            string       `json:"gateway,omitempty"`
-	PhysicalInterface  string       `json:"physicalInterface,omitempty"`
-	MetaDataSecret     string       `json:"metaDataSecret,omitempty"`
-	ServiceAccount     string       `json:"serviceAccount,omitempty"`
-	ClusterRole        string       `json:"clusterRole,omitempty"`
-	ClusterRoleBinding string       `json:"clusterRoleBinding,omitempty"`
+	Containers        []*Container `json:"containers,omitempty"`
+	Gateway           string       `json:"gateway,omitempty"`
+	PhysicalInterface string       `json:"physicalInterface,omitempty"`
+	MetaDataSecret    string       `json:"metaDataSecret,omitempty"`
 	// What is it doing?
 	// VrouterEncryption   bool              `json:"vrouterEncryption,omitempty"`
 	// What is it doing?
@@ -209,6 +206,9 @@ type VrouterConfiguration struct {
 	// HugePages
 	HugePages2M *int `json:"hugePages2M,omitempty"`
 	HugePages1G *int `json:"hugePages1G,omitempty"`
+
+	// L3MH
+	L3MHCidr string `json:"l3mhCidr,omitempty"`
 
 	// CniMTU - mtu for virtual tap devices
 	CniMTU *int `json:"cniMTU,omitempty"`
@@ -910,7 +910,7 @@ func (c *Vrouter) UpdateAgentConfigMapForPod(vrouterPod *VrouterPod,
 	return client.Update(context.Background(), configMap)
 }
 
-// UpdateAgentConfigMapForPod recalculates files `/etc/contrailconfigmaps/config_name.{$pod_ip}` in the agent configMap
+// RemoveAgentConfigMapForPod removes data
 func (c *Vrouter) RemoveAgentConfigMapForPod(vrouterPod *VrouterPod,
 	configMap *corev1.ConfigMap,
 	client client.Client,

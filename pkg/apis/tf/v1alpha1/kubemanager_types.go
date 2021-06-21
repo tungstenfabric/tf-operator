@@ -52,24 +52,19 @@ type KubemanagerStatus struct {
 // KubemanagerConfiguration is the configuration for the kubemanager API.
 // +k8s:openapi-gen=true
 type KubemanagerConfiguration struct {
-	Containers            []*Container `json:"containers,omitempty"`
-	ServiceAccount        string       `json:"serviceAccount,omitempty"`
-	ClusterRole           string       `json:"clusterRole,omitempty"`
-	ClusterRoleBinding    string       `json:"clusterRoleBinding,omitempty"`
-	CloudOrchestrator     string       `json:"cloudOrchestrator,omitempty"`
-	SecretName            string       `json:"secretName,omitempty"`
-	KubernetesAPIServer   string       `json:"kubernetesAPIServer,omitempty"`
-	KubernetesAPIPort     *int         `json:"kubernetesAPIPort,omitempty"`
-	KubernetesAPISSLPort  *int         `json:"kubernetesAPISSLPort,omitempty"`
-	PodSubnet             string       `json:"podSubnet,omitempty"`
-	ServiceSubnet         string       `json:"serviceSubnet,omitempty"`
-	KubernetesClusterName string       `json:"kubernetesClusterName,omitempty"`
-	IPFabricSubnets       string       `json:"ipFabricSubnets,omitempty"`
-	IPFabricForwarding    *bool        `json:"ipFabricForwarding,omitempty"`
-	IPFabricSnat          *bool        `json:"ipFabricSnat,omitempty"`
-	HostNetworkService    *bool        `json:"hostNetworkService,omitempty"`
-	KubernetesTokenFile   string       `json:"kubernetesTokenFile,omitempty"`
-	PublicFIPPool         string       `json:"publicFIPPool,omitempty"`
+	Containers           []*Container `json:"containers,omitempty"`
+	CloudOrchestrator    string       `json:"cloudOrchestrator,omitempty"`
+	KubernetesAPIServer  string       `json:"kubernetesAPIServer,omitempty"`
+	KubernetesAPIPort    *int         `json:"kubernetesAPIPort,omitempty"`
+	KubernetesAPISSLPort *int         `json:"kubernetesAPISSLPort,omitempty"`
+	PodSubnet            string       `json:"podSubnet,omitempty"`
+	ServiceSubnet        string       `json:"serviceSubnet,omitempty"`
+	IPFabricSubnets      string       `json:"ipFabricSubnets,omitempty"`
+	IPFabricForwarding   *bool        `json:"ipFabricForwarding,omitempty"`
+	IPFabricSnat         *bool        `json:"ipFabricSnat,omitempty"`
+	HostNetworkService   *bool        `json:"hostNetworkService,omitempty"`
+	KubernetesTokenFile  string       `json:"kubernetesTokenFile,omitempty"`
+	PublicFIPPool        string       `json:"publicFIPPool,omitempty"`
 }
 
 // KubemanagerList contains a list of Kubemanager.
@@ -138,7 +133,12 @@ func (c *Kubemanager) InstanceConfiguration(podList []corev1.Pod, client client.
 		rabbitmqSecretVhost = string(rabbitmqSecret.Data["vhost"])
 	}
 
-	kubemanagerConfig, err := c.ConfigurationParameters(client)
+	cinfo, err := ClusterParameters(client)
+	if err != nil {
+		return nil, err
+	}
+
+	kubemanagerConfig, err := c.ConfigurationParameters(cinfo)
 	if err != nil {
 		return
 	}
@@ -166,13 +166,7 @@ func (c *Kubemanager) InstanceConfiguration(podList []corev1.Pod, client client.
 		cassandraEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(cassandraEndpointList, " ")
 		var kubemanagerConfigBuffer bytes.Buffer
 		secret := &corev1.Secret{}
-		var secretName string
-		if c.Spec.ServiceConfiguration.SecretName != "" {
-			secretName = c.Spec.ServiceConfiguration.SecretName
-		} else {
-			secretName = c.Name + "-kubemanager-secret"
-		}
-		if err = client.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: c.Namespace}, secret); err != nil {
+		if err = client.Get(context.TODO(), types.NamespacedName{Name: c.Name + "-kubemanager-secret", Namespace: c.Namespace}, secret); err != nil {
 			return
 		}
 		token := string(secret.Data["token"])
@@ -214,7 +208,7 @@ func (c *Kubemanager) InstanceConfiguration(podList []corev1.Pod, client client.
 			KubernetesAPIServer:      kubemanagerConfig.KubernetesAPIServer,
 			KubernetesAPIPort:        strconv.Itoa(*kubemanagerConfig.KubernetesAPIPort),
 			KubernetesAPISSLPort:     strconv.Itoa(*kubemanagerConfig.KubernetesAPISSLPort),
-			KubernetesClusterName:    kubemanagerConfig.KubernetesClusterName,
+			KubernetesClusterName:    cinfo.ClusterName,
 			PodSubnet:                kubemanagerConfig.PodSubnet,
 			IPFabricSubnet:           kubemanagerConfig.IPFabricSubnets,
 			ServiceSubnet:            kubemanagerConfig.ServiceSubnet,
@@ -339,12 +333,8 @@ func (c *Kubemanager) ManageNodeStatus(podNameIPMap map[string]string,
 }
 
 // ConfigurationParameters creates KubemanagerConfiguration
-func (c *Kubemanager) ConfigurationParameters(client client.Client) (*KubemanagerConfiguration, error) {
-
-	cinfo, err := ClusterParameters(client)
-	if err != nil {
-		return nil, err
-	}
+func (c *Kubemanager) ConfigurationParameters(cinfo *KubernetesClusterConfig) (*KubemanagerConfiguration, error) {
+	var err error
 
 	var cloudOrchestrator string = CloudOrchestrator
 	if c.Spec.ServiceConfiguration.CloudOrchestrator != "" {
@@ -389,7 +379,6 @@ func (c *Kubemanager) ConfigurationParameters(client client.Client) (*Kubemanage
 
 	kubemanagerConfiguration := &KubemanagerConfiguration{}
 	kubemanagerConfiguration.CloudOrchestrator = cloudOrchestrator
-	kubemanagerConfiguration.KubernetesClusterName = cinfo.ClusterName
 	kubemanagerConfiguration.KubernetesAPIServer = kubernetesAPIServer
 	kubemanagerConfiguration.KubernetesAPISSLPort = &kubernetesAPISSLPort
 	var kubernetesAPIPort int = KubernetesApiPort

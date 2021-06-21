@@ -156,10 +156,6 @@ spec:
                 cloudOrchestrator:
                   description: New params for vrouter configuration
                   type: string
-                clusterRole:
-                  type: string
-                clusterRoleBinding:
-                  type: string
                 cniMTU:
                   description: CniMTU - mtu for virtual tap devices
                   type: integer
@@ -309,8 +305,6 @@ spec:
                 serverCertfile:
                   type: string
                 serverKeyfile:
-                  type: string
-                serviceAccount:
                   type: string
                 sloDestination:
                   type: string

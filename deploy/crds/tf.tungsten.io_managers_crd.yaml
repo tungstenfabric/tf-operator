@@ -1564,10 +1564,6 @@ spec:
                           properties:
                             cloudOrchestrator:
                               type: string
-                            clusterRole:
-                              type: string
-                            clusterRoleBinding:
-                              type: string
                             containers:
                               items:
                                 description: Container defines name, image and command.
@@ -1596,17 +1592,11 @@ spec:
                               type: integer
                             kubernetesAPIServer:
                               type: string
-                            kubernetesClusterName:
-                              type: string
                             kubernetesTokenFile:
                               type: string
                             podSubnet:
                               type: string
                             publicFIPPool:
-                              type: string
-                            secretName:
-                              type: string
-                            serviceAccount:
                               type: string
                             serviceSubnet:
                               type: string
@@ -2354,10 +2344,6 @@ spec:
                               cloudOrchestrator:
                                 description: New params for vrouter configuration
                                 type: string
-                              clusterRole:
-                                type: string
-                              clusterRoleBinding:
-                                type: string
                               cniMTU:
                                 description: CniMTU - mtu for virtual tap devices
                                 type: integer
@@ -2507,8 +2493,6 @@ spec:
                               serverCertfile:
                                 type: string
                               serverKeyfile:
-                                type: string
-                              serviceAccount:
                                 type: string
                               sloDestination:
                                 type: string

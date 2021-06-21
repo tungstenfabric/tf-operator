@@ -160,6 +160,9 @@ XMPP_SSL_ENABLE="{{ .ServiceConfig.XmppSslEnable }}"
 HUGE_PAGES_2MB="{{ default 0 .ServiceConfig.HugePages2M }}"
 HUGE_PAGES_1GB="{{ default 0 .ServiceConfig.HugePages1G }}"
 
+# L3MH
+L3MH_CIDR="{{ .ServiceConfig.L3MHCidr }}"
+
 set +o allexport
 `))
 
