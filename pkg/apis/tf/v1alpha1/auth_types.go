@@ -57,7 +57,7 @@ func (ap *AuthParameters) Prepare(namespace string, client client.Client) error 
 	if ap.AuthMode == "" {
 		ap.AuthMode = AuthenticationModeNoAuth
 	}
-	c := ap.KeystoneAuthParameters
+	c := &ap.KeystoneAuthParameters
 	if c.AdminUsername == "" {
 		c.AdminUsername = KeystoneAuthAdminUser
 	}
