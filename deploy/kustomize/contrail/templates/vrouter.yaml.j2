@@ -4,6 +4,9 @@
 {%- if CONTAINER_REGISTRY is not defined or CONTAINER_REGISTRY == "" -%}
 {%- set CONTAINER_REGISTRY = "tungstenfabric" -%}
 {%- endif -%}
+{%- if HUGE_PAGES_2MB is not defined  %}
+{%- set HUGE_PAGES_2MB = 128 -%}
+{%- endif -%}
 {%- if CNI is not defined or CNI == "" -%}
 ---
 apiVersion: tf.tungsten.io/v1alpha1
@@ -27,6 +30,12 @@ spec:
 {%- if L3MH_CIDR is defined and L3MH_CIDR != "" %}
           l3mhCidr: {{ L3MH_CIDR }}
 {%- endif %}
+{%- if HUGE_PAGES_2MB is defined and HUGE_PAGES_2MB != "" %}
+          hugePages2M: {{ HUGE_PAGES_2MB }}
+{%- endif %}
+{%- if HUGE_PAGES_1GB is defined and HUGE_PAGES_1GB != "" %}
+          hugePages1G: {{ HUGE_PAGES_1GB }}
+{%- endif %}
           containers:
           - name: nodeinit
             image: contrail-node-init
@@ -42,5 +51,4 @@ spec:
             image: contrail-vrouter-agent
           - name: vroutercni
             image: contrail-kubernetes-cni-init
-{%- endif -%}
-
+{%- endif %}

@@ -52,9 +52,6 @@ spec:
         - name: NODE_TYPE
           value: {{ .DatabaseNodeType }}
         image: tungstenfabric/contrail-external-zookeeper:latest
-        resources:
-          requests:
-            memory: "1Gi"
         startupProbe:
           periodSeconds: 3
           failureThreshold: 30
