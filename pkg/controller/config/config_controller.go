@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -303,16 +304,41 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 		switch container.Name {
 
 		case "api":
+			apiWorkerCount := instance.Spec.ServiceConfiguration.APIWorkerCount
 			if container.Command == nil {
-				command := []string{"bash", "-c", instance.CommonStartupScript(
-					"exec /usr/bin/contrail-api --conf_file /etc/contrailconfigmaps/api.${POD_IP} --conf_file /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP} --worker_id 0",
-					map[string]string{
-						"api.${POD_IP}":                         "",
-						"contrail-keystone-auth.conf.${POD_IP}": "",
+				var command []string
+
+				if apiWorkerCount == nil || *apiWorkerCount == 1 {
+					command = []string{"bash", "-c", instance.CommonStartupScript(
+						"exec /usr/bin/contrail-api --conf_file /etc/contrailconfigmaps/api.0.${POD_IP} --conf_file /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP} --worker_id 0",
+						map[string]string{
+							"api.0.${POD_IP}":                       "",
+							"contrail-keystone-auth.conf.${POD_IP}": "",
+							"vnc_api_lib.ini.${POD_IP}":             "vnc_api_lib.ini",
+						}),
+					}
+				} else {
+					configs := map[string]string{
+						"api-uwsgi.ini.${POD_IP}":               "contrail-api-uwsgi.ini",
+						"contrail-keystone-auth.conf.${POD_IP}": "contrail-keystone-auth.conf",
 						"vnc_api_lib.ini.${POD_IP}":             "vnc_api_lib.ini",
-					}),
+					}
+					for i := 0; i < *apiWorkerCount; i++ {
+						iStr := strconv.Itoa(i)
+						configs["api."+iStr+".${POD_IP}"] = "contrail-api-" + iStr + ".conf"
+					}
+					command = []string{"bash", "-c", instance.CommonStartupScript(
+						"exec $(which uwsgi) /etc/contrail/contrail-api-uwsgi.ini",
+						configs,
+					)}
 				}
 				container.Command = command
+			}
+			if apiWorkerCount != nil && *apiWorkerCount > 1 {
+				container.Env = append(container.Env, corev1.EnvVar{
+					Name:  "CONFIG_API_WORKER_COUNT",
+					Value: strconv.Itoa(*apiWorkerCount),
+				})
 			}
 
 		case "devicemanager":
@@ -461,7 +487,7 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 	extraVolumes := !v1alpha1.IsOpenshift() && !v1alpha1.IsVrouterExists(r.Client)
 
 	if extraVolumes {
-	statefulSet.Spec.Template.Spec.Volumes = append(statefulSet.Spec.Template.Spec.Volumes,
+		statefulSet.Spec.Template.Spec.Volumes = append(statefulSet.Spec.Template.Spec.Volumes,
 			core.Volume{
 				Name: "host-sysctl",
 				VolumeSource: core.VolumeSource{

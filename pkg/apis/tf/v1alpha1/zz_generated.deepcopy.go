@@ -1093,6 +1093,16 @@ func (in *ConfigConfiguration) DeepCopyInto(out *ConfigConfiguration) {
 		*out = new(int)
 		**out = **in
 	}
+	if in.APIAdminPort != nil {
+		in, out := &in.APIAdminPort, &out.APIAdminPort
+		*out = new(int)
+		**out = **in
+	}
+	if in.APIWorkerCount != nil {
+		in, out := &in.APIWorkerCount, &out.APIWorkerCount
+		*out = new(int)
+		**out = **in
+	}
 	if in.SchemaIntrospectPort != nil {
 		in, out := &in.SchemaIntrospectPort, &out.SchemaIntrospectPort
 		*out = new(int)

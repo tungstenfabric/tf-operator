@@ -65,8 +65,10 @@ type ConfigSpec struct {
 // +k8s:openapi-gen=true
 type ConfigConfiguration struct {
 	Containers                  []*Container            `json:"containers,omitempty"`
+	APIAdminPort                *int                    `json:"apiAdminPort,omitempty"`
 	APIPort                     *int                    `json:"apiPort,omitempty"`
 	ApiIntrospectPort           *int                    `json:"apiIntrospectPort,omitempty"`
+	APIWorkerCount              *int                    `json:"apiWorkerCount,omitempty"`
 	SchemaIntrospectPort        *int                    `json:"schemaIntrospectPort,omitempty"`
 	DeviceManagerIntrospectPort *int                    `json:"deviceManagerIntrospectPort,omitempty"`
 	SvcMonitorIntrospectPort    *int                    `json:"svcMonitorIntrospectPort,omitempty"`
@@ -184,51 +186,93 @@ func (c *Config) InstanceConfiguration(podList []corev1.Pod, client client.Clien
 
 	logLevel := ConvertLogLevel(c.Spec.CommonConfiguration.LogLevel)
 
+	adminPorts := []string{strconv.Itoa(*configConfig.APIAdminPort)}
+	introspectPorts := []string{strconv.Itoa(*configConfig.ApiIntrospectPort)}
+	for i := 0; i < *configConfig.APIWorkerCount-1; i++ {
+		introspectPorts = append(introspectPorts, strconv.Itoa(10000+*configConfig.ApiIntrospectPort+i))
+		adminPorts = append(adminPorts, strconv.Itoa(20000+*configConfig.APIAdminPort+i))
+	}
+	adminPortListSpaceSeparated := configtemplates.JoinListWithSeparator(adminPorts, " ")
+	introspectPortListSpaceSeparated := configtemplates.JoinListWithSeparator(introspectPorts, " ")
+
 	for _, pod := range podList {
 		hostname := pod.Annotations["hostname"]
 		podIP := pod.Status.PodIP
 		instrospectListenAddress := c.Spec.CommonConfiguration.IntrospectionListenAddress(podIP)
-		var configApiConfigBuffer bytes.Buffer
-		err = configtemplates.ConfigAPIConfig.Execute(&configApiConfigBuffer, struct {
-			PodIP                    string
-			ListenAddress            string
-			ListenPort               string
-			InstrospectListenAddress string
-			ApiIntrospectPort        string
-			CassandraServerList      string
-			ZookeeperServerList      string
-			RabbitmqServerList       string
-			CollectorServerList      string
-			RabbitmqUser             string
-			RabbitmqPassword         string
-			RabbitmqVhost            string
-			AuthMode                 AuthenticationMode
-			AAAMode                  AAAMode
-			LogLevel                 string
-			CAFilePath               string
-		}{
-			PodIP:                    podIP,
-			ListenAddress:            podIP,
-			ListenPort:               strconv.Itoa(*configConfig.APIPort),
-			InstrospectListenAddress: instrospectListenAddress,
-			ApiIntrospectPort:        strconv.Itoa(*configConfig.ApiIntrospectPort),
-			CassandraServerList:      cassandraEndpointListSpaceSeparated,
-			ZookeeperServerList:      zookeeperEndpointListCommaSeparated,
-			RabbitmqServerList:       rabbitmqSSLEndpointListCommaSeparated,
-			CollectorServerList:      collectorEndpointListSpaceSeparated,
-			RabbitmqUser:             rabbitmqSecretUser,
-			RabbitmqPassword:         rabbitmqSecretPassword,
-			RabbitmqVhost:            rabbitmqSecretVhost,
-			AuthMode:                 c.Spec.CommonConfiguration.AuthParameters.AuthMode,
-			AAAMode:                  configConfig.AAAMode,
-			LogLevel:                 logLevel,
-			CAFilePath:               SignerCAFilepath,
-		})
-		if err != nil {
-			panic(err)
-		}
-		data["api."+podIP] = configApiConfigBuffer.String()
 
+		for i := 0; i < *configConfig.APIWorkerCount; i++ {
+			var configApiConfigBuffer bytes.Buffer
+			err = configtemplates.ConfigAPIConfig.Execute(&configApiConfigBuffer, struct {
+				PodIP                    string
+				ListenAddress            string
+				ListenPort               string
+				InstrospectListenAddress string
+				ApiIntrospectPort        string
+				CassandraServerList      string
+				ZookeeperServerList      string
+				RabbitmqServerList       string
+				CollectorServerList      string
+				RabbitmqUser             string
+				RabbitmqPassword         string
+				RabbitmqVhost            string
+				AuthMode                 AuthenticationMode
+				AAAMode                  AAAMode
+				LogLevel                 string
+				CAFilePath               string
+				AdminPort                string
+				WorkerId                 string
+				IntrospectPortList       string
+				AdminPortList            string
+			}{
+				PodIP:                    podIP,
+				ListenAddress:            podIP,
+				ListenPort:               strconv.Itoa(*configConfig.APIPort),
+				InstrospectListenAddress: instrospectListenAddress,
+				ApiIntrospectPort:        introspectPorts[i],
+				CassandraServerList:      cassandraEndpointListSpaceSeparated,
+				ZookeeperServerList:      zookeeperEndpointListCommaSeparated,
+				RabbitmqServerList:       rabbitmqSSLEndpointListCommaSeparated,
+				CollectorServerList:      collectorEndpointListSpaceSeparated,
+				RabbitmqUser:             rabbitmqSecretUser,
+				RabbitmqPassword:         rabbitmqSecretPassword,
+				RabbitmqVhost:            rabbitmqSecretVhost,
+				AuthMode:                 c.Spec.CommonConfiguration.AuthParameters.AuthMode,
+				AAAMode:                  configConfig.AAAMode,
+				LogLevel:                 logLevel,
+				CAFilePath:               SignerCAFilepath,
+				AdminPort:                adminPorts[i],
+				WorkerId:                 strconv.Itoa(i),
+				IntrospectPortList:       introspectPortListSpaceSeparated,
+				AdminPortList:            adminPortListSpaceSeparated,
+			})
+			if err != nil {
+				panic(err)
+			}
+			data["api."+strconv.Itoa(i)+"."+podIP] = configApiConfigBuffer.String()
+		}
+
+		if *configConfig.APIWorkerCount > 1 {
+			var apiUwsgiIniBuffer bytes.Buffer
+			err = configtemplates.ConfigAPIUwsgiIniConfig.Execute(&apiUwsgiIniBuffer, struct {
+				APIMaxRequests int
+				APIWorkerCount int
+				BufferSize     int
+				ListenAddress  string
+				ListenPort     int
+				PodIP          string
+			}{
+				APIMaxRequests: 1024,
+				APIWorkerCount: *configConfig.APIWorkerCount,
+				BufferSize:     1024 * 1000 * 16,
+				ListenAddress:  podIP,
+				ListenPort:     *configConfig.APIPort,
+				PodIP:          podIP,
+			})
+			if err != nil {
+				panic(err)
+			}
+			data["api-uwsgi.ini."+podIP] = apiUwsgiIniBuffer.String()
+		}
 		var vncApiConfigBuffer bytes.Buffer
 		err = configtemplates.ConfigAPIVNC.Execute(&vncApiConfigBuffer, struct {
 			APIServerList          string
@@ -553,8 +597,16 @@ func (c *Config) IsActive(name string, namespace string, client client.Client) b
 // ConfigurationParameters create config struct
 func (c *Config) ConfigurationParameters() ConfigConfiguration {
 	configConfiguration := ConfigConfiguration{}
-	var apiPort int
 
+	var apiAdminPort int
+	if c.Spec.ServiceConfiguration.APIAdminPort != nil {
+		apiAdminPort = *c.Spec.ServiceConfiguration.APIAdminPort
+	} else {
+		apiAdminPort = ConfigAPIAdminPort
+	}
+	configConfiguration.APIAdminPort = &apiAdminPort
+
+	var apiPort int
 	if c.Spec.ServiceConfiguration.APIPort != nil {
 		apiPort = *c.Spec.ServiceConfiguration.APIPort
 	} else {
@@ -569,6 +621,14 @@ func (c *Config) ConfigurationParameters() ConfigConfiguration {
 		apiIntrospectPort = ConfigApiIntrospectPort
 	}
 	configConfiguration.ApiIntrospectPort = &apiIntrospectPort
+
+	var apiWorkerCount int
+	if c.Spec.ServiceConfiguration.APIWorkerCount != nil {
+		apiWorkerCount = *c.Spec.ServiceConfiguration.APIWorkerCount
+	} else {
+		apiWorkerCount = ConfigAPIWorkerCount
+	}
+	configConfiguration.APIWorkerCount = &apiWorkerCount
 
 	var schemaIntrospectPort int
 	if c.Spec.ServiceConfiguration.SchemaIntrospectPort != nil {

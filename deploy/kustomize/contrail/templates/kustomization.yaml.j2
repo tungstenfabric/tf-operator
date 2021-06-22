@@ -26,6 +26,9 @@ patchesStrategicMerge:
 {%- if DISTRIBUTION is defined and DISTRIBUTION != "" %}
   - distribution.yaml
 {%- endif %}
+{%- if CONFIG_API_WORKER_COUNT is defined and CONFIG_API_WORKER_COUNT != "" %}
+  - worker-count.yaml
+{%- endif %}
 
 # set contrail-status image
 {%- if DATA_NETWORK | default("") != "" %}
