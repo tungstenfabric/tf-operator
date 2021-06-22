@@ -3,9 +3,21 @@
 - K8s >= 1.16 installed
 
 # Simple AIO setup
+
 ## Prepare VM with CentOS 7 with 32GB RAM, 4 CPUs, 64GB diskspace
 
+## To Enable 2MB hugepages
+### Allocate hugepages on each node (before deploying kubelet), e.g:
+```bash
+echo 'vm.nr_hugepages=128' | sudo tee /etc/sysctl.d/tf-hugepages.conf
+sudo sysctl --system
+```
+### To deploy with hugepsages support in vrouter agent do before rendering
+```bash
+export HUGE_PAGES_2MB="128"
+```
 ## Deploy kubernetes with any preferable way, e.g. with help of kubespray (https://github.com/kubernetes-sigs/kubespray.git)
+
 
 ## Download tf-operator project.
 ```bash

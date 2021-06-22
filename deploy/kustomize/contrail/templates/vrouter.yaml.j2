@@ -25,6 +25,12 @@ spec:
 {%- if CNI_MTU is defined and CNI_MTU != "" %}
           cniMTU: {{ CNI_MTU }}
 {%- endif %}
+{%- if HUGE_PAGES_2MB is defined and HUGE_PAGES_2MB != "" %}
+          hugePages2M: {{ HUGE_PAGES_2MB }}
+{%- endif %}
+{%- if HUGE_PAGES_1GB is defined and HUGE_PAGES_1GB != "" %}
+          hugePages1G: {{ HUGE_PAGES_1GB }}
+{%- endif %}
           containers:
           - name: nodeinit
             image: contrail-node-init
@@ -40,5 +46,4 @@ spec:
             image: contrail-vrouter-agent
           - name: vroutercni
             image: contrail-kubernetes-cni-init
-{%- endif -%}
-
+{%- endif %}
