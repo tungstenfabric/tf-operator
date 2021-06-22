@@ -21,30 +21,21 @@ patchesStrategicMerge:
   - db.yaml
 {%- if CNI is not defined or CNI == "" %}
   - vrouter.yaml
+  - kube-manager.yaml
 {%- endif %}
 {%- if DISTRIBUTION is defined and DISTRIBUTION != "" %}
   - distribution.yaml
 {%- endif %}
 
 # set contrail-status image
-{%- if KUBERNETES_PUBLIC_FIP_POOL is defined or DATA_NETWORK | default("") != "" %}
-patchesJson6902:
-{%- if KUBERNETES_PUBLIC_FIP_POOL is defined %}
-  - target:
-      kind: Manager
-      name: cluster1
-      group: tf.tungsten.io
-      version: v1alpha1
-    path: kube-manager.json
-{%- endif %}
 {%- if DATA_NETWORK | default("") != "" %}
+patchesJson6902:
   - target:
       kind: Manager
       name: cluster1
       group: tf.tungsten.io
       version: v1alpha1
     path: datasubnet.json
-{%- endif %}
 {%- endif %}
 
 images:

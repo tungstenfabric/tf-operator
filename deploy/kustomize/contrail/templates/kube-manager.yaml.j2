@@ -1,0 +1,35 @@
+{%- if KUBERNETES_PUBLIC_FIP_POOL is not defined or KUBERNETES_PUBLIC_FIP_POOL == "" -%}
+{%- if DEPLOYER is defined and DEPLOYER == "openshift" -%}
+{%- set KUBERNETES_PUBLIC_FIP_POOL = "{}" -%}
+{%- endif -%}
+{%- endif -%}
+{%- if CNI is not defined or CNI == "" -%}
+---
+apiVersion: tf.tungsten.io/v1alpha1
+kind: Manager
+metadata:
+  name: cluster1
+  namespace: tf
+spec:
+  services:
+    kubemanager:
+      metadata:
+        labels:
+          tf_cluster: cluster1
+        name: kubemanager1
+      spec:
+        commonConfiguration:
+          nodeSelector:
+            node-role.kubernetes.io/master: ""
+        serviceConfiguration:
+{%- if KUBERNETES_PUBLIC_FIP_POOL is defined %}
+          publicFIPPool: {{ KUBERNETES_PUBLIC_FIP_POOL }}
+{%- endif %}
+          ipFabricForwarding: false
+          ipFabricSnat: true
+          hostNetworkService: true
+          kubernetesTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+          containers:
+          - name: kubemanager
+            image: contrail-kubernetes-kube-manager
+{%- endif -%}

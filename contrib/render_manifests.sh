@@ -10,9 +10,12 @@
 # CONTROLLER_NODES                  - CONTROLLER_NODES - for integratiio with tf dev tools, it is comma
 #                                     separated list of IPs of master nodes (used to calculate replicas)
 
-[ "${DEBUG,,}" == "true" ] && set -x
+DEBUG=$(echo $DEBUG | tr '[:upper:]' '[:lower:]')
+[ "${DEBUG}" != "true" ] || set -x
 
-my_file="$(readlink -e "$0")"
+which greadlink >/dev/null 2>&1 && rlink='greadlink' || rlink='readlink'
+
+my_file="$($rlink -e "$0")"
 my_dir="$(dirname $my_file)"
 
 export WORKSPACE=${WORKSPACE:-${my_dir}/../..}

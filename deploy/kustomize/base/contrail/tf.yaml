@@ -148,24 +148,6 @@ spec:
             image: contrail-nodemgr
           - name: provisioner
             image: contrail-provisioner
-    kubemanager:
-      metadata:
-        labels:
-          tf_cluster: cluster1
-        name: kubemanager1
-      spec:
-        commonConfiguration:
-          nodeSelector:
-            node-role.kubernetes.io/master: ""
-        serviceConfiguration:
-          analyticsInstance: analytics1
-          ipFabricForwarding: false
-          ipFabricSnat: true
-          hostNetworkService: true
-          kubernetesTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
-          containers:
-          - name: kubemanager
-            image: contrail-kubernetes-kube-manager
     rabbitmq:
       metadata:
         labels:
