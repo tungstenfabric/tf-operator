@@ -68,6 +68,13 @@ export CNI_MTU=1450
 ./tf-operator/contrib/render_manifests.sh
 ```
 
+## Enable L3MH
+```bash
+export L3MH_CIDR="100.1.1.0/42"
+# ... other options
+./tf-operator/contrib/render_manifests.sh
+```
+
 ## Use own root CA
 ```bash
 # generate root CA key and cert and provide base64 encoded values

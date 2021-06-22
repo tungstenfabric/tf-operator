@@ -24,6 +24,9 @@ spec:
 {%- if CNI_MTU is defined and CNI_MTU != "" %}
           cniMTU: {{ CNI_MTU }}
 {%- endif %}
+{%- if L3MH_CIDR is defined and L3MH_CIDR != "" %}
+          l3mhCidr: {{ L3MH_CIDR }}
+{%- endif %}
           containers:
           - name: nodeinit
             image: contrail-node-init
