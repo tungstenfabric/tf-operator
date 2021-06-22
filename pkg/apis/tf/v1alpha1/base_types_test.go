@@ -1,8 +1,10 @@
 package v1alpha1
 
 import (
+	"os"
 	"testing"
 
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,6 +36,10 @@ func getManager(dbs []string) *Manager {
 			},
 		},
 	}
+}
+
+func init() {
+	os.Setenv(k8sutil.WatchNamespaceEnvVar, "tf")
 }
 
 func TestGetDatabaseNodeTypeSingleDB(t *testing.T) {

@@ -36,6 +36,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
@@ -95,8 +96,7 @@ type PodConfiguration struct {
 	Distribution *string `json:"distribution,omitempty"`
 }
 
-// Establishes ZIU staging
-var ZiuKinds = []string{
+var ZiuKindsNoVrouterCNI = []string{
 	"Config",
 	"Analytics",
 	"AnalyticsAlarm",
@@ -108,8 +108,12 @@ var ZiuKinds = []string{
 	"Rabbitmq",
 	"Control",
 	"Webui",
-	"Kubemanager",
 }
+
+var ZiuKindsAll = append(ZiuKindsNoVrouterCNI, "Kubemanager")
+
+// Establishes ZIU staging
+var ZiuKinds []string
 
 var ZiuRestartTime, _ = time.ParseDuration("20s")
 
@@ -1771,9 +1775,13 @@ func IsOKForRequeque(err error) bool {
 }
 
 func GetManagerObject(clnt client.Client) (*Manager, error) {
-	mngr := &Manager{}
-	mngrName := types.NamespacedName{Name: "cluster1", Namespace: "tf"}
-	err := clnt.Get(context.Background(), mngrName, mngr)
+	var mngr = &Manager{}
+	var ns string
+	var err error
+	if ns, err = k8sutil.GetWatchNamespace(); err == nil {
+		mngrName := types.NamespacedName{Name: "cluster1", Namespace: ns}
+		err = clnt.Get(context.Background(), mngrName, mngr)
+	}
 	return mngr, err
 }
 
@@ -1873,8 +1881,53 @@ func SetZiuStage(stage int, clnt client.Client) error {
 }
 
 func InitZiu(clnt client.Client) (err error) {
+	var manager *Manager
+	if manager, err = GetManagerObject(clnt); err != nil {
+		return
+	}
+	if manager.Spec.Services.Kubemanager != nil {
+		ZiuKinds = ZiuKindsAll
+	} else {
+		ZiuKinds = ZiuKindsNoVrouterCNI
+	}
 	err = SetZiuStage(0, clnt)
 	return
+}
+
+// IsZiuRequired
+// Return true if manifests image tag (get kubemanager or webui depending on CNI)
+// is different from deployed STS
+func IsZiuRequired(clnt client.Client) (bool, error) {
+	manager, err := GetManagerObject(clnt)
+	if err != nil {
+		return false, err
+	}
+	var manifestTag string
+	var stsName string
+	if manager.Spec.Services.Kubemanager != nil {
+		ss := strings.Split(manager.Spec.Services.Kubemanager.Spec.ServiceConfiguration.Containers[0].Image, ":")
+		manifestTag = ss[len(ss)-1]
+		stsName = KubemanagerInstance + "-kubemanager-statefulset"
+	} else {
+		// no vrouter case
+		ss := strings.Split(manager.Spec.Services.Webui.Spec.ServiceConfiguration.Containers[0].Image, ":")
+		manifestTag = ss[len(ss)-1]
+		stsName = WebuiInstance + "-webui-statefulset"
+	}
+	sts := &appsv1.StatefulSet{}
+	nsName := types.NamespacedName{Name: stsName, Namespace: manager.GetNamespace()}
+	if err = clnt.Get(context.Background(), nsName, sts); err != nil {
+		if k8serrors.IsNotFound(err) {
+			// Looks like setup installed the first time
+			return false, nil
+		}
+		return false, err
+	}
+	// Get first container tag from sts
+	ss := strings.Split(sts.Spec.Template.Spec.Containers[0].Image, ":")
+	deployedTag := ss[len(ss)-1]
+
+	return deployedTag != manifestTag, nil
 }
 
 // Function check reconsiler request against current ZIU stage and allow reconcile for controllers

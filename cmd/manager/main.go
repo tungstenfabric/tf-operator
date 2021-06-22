@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"math/rand"
 	"runtime"
-	"time"
 	"strconv"
+	"time"
 
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
@@ -24,7 +24,6 @@ import (
 	"github.com/tungstenfabric/tf-operator/pkg/apis"
 	"github.com/tungstenfabric/tf-operator/pkg/controller"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/kubemanager"
-	mgrController "github.com/tungstenfabric/tf-operator/pkg/controller/manager"
 )
 
 var log = logf.Log.WithName("cmd")
@@ -35,26 +34,26 @@ func printVersion() {
 	log.Info(fmt.Sprintf("Version of operator-sdk: %v", sdkVersion.Version))
 }
 
-func runOperator(sigHandler <-chan struct{}) error {
+func runOperator(sigHandler <-chan struct{}) (err error) {
 
 	// Get a config to talk to the apiserver.
 	cfg := config.GetConfigOrDie()
 
-	namespace, err := k8sutil.GetWatchNamespace()
-	if err != nil {
+	var namespace string
+	if namespace, err = k8sutil.GetWatchNamespace(); err != nil {
 		log.Error(err, "Failed to get watch namespace")
 		return err
 	}
 
 	// Create a new Cmd to provide shared dependencies and start components.
-	mgr, err := manager.New(cfg, manager.Options{
+	var mgr manager.Manager
+	if mgr, err = manager.New(cfg, manager.Options{
 		Namespace:               namespace,
 		MetricsBindAddress:      "0",
 		LeaderElection:          true,
 		LeaderElectionID:        "tf-manager-lock",
 		LeaderElectionNamespace: namespace,
-	})
-	if err != nil {
+	}); err != nil {
 		log.Error(err, "Failed create Manager instance")
 		return err
 	}
@@ -67,46 +66,45 @@ func runOperator(sigHandler <-chan struct{}) error {
 		return err
 	}
 
-	// Check is ZIU Required?
-	clnt, err := client.New(cfg, client.Options{})
-	if err != nil {
+	var clnt client.Client
+	if clnt, err = client.New(cfg, client.Options{}); err != nil {
 		log.Error(err, "Failed to create client")
 		return err
 	}
 
-	err = v1alpha1.SetDeployerType(clnt)
-	if err != nil {
+	if err = v1alpha1.SetDeployerType(clnt); err != nil {
 		log.Error(err, "Failed SetDeployerType()")
 		return err
 	}
-	log.Info("IsOpenshift() returned "+strconv.FormatBool(v1alpha1.IsOpenshift()))
+	log.Info("IsOpenshift=" + strconv.FormatBool(v1alpha1.IsOpenshift()))
 
-	f, err := mgrController.IsZiuRequired(clnt)
-	if err != nil {
+	// Check is ZIU Required?
+	if f, err := v1alpha1.IsZiuRequired(clnt); err != nil {
 		log.Error(err, "try to check if ziu required")
 		return err
-	}
-	if f {
-		// We start ZIU process
-		log.Info("Start ZIU process")
-		err = v1alpha1.InitZiu(clnt)
 	} else {
-		// We not needed ZIU
-		log.Info("ZIU not needed")
-		err = v1alpha1.SetZiuStage(-1, clnt)
-	}
-	if err != nil {
-		log.Error(err, "Failed to Set ZIU Stage")
-		return err
+		if f {
+			// We start ZIU process
+			log.Info("Start ZIU process")
+			err = v1alpha1.InitZiu(clnt)
+		} else {
+			// We not needed ZIU
+			log.Info("ZIU not needed")
+			err = v1alpha1.SetZiuStage(-1, clnt)
+		}
+		if err != nil {
+			log.Error(err, "Failed to Set ZIU Stage")
+			return err
+		}
 	}
 
 	// Setup all Controllers.
-	if err := controller.AddToManager(mgr); err != nil {
+	if err = controller.AddToManager(mgr); err != nil {
 		log.Error(err, "")
 		return err
 	}
 
-	if err := kubemanager.Add(mgr); err != nil {
+	if err = kubemanager.Add(mgr); err != nil {
 		log.Error(err, "")
 		return err
 	}

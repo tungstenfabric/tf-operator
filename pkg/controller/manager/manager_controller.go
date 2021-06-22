@@ -107,54 +107,6 @@ type ReconcileManager struct {
 	Manager manager.Manager
 }
 
-// Get kubemanager STS. If kubemanager STS not found looks like tf start first time - return false
-// Get kubemanager image tag from current setup (from kubemanager STS created)
-// Get kubemanager image tag from current manager manifest
-// If they are the same return false
-// otherwise return true - tags are differ and we start ZIU procedure
-func IsZiuRequired(clnt client.Client) (bool, error) {
-	stsList := &appsv1.StatefulSetList{}
-
-	// Check if required STS exists in the cluster
-	err := clnt.List(context.Background(), stsList, client.InNamespace("tf"))
-	if err != nil {
-		return false, fmt.Errorf("Can't list stses %v", err)
-	}
-	stsFound := false
-	for _, item := range stsList.Items {
-		if item.Name == "kubemanager1-kubemanager-statefulset" {
-			stsFound = true
-		}
-	}
-	if !stsFound {
-		// Looks like setup installed the first time
-		return false, nil
-	}
-
-	// Get kubemanager container tag from sts
-	kubemanagerSts := &appsv1.StatefulSet{}
-	kubemanagerName := types.NamespacedName{Name: "kubemanager1-kubemanager-statefulset", Namespace: "tf"}
-	err = clnt.Get(context.Background(), kubemanagerName, kubemanagerSts)
-	if err != nil {
-		return false, fmt.Errorf("Can't get kubemanager sts %v", err)
-	}
-	ss := strings.Split(kubemanagerSts.Spec.Template.Spec.Containers[0].Image, ":")
-	kmStsTag := ss[len(ss)-1]
-	// Get kubemanager container tag from manager manifest
-	manager := &v1alpha1.Manager{}
-	managerName := types.NamespacedName{Name: "cluster1", Namespace: "tf"}
-	err = clnt.Get(context.Background(), managerName, manager)
-	if err != nil {
-		return false, fmt.Errorf("Can't get manager manifest %v", err)
-	}
-	ss = strings.Split(manager.Spec.Services.Kubemanager.Spec.ServiceConfiguration.Containers[0].Image, ":")
-	kmManagerTag := ss[len(ss)-1]
-	if kmManagerTag == kmStsTag {
-		return false, nil
-	}
-	return true, nil
-}
-
 // Got unstructured Services and Kind
 // Iterate over Services map and find its key
 // return service Name

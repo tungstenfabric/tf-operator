@@ -253,6 +253,8 @@ const (
 	RedisInstance                               string = "redis1"
 	ZookeeperInstance                           string = "zookeeper1"
 	AnalyticsInstance                           string = "analytics1"
+	KubemanagerInstance                         string = "kubemanager1"
+	WebuiInstance                               string = "webui1"
 	OpenShiftClusterName                        string = "test"
 	OpenShiftPodSubnet                          string = "10.128.0.0/14"
 	OpenShiftServiceSubnet                      string = "172.30.0.0/16"

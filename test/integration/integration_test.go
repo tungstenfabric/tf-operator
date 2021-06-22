@@ -3,10 +3,12 @@ package integration
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/stretchr/testify/require"
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/analytics"
@@ -262,6 +264,7 @@ func requireAllStsTag(t *testing.T, tag string, mgr *manager.ReconcileManager) {
 // }
 
 func init() {
+	os.Setenv(k8sutil.WatchNamespaceEnvVar, "tf")
 	fakeClientSet := fakeclient.NewSimpleClientset()
 	k8s.SetClientset(fakeClientSet.CoreV1())
 	// fakeDiscovery, ok := fakeClientSet.Discovery().(*fakediscovery.FakeDiscovery)
@@ -334,7 +337,7 @@ func testZIUUpdate(t *testing.T, initialVersion, targetVersion string) {
 	// Initial - blocked state 0
 	requireZiuStage(t, 0, clnt)
 
-	isZiuRequired, err := manager.IsZiuRequired(clnt)
+	isZiuRequired, err := v1alpha1.IsZiuRequired(clnt)
 	require.NoError(t, err)
 	require.Equal(t, false, isZiuRequired)
 
@@ -349,12 +352,12 @@ func testZIUUpdate(t *testing.T, initialVersion, targetVersion string) {
 	// requireAllPodsTag(t, initialVersion, reconcileManager)
 
 	// Check ZIU is required
-	isZiuRequired, err = manager.IsZiuRequired(clnt)
+	isZiuRequired, err = v1alpha1.IsZiuRequired(clnt)
 	require.NoError(t, err)
 	require.Equal(t, true, isZiuRequired)
 
 	// Start ZIU
-	require.NoError(t, v1alpha1.SetZiuStage(0, clnt))
+	require.NoError(t, v1alpha1.InitZiu(clnt))
 
 	// Check analytics db name
 	var adbName string
@@ -437,7 +440,7 @@ func testZIUUpdate(t *testing.T, initialVersion, targetVersion string) {
 	require.NoError(t, err)
 	require.Equal(t, ziuReconcielResult, result)
 	requireZiuStage(t, -1, clnt)
-	isZiuRequired, err = manager.IsZiuRequired(clnt)
+	isZiuRequired, err = v1alpha1.IsZiuRequired(clnt)
 	require.NoError(t, err)
 	require.Equal(t, false, isZiuRequired)
 

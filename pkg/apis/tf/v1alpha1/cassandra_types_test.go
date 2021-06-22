@@ -2,8 +2,10 @@ package v1alpha1
 
 import (
 	"context"
+	"os"
 	"testing"
 
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -132,6 +134,10 @@ type CassandraParamsStruct struct {
 	MemtableFlushWriters             int    `yaml:"memtable_flush_writers"`
 	MemtableAllocationType           string `yaml:"memtable_allocation_type"`
 	CompactionThroughputMbPerSec     int    `yaml:"compaction_throughput_mb_per_sec"`
+}
+
+func init() {
+	os.Setenv(k8sutil.WatchNamespaceEnvVar, "tf")
 }
 
 func TestCassandraConfigMapsWithDefaultValues(t *testing.T) {
