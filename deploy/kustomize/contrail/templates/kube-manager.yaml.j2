@@ -1,6 +1,6 @@
 {%- if KUBERNETES_PUBLIC_FIP_POOL is not defined or KUBERNETES_PUBLIC_FIP_POOL == "" -%}
 {%- if DEPLOYER is defined and DEPLOYER == "openshift" -%}
-{%- set KUBERNETES_PUBLIC_FIP_POOL = "{}" -%}
+{%- set KUBERNETES_PUBLIC_FIP_POOL = {} -%}
 {%- endif -%}
 {%- endif -%}
 {%- if CNI is not defined or CNI == "" -%}
@@ -23,7 +23,7 @@ spec:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
 {%- if KUBERNETES_PUBLIC_FIP_POOL is defined %}
-          publicFIPPool: {{ KUBERNETES_PUBLIC_FIP_POOL }}
+          publicFIPPool: "{{ KUBERNETES_PUBLIC_FIP_POOL }}"
 {%- endif %}
           ipFabricForwarding: false
           ipFabricSnat: true
