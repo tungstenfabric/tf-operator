@@ -146,10 +146,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-            - name: PROVISION_HOSTNAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.annotations['hostname']
         - name: nodemanageranalytics
           image: tungstenfabric/contrail-nodemgr:latest
           securityContext:
@@ -163,10 +159,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-            - name: PROVISION_HOSTNAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.annotations['hostname']
         - name: provisioneranalytics
           image: tungstenfabric/contrail-provisioner:latest
           env:
@@ -176,10 +168,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-            - name: PROVISION_HOSTNAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.annotations['hostname']
           volumeMounts:
         - name: provisionerconfig
           image: tungstenfabric/contrail-provisioner:latest
@@ -190,10 +178,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-            - name: PROVISION_HOSTNAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.annotations['hostname']
       initContainers:
         - name: nodeinit
           image: tungstenfabric/contrail-node-init:latest

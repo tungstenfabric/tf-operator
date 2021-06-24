@@ -321,8 +321,8 @@ func (c *AnalyticsSnmp) InstanceConfiguration(configMapName string,
 	}
 
 	// update with provisioner configs
-	UpdateProvisionerConfigMapData("analyticssnmp-provisioner", configApiIPCommaSeparated,
-		c.Spec.CommonConfiguration.AuthParameters, configMapInstanceDynamicConfig)
+	configMapInstanceDynamicConfig.Data["analyticssnmp-provisioner.env"] = ProvisionerEnvData(
+		configApiIPCommaSeparated, "", "", c.Spec.CommonConfiguration.AuthParameters)
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }

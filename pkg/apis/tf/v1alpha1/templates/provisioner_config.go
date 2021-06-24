@@ -10,6 +10,13 @@ export SERVER_KEYFILE="/etc/certificates/server-key-${POD_IP}.pem"
 {{ if .ConfigAPINodes }}
 export CONFIG_NODES={{ .ConfigAPINodes }}
 {{ end }}
+{{ if .ControlNodes }}
+export CONTROL_NODES={{ .ControlNodes }}
+{{ end }}
+{{ if .Hostname }}
+export CONTROL_HOSTNAME={{ .Hostname }}
+export VROUTER_HOSTNAME={{ .Hostname }}
+{{ end }}
 {{ if .Retries }}
 export PROVISION_RETRIES={{ .Retries }}
 {{ end }}
@@ -37,14 +44,21 @@ export KEYSTONE_AUTH_ADMIN_USER="{{ .KeystoneAuthParameters.AdminUsername }}"
 // ProvisionerRunner is the template of the Provisioner runner
 var ProvisionerRunner = template.Must(template.New("").Parse(`#!/bin/bash
 [[ "$LOG_LEVEL" != "SYS_DEBUG" ]] || set -x
-cfg=/etc/contrailconfigmaps/{{ .ConfigName }}
-echo "INFO: $(date): wait for config $cfg"
-while true ; do
-  sleep 5
-  [ -e $cfg ] || continue
+function source_env() {
+  local cfg=$1
+  [ -e $cfg ] || return 1
   source $cfg
   echo -e "INFO: $(date): config\n$(cat $cfg)"
-  [ -z "$CONFIG_NODES" ] || break
+  [ -n "$CONFIG_NODES" ] || return 1
+  return 0
+}
+
+cfg="/etc/contrailconfigmaps/{{ .ConfigName }}"
+echo "INFO: $(date): wait for config $cfg or $cfg.${POD_IP}"
+while true ; do
+  source_env "${cfg}" && break
+  source_env "${cfg}.${POD_IP}" && break
+  sleep 5
 done
 export PROVISION_RETRIES=1000
 export PROVISION_DELAY=5

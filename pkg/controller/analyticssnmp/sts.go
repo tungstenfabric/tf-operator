@@ -70,10 +70,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-            - name: PROVISION_HOSTNAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.annotations['hostname']
         - name: provisioner
           image: "tungstenfabric/contrail-provisioner:latest"
           env:
@@ -85,10 +81,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-            - name: PROVISION_HOSTNAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.annotations['hostname']
       volumes:
         - hostPath:
             path: /var/log/contrail/analytics-snmp

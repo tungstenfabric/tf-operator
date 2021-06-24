@@ -923,9 +923,9 @@ func (c *Vrouter) UpdateAgentConfigMapForPod(vrouterPod *VrouterPod,
 	configMap.Data["vrouter-nodemgr.conf."+podIP] = nodemgrConfig
 	configMap.Data["vrouter-nodemgr.env."+podIP] = ""
 
-	// update with provisioner configs
-	UpdateProvisionerConfigMapData("vrouter-provisioner", clusterParams.ConfigNodes,
-		c.Spec.CommonConfiguration.AuthParameters, configMap)
+	configMap.Data["vrouter-provisioner.env."+podIP] = ProvisionerEnvData(
+		clusterParams.ConfigNodes, clusterParams.ControlNodes,
+		vrouterPod.Pod.Annotations["hostname"], c.Spec.CommonConfiguration.AuthParameters)
 
 	return client.Update(context.Background(), configMap)
 }
@@ -942,9 +942,7 @@ func (c *Vrouter) RemoveAgentConfigMapForPod(vrouterPod *VrouterPod,
 	delete(configMap.Data, "vnc_api_lib.ini."+podIP)
 	delete(configMap.Data, "vrouter-nodemgr.conf."+podIP)
 	delete(configMap.Data, "vrouter-nodemgr.env."+podIP)
-
-	// remove provisioner configs
-	RemoveProvisionerConfigMapData("vrouter-provisioner", configMap)
+	delete(configMap.Data, "vrouter-provisioner.env."+podIP)
 
 	return client.Update(context.Background(), configMap)
 }
@@ -1032,7 +1030,8 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 		return false, nil
 	}
 
-	provData := ProvisionerEnvData(clusterParams.ConfigNodes, c.Spec.CommonConfiguration.AuthParameters)
+	provData := ProvisionerEnvData(clusterParams.ConfigNodes, clusterParams.ControlNodes,
+		vrouterPod.Pod.Annotations["hostname"], c.Spec.CommonConfiguration.AuthParameters)
 
 	// wait till new files is delivered to agent
 	eq, err := vrouterPod.IsAgentConfigsAvaliable(c, provData, configMap)
@@ -1096,10 +1095,10 @@ func (vrouterPod *VrouterPod) IsAgentConfigsAvaliable(vrouter *Vrouter, provisio
 		return eq, nil
 	}
 
-	path = "/etc/contrailconfigmaps/vrouter-provisioner.env"
+	path = "/etc/contrailconfigmaps/vrouter-provisioner.env." + podIP
 	eq, err = vrouterPod.IsFileInAgentContainerEqualTo(path, provisionerData)
 	if err != nil || !eq {
-		log.Info("vrouter-provisioner.env not ready", "err", err)
+		log.Info("vrouter-provisioner.env."+podIP+" not ready", "err", err)
 		return eq, nil
 	}
 

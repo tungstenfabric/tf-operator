@@ -269,8 +269,9 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 	if err != nil {
 		return err
 	}
-	UpdateProvisionerConfigMapData("cassandra-provisioner", configtemplates.JoinListWithSeparator(configNodes, ","),
-		c.Spec.CommonConfiguration.AuthParameters, configMapInstanceDynamicConfig)
+	// update with provisioner configs
+	configMapInstanceDynamicConfig.Data["cassandra-provisioner.env"] = ProvisionerEnvData(
+		configtemplates.JoinListWithSeparator(configNodes, ","), "", "", c.Spec.CommonConfiguration.AuthParameters)
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }
@@ -290,13 +291,6 @@ func (c *Cassandra) CreateConfigMap(configMapName string,
 	if err != nil {
 		return nil, err
 	}
-
-	configNodes, err := c.GetConfigNodes(request, client)
-	if err != nil {
-		return nil, err
-	}
-	UpdateProvisionerConfigMapData("cassandra-provisioner", configtemplates.JoinListWithSeparator(configNodes, ","),
-		c.Spec.CommonConfiguration.AuthParameters, configMap)
 
 	cassandraSecret := &corev1.Secret{}
 	if err := client.Get(context.TODO(), types.NamespacedName{Name: request.Name + "-secret", Namespace: request.Namespace}, cassandraSecret); err != nil {

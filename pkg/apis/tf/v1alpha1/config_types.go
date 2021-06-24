@@ -645,8 +645,8 @@ func (c *Config) InstanceConfiguration(configMapName string,
 	}
 
 	// update with provisioner configs
-	UpdateProvisionerConfigMapData("config-provisioner", apiServerList,
-		c.Spec.CommonConfiguration.AuthParameters, configMapInstanceDynamicConfig)
+	configMapInstanceDynamicConfig.Data["config-provisioner.env"] = ProvisionerEnvData(
+		apiServerList, "", "", c.Spec.CommonConfiguration.AuthParameters)
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }

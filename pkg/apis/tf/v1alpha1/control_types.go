@@ -379,11 +379,13 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 			panic(err)
 		}
 		configMapInstanceDynamicConfig.Data["deprovision.py."+podIP] = controlDeProvisionBuffer.String()
-	}
 
-	// update with provisioner configs
-	UpdateProvisionerConfigMapData("control-provisioner", configApiIPListCommaSeparated,
-		c.Spec.CommonConfiguration.AuthParameters, configMapInstanceDynamicConfig)
+		// it is enough to provide own pod listen address as CONTROL_NODES list, as it is used
+		// by provisioner to lookup own IP only
+		controlNodes := podListenAddress
+		configMapInstanceDynamicConfig.Data["control-provisioner.env."+podIP] = ProvisionerEnvData(
+			configApiIPListCommaSeparated, controlNodes, hostname, c.Spec.CommonConfiguration.AuthParameters)
+	}
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }

@@ -341,8 +341,8 @@ func (c *AnalyticsAlarm) InstanceConfiguration(configMapName string,
 	}
 
 	// update with provisioner configs
-	UpdateProvisionerConfigMapData("analyticsalarm-provisioner", configApiIPCommaSeparated,
-		c.Spec.CommonConfiguration.AuthParameters, configMapInstanceDynamicConfig)
+	configMapInstanceDynamicConfig.Data["analyticsalarm-provisioner.env"] = ProvisionerEnvData(
+		configApiIPCommaSeparated, "", "", c.Spec.CommonConfiguration.AuthParameters)
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }
