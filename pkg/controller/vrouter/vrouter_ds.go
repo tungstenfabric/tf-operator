@@ -4,8 +4,8 @@ import (
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	apps "k8s.io/api/apps/v1"
-	core "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -25,8 +25,8 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 		},
 		{
 			Name: "POD_IP",
-			ValueFrom: &core.EnvVarSource{
-				FieldRef: &core.ObjectFieldSelector{
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
 					FieldPath: "status.podIP",
 				},
 			},
@@ -37,8 +37,8 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 		},
 		{
 			Name: "PHYSICAL_INTERFACE",
-			ValueFrom: &core.EnvVarSource{
-				FieldRef: &core.ObjectFieldSelector{
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
 					FieldPath: "metadata.annotations['physicalInterface']",
 				},
 			},
@@ -53,12 +53,12 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 		},
 	}
 
-	var podInitContainers = []core.Container{
+	var podInitContainers = []corev1.Container{
 		{
 			Name:  "vrouterkernelinit",
 			Image: "tungstenfabric/contrail-vrouter-kernel-init:latest",
 			Env:   envList,
-			VolumeMounts: []core.VolumeMount{
+			VolumeMounts: []corev1.VolumeMount{
 				{
 					Name:      "network-scripts",
 					MountPath: "/etc/sysconfig/network-scripts",
@@ -76,14 +76,14 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 					MountPath: "/lib/modules",
 				},
 			},
-			SecurityContext: &core.SecurityContext{
+			SecurityContext: &corev1.SecurityContext{
 				Privileged: &trueVal,
 			},
 		},
 		{
 			Name:  "vroutercni",
 			Image: "tungstenfabric/contrail-kubernetes-cni-init:latest",
-			VolumeMounts: []core.VolumeMount{
+			VolumeMounts: []corev1.VolumeMount{
 				{
 					Name:      "var-lib-contrail",
 					MountPath: "/var/lib/contrail",
@@ -118,7 +118,7 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 			Value: "/etc/certificates/server-key-${POD_IP}.pem",
 		},
 	)
-	podInitContainerMounts := []core.VolumeMount{
+	podInitContainerMounts := []corev1.VolumeMount{
 		{
 			Name:      "host-usr-bin",
 			MountPath: "/host/usr/bin",
@@ -134,38 +134,62 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 	}
 	if c.Spec.CommonConfiguration.TuneSysctl != nil && *c.Spec.CommonConfiguration.TuneSysctl {
 		podInitContainerMounts = append(podInitContainerMounts,
-			core.VolumeMount{
+			corev1.VolumeMount{
 				Name:      "host-sysctl",
 				MountPath: "/etc/sysctl.d",
 			})
 	}
 	podInitContainers = append(podInitContainers,
-		core.Container{
+		corev1.Container{
 			Name:         "nodeinit",
 			Image:        "tungstenfabric/contrail-node-init:latest",
 			Env:          envListNodeInit,
 			VolumeMounts: podInitContainerMounts,
-			SecurityContext: &core.SecurityContext{
+			SecurityContext: &corev1.SecurityContext{
 				Privileged: &trueVal,
 			},
 		},
 		// for password protected it is needed to prefetch contrail-status image as it
 		// is not available w/o image secret
-		core.Container{
+		corev1.Container{
 			Name:    "nodeinit-status-prefetch",
 			Image:   "tungstenfabric/contrail-status:latest",
 			Command: []string{"sh", "-c", "exit 0"},
 		},
 		// for password protected it is needed to prefetch contrail-tools image as it
 		// is not available w/o image secret
-		core.Container{
+		corev1.Container{
 			Name:    "nodeinit-tools-prefetch",
 			Image:   "tungstenfabric/contrail-tools:latest",
 			Command: []string{"sh", "-c", "exit 0"},
 		},
 	)
 
-	var podContainers = []core.Container{
+	var resources corev1.ResourceRequirements
+	if c.Spec.ServiceConfiguration.HugePages1G != nil {
+		const onePage int64 = 1024 * 1024 * 1024
+		qmem := *resource.NewQuantity(onePage*int64(*c.Spec.ServiceConfiguration.HugePages1G), resource.BinarySI)
+		resources.Limits = corev1.ResourceList{
+			corev1.ResourceMemory:                  qmem,
+			corev1.ResourceHugePagesPrefix + "1Gi": qmem,
+		}
+		resources.Requests = corev1.ResourceList{
+			corev1.ResourceMemory: qmem,
+		}
+	}
+	if c.Spec.ServiceConfiguration.HugePages2M != nil {
+		const onePage int64 = 2 * 1024 * 1024
+		qmem := *resource.NewQuantity(onePage*int64(*c.Spec.ServiceConfiguration.HugePages2M), resource.BinarySI)
+		resources.Limits = corev1.ResourceList{
+			corev1.ResourceMemory:                  qmem,
+			corev1.ResourceHugePagesPrefix + "2Mi": qmem,
+		}
+		resources.Requests = corev1.ResourceList{
+			corev1.ResourceMemory: qmem,
+		}
+	}
+
+	var podContainers = []corev1.Container{
 		{
 			Name:  "provisioner",
 			Image: "tungstenfabric/contrail-provisioner:latest",
@@ -175,7 +199,7 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 			Name:  "nodemanager",
 			Image: "tungstenfabric/contrail-nodemgr:latest",
 			Env:   envList,
-			SecurityContext: &core.SecurityContext{
+			SecurityContext: &corev1.SecurityContext{
 				Privileged: &trueVal,
 			},
 		},
@@ -183,7 +207,7 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 			Name:  "vrouteragent",
 			Image: "tungstenfabric/contrail-vrouter-agent:latest",
 			Env:   envList,
-			VolumeMounts: []core.VolumeMount{
+			VolumeMounts: []corev1.VolumeMount{
 				{
 					Name:      "dev",
 					MountPath: "/dev",
@@ -214,12 +238,13 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 					MountPath: "/var/lib/contrail",
 				},
 			},
-			SecurityContext: &core.SecurityContext{
+			SecurityContext: &corev1.SecurityContext{
 				Privileged: &trueVal,
 			},
-			Lifecycle: &core.Lifecycle{
-				PreStop: &core.Handler{
-					Exec: &core.ExecAction{
+			Resources: resources,
+			Lifecycle: &corev1.Lifecycle{
+				PreStop: &corev1.Handler{
+					Exec: &corev1.ExecAction{
 						Command: []string{"/clean-up.sh"},
 					},
 				},
@@ -227,102 +252,102 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 		},
 	}
 
-	var podVolumes = []core.Volume{
+	var podVolumes = []corev1.Volume{
 		{
 			Name: "contrail-logs",
-			VolumeSource: core.VolumeSource{
-				HostPath: &core.HostPathVolumeSource{
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
 					Path: "/var/log/contrail/vrouter-agent",
 				},
 			},
 		},
 		{
 			Name: "host-usr-bin",
-			VolumeSource: core.VolumeSource{
-				HostPath: &core.HostPathVolumeSource{
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
 					Path: "/usr/bin",
 				},
 			},
 		},
 		{
 			Name: "var-lib-contrail",
-			VolumeSource: core.VolumeSource{
-				HostPath: &core.HostPathVolumeSource{
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
 					Path: "/var/lib/contrail",
 				},
 			},
 		},
 		{
 			Name: "lib-modules",
-			VolumeSource: core.VolumeSource{
-				HostPath: &core.HostPathVolumeSource{
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
 					Path: "/lib/modules",
 				},
 			},
 		},
 		{
 			Name: "usr-src",
-			VolumeSource: core.VolumeSource{
-				HostPath: &core.HostPathVolumeSource{
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
 					Path: "/usr/src",
 				},
 			},
 		},
 		{
 			Name: "network-scripts",
-			VolumeSource: core.VolumeSource{
-				HostPath: &core.HostPathVolumeSource{
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
 					Path: "/etc/sysconfig/network-scripts",
 				},
 			},
 		},
 		{
 			Name: "dev",
-			VolumeSource: core.VolumeSource{
-				HostPath: &core.HostPathVolumeSource{
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
 					Path: "/dev",
 				},
 			},
 		},
 		{
 			Name: "cni-config-files",
-			VolumeSource: core.VolumeSource{
-				HostPath: &core.HostPathVolumeSource{
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
 					Path: cniCfg.ConfigPath,
 				},
 			},
 		},
 		{
 			Name: "cni-bin",
-			VolumeSource: core.VolumeSource{
-				HostPath: &core.HostPathVolumeSource{
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
 					Path: cniCfg.BinaryPath,
 				},
 			},
 		},
 		{
 			Name: "multus-cni",
-			VolumeSource: core.VolumeSource{
-				HostPath: &core.HostPathVolumeSource{
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
 					Path: "/var/run/multus",
 				},
 			},
 		},
 		{
 			Name: "status",
-			VolumeSource: core.VolumeSource{
-				DownwardAPI: &core.DownwardAPIVolumeSource{
-					Items: []core.DownwardAPIVolumeFile{
+			VolumeSource: corev1.VolumeSource{
+				DownwardAPI: &corev1.DownwardAPIVolumeSource{
+					Items: []corev1.DownwardAPIVolumeFile{
 						{
 							Path: "pod_labels",
-							FieldRef: &core.ObjectFieldSelector{
+							FieldRef: &corev1.ObjectFieldSelector{
 								APIVersion: "v1",
 								FieldPath:  "metadata.labels",
 							},
 						},
 						{
 							Path: "pod_labelsx",
-							FieldRef: &core.ObjectFieldSelector{
+							FieldRef: &corev1.ObjectFieldSelector{
 								APIVersion: "v1",
 								FieldPath:  "metadata.labels",
 							},
@@ -335,16 +360,16 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 	}
 	if c.Spec.CommonConfiguration.TuneSysctl != nil && *c.Spec.CommonConfiguration.TuneSysctl {
 		podVolumes = append(podVolumes,
-			core.Volume{
+			corev1.Volume{
 				Name: "host-sysctl",
-				VolumeSource: core.VolumeSource{
-					HostPath: &core.HostPathVolumeSource{
+				VolumeSource: corev1.VolumeSource{
+					HostPath: &corev1.HostPathVolumeSource{
 						Path: "/etc/sysctl.d",
 					},
 				},
 			})
 	}
-	var podTolerations = []core.Toleration{
+	var podTolerations = []corev1.Toleration{
 		{
 			Operator: "Exists",
 			Effect:   "NoSchedule",
@@ -355,7 +380,7 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 		},
 	}
 
-	var podSpec = core.PodSpec{
+	var podSpec = corev1.PodSpec{
 		Volumes:        podVolumes,
 		InitContainers: podInitContainers,
 		Containers:     podContainers,
@@ -372,7 +397,7 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 		MatchLabels: map[string]string{"app": "vrouter"},
 	}
 
-	var daemonsetTemplate = core.PodTemplateSpec{
+	var daemonsetTemplate = corev1.PodTemplateSpec{
 		ObjectMeta: meta.ObjectMeta{},
 		Spec:       podSpec,
 	}
