@@ -813,7 +813,7 @@ func SetInstanceActive(client client.Client, activeStatus *bool, degradedStatus 
 	return nil
 }
 
-func getPodsHostname(c client.Client, pod *corev1.Pod) (string, error) {
+func GetPodsHostname(c client.Client, pod *corev1.Pod) (string, error) {
 	n := corev1.Node{}
 	if err := c.Get(context.Background(), types.NamespacedName{Name: pod.Spec.NodeName}, &n); err != nil {
 		return "", err
@@ -845,7 +845,7 @@ func UpdatePodAnnotations(pod *corev1.Pod, client client.Client) (updated bool, 
 		annotationMap = make(map[string]string)
 	}
 
-	hostname, err := getPodsHostname(client, pod)
+	hostname, err := GetPodsHostname(client, pod)
 	if err != nil {
 		return
 	}
@@ -943,6 +943,31 @@ func GetConfigNodes(ns string, clnt client.Client) (string, error) {
 	return configtemplates.JoinListWithSeparator(cfg.APIServerIPList, ","), nil
 }
 
+// GetControlNodes returns control nodes list (str comma separated)
+func GetControlNodes(ns string, controlName string, cidr string, clnt client.Client) (string, error) {
+	control := &Control{}
+	if err := clnt.Get(context.TODO(), types.NamespacedName{
+		Namespace: ns,
+		Name:      controlName,
+	}, control); k8serrors.IsNotFound(err) {
+		return "", nil
+	} else if err != nil {
+		return "", err
+	}
+	var ipList []string
+	for _, ip := range control.Status.Nodes {
+		if cidr != "" {
+			_, network, _ := net.ParseCIDR(cidr)
+			if !network.Contains(net.ParseIP(ip)) {
+				continue
+			}
+		}
+		ipList = append(ipList, ip)
+	}
+	sort.Strings(ipList)
+	return strings.Join(ipList, ","), nil
+}
+
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func PodIPListAndIPMapFromInstance(instanceType string,
 	request reconcile.Request,
@@ -1012,6 +1037,7 @@ func NewControlClusterConfiguration(name string, namespace string, myclient clie
 		}
 		sort.SliceStable(nodes, func(i, j int) bool { return nodes[i] < nodes[j] })
 	}
+
 	config := instance.ConfigurationParameters()
 	clusterConfig := ControlClusterConfiguration{
 		XMPPPort:            *config.XMPPPort,
@@ -1305,10 +1331,12 @@ func (c *CassandraClusterConfiguration) FillWithDefaultValues() {
 }
 
 // ProvisionerEnvData returns provisioner env data
-func ProvisionerEnvData(configAPINodes string, authParams AuthParameters) string {
+func ProvisionerEnvData(configAPINodes string, controlNodes string, hostname string, authParams AuthParameters) string {
 	var bufEnv bytes.Buffer
 	err := templates.ProvisionerConfig.Execute(&bufEnv, struct {
 		ConfigAPINodes         string
+		ControlNodes           string
+		Hostname               string
 		SignerCAFilepath       string
 		Retries                string
 		Delay                  string
@@ -1316,7 +1344,9 @@ func ProvisionerEnvData(configAPINodes string, authParams AuthParameters) string
 		KeystoneAuthParameters KeystoneAuthParameters
 	}{
 		ConfigAPINodes:         configAPINodes,
+		Hostname:               hostname,
 		SignerCAFilepath:       SignerCAFilepath,
+		ControlNodes:           controlNodes,
 		AuthMode:               authParams.AuthMode,
 		KeystoneAuthParameters: authParams.KeystoneAuthParameters,
 	})
@@ -1337,11 +1367,6 @@ func ProvisionerRunnerData(configMapName string) string {
 		panic(err)
 	}
 	return bufRun.String()
-}
-
-// UpdateProvisionerConfigMapData update provisioner data in config map
-func UpdateProvisionerConfigMapData(configMapName string, configAPINodes string, authParams AuthParameters, configMap *corev1.ConfigMap) {
-	configMap.Data[configMapName+".env"] = ProvisionerEnvData(configAPINodes, authParams)
 }
 
 // RemoveProvisionerConfigMapData update provisioner data in config map
@@ -1827,7 +1852,7 @@ func updateMap(values map[string]string, data *map[string]string) {
 	}
 }
 
-func UpdateConfigMap(instance v1.Object, instanceType string, authParameters AuthParameters, data map[string]string, client client.Client) error {
+func UpdateConfigMap(instance v1.Object, instanceType string, data map[string]string, client client.Client) error {
 	namespacedName := types.NamespacedName{
 		Name:      instance.GetName() + "-" + instanceType + "-configmap",
 		Namespace: instance.GetNamespace(),
@@ -1837,13 +1862,6 @@ func UpdateConfigMap(instance v1.Object, instanceType string, authParameters Aut
 		return err
 	}
 	updateMap(data, &config.Data)
-
-	apiServersList, err := GetConfigNodes(instance.GetNamespace(), client)
-	if err != nil {
-		return err
-	}
-	// update with provisioner configs
-	UpdateProvisionerConfigMapData(instanceType+"-provisioner", apiServersList, authParameters, &config)
 
 	return client.Update(context.TODO(), &config)
 }

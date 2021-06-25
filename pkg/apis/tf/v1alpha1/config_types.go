@@ -458,7 +458,7 @@ func (c *Config) InstanceConfiguration(podList []corev1.Pod, client client.Clien
 	}
 
 	// update with provisioner configs
-	data["config-provisioner.env"] = ProvisionerEnvData(apiServerList, c.Spec.CommonConfiguration.AuthParameters)
+	data["config-provisioner.env"] = ProvisionerEnvData(apiServerList, "", "", c.Spec.CommonConfiguration.AuthParameters)
 
 	return
 }

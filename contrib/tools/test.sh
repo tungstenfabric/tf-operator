@@ -3,6 +3,7 @@
 DEBUG=$(echo $DEBUG | tr '[:upper:]' '[:lower:]')
 [ "${DEBUG}" != "true" ] || set -x
 
+# `readlink` cannot be used in MacOS, use `greadlink`
 which greadlink >/dev/null 2>&1 && rlink='greadlink' || rlink='readlink'
 my_file="$($rlink -e "$0")"
 my_dir="$(dirname $my_file)"

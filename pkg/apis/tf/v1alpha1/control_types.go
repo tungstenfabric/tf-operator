@@ -199,6 +199,12 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 
 	logLevel := ConvertLogLevel(c.Spec.CommonConfiguration.LogLevel)
 
+	controlNodes, err := GetControlNodes(c.GetNamespace(), c.Name,
+	c.Spec.ServiceConfiguration.DataSubnet, client)
+	if err != nil {
+		return
+	}
+
 	for _, pod := range podList {
 		hostname := pod.Annotations["hostname"]
 		podIP := pod.Status.PodIP
@@ -350,6 +356,9 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 		}
 		data["vnc_api_lib.ini."+podIP] = vncApiConfigBuffer.String()
 
+		data["control-provisioner.env."+podIP] = ProvisionerEnvData(configApiIPListCommaSeparated,
+			controlNodes, hostname, c.Spec.CommonConfiguration.AuthParameters)
+
 		var controlDeProvisionBuffer bytes.Buffer
 		// TODO: use auth options from config instead of defaults
 		err = configtemplates.ControlDeProvisionConfig.Execute(&controlDeProvisionBuffer, struct {
@@ -372,8 +381,6 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 		}
 		data["deprovision.py."+podIP] = controlDeProvisionBuffer.String()
 	}
-
-	data["control-provisioner.env"] = ProvisionerEnvData(configApiIPListCommaSeparated, c.Spec.CommonConfiguration.AuthParameters)
 
 	return
 }

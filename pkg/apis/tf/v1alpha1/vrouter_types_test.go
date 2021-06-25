@@ -67,9 +67,11 @@ func TestVrouterControlInstanceSelection(t *testing.T) {
 
 	cl := fake.NewFakeClientWithScheme(scheme, control1, control2)
 
-	vrouter1Controls, err := vrouter1.GetControlNodes(cl)
+	vrouter1Controls, err := GetControlNodes(vrouter1.GetNamespace(),
+	vrouter1.Spec.ServiceConfiguration.ControlInstance, vrouter1.Spec.ServiceConfiguration.DataSubnet, cl)
 	require.NoError(t, err)
-	vrouter2Controls, err := vrouter2.GetControlNodes(cl)
+	vrouter2Controls, err := GetControlNodes(vrouter2.GetNamespace(),
+	vrouter2.Spec.ServiceConfiguration.ControlInstance, vrouter2.Spec.ServiceConfiguration.DataSubnet, cl)
 	require.NoError(t, err)
 
 	assert.Equal(t, "1.1.1.1,2.2.2.2", vrouter1Controls)

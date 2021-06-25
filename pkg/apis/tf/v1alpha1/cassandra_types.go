@@ -151,6 +151,9 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 	if strings.HasPrefix(request.Name, "analyticsdb") {
 		databaseNodeType = "database"
 	}
+	collectorEndpointList := configtemplates.EndpointList(analyticsNodesInformation.CollectorServerIPList, analyticsNodesInformation.CollectorPort)
+	collectorEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(collectorEndpointList, " ")
+	apiServerIPListCommaSeparated := configtemplates.JoinListWithSeparator(configNodesInformation.APIServerIPList, ",")
 	for _, pod := range podList {
 
 		var cassandraConfigBuffer bytes.Buffer
@@ -213,9 +216,6 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 			logLevel = logLevels[c.Spec.CommonConfiguration.LogLevel]
 		}
 
-
-		collectorEndpointList := configtemplates.EndpointList(analyticsNodesInformation.CollectorServerIPList, analyticsNodesInformation.CollectorPort)
-		collectorEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(collectorEndpointList, " ")
 		var nodeManagerConfigBuffer bytes.Buffer
 		err = configtemplates.NodemanagerConfig.Execute(&nodeManagerConfigBuffer, struct {
 			Hostname                 string
@@ -248,7 +248,6 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 		}
 		nodemanagerConfigString := nodeManagerConfigBuffer.String()
 
-		apiServerIPListCommaSeparated := configtemplates.JoinListWithSeparator(configNodesInformation.APIServerIPList, ",")
 		var vncAPIConfigBuffer bytes.Buffer
 		err = configtemplates.ConfigAPIVNC.Execute(&vncAPIConfigBuffer, struct {
 			APIServerList          string
@@ -292,13 +291,12 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 			configMapInstanceDynamicConfig.Data[databaseNodeType+"-nodemgr.env."+pod.Status.PodIP] = nodemanagerEnvString
 		}
 	}
-
 	configNodes, err := GetConfigNodes(request.Namespace, client)
 	if err != nil {
 		return err
 	}
-	UpdateProvisionerConfigMapData("cassandra-provisioner", configNodes,
-		c.Spec.CommonConfiguration.AuthParameters, configMapInstanceDynamicConfig)
+	configMapInstanceDynamicConfig.Data["cassandra-provisioner.env"] = ProvisionerEnvData(configNodes,
+		"", "", c.Spec.CommonConfiguration.AuthParameters)
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }
