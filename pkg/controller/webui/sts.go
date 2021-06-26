@@ -37,28 +37,13 @@ spec:
         - name: webuiweb
           image: tungstenfabric/contrail-controller-webui-web:latest
           env:
-            - name: WEBUI_SSL_KEY_FILE
-              value: /etc/contrail/webui_ssl/cs-key.pem
-            - name: WEBUI_SSL_CERT_FILE
-              value: /etc/contrail/webui_ssl/cs-cert.pem
             - name: POD_IP
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-            # TODO: xxx_ENABLE below must be configurable
-            - name: ANALYTICSDB_ENABLE
-              value: "true"
-            - name: ANALYTICS_SNMP_ENABLE
-              value: false
-            - name: ANALYTICS_ALARM_ENABLE
-              value: false
         - name: webuijob
           image: tungstenfabric/contrail-controller-webui-job:latest
           env:
-            - name: WEBUI_SSL_KEY_FILE
-              value: /etc/contrail/webui_ssl/cs-key.pem
-            - name: WEBUI_SSL_CERT_FILE
-              value: /etc/contrail/webui_ssl/cs-cert.pem
             - name: POD_IP
               valueFrom:
                 fieldRef:

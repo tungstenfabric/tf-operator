@@ -45,10 +45,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-            - name: ANALYTICSDB_ENABLE
-              value: "true"
-            - name: ANALYTICS_ALARM_ENABLE
-              value: "true"
         - name: collector
           image: tungstenfabric/contrail-analytics-collector:latest
           env:
