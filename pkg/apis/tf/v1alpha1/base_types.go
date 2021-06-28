@@ -1783,6 +1783,8 @@ func DefaultSecurityContext(podSpec *corev1.PodSpec) {
 			c.SecurityContext.RunAsGroup = &rootid
 		}
 	}
+	// to prevent PODs to be evicted or OOM killed
+	podSpec.PriorityClassName = "system-node-critical"
 }
 
 // IsOKForRequeque works for errors from request for update, and returns true if
