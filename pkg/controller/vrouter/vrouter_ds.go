@@ -167,25 +167,29 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 
 	var resources corev1.ResourceRequirements
 	if c.Spec.ServiceConfiguration.HugePages1G != nil {
+		// To request hugepages it is needed to request either cpu or mem
+		// (that is kuberenetes api requirement)
 		const onePage int64 = 1024 * 1024 * 1024
 		qmem := *resource.NewQuantity(onePage*int64(*c.Spec.ServiceConfiguration.HugePages1G), resource.BinarySI)
 		resources.Limits = corev1.ResourceList{
-			corev1.ResourceMemory:                  qmem,
 			corev1.ResourceHugePagesPrefix + "1Gi": qmem,
 		}
 		resources.Requests = corev1.ResourceList{
-			corev1.ResourceMemory: qmem,
+			corev1.ResourceHugePagesPrefix + "1Gi": qmem,
+			corev1.ResourceMemory:                  qmem,
 		}
 	}
 	if c.Spec.ServiceConfiguration.HugePages2M != nil {
+		// To request hugepages it is needed to request either cpu or mem
+		// (that is kuberenetes api requirement)
 		const onePage int64 = 2 * 1024 * 1024
 		qmem := *resource.NewQuantity(onePage*int64(*c.Spec.ServiceConfiguration.HugePages2M), resource.BinarySI)
 		resources.Limits = corev1.ResourceList{
-			corev1.ResourceMemory:                  qmem,
 			corev1.ResourceHugePagesPrefix + "2Mi": qmem,
 		}
 		resources.Requests = corev1.ResourceList{
-			corev1.ResourceMemory: qmem,
+			corev1.ResourceMemory:                  qmem,
+			corev1.ResourceHugePagesPrefix + "2Mi": qmem,
 		}
 	}
 
