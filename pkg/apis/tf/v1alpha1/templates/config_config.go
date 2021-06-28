@@ -1,6 +1,8 @@
 package templates
 
-import "text/template"
+import (
+	"text/template"
+)
 
 var ConfigAPIServerConfig = template.Must(template.New("").Parse(`encryption:
 ca: {{ .CAFilePath }}
@@ -18,9 +20,9 @@ apiPort: {{ .ListenPort }}
 var ConfigAPIConfig = template.Must(template.New("").Parse(`[DEFAULTS]
 listen_ip_addr={{ .ListenAddress }}
 listen_port={{ .ListenPort }}
-http_server_port={{ .ApiIntrospectPort}}
+http_server_port={{ .ApiIntrospectPort }}
 http_server_ip={{ .InstrospectListenAddress }}
-log_file=/var/log/contrail/contrail-api.log
+log_file=/var/log/contrail/contrail-api-{{ .WorkerId }}.log
 log_level={{ .LogLevel }}
 log_local=1
 list_optimization_enabled=True
@@ -36,6 +38,12 @@ cassandra_server_list={{ .CassandraServerList }}
 cassandra_use_ssl=true
 cassandra_ca_certs={{ .CAFilePath }}
 zk_server_ip={{ .ZookeeperServerList }}
+
+admin_port={{ .AdminPort }}
+worker_id={{ .WorkerId }}
+worker_introspect_ports={{ .IntrospectPortList }}
+worker_admin_ports={{ .AdminPortList }}
+
 rabbit_server={{ .RabbitmqServerList }}
 rabbit_vhost={{ .RabbitmqVhost }}
 rabbit_user={{ .RabbitmqUser }}
@@ -58,15 +66,33 @@ sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
 sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 sandesh_ca_cert={{ .CAFilePath }}`))
 
+// ConfigAPIUwsgiIniConfig is uwsgi.conf file, used by api when api worker count is greater than one.
+var ConfigAPIUwsgiIniConfig = template.Must(template.New("").Parse(`[uwsgi]
+strict
+master
+single-interpreter
+vacuum
+need-app
+plugins = python, gevent
+workers = {{ .APIWorkerCount }}
+gevent = {{ .APIMaxRequests }}
+buffer-size = {{ .BufferSize }}
+lazy-apps
+https-socket = {{ .ListenAddress }}:{{ .ListenPort }},/etc/certificates/server-{{ .PodIP }}.crt,/etc/certificates/server-key-{{ .PodIP }}.pem
+module = vnc_cfg_api_server.uwsgi_api_server:get_apiserver()
+so-keepalive
+reuse-port
+`))
+
 // ConfigDeviceManagerConfig is the template of the DeviceManager service configuration.
 var ConfigDeviceManagerConfig = template.Must(template.New("").Parse(`[DEFAULTS]
 host_ip={{ .FabricMgmtIP }}
 http_server_ip={{ .InstrospectListenAddress }}
-api_server_ip={{ .ApiServerList}}
+api_server_ip={{ .ApiServerList }}
 api_server_port=8082
-http_server_port={{ .DeviceManagerIntrospectPort}}
+http_server_port={{ .DeviceManagerIntrospectPort }}
 api_server_use_ssl=True
-analytics_server_ip={{ .AnalyticsServerList}}
+analytics_server_ip={{ .AnalyticsServerList }}
 analytics_server_port=8081
 push_mode=1
 log_file=/var/log/contrail/contrail-device-manager.log

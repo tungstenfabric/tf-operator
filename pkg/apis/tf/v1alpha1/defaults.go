@@ -70,6 +70,7 @@ const (
 	ConfigdbNodes                               string = ""
 	ConfigApiPort                               int    = 8082
 	ConfigApiIntrospectPort                     int    = 8084
+	ConfigAPIAdminPort                          int    = 8095
 	ConfigdbPort                                int    = 9161
 	ConfigdbCqlPort                             int    = 9041
 	ConfigServers                               string = ""
@@ -80,6 +81,7 @@ const (
 	ConfigApiServerCertfile                     string = "/etc/contrail/ssl/certs/server.pem"
 	ConfigApiServerKeyfile                      string = "/etc/contrail/ssl/private/server-privkey.pem"
 	ConfigApiServerCaCertfile                   string = "/etc/contrail/ssl/certs/ca-cert.pem"
+	ConfigAPIWorkerCount                        int    = 1
 	ConfigSchemaIntrospectPort                  int    = 8087
 	ConfigSvcMonitorIntrospectPort              int    = 8088
 	ConfigDeviceManagerIntrospectPort           int    = 8096

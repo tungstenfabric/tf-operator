@@ -1318,6 +1318,12 @@ func schema_pkg_apis_tf_v1alpha1_ConfigConfiguration(ref common.ReferenceCallbac
 							},
 						},
 					},
+					"apiAdminPort": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int32",
+						},
+					},
 					"apiPort": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"integer"},
@@ -1325,6 +1331,12 @@ func schema_pkg_apis_tf_v1alpha1_ConfigConfiguration(ref common.ReferenceCallbac
 						},
 					},
 					"apiIntrospectPort": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int32",
+						},
+					},
+					"apiWorkerCount": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"integer"},
 							Format: "int32",
