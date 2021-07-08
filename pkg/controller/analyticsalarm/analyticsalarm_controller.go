@@ -518,9 +518,12 @@ func (r *ReconcileAnalyticsAlarm) GetSTS(request reconcile.Request, instance *v1
 var kafkaInitKeystoreCommandTemplate = template.Must(template.New("").Parse(`
 rm -f /etc/keystore/server-truststore.jks /etc/keystore/server-keystore.jks
 mkdir -p /etc/keystore
-keytool -keystore /etc/keystore/server-truststore.jks -keypass {{ .KeystorePassword }} -storepass {{ .TruststorePassword }} -noprompt -alias CARoot -import -file {{ .CAFilePath }}
-openssl pkcs12 -export -in /etc/certificates/server-${POD_IP}.crt -inkey /etc/certificates/server-key-${POD_IP}.pem -chain -CAfile {{ .CAFilePath }} -password pass:{{ .TruststorePassword }} -name $(hostname -f) -out TmpFile
-keytool -importkeystore -deststorepass {{ .KeystorePassword }} -destkeypass {{ .KeystorePassword }} -destkeystore /etc/keystore/server-keystore.jks -deststoretype pkcs12 -srcstorepass {{ .TruststorePassword }} -srckeystore TmpFile -srcstoretype PKCS12 -alias $(hostname -f) -noprompt
+openssl pkcs12 -export -in /etc/certificates/server-${POD_IP}.crt -inkey /etc/certificates/server-key-${POD_IP}.pem -chain -CAfile {{ .CAFilePath }} -password pass:{{ .TruststorePassword }} -name localhost -out TmpFileKeyStore ;
+openssl pkcs12 -password pass:{{ .TruststorePassword }} -in TmpFileKeyStore -info -chain -nokeys
+openssl pkcs12 -password pass:{{ .TruststorePassword }} -in TmpFileKeyStore -info -chain -nokeys -cacerts 2>/dev/null | sed -n '/BEGIN/,/END/p' > TmpCA.pem
+cat TmpCA.pem
+keytool -keystore /etc/keystore/server-truststore.jks -keypass {{ .KeystorePassword }} -storepass {{ .TruststorePassword }} -noprompt -alias CARoot -import -file TmpCA.pem ;
+keytool -importkeystore -deststorepass {{ .KeystorePassword }} -destkeypass {{ .KeystorePassword }} -destkeystore /etc/keystore/server-keystore.jks -deststoretype pkcs12 -srcstorepass {{ .TruststorePassword }} -srckeystore TmpFileKeyStore -srcstoretype PKCS12 -alias localhost -noprompt ;
 `))
 
 type kafkaInitKeystoreCommandData struct {

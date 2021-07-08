@@ -159,9 +159,13 @@ spec:
                   - noauth
                   - rbac
                   type: string
+                apiAdminPort:
+                  type: integer
                 apiIntrospectPort:
                   type: integer
                 apiPort:
+                  type: integer
+                apiWorkerCount:
                   type: integer
                 containers:
                   items:
