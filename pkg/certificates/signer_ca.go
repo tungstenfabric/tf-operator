@@ -10,8 +10,10 @@ import (
 	core "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -26,7 +28,29 @@ type signer struct {
 	owner  metav1.Object
 }
 
-func GetSelfSigner(cl client.Client, owner metav1.Object) CertificateSigner {
+func InitSelfCA(cl client.Client, scheme *runtime.Scheme, owner metav1.Object, ownerType string) (CertificateSigner, error) {
+	caCertificate := NewCACertificate(cl, scheme, owner, ownerType)
+	if err := caCertificate.EnsureExists(); err != nil {
+		return nil, err
+	}
+	csrSignerCaConfigMap := &corev1.ConfigMap{}
+	csrSignerCaConfigMap.ObjectMeta.Name = SelfSignerCAConfigMapName
+	csrSignerCaConfigMap.ObjectMeta.Namespace = owner.GetNamespace()
+	_, err := controllerutil.CreateOrUpdate(context.Background(), cl, csrSignerCaConfigMap, func() error {
+		csrSignerCAValue, err := caCertificate.GetCaCert()
+		if err != nil {
+			return err
+		}
+		csrSignerCaConfigMap.Data = map[string]string{SelfSignerCAFilename: string(csrSignerCAValue)}
+		return controllerutil.SetControllerReference(owner, csrSignerCaConfigMap, scheme)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return getSelfSigner(cl, owner), nil
+}
+
+func getSelfSigner(cl client.Client, owner metav1.Object) CertificateSigner {
 	return &signer{client: cl, owner: owner}
 }
 
@@ -78,4 +102,24 @@ func (s *signer) SignCertificate(_ *core.Secret, certTemplate x509.Certificate, 
 	}
 
 	return certPem, nil
+}
+
+func (s *signer) getSelfCA() ([]byte, error) {
+	caSecret, err := GetCaCertSecret(s.client, s.owner.GetNamespace())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get secret %s with ca cert: %w", caSecret.Name, err)
+	}
+	caCertPemBlock, err := getAndDecodePem(caSecret.Data, SelfSignerCAFilename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode ca cert pem: %w", err)
+	}
+	return caCertPemBlock.Bytes, nil
+}
+
+func (s *signer) Validate(cert *x509.Certificate) error {
+	caCert, err := s.getSelfCA()
+	if err != nil {
+		return err
+	}
+	return validateCert(cert, caCert)
 }

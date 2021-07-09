@@ -356,7 +356,11 @@ func PodsCertSubjects(domain string, podList []corev1.Pod, podAltIPs PodAlternat
 		}
 		if podAltIPs.Retriever != nil {
 			if altIPs := podAltIPs.Retriever(pod); len(altIPs) > 0 {
-				alternativeIPs = append(alternativeIPs, altIPs...)
+				for _, v := range altIPs {
+					if v != pod.Status.PodIP {
+						alternativeIPs = append(alternativeIPs, v)
+					}
+				}
 			}
 		}
 		podInfo := certificates.NewSubject(pod.Name, domain, hostname, pod.Status.PodIP, alternativeIPs)

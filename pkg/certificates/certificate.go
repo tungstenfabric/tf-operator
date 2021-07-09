@@ -5,11 +5,10 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	core "k8s.io/api/core/v1"
-
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	certutil "k8s.io/client-go/util/cert"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
@@ -19,14 +18,14 @@ import (
 type Certificate struct {
 	client              client.Client
 	scheme              *runtime.Scheme
-	owner               v1.Object
+	owner               metav1.Object
 	sc                  *k8s.Secret
 	signer              CertificateSigner
 	certificateSubjects []CertificateSubject
 }
 
 // NewCertificate creates new cert
-func NewCertificate(signer CertificateSigner, cl client.Client, scheme *runtime.Scheme, owner v1.Object, subjects []CertificateSubject, ownerType string) (*Certificate, error) {
+func NewCertificate(signer CertificateSigner, cl client.Client, scheme *runtime.Scheme, owner metav1.Object, subjects []CertificateSubject, ownerType string) (*Certificate, error) {
 	secretName := owner.GetName() + "-secret-certificates"
 	kubernetes := k8s.New(cl, scheme)
 	return &Certificate{
@@ -45,11 +44,12 @@ func (r *Certificate) EnsureExistsAndIsSigned() error {
 }
 
 type CertificateSigner interface {
-	SignCertificate(secret *core.Secret, certTemplate x509.Certificate, privateKey *rsa.PrivateKey) ([]byte, error)
+	SignCertificate(secret *corev1.Secret, certTemplate x509.Certificate, privateKey *rsa.PrivateKey) ([]byte, error)
+	Validate(cert *x509.Certificate) error
 }
 
 // FillSecret fill secret with data
-func (r *Certificate) FillSecret(secret *core.Secret) error {
+func (r *Certificate) FillSecret(secret *corev1.Secret) error {
 	if secret.Data == nil {
 		secret.Data = make(map[string][]byte)
 	}
@@ -72,31 +72,40 @@ func (r *Certificate) FillSecret(secret *core.Secret) error {
 	return nil
 }
 
-func (r *Certificate) createCertificateForPod(subject CertificateSubject, secret *core.Secret) error {
-	if certInSecret(secret, subject.ip) {
-		return nil
+func (r *Certificate) createCertificateForPod(subject CertificateSubject, secret *corev1.Secret) error {
+	if ok, err := r.certInSecret(secret, subject.ip); err != nil || ok {
+		return err
 	}
 	certificateTemplate, privateKey, err := subject.generateCertificateTemplate(r.client)
 	if err != nil {
 		return fmt.Errorf("failed to generate certificate template for %s, %s: %w", subject.hostname, subject.name, err)
 	}
-
 	certBytes, err := r.signer.SignCertificate(secret, certificateTemplate, privateKey)
 	if err != nil {
 		return fmt.Errorf("failed to sign certificate for %s, %s: %w", subject.hostname, subject.name, err)
 	}
-
 	certPrivKeyPem, _ := encodeInPemFormat(x509.MarshalPKCS1PrivateKey(privateKey), privateKeyPemType)
 	secret.Data[serverPrivateKeyFileName(subject.ip)] = certPrivKeyPem
 	secret.Data[serverCertificateFileName(subject.ip)] = certBytes
-	secret.Data["status-"+subject.ip] = []byte("Approved")
 	return nil
 }
 
-func certInSecret(secret *core.Secret, podIP string) bool {
+func (r *Certificate) certInSecret(secret *corev1.Secret, podIP string) (bool, error) {
+	cert, certOk := secret.Data[serverCertificateFileName(podIP)]
 	_, pemOk := secret.Data[serverPrivateKeyFileName(podIP)]
-	_, certOk := secret.Data[serverCertificateFileName(podIP)]
-	return pemOk && certOk
+	if !pemOk || !certOk {
+		return false, nil
+	}
+	certPEM, err := certutil.ParseCertsPEM(cert)
+	if err != nil {
+		return false, fmt.Errorf("failed to parse signed %w: certBytes='%+v'", err, cert)
+	}
+	for _, c := range certPEM {
+		if err := r.signer.Validate(c); err != nil {
+			return false, err
+		}
+	}
+	return true, nil
 }
 
 func serverPrivateKeyFileName(ip string) string {
@@ -105,4 +114,18 @@ func serverPrivateKeyFileName(ip string) string {
 
 func serverCertificateFileName(ip string) string {
 	return fmt.Sprintf("server-%s.crt", ip)
+}
+
+func validateCert(cert *x509.Certificate, ca []byte) error {
+	roots, err := x509.SystemCertPool()
+	if err != nil {
+		return fmt.Errorf("failed to load system cert pool: %w", err)
+	}
+	_ = roots.AppendCertsFromPEM([]byte(ca))
+	opts := x509.VerifyOptions{
+		KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
+		Roots:     roots,
+	}
+	_, err = cert.Verify(opts)
+	return err
 }

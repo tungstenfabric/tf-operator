@@ -47,6 +47,23 @@ type signerK8S struct {
 	betav1Csr beta1cert.CertificateSigningRequestInterface
 }
 
+func InitK8SCA(scheme *runtime.Scheme, owner metav1.Object) (CertificateSigner, error) {
+	cl := k8s.GetCoreV1()
+	caCert, err := getCA(cl)
+	if err != nil {
+		return nil, err
+	}
+	if caCert == "" {
+		K8SSignerCAConfigMapName = K8SSignerCAConfigMapNameNoMap
+		K8SSignerCAFilepath = K8SSignerCAFilepathNoMap
+	} else {
+		if err = createOrUpdateCAConfigMap(caCert, cl, scheme, owner); err != nil {
+			return nil, err
+		}
+	}
+	return getK8SSigner(cl, k8s.GetBetaV1Csr(), scheme, owner)
+}
+
 func getOpenShiftCA(cl corev1api.CoreV1Interface) (caCert string, err error) {
 	var cm *corev1.ConfigMap
 	if cm, err = cl.ConfigMaps(OpenshiftCSRConfigMapNS).Get(OpenshiftCSRConfigMapName, metav1.GetOptions{}); err != nil {
@@ -95,7 +112,7 @@ func getCA(cl corev1api.CoreV1Interface) (caCert string, err error) {
 	return
 }
 
-func createCAConfigMap(caCert string, cl corev1api.CoreV1Interface, scheme *runtime.Scheme, owner metav1.Object) error {
+func createOrUpdateCAConfigMap(caCert string, cl corev1api.CoreV1Interface, scheme *runtime.Scheme, owner metav1.Object) error {
 	ns := owner.GetNamespace()
 	iface := cl.ConfigMaps(ns)
 	cm, err := iface.Get(K8SSignerCAConfigMapName, metav1.GetOptions{})
@@ -128,19 +145,7 @@ func createCAConfigMap(caCert string, cl corev1api.CoreV1Interface, scheme *runt
 	return err
 }
 
-func GetK8SSigner(cl corev1api.CoreV1Interface, betav1Csr beta1cert.CertificateSigningRequestInterface, scheme *runtime.Scheme, owner metav1.Object) (CertificateSigner, error) {
-	caCert, err := getCA(cl)
-	if err != nil {
-		return nil, err
-	}
-	if caCert == "" {
-		K8SSignerCAConfigMapName = K8SSignerCAConfigMapNameNoMap
-		K8SSignerCAFilepath = K8SSignerCAFilepathNoMap
-	} else {
-		if err = createCAConfigMap(caCert, cl, scheme, owner); err != nil {
-			return nil, err
-		}
-	}
+func getK8SSigner(cl corev1api.CoreV1Interface, betav1Csr beta1cert.CertificateSigningRequestInterface, scheme *runtime.Scheme, owner metav1.Object) (CertificateSigner, error) {
 	return &signerK8S{corev1: cl, betav1Csr: betav1Csr}, nil
 }
 
@@ -191,4 +196,15 @@ func (s *signerK8S) SignCertificate(secret *corev1.Secret, certTemplate x509.Cer
 	}
 
 	return certPem, nil
+}
+
+func (s *signerK8S) Validate(cert *x509.Certificate) error {
+	caCert, err := getCA(s.corev1)
+	if err != nil {
+		return err
+	}
+	if caCert == "" {
+		return nil
+	}
+	return validateCert(cert, []byte(caCert))
 }
