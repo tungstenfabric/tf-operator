@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
+	"math/big"
 	"net"
 	"strings"
 	"time"
@@ -34,6 +35,16 @@ func contains(list []string, val string) bool {
 		}
 	}
 	return false
+}
+
+const (
+	certValidityPeriod = 10 * 365 * 24 * time.Hour // 10 years
+	certKeyLength      = 2048
+)
+
+func generateSerialNumber() (*big.Int, error) {
+	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
+	return rand.Int(rand.Reader, serialNumberLimit)
 }
 
 func (c CertificateSubject) generateCertificateTemplate(client client.Client) (x509.Certificate, *rsa.PrivateKey, error) {

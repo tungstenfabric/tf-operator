@@ -84,7 +84,7 @@ func (r *Certificate) createCertificateForPod(subject CertificateSubject, secret
 	if err != nil {
 		return fmt.Errorf("failed to sign certificate for %s, %s: %w", subject.hostname, subject.name, err)
 	}
-	certPrivKeyPem, _ := encodeInPemFormat(x509.MarshalPKCS1PrivateKey(privateKey), privateKeyPemType)
+	certPrivKeyPem, _ := EncodeInPemFormat(x509.MarshalPKCS1PrivateKey(privateKey), PrivateKeyPemType)
 	secret.Data[serverPrivateKeyFileName(subject.ip)] = certPrivKeyPem
 	secret.Data[serverCertificateFileName(subject.ip)] = certBytes
 	return nil
@@ -102,7 +102,7 @@ func (r *Certificate) certInSecret(secret *corev1.Secret, podIP string) (bool, e
 	}
 	for _, c := range certPEM {
 		if err := r.signer.Validate(c); err != nil {
-			return false, err
+			return false, nil
 		}
 	}
 	return true, nil
@@ -116,7 +116,7 @@ func serverCertificateFileName(ip string) string {
 	return fmt.Sprintf("server-%s.crt", ip)
 }
 
-func validateCert(cert *x509.Certificate, ca []byte) error {
+func ValidateCert(cert *x509.Certificate, ca []byte) error {
 	roots, err := x509.SystemCertPool()
 	if err != nil {
 		return fmt.Errorf("failed to load system cert pool: %w", err)

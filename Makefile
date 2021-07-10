@@ -12,7 +12,7 @@ CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
 
 .PHONY: test
 test:
-	$(TOOLS_DIR)/test.sh
+	$(TOOLS_DIR)/test.sh $(ARGS)
 
 $(GOLANGCI_LINT): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -tags=tools -o bin/golangci-lint github.com/golangci/golangci-lint/cmd/golangci-lint

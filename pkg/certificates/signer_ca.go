@@ -17,11 +17,28 @@ import (
 )
 
 const (
+	CaSecretName               = "contrail-ca-certificate"
+	SignerCAPrivateKeyFilename = "ca-priv-key.pem"
+
 	SelfSignerCAConfigMapName = "csr-signer-ca"
 	SelfSignerCAMountPath     = "/etc/ssl/certs/kubernetes"
 	SelfSignerCAFilename      = "ca-bundle.crt"
 	SelfSignerCAFilepath      = SelfSignerCAMountPath + "/" + SelfSignerCAFilename
 )
+
+type CACertificate struct {
+	client client.Client
+	owner  metav1.Object
+	scheme *runtime.Scheme
+}
+
+func NewCACertificate(client client.Client, scheme *runtime.Scheme, owner metav1.Object, ownerType string) *CACertificate {
+	return &CACertificate{
+		client: client,
+		owner:  owner,
+		scheme: scheme,
+	}
+}
 
 type signer struct {
 	client client.Client
@@ -30,9 +47,6 @@ type signer struct {
 
 func InitSelfCA(cl client.Client, scheme *runtime.Scheme, owner metav1.Object, ownerType string) (CertificateSigner, error) {
 	caCertificate := NewCACertificate(cl, scheme, owner, ownerType)
-	if err := caCertificate.EnsureExists(); err != nil {
-		return nil, err
-	}
 	csrSignerCaConfigMap := &corev1.ConfigMap{}
 	csrSignerCaConfigMap.ObjectMeta.Name = SelfSignerCAConfigMapName
 	csrSignerCaConfigMap.ObjectMeta.Namespace = owner.GetNamespace()
@@ -50,13 +64,21 @@ func InitSelfCA(cl client.Client, scheme *runtime.Scheme, owner metav1.Object, o
 	return getSelfSigner(cl, owner), nil
 }
 
+func (c *CACertificate) GetCaCert() ([]byte, error) {
+	secret, err := GetCaCertSecret(c.client, c.owner.GetNamespace())
+	if err != nil {
+		return nil, err
+	}
+	return secret.Data[SelfSignerCAFilename], nil
+}
+
 func getSelfSigner(cl client.Client, owner metav1.Object) CertificateSigner {
 	return &signer{client: cl, owner: owner}
 }
 
 func GetCaCertSecret(cl client.Client, ns string) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
-	err := cl.Get(context.Background(), types.NamespacedName{Name: caSecretName, Namespace: ns}, secret)
+	err := cl.Get(context.Background(), types.NamespacedName{Name: CaSecretName, Namespace: ns}, secret)
 	return secret, err
 }
 
@@ -67,7 +89,7 @@ func (s *signer) SignCertificate(_ *core.Secret, certTemplate x509.Certificate, 
 		return nil, fmt.Errorf("failed to get secret %s with ca cert: %w", caSecret.Name, err)
 	}
 
-	caCertPemBlock, err := getAndDecodePem(caSecret.Data, SelfSignerCAFilename)
+	caCertPemBlock, err := GetAndDecodePem(caSecret.Data, SelfSignerCAFilename)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode ca cert pem: %w", err)
@@ -78,7 +100,7 @@ func (s *signer) SignCertificate(_ *core.Secret, certTemplate x509.Certificate, 
 		return nil, fmt.Errorf("failed to parse ca cert: %w", err)
 	}
 
-	caCertPrivKeyPemBlock, err := getAndDecodePem(caSecret.Data, signerCAPrivateKeyFilename)
+	caCertPrivKeyPemBlock, err := GetAndDecodePem(caSecret.Data, SignerCAPrivateKeyFilename)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode ca cert priv key pem: %w", err)
@@ -95,7 +117,7 @@ func (s *signer) SignCertificate(_ *core.Secret, certTemplate x509.Certificate, 
 		return nil, fmt.Errorf("failed to sign certificate: %w", err)
 	}
 
-	certPem, err := encodeInPemFormat(certBytes, certificatePemType)
+	certPem, err := EncodeInPemFormat(certBytes, CertificatePemType)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode certificate with pem format: %w", err)
@@ -109,7 +131,7 @@ func (s *signer) getSelfCA() ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get secret %s with ca cert: %w", caSecret.Name, err)
 	}
-	caCertPemBlock, err := getAndDecodePem(caSecret.Data, SelfSignerCAFilename)
+	caCertPemBlock, err := GetAndDecodePem(caSecret.Data, SelfSignerCAFilename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode ca cert pem: %w", err)
 	}
@@ -121,5 +143,5 @@ func (s *signer) Validate(cert *x509.Certificate) error {
 	if err != nil {
 		return err
 	}
-	return validateCert(cert, caCert)
+	return ValidateCert(cert, caCert)
 }

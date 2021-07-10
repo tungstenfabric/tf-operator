@@ -206,5 +206,5 @@ func (s *signerK8S) Validate(cert *x509.Certificate) error {
 	if caCert == "" {
 		return nil
 	}
-	return validateCert(cert, []byte(caCert))
+	return ValidateCert(cert, []byte(caCert))
 }

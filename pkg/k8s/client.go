@@ -21,7 +21,6 @@ import (
 
 var lock = sync.Mutex{}
 
-// var clientset *kubernetes.Clientset
 var clientset *kubernetes.Clientset
 var coreAPI corev1api.CoreV1Interface
 var betav1Csr beta1cert.CertificateSigningRequestInterface

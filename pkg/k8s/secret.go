@@ -26,11 +26,9 @@ type SecretFiller interface {
 
 func (s *Secret) EnsureExists(dataSetter SecretFiller) error {
 	secret, err := s.createNewOrGetExistingSecret()
-
 	if err != nil {
 		return err
 	}
-
 	_, err = controllerutil.CreateOrUpdate(context.Background(), s.client, secret, func() error {
 		return dataSetter.FillSecret(secret)
 	})

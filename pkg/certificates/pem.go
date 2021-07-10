@@ -3,25 +3,26 @@ package certificates
 import (
 	"bytes"
 	"encoding/pem"
-	"errors"
+	"fmt"
 	"io/ioutil"
+	"reflect"
 )
 
 const (
-	certificatePemType = "CERTIFICATE"
-	privateKeyPemType  = "RSA PRIVATE KEY"
+	CertificatePemType = "CERTIFICATE"
+	PrivateKeyPemType  = "RSA PRIVATE KEY"
 )
 
-func getAndDecodePem(data map[string][]byte, key string) (*pem.Block, error) {
+func GetAndDecodePem(data map[string][]byte, key string) (*pem.Block, error) {
 	pemData, ok := data[key]
 	if !ok {
-		return nil, errors.New("pem block %s not found data map")
+		return nil, fmt.Errorf("pem block %s not found data map %+v", key, reflect.ValueOf(data).MapKeys())
 	}
 	pemBlock, _ := pem.Decode(pemData)
 	return pemBlock, nil
 }
 
-func encodeInPemFormat(buff []byte, pemType string) ([]byte, error) {
+func EncodeInPemFormat(buff []byte, pemType string) ([]byte, error) {
 	pemFormatBuffer := new(bytes.Buffer)
 	_ = pem.Encode(pemFormatBuffer, &pem.Block{
 		Type:  pemType,

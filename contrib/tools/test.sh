@@ -33,6 +33,7 @@ run_make "modules verify-modules"
 printf "INFO: run go test\n\n"
 opts="-race"
 [ "${DEBUG}" != "true" ] || opts+=" -v"
+[ -z "$@" ] || opts+=" -run $@"
 if ! go test $opts ./... ; then
     printf "\nERROR: go test failed\n\n"
     res=1
