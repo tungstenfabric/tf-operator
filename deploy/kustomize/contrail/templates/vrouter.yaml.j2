@@ -5,7 +5,7 @@
 {%- set CONTAINER_REGISTRY = "tungstenfabric" -%}
 {%- endif -%}
 {%- if HUGE_PAGES_2MB is not defined  %}
-{%- set HUGE_PAGES_2MB = 128 -%}
+{%- set HUGE_PAGES_2MB = 1024 -%}
 {%- endif -%}
 {%- if CNI is not defined or CNI == "" -%}
 ---
