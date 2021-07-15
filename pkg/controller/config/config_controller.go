@@ -116,57 +116,55 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err = c.Watch(&source.Kind{Type: &v1alpha1.Config{}}, &handler.EnqueueRequestForObject{}); err != nil {
 		return err
 	}
+	resourceHandler := resourceHandler(mgr.GetClient())
+
 	serviceMap := map[string]string{"tf_manager": "config"}
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
-	podHandler := resourceHandler(mgr.GetClient())
 	predPodIPChange := utils.PodIPChange(serviceMap)
-
-	if err = c.Watch(&source.Kind{Type: &corev1.Service{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &v1alpha1.Config{},
-	}); err != nil {
+	if err = c.Watch(srcPod, resourceHandler, predPodIPChange); err != nil {
 		return err
 	}
 
-	if err = c.Watch(srcPod, podHandler, predPodIPChange); err != nil {
+	ownerHandler := &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &v1alpha1.Config{},
+	}
+
+	if err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, ownerHandler); err != nil {
+		return err
+	}
+
+	if err = c.Watch(&source.Kind{Type: &corev1.Service{}}, ownerHandler); err != nil {
 		return err
 	}
 
 	srcCassandra := &source.Kind{Type: &v1alpha1.Cassandra{}}
-	cassandraHandler := resourceHandler(mgr.GetClient())
 	predCassandraSizeChange := utils.CassandraActiveChange()
-	if err = c.Watch(srcCassandra, cassandraHandler, predCassandraSizeChange); err != nil {
+	if err = c.Watch(srcCassandra, resourceHandler, predCassandraSizeChange); err != nil {
 		return err
 	}
 
 	srcRabbitmq := &source.Kind{Type: &v1alpha1.Rabbitmq{}}
-	rabbitmqHandler := resourceHandler(mgr.GetClient())
 	predRabbitmqSizeChange := utils.RabbitmqActiveChange()
-	if err = c.Watch(srcRabbitmq, rabbitmqHandler, predRabbitmqSizeChange); err != nil {
+	if err = c.Watch(srcRabbitmq, resourceHandler, predRabbitmqSizeChange); err != nil {
 		return err
 	}
 
 	srcZookeeper := &source.Kind{Type: &v1alpha1.Zookeeper{}}
-	zookeeperHandler := resourceHandler(mgr.GetClient())
 	predZookeeperSizeChange := utils.ZookeeperActiveChange()
-	if err = c.Watch(srcZookeeper, zookeeperHandler, predZookeeperSizeChange); err != nil {
+	if err = c.Watch(srcZookeeper, resourceHandler, predZookeeperSizeChange); err != nil {
 		return err
 	}
 
 	srcAnalytics := &source.Kind{Type: &v1alpha1.Analytics{}}
-	analyticsHandler := resourceHandler(mgr.GetClient())
 	predAnalyticsSizeChange := utils.AnalyticsActiveChange()
-	if err = c.Watch(srcAnalytics, analyticsHandler, predAnalyticsSizeChange); err != nil {
+	if err = c.Watch(srcAnalytics, resourceHandler, predAnalyticsSizeChange); err != nil {
 		return err
 	}
 
 	srcSTS := &source.Kind{Type: &appsv1.StatefulSet{}}
-	stsHandler := &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &v1alpha1.Config{},
-	}
 	stsPred := utils.STSStatusChange(utils.ConfigGroupKind())
-	if err = c.Watch(srcSTS, stsHandler, stsPred); err != nil {
+	if err = c.Watch(srcSTS, ownerHandler, stsPred); err != nil {
 		return err
 	}
 
