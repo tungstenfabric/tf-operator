@@ -47,6 +47,21 @@ func generateSerialNumber() (*big.Int, error) {
 	return rand.Int(rand.Reader, serialNumberLimit)
 }
 
+func splitFqdn(n string) []string {
+	result := []string{}
+	pn := ""
+	for _, i := range strings.Split(n, ".") {
+		if i != "" {
+			if pn != "" {
+				pn = pn + "."
+			}
+			pn = pn + i
+			result = append(result, pn)
+		}
+	}
+	return result
+}
+
 func (c CertificateSubject) generateCertificateTemplate(client client.Client) (x509.Certificate, *rsa.PrivateKey, error) {
 	certPrivKey, err := rsa.GenerateKey(rand.Reader, certKeyLength)
 
@@ -66,14 +81,11 @@ func (c CertificateSubject) generateCertificateTemplate(client client.Client) (x
 	if !strings.HasSuffix(c.hostname, c.domain) {
 		fullName = fullName + "." + c.domain
 	}
-	altDNSNames := []string{}
-	pn := ""
-	for _, i := range strings.Split(fullName, ".") {
-		if pn != "" {
-			pn = pn + "."
-		}
-		pn = pn + i
-		altDNSNames = append(altDNSNames, pn)
+	altDNSNames := splitFqdn(fullName)
+	// WA for kubespray case: it sets hostname into /etc/hosts as "short+domain" into 1st position
+	shortAndDomainName := splitFqdn(c.hostname)[0] + "." + c.domain
+	if !contains(altDNSNames, shortAndDomainName) {
+		altDNSNames = append(altDNSNames, shortAndDomainName)
 	}
 
 	var ips []net.IP
@@ -92,9 +104,10 @@ func (c CertificateSubject) generateCertificateTemplate(client client.Client) (x
 			continue
 		}
 		for _, h := range hostNames {
-			_h := strings.Trim(h, ".")
-			if !contains(altDNSNames, _h) {
-				altDNSNames = append(altDNSNames, _h)
+			for _, n := range splitFqdn(h) {
+				if !contains(altDNSNames, n) {
+					altDNSNames = append(altDNSNames, n)
+				}
 			}
 		}
 	}
