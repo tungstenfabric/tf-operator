@@ -299,6 +299,7 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 				Name:      request.Name + "-" + instanceType + "-volume",
 				MountPath: "/etc/contrailconfigmaps",
 			})
+
 		v1alpha1.AddCertsMounts(request.Name, container)
 
 		switch container.Name {
@@ -508,6 +509,8 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 			container.Image = instanceContainer.Image
 		}
 
+		v1alpha1.AddCertsMounts(request.Name, container)
+
 		switch container.Name {
 
 		case "nodeinit":
@@ -515,6 +518,20 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 				core.EnvVar{
 					Name:  "CONTRAIL_STATUS_IMAGE",
 					Value: statusImage,
+				},
+				// env with cert files needed to avoid issue certs by node-init
+				// configmap is readonly, so node-init treats it as 'another one issue certs' ans skips it
+				corev1.EnvVar{
+					Name:  "SERVER_CA_CERTFILE",
+					Value: v1alpha1.SignerCAFilepath,
+				},
+				corev1.EnvVar{
+					Name:  "SERVER_CERTFILE",
+					Value: "/etc/certificates/server-${POD_IP}.crt",
+				},
+				corev1.EnvVar{
+					Name:  "SERVER_KEYFILE",
+					Value: "/etc/certificates/server-key-${POD_IP}.pem",
 				},
 			)
 			if extraVolumes {
