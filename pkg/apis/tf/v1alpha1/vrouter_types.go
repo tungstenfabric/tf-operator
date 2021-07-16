@@ -84,9 +84,7 @@ type VrouterSpec struct {
 // +k8s:openapi-gen=true
 type VrouterConfiguration struct {
 	Containers        []*Container `json:"containers,omitempty"`
-	Gateway           string       `json:"gateway,omitempty"`
 	PhysicalInterface string       `json:"physicalInterface,omitempty"`
-	MetaDataSecret    string       `json:"metaDataSecret,omitempty"`
 	// What is it doing?
 	// VrouterEncryption   bool              `json:"vrouterEncryption,omitempty"`
 	// What is it doing?
@@ -111,10 +109,10 @@ type VrouterConfiguration struct {
 	DnsServerPort string `json:"dnsServerPort,omitempty"`
 
 	// Host
-	DpdkUioDriver         string `json:"dpdkUioDriver,omitempty"`
-	SriovPhysicalInterace string `json:"sriovPhysicalInterface,omitempty"`
-	SriovPhysicalNetwork  string `json:"sriovPhysicalNetwork,omitempty"`
-	SriovVf               string `json:"sriovVf,omitempty"`
+	DpdkUioDriver          string `json:"dpdkUioDriver,omitempty"`
+	SriovPhysicalInterface string `json:"sriovPhysicalInterface,omitempty"`
+	SriovPhysicalNetwork   string `json:"sriovPhysicalNetwork,omitempty"`
+	SriovVf                string `json:"sriovVf,omitempty"`
 
 	// Introspect
 	IntrospectSslEnable *bool `json:"introspectSslEnable,omitempty"`
@@ -721,11 +719,14 @@ func (vrouterPod *VrouterPod) RecalculateAgentParameters() (string, string, erro
 // ValidateVrouterNIC checks if vrouter pod configured on correct NIC
 func (vrouterPod *VrouterPod) ValidateVrouterNIC() (string, string, error) {
 	// check nic only if vhost0 is up
+	// dont check for l3mh and if phys iface explicetely set
 	command := `
 source /etc/contrailconfigmaps/params.env.${POD_IP};
 source /actions.sh ;
 source /common.sh ;
 source /agent-functions.sh ;
+[ -z "$PHYSICAL_INTERFACE" ] || exit 0 ;
+[ -z "$L3MH_CIDR" ] || exit 0 ;
 wait_vhost0 1 0 || exit 0 ;
 [[ $(get_vrouter_physical_iface) == vhost0 ]] || echo "REQUIRES VHOST RELOAD"
 `
@@ -877,8 +878,11 @@ func (c *Vrouter) UpdateAgentConfigMapForPod(vrouterPod *VrouterPod,
 	configMap.Data["vrouter-nodemgr.env."+podIP] = ""
 
 	// update with provisioner configs
-	configMap.Data["vrouter-provisioner.env."+podIP] = ProvisionerEnvData(clusterParams.ConfigNodes, clusterParams.ControlNodes,
-		vrouterPod.Pod.Annotations["hostname"], c.Spec.CommonConfiguration.AuthParameters)
+	srvCfg := c.Spec.ServiceConfiguration
+	configMap.Data["vrouter-provisioner.env."+podIP] = ProvisionerEnvDataEx(
+		clusterParams.ConfigNodes, clusterParams.ControlNodes,
+		vrouterPod.Pod.Annotations["hostname"], c.Spec.CommonConfiguration.AuthParameters,
+		srvCfg.PhysicalInterface, srvCfg.VrouterGateway, srvCfg.L3MHCidr)
 
 	return client.Update(context.Background(), configMap)
 }
@@ -905,7 +909,7 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 
 	log := vrouter_log.WithName("UpdateAgent").WithValues("nodeName", nodeName)
 	controlNodesList, err := GetControlNodes(c.GetNamespace(), c.Spec.ServiceConfiguration.ControlInstance,
-	c.Spec.ServiceConfiguration.DataSubnet, clnt)
+		c.Spec.ServiceConfiguration.DataSubnet, clnt)
 	if err != nil {
 		return true, err
 	}
@@ -988,8 +992,10 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 		return false, nil
 	}
 
-	provData := ProvisionerEnvData(clusterParams.ConfigNodes, clusterParams.ControlNodes,
-		vrouterPod.Pod.Annotations["hostname"], c.Spec.CommonConfiguration.AuthParameters)
+	srvCfg := c.Spec.ServiceConfiguration
+	provData := ProvisionerEnvDataEx(clusterParams.ConfigNodes, clusterParams.ControlNodes,
+		vrouterPod.Pod.Annotations["hostname"], c.Spec.CommonConfiguration.AuthParameters,
+		srvCfg.PhysicalInterface, srvCfg.VrouterGateway, srvCfg.L3MHCidr)
 
 	// wait till new files is delivered to agent
 	eq, err := vrouterPod.IsAgentConfigsAvaliable(c, provData, configMap)
@@ -1057,7 +1063,7 @@ func (vrouterPod *VrouterPod) IsAgentConfigsAvaliable(vrouter *Vrouter, provisio
 	path = "/etc/contrailconfigmaps/vrouter-provisioner.env." + podIP
 	eq, err = vrouterPod.IsFileInAgentContainerEqualTo(path, provisionerData)
 	if err != nil || !eq {
-		log.Info("vrouter-provisioner.env not ready", "err", err)
+		log.Info("vrouter-provisioner.env."+podIP+" not ready", "err", err)
 		return eq, nil
 	}
 

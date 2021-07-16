@@ -35,14 +35,6 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 			Value: cloudOrchestrator,
 		},
 		{
-			Name: "PHYSICAL_INTERFACE",
-			ValueFrom: &corev1.EnvVarSource{
-				FieldRef: &corev1.ObjectFieldSelector{
-					FieldPath: "metadata.annotations['physicalInterface']",
-				},
-			},
-		},
-		{
 			Name:  "INTROSPECT_SSL_ENABLE",
 			Value: "True",
 		},

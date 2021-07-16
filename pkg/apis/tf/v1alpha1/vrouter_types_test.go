@@ -68,12 +68,42 @@ func TestVrouterControlInstanceSelection(t *testing.T) {
 	cl := fake.NewFakeClientWithScheme(scheme, control1, control2)
 
 	vrouter1Controls, err := GetControlNodes(vrouter1.GetNamespace(),
-	vrouter1.Spec.ServiceConfiguration.ControlInstance, vrouter1.Spec.ServiceConfiguration.DataSubnet, cl)
+		vrouter1.Spec.ServiceConfiguration.ControlInstance, vrouter1.Spec.ServiceConfiguration.DataSubnet, cl)
 	require.NoError(t, err)
 	vrouter2Controls, err := GetControlNodes(vrouter2.GetNamespace(),
-	vrouter2.Spec.ServiceConfiguration.ControlInstance, vrouter2.Spec.ServiceConfiguration.DataSubnet, cl)
+		vrouter2.Spec.ServiceConfiguration.ControlInstance, vrouter2.Spec.ServiceConfiguration.DataSubnet, cl)
 	require.NoError(t, err)
 
 	assert.Equal(t, "1.1.1.1,2.2.2.2", vrouter1Controls)
 	assert.Equal(t, "3.3.3.3", vrouter2Controls)
+}
+
+func TestVrouterParamsTest(t *testing.T) {
+	scheme, err := SchemeBuilder.Build()
+	require.NoError(t, err, "Failed to build scheme")
+	require.NoError(t, corev1.SchemeBuilder.AddToScheme(scheme), "Failed to add CoreV1 into scheme")
+
+	var hp256 int = 256
+	vrouter := &Vrouter{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "vrouter1",
+		},
+		Spec: VrouterSpec{
+			ServiceConfiguration: VrouterConfiguration{
+				ControlInstance:   "control1",
+				HugePages2M:       &hp256,
+				L3MHCidr:          "172.1.1.0/24",
+				PhysicalInterface: "ens3,ens4",
+			},
+		},
+	}
+
+	cl := fake.NewFakeClientWithScheme(scheme, vrouter)
+	cfg, err := vrouter.VrouterConfigurationParameters(cl)
+	require.NoError(t, err, "Failed to get VrouterConfigurationParameters")
+	require.Equal(t, "ens3,ens4", cfg.PhysicalInterface)
+
+	paramsStr, err := vrouter.GetParamsEnv(cl, &ClusterParams{})
+	require.NoError(t, err, "Failed to get GetParamsEnv")
+	require.Contains(t, paramsStr, "PHYSICAL_INTERFACE=\"ens3,ens4\"")
 }

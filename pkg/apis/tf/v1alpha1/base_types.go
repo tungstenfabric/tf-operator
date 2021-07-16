@@ -1336,6 +1336,14 @@ func (c *CassandraClusterConfiguration) FillWithDefaultValues() {
 
 // ProvisionerEnvData returns provisioner env data
 func ProvisionerEnvData(configAPINodes string, controlNodes string, hostname string, authParams AuthParameters) string {
+	return ProvisionerEnvDataEx(configAPINodes, controlNodes, hostname, authParams, "", "", "")
+}
+
+// ProvisionerEnvDataEx returns provisioner env data for vrouter case
+func ProvisionerEnvDataEx(
+	configAPINodes, controlNodes, hostname string, authParams AuthParameters,
+	physicalInterface, vrouterGateway, l3mhCidr string) string {
+
 	var bufEnv bytes.Buffer
 	err := templates.ProvisionerConfig.Execute(&bufEnv, struct {
 		ConfigAPINodes         string
@@ -1346,6 +1354,9 @@ func ProvisionerEnvData(configAPINodes string, controlNodes string, hostname str
 		Delay                  string
 		AuthMode               AuthenticationMode
 		KeystoneAuthParameters KeystoneAuthParameters
+		PhysicalInterface      string
+		VrouterGateway         string
+		L3MHCidr               string
 	}{
 		ConfigAPINodes:         configAPINodes,
 		Hostname:               hostname,
@@ -1353,6 +1364,9 @@ func ProvisionerEnvData(configAPINodes string, controlNodes string, hostname str
 		ControlNodes:           controlNodes,
 		AuthMode:               authParams.AuthMode,
 		KeystoneAuthParameters: authParams.KeystoneAuthParameters,
+		PhysicalInterface:      physicalInterface,
+		VrouterGateway:         vrouterGateway,
+		L3MHCidr:               l3mhCidr,
 	})
 	if err != nil {
 		panic(err)

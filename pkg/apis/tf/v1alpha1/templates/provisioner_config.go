@@ -17,6 +17,15 @@ export CONTROL_NODES={{ .ControlNodes }}
 export VROUTER_HOSTNAME={{ .Hostname }}
 export CONTROL_HOSTNAME={{ .Hostname }}
 {{ end }}
+{{ if .L3MHCidr }}
+export L3MH_CIDR={{ .L3MHCidr }}
+{{ end }}
+{{ if .PhysicalInterface }}
+export PHYSICAL_INTERFACE={{ .PhysicalInterface }}
+{{ end }}
+{{ if .VrouterGateway }}
+export VROUTER_GATEWAY={{ .VrouterGateway }}
+{{ end }}
 {{ if .Retries }}
 export PROVISION_RETRIES={{ .Retries }}
 {{ end }}

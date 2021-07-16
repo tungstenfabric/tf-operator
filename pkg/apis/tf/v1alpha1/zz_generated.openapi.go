@@ -2783,12 +2783,6 @@ func schema_pkg_apis_tf_v1alpha1_VrouterConfiguration(ref common.ReferenceCallba
 							Format: "",
 						},
 					},
-					"metaDataSecret": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
 					"nodeManager": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"boolean"},

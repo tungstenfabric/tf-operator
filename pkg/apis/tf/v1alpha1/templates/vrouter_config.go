@@ -65,9 +65,10 @@ CONFIG_API_SSL_ENABLE="{{ .ServiceConfig.ConfigApiSslEnable }}"
 #DNS_SERVER_PORT="{{ .ServiceConfig.DnsServerPort }}"
 
 # Host
-#DPDK_UIO_DRIVER="{{ .ServiceConfig.DpdkUioDriver }}"
-#SRIOV_PHYSICAL_INTERFACE="{{ .ServiceConfig.SriovPhysicalInterace }}"
-#SRIOV_PHYSICAL_NETWORK="{{ .ServiceConfig.SriovPhysicalNetwork }}"
+DPDK_UIO_DRIVER="{{ .ServiceConfig.DpdkUioDriver }}"
+PHYSICAL_INTERFACE="{{ .ServiceConfig.PhysicalInterface }}"
+SRIOV_PHYSICAL_INTERFACE="{{ .ServiceConfig.SriovPhysicalInterface }}"
+SRIOV_PHYSICAL_NETWORK="{{ .ServiceConfig.SriovPhysicalNetwork }}"
 #SRIOV_VF="{{ .ServiceConfig.SriovVf }}"
 
 # Introspect
@@ -101,12 +102,12 @@ LOG_LEVEL="{{ .LogLevel }}"
 LOG_LOCAL="{{ .ServiceConfig.LogLocal }}"
 
 # Metadata
-#METADATA_PROXY_SECRET="{{ .ServiceConfig.MetadataProxySecret }}"
-#METADATA_SSL_CA_CERTFILE="{{ .ServiceConfig.MetadataSslCaCertfile }}"
-#METADATA_SSL_CERTFILE="{{ .ServiceConfig.MetadataSslCertfile }}"
-#METADATA_SSL_CERT_TYPE="{{ .ServiceConfig.MetadataSslCertType }}"
-#METADATA_SSL_ENABLE="{{ .ServiceConfig.MetadataSslEnable }}"
-#METADATA_SSL_KEYFILE="{{ .ServiceConfig.MetadataSslKeyfile }}"
+METADATA_PROXY_SECRET="{{ .ServiceConfig.MetadataProxySecret }}"
+METADATA_SSL_CA_CERTFILE="{{ .ServiceConfig.MetadataSslCaCertfile }}"
+METADATA_SSL_CERTFILE="{{ .ServiceConfig.MetadataSslCertfile }}"
+METADATA_SSL_CERT_TYPE="{{ .ServiceConfig.MetadataSslCertType }}"
+METADATA_SSL_ENABLE="{{ .ServiceConfig.MetadataSslEnable }}"
+METADATA_SSL_KEYFILE="{{ .ServiceConfig.MetadataSslKeyfile }}"
 
 # OpenStack
 #BARBICAN_TENANT_NAME="{{ .ServiceConfig.BarbicanTenantName }}"
@@ -188,7 +189,7 @@ physical_interface_mac={{ .PHYS_INT_MAC }}
 physical_interface_address={{ .PCI_ADDRESS }}
 physical_uio_driver={{ .DPDK_UIO_DRIVER }}
 {{ else }}
-physical_interface_mac = {{ .PHYS_INT_MAC }}
+physical_interface_mac={{ .PHYS_INT_MAC }}
 {{ end }}
 {{ if .TSN_AGENT_MODE }}agent_mode = {{ .TSN_AGENT_MODE }}{{ end }}
 
@@ -224,10 +225,14 @@ metadata_ssl_conf+={{ .METADATA_SSL_CERT_TYPE }}
 [VIRTUAL-HOST-INTERFACE]
 name=vhost0
 ip={{ .VROUTER_CIDR }}
-physical_interface={{ .PHYS_INT }}
 compute_node_address={{ .COMPUTE_NODE_ADDRESS }}
+physical_interface={{ .PHYS_INT }}
 {{ if .VROUTER_GATEWAY }}
 gateway={{ .VROUTER_GATEWAY }}
+{{ end }}
+{{ if .L3MH_CIDR }}
+physical_interface_addr={{ .PHYS_INT_IPS }}
+loopback_ip={{ .COMPUTE_NODE_ADDRESS }}
 {{ end }}
 
 [SERVICE-INSTANCE]

@@ -28,7 +28,13 @@ spec:
           cniMTU: {{ CNI_MTU }}
 {%- endif %}
 {%- if L3MH_CIDR is defined and L3MH_CIDR != "" %}
-          l3mhCidr: {{ L3MH_CIDR }}
+          l3mhCidr: "{{ L3MH_CIDR }}"
+{%- endif %}
+{%- if PHYSICAL_INTERFACE is defined and PHYSICAL_INTERFACE != "" %}
+          physicalInterface: "{{ PHYSICAL_INTERFACE }}"
+{%- endif %}
+{%- if VROUTER_GATEWAY is defined and VROUTER_GATEWAY != "" %}
+          vrouterGateway: "{{ VROUTER_GATEWAY }}"
 {%- endif %}
 {%- if HUGE_PAGES_2MB is defined and HUGE_PAGES_2MB != "" %}
           hugePages2M: {{ HUGE_PAGES_2MB }}

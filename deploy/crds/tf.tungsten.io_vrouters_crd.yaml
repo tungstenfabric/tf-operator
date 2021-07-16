@@ -200,8 +200,6 @@ spec:
                   type: object
                 fabricSntHashTableSize:
                   type: string
-                gateway:
-                  type: string
                 hugePages1G:
                   type: integer
                 hugePages2M:
@@ -258,8 +256,6 @@ spec:
                   type: string
                 logLocal:
                   type: integer
-                metaDataSecret:
-                  type: string
                 metadataProxySecret:
                   description: Metadata
                   type: string
