@@ -1,5 +1,15 @@
 FROM registry.access.redhat.com/ubi7/ubi-minimal:latest
 
+MAINTAINER "Tungsten Fabric"
+### Required OpenShift Labels
+LABEL name="TF operator" \
+      maintainer="Tungsten Fabric" \
+      vendor="Tungsten Fabric" \
+      version="1.0.0-master" \
+      release="1.0.0-master" \
+      summary="Tungsten Fabric SDN operator" \
+      description="This operator will deploy and manage Tungsten Fabric to the cluster"
+
 ENV OPERATOR=/usr/local/bin/tf-operator \
     USER_UID=1999 \
     USER_NAME=tf-operator
