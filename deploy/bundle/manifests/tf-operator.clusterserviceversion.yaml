@@ -463,7 +463,7 @@ metadata:
         }
       ]
     capabilities: Seamless Upgrades
-    categories: SDN
+    categories: Networking
     containerImage: 'docker.io/tungstenfabric/tf-operator:latest'
     certified: 'false'
     createdAt: 2021-07-19T15:33:06Z
