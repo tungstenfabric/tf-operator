@@ -119,6 +119,15 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	ownerHandler := &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &v1alpha1.Kubemanager{},
+	}
+
+	if err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, ownerHandler); err != nil {
+		return err
+	}
+
 	// Watch for changes to PODs.
 	serviceMap := map[string]string{"tf_manager": "kubemanager"}
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
@@ -158,12 +167,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	srcSTS := &source.Kind{Type: &appsv1.StatefulSet{}}
-	stsHandler := &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &v1alpha1.Kubemanager{},
-	}
 	stsPred := utils.STSStatusChange(utils.KubemanagerGroupKind())
-	if err = c.Watch(srcSTS, stsHandler, stsPred); err != nil {
+	if err = c.Watch(srcSTS, ownerHandler, stsPred); err != nil {
 		return err
 	}
 

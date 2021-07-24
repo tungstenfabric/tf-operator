@@ -108,8 +108,18 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err != nil {
 		return err
 	}
+
 	if err = c.Watch(&source.Kind{Type: &v1alpha1.Zookeeper{}},
 		&handler.EnqueueRequestForObject{}); err != nil {
+		return err
+	}
+
+	ownerHandler := &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &v1alpha1.Zookeeper{},
+	}
+
+	if err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, ownerHandler); err != nil {
 		return err
 	}
 
@@ -117,18 +127,13 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
 	podHandler := resourceHandler(mgr.GetClient())
 	predPodIPChange := utils.PodIPChange(serviceMap)
-
 	if err = c.Watch(srcPod, podHandler, predPodIPChange); err != nil {
 		return err
 	}
 
 	srcSTS := &source.Kind{Type: &appsv1.StatefulSet{}}
-	stsHandler := &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &v1alpha1.Zookeeper{},
-	}
 	stsPred := utils.STSStatusChange(utils.ZookeeperGroupKind())
-	if err = c.Watch(srcSTS, stsHandler, stsPred); err != nil {
+	if err = c.Watch(srcSTS, ownerHandler, stsPred); err != nil {
 		return err
 	}
 

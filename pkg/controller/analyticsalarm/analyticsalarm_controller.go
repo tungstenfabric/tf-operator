@@ -119,18 +119,24 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err = c.Watch(&source.Kind{Type: &v1alpha1.AnalyticsAlarm{}}, &handler.EnqueueRequestForObject{}); err != nil {
 		return err
 	}
+
+	ownerHandler := &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &v1alpha1.AnalyticsAlarm{},
+	}
+
+	if err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, ownerHandler); err != nil {
+		return err
+	}
+
+	if err = c.Watch(&source.Kind{Type: &corev1.Service{}}, ownerHandler); err != nil {
+		return err
+	}
+
 	serviceMap := map[string]string{"tf_manager": instanceType}
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
 	podHandler := resourceHandler(mgr.GetClient())
 	predPodIPChange := utils.PodIPChange(serviceMap)
-
-	if err = c.Watch(&source.Kind{Type: &corev1.Service{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &v1alpha1.AnalyticsAlarm{},
-	}); err != nil {
-		return err
-	}
-
 	if err = c.Watch(srcPod, podHandler, predPodIPChange); err != nil {
 		return err
 	}
@@ -178,12 +184,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	srcSTS := &source.Kind{Type: &appsv1.StatefulSet{}}
-	stsHandler := &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &v1alpha1.AnalyticsAlarm{},
-	}
 	stsPred := utils.STSStatusChange(utils.ConfigGroupKind())
-	if err = c.Watch(srcSTS, stsHandler, stsPred); err != nil {
+	if err = c.Watch(srcSTS, ownerHandler, stsPred); err != nil {
 		return err
 	}
 

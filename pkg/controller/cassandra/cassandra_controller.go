@@ -115,23 +115,27 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	ownerHandler := &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &v1alpha1.Cassandra{},
+	}
+
+	if err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, ownerHandler); err != nil {
+		return err
+	}
+
 	// Watch for changes to PODs.
 	serviceMap := map[string]string{"tf_manager": "cassandra"}
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
 	podHandler := resourceHandler(mgr.GetClient())
 	predPodIPChange := utils.PodIPChange(serviceMap)
-
 	if err = c.Watch(srcPod, podHandler, predPodIPChange); err != nil {
 		return err
 	}
 
 	srcSTS := &source.Kind{Type: &appsv1.StatefulSet{}}
-	stsHandler := &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &v1alpha1.Cassandra{},
-	}
 	stsPred := utils.STSStatusChange(utils.CassandraGroupKind())
-	if err = c.Watch(srcSTS, stsHandler, stsPred); err != nil {
+	if err = c.Watch(srcSTS, ownerHandler, stsPred); err != nil {
 		return err
 	}
 

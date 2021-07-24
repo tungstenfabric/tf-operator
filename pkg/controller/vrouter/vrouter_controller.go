@@ -119,6 +119,15 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	ownerHandler := &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &v1alpha1.Vrouter{},
+	}
+
+	if err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, ownerHandler); err != nil {
+		return err
+	}
+
 	// Watch for changes to PODs.
 	serviceMap := map[string]string{"tf_manager": "vrouter"}
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
@@ -157,12 +166,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	srcDS := &source.Kind{Type: &appsv1.DaemonSet{}}
-	dsHandler := &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &v1alpha1.Vrouter{},
-	}
 	dsPred := utils.DSStatusChange(utils.VrouterGroupKind())
-	if err = c.Watch(srcDS, dsHandler, dsPred); err != nil {
+	if err = c.Watch(srcDS, ownerHandler, dsPred); err != nil {
 		return err
 	}
 
