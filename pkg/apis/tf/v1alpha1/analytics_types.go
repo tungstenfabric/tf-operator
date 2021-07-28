@@ -165,6 +165,7 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 	sort.SliceStable(podIPList, func(i, j int) bool { return podIPList[i] < podIPList[j] })
 
 	configApiIPListCommaSeparated := configtemplates.JoinListWithSeparator(configNodesInformation.APIServerIPList, ",")
+	analyticsNodes := strings.Join(podIPList, ",")
 
 	collectorServerList = strings.Join(podIPList, ":"+strconv.Itoa(*analyticsConfig.CollectorPort)+" ")
 	collectorServerList = collectorServerList + ":" + strconv.Itoa(*analyticsConfig.CollectorPort)
@@ -362,7 +363,10 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 		}
 		data["vnc_api_lib.ini."+podIP] = vncApiBuffer.String()
 	}
-	data["analytics-provisioner.env"] = ProvisionerEnvData(configApiIPListCommaSeparated, "", "", c.Spec.CommonConfiguration.AuthParameters)
+	clusterNodes := ClusterNodes{ConfigNodes: configApiIPListCommaSeparated,
+		AnalyticsNodes: analyticsNodes}
+	data["analytics-provisioner.env"] = ProvisionerEnvData(&clusterNodes, "",
+		c.Spec.CommonConfiguration.AuthParameters)
 	return
 }
 

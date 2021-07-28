@@ -230,7 +230,7 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	analyticsNodes := instance.GetAnalyticsNodes(r.Client)
+	analyticsNodes := v1alpha1.GetAnalyticsNodes(r.Client)
 	configNodes, err := v1alpha1.GetConfigNodes(instance.Namespace, r.Client)
 	if err != nil {
 		return reconcile.Result{}, err

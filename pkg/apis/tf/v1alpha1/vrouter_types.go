@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"reflect"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -629,41 +628,8 @@ func (c *Vrouter) GetAgentNodes(daemonset *appsv1.DaemonSet, clnt client.Client)
 	return nodeList
 }
 
-// GetNodesByLabels requests nodes by labels
-func (c *Vrouter) GetNodesByLabels(clnt client.Client, labels client.MatchingLabels) (string, error) {
-	pods := &corev1.PodList{}
-	if err := clnt.List(context.Background(), pods, labels); err != nil {
-		return "", err
-	}
-
-	arrIps := []string{}
-	for _, pod := range pods.Items {
-		if pod.Status.PodIP == "" || pod.Status.Phase != "Running" {
-			continue
-		}
-		arrIps = append(arrIps, pod.Status.PodIP)
-	}
-
-	sort.Strings(arrIps)
-	ips := strings.Join(arrIps[:], ",")
-	return ips, nil
-}
-
-// ClusterParams Agent cluster params
-type ClusterParams struct {
-	AnalyticsNodes string
-	ConfigNodes    string
-	ControlNodes   string
-}
-
-// GetAnalyticsNodes returns analytics nodes list (str comma separated)
-func (c *Vrouter) GetAnalyticsNodes(clnt client.Client) string {
-	ips, _ := c.GetNodesByLabels(clnt, client.MatchingLabels{"tf_manager": "analytics"})
-	return ips
-}
-
 // GetParamsEnv returns agent params (str comma separated)
-func (c *Vrouter) GetParamsEnv(clnt client.Client, clusterParams *ClusterParams) (string, error) {
+func (c *Vrouter) GetParamsEnv(clnt client.Client, clusterNodes *ClusterNodes) (string, error) {
 	vrouterConfig, err := c.VrouterConfigurationParameters(clnt)
 	if err != nil {
 		return "", err
@@ -671,11 +637,11 @@ func (c *Vrouter) GetParamsEnv(clnt client.Client, clusterParams *ClusterParams)
 	var vrouterManifestParamsEnv bytes.Buffer
 	err = configtemplates.VRouterAgentParams.Execute(&vrouterManifestParamsEnv, struct {
 		ServiceConfig VrouterConfiguration
-		ClusterParams ClusterParams
+		ClusterNodes  ClusterNodes
 		LogLevel      string
 	}{
 		ServiceConfig: *vrouterConfig,
-		ClusterParams: *clusterParams,
+		ClusterNodes: *clusterNodes,
 		LogLevel:      ConvertLogLevel(c.Spec.CommonConfiguration.LogLevel),
 	})
 	if err != nil {
@@ -860,7 +826,7 @@ func (c *Vrouter) UpdateAgentParams(vrouterPod *VrouterPod,
 
 // UpdateAgentConfigMapForPod recalculates files `/etc/contrailconfigmaps/config_name.{$pod_ip}` in the agent configMap
 func (c *Vrouter) UpdateAgentConfigMapForPod(vrouterPod *VrouterPod,
-	clusterParams *ClusterParams,
+	clusterNodes *ClusterNodes,
 	hostVars *map[string]string,
 	configMap *corev1.ConfigMap,
 	client client.Client,
@@ -880,8 +846,8 @@ func (c *Vrouter) UpdateAgentConfigMapForPod(vrouterPod *VrouterPod,
 	// update with provisioner configs
 	srvCfg := c.Spec.ServiceConfiguration
 	configMap.Data["vrouter-provisioner.env."+podIP] = ProvisionerEnvDataEx(
-		clusterParams.ConfigNodes, clusterParams.ControlNodes,
-		vrouterPod.Pod.Annotations["hostname"], c.Spec.CommonConfiguration.AuthParameters,
+		clusterNodes, vrouterPod.Pod.Annotations["hostname"],
+		c.Spec.CommonConfiguration.AuthParameters,
 		srvCfg.PhysicalInterface, srvCfg.VrouterGateway, srvCfg.L3MHCidr)
 
 	return client.Update(context.Background(), configMap)
@@ -917,10 +883,10 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 	if err != nil {
 		return true, err
 	}
-	clusterParams := ClusterParams{ConfigNodes: configNodes, ControlNodes: controlNodesList, AnalyticsNodes: c.GetAnalyticsNodes(clnt)}
+	clusterNodes := ClusterNodes{ConfigNodes: configNodes, ControlNodes: controlNodesList, AnalyticsNodes: GetAnalyticsNodes(clnt)}
 
-	log.Info("UpdateAgent start", "clusterParams", clusterParams)
-	params, err := c.GetParamsEnv(clnt, &clusterParams)
+	log.Info("UpdateAgent start", "clusterNodes", clusterNodes)
+	params, err := c.GetParamsEnv(clnt, &clusterNodes)
 	if err != nil {
 		return true, err
 	}
@@ -977,7 +943,7 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 			return true, err
 		}
 
-		if err := c.UpdateAgentConfigMapForPod(vrouterPod, &clusterParams, &hostVars, configMap, clnt); err != nil {
+		if err := c.UpdateAgentConfigMapForPod(vrouterPod, &clusterNodes, &hostVars, configMap, clnt); err != nil {
 			log.Error(err, "UpdateAgentConfigMapForPod failed")
 			return true, err
 		}
@@ -993,9 +959,9 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 	}
 
 	srvCfg := c.Spec.ServiceConfiguration
-	provData := ProvisionerEnvDataEx(clusterParams.ConfigNodes, clusterParams.ControlNodes,
-		vrouterPod.Pod.Annotations["hostname"], c.Spec.CommonConfiguration.AuthParameters,
-		srvCfg.PhysicalInterface, srvCfg.VrouterGateway, srvCfg.L3MHCidr)
+	provData := ProvisionerEnvDataEx(&clusterNodes, vrouterPod.Pod.Annotations["hostname"],
+		c.Spec.CommonConfiguration.AuthParameters, srvCfg.PhysicalInterface,
+		srvCfg.VrouterGateway, srvCfg.L3MHCidr)
 
 	// wait till new files is delivered to agent
 	eq, err := vrouterPod.IsAgentConfigsAvaliable(c, provData, configMap)
@@ -1015,9 +981,9 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 		return true, err
 	}
 
-	agentStatus.ConfigNodes = clusterParams.ConfigNodes
-	agentStatus.ControlNodes = clusterParams.ControlNodes
-	agentStatus.AnalyticsNodes = clusterParams.AnalyticsNodes
+	agentStatus.ConfigNodes = clusterNodes.ConfigNodes
+	agentStatus.ControlNodes = clusterNodes.ControlNodes
+	agentStatus.AnalyticsNodes = clusterNodes.AnalyticsNodes
 
 	needReconcile := agentStatus.Status != "Ready"
 	agentStatus.Status = "Ready"

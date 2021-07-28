@@ -7,11 +7,23 @@ var ProvisionerConfig = template.Must(template.New("").Parse(`export SSL_ENABLE=
 export SERVER_CA_CERTFILE={{ .SignerCAFilepath }}
 export SERVER_CERTFILE="/etc/certificates/server-${POD_IP}.crt"
 export SERVER_KEYFILE="/etc/certificates/server-key-${POD_IP}.pem"
-{{ if .ConfigAPINodes }}
-export CONFIG_NODES={{ .ConfigAPINodes }}
+{{ if .ClusterNodes.ConfigNodes }}
+export CONFIG_NODES={{ .ClusterNodes.ConfigNodes }}
 {{ end }}
-{{ if .ControlNodes }}
-export CONTROL_NODES={{ .ControlNodes }}
+{{ if .ClusterNodes.ControlNodes }}
+export CONTROL_NODES={{ .ClusterNodes.ControlNodes }}
+{{ end }}
+{{ if .ClusterNodes.AnalyticsNodes }}
+export ANALYTICS_NODES={{ .ClusterNodes.AnalyticsNodes }}
+{{ end }}
+{{ if .ClusterNodes.AnalyticsDBNodes }}
+export ANALYTICSDB_NODES={{ .ClusterNodes.AnalyticsDBNodes }}
+{{ end }}
+{{ if .ClusterNodes.AnalyticsSnmpNodes }}
+export ANALYTICS_SNMP_NODES={{ .ClusterNodes.AnalyticsSnmpNodes }}
+{{ end }}
+{{ if .ClusterNodes.AnalyticsAlarmNodes }}
+export ANALYTICS_ALARM_NODES={{ .ClusterNodes.AnalyticsAlarmNodes }}
 {{ end }}
 {{ if .Hostname }}
 export VROUTER_HOSTNAME={{ .Hostname }}

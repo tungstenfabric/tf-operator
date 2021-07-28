@@ -295,8 +295,9 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 	if err != nil {
 		return err
 	}
-	configMapInstanceDynamicConfig.Data["cassandra-provisioner.env"] = ProvisionerEnvData(configNodes,
-		"", "", c.Spec.CommonConfiguration.AuthParameters)
+	clusterNodes := ClusterNodes{ConfigNodes: configNodes, AnalyticsDBNodes: cassandraIPListCommaSeparated}
+	configMapInstanceDynamicConfig.Data["cassandra-provisioner.env"] = ProvisionerEnvData(&clusterNodes,
+		"", c.Spec.CommonConfiguration.AuthParameters)
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }

@@ -356,8 +356,10 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 		}
 		data["vnc_api_lib.ini."+podIP] = vncApiConfigBuffer.String()
 
-		data["control-provisioner.env."+podIP] = ProvisionerEnvData(configApiIPListCommaSeparated,
-			controlNodes, hostname, c.Spec.CommonConfiguration.AuthParameters)
+		clusterNodes := ClusterNodes{ConfigNodes: configApiIPListCommaSeparated, ControlNodes: controlNodes}
+
+		data["control-provisioner.env."+podIP] = ProvisionerEnvData(&clusterNodes,
+			hostname, c.Spec.CommonConfiguration.AuthParameters)
 
 		var controlDeProvisionBuffer bytes.Buffer
 		// TODO: use auth options from config instead of defaults

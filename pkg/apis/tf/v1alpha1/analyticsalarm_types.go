@@ -180,6 +180,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(podList []corev1.Pod, client clie
 	sort.SliceStable(podIPList, func(i, j int) bool { return podIPList[i] < podIPList[j] })
 
 	kafkaServerSpaceSeparatedList = strings.Join(podIPList, ":9092 ") + ":9092"
+	analyticsAlarmNodes := strings.Join(podIPList, ",")
 
 	kafkaSecret := &corev1.Secret{}
 	if err = client.Get(context.TODO(), types.NamespacedName{Name: c.Name + "-secret", Namespace: c.Namespace}, kafkaSecret); err != nil {
@@ -340,8 +341,10 @@ func (c *AnalyticsAlarm) InstanceConfiguration(podList []corev1.Pod, client clie
 		}
 		data["vnc_api_lib.ini."+podIP] = vnciniBuffer.String()
 	}
-	data["analyticsalarm-provisioner.env"] = ProvisionerEnvData(configApiIPCommaSeparated,
-		"", "", c.Spec.CommonConfiguration.AuthParameters)
+	clusterNodes := ClusterNodes{ConfigNodes: configApiIPCommaSeparated,
+		AnalyticsAlarmNodes: analyticsAlarmNodes}
+	data["analyticsalarm-provisioner.env"] = ProvisionerEnvData(&clusterNodes,
+		"", c.Spec.CommonConfiguration.AuthParameters)
 
 	return
 }

@@ -96,6 +96,15 @@ type PodConfiguration struct {
 	Distribution *string `json:"distribution,omitempty"`
 }
 
+type ClusterNodes struct {
+    AnalyticsNodes       string
+    AnalyticsDBNodes     string
+    AnalyticsAlarmNodes  string
+    AnalyticsSnmpNodes   string
+    ConfigNodes          string
+    ControlNodes         string
+}
+
 var ZiuKindsNoVrouterCNI = []string{
 	"Config",
 	"Analytics",
@@ -934,6 +943,32 @@ func GetNodes(labelSelector map[string]string, c client.Client) ([]corev1.Node, 
 	return nodeList.Items, nil
 }
 
+// GetNodesByLabels requests nodes by labels
+func GetNodesByLabels(clnt client.Client, labels client.MatchingLabels) (string, error) {
+	pods := &corev1.PodList{}
+	if err := clnt.List(context.Background(), pods, labels); err != nil {
+		return "", err
+	}
+
+	arrIps := []string{}
+	for _, pod := range pods.Items {
+		if pod.Status.PodIP == "" || pod.Status.Phase != "Running" {
+			continue
+		}
+		arrIps = append(arrIps, pod.Status.PodIP)
+	}
+
+	sort.Strings(arrIps)
+	ips := strings.Join(arrIps[:], ",")
+	return ips, nil
+}
+
+// GetAnalyticsNodes returns analytics nodes list (str comma separated)
+func GetAnalyticsNodes(clnt client.Client) string {
+	ips, _ := GetNodesByLabels(clnt, client.MatchingLabels{"tf_manager": "analytics"})
+	return ips
+}
+
 func GetControllerNodes(c client.Client) ([]corev1.Node, error) {
 	return GetNodes(map[string]string{"node-role.kubernetes.io/master": ""}, c)
 }
@@ -1335,19 +1370,18 @@ func (c *CassandraClusterConfiguration) FillWithDefaultValues() {
 }
 
 // ProvisionerEnvData returns provisioner env data
-func ProvisionerEnvData(configAPINodes string, controlNodes string, hostname string, authParams AuthParameters) string {
-	return ProvisionerEnvDataEx(configAPINodes, controlNodes, hostname, authParams, "", "", "")
+func ProvisionerEnvData(clusterNodes *ClusterNodes, hostname string, authParams AuthParameters) string {
+	return ProvisionerEnvDataEx(clusterNodes, hostname, authParams, "", "", "")
 }
 
 // ProvisionerEnvDataEx returns provisioner env data for vrouter case
 func ProvisionerEnvDataEx(
-	configAPINodes, controlNodes, hostname string, authParams AuthParameters,
+	clusterNodes *ClusterNodes, hostname string, authParams AuthParameters,
 	physicalInterface, vrouterGateway, l3mhCidr string) string {
 
 	var bufEnv bytes.Buffer
 	err := templates.ProvisionerConfig.Execute(&bufEnv, struct {
-		ConfigAPINodes         string
-		ControlNodes           string
+		ClusterNodes           ClusterNodes
 		Hostname               string
 		SignerCAFilepath       string
 		Retries                string
@@ -1358,10 +1392,9 @@ func ProvisionerEnvDataEx(
 		VrouterGateway         string
 		L3MHCidr               string
 	}{
-		ConfigAPINodes:         configAPINodes,
+		ClusterNodes:          *clusterNodes,
 		Hostname:               hostname,
 		SignerCAFilepath:       SignerCAFilepath,
-		ControlNodes:           controlNodes,
 		AuthMode:               authParams.AuthMode,
 		KeystoneAuthParameters: authParams.KeystoneAuthParameters,
 		PhysicalInterface:      physicalInterface,
