@@ -645,8 +645,9 @@ func (c *Config) InstanceConfiguration(configMapName string,
 	}
 
 	// update with provisioner configs
+	clusterNodes := ClusterNodes{ConfigNodes: apiServerList, AnalyticsNodes: apiServerList}
 	configMapInstanceDynamicConfig.Data["config-provisioner.env"] = ProvisionerEnvData(
-		apiServerList, "", "", c.Spec.CommonConfiguration.AuthParameters)
+		&clusterNodes, "", c.Spec.CommonConfiguration.AuthParameters)
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }

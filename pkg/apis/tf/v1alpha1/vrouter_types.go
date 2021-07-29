@@ -675,12 +675,6 @@ func (c *Vrouter) GetNodesByLabels(clnt client.Client, labels client.MatchingLab
 	return ips, nil
 }
 
-// ClusterParams Agent cluster params
-type ClusterParams struct {
-	ConfigNodes  string
-	ControlNodes string
-}
-
 // GetControlNodes returns control nodes list (str comma separated)
 func (c *Vrouter) GetControlNodes(clnt client.Client) (string, error) {
 	control := &Control{}
@@ -714,7 +708,7 @@ func (c *Vrouter) GetConfigNodes(clnt client.Client) string {
 }
 
 // GetParamsEnv returns agent params (str comma separated)
-func (c *Vrouter) GetParamsEnv(clnt client.Client, clusterParams *ClusterParams) (string, error) {
+func (c *Vrouter) GetParamsEnv(clnt client.Client, clusterNodes *ClusterNodes) (string, error) {
 	vrouterConfig, err := c.VrouterConfigurationParameters(clnt)
 	if err != nil {
 		return "", err
@@ -722,10 +716,10 @@ func (c *Vrouter) GetParamsEnv(clnt client.Client, clusterParams *ClusterParams)
 	var vrouterManifestParamsEnv bytes.Buffer
 	err = configtemplates.VRouterAgentParams.Execute(&vrouterManifestParamsEnv, struct {
 		ServiceConfig VrouterConfiguration
-		ClusterParams ClusterParams
+		ClusterNodes ClusterNodes
 	}{
 		ServiceConfig: *vrouterConfig,
-		ClusterParams: *clusterParams,
+		ClusterNodes:  *clusterNodes,
 	})
 	if err != nil {
 		panic(err)
@@ -906,7 +900,7 @@ func (c *Vrouter) UpdateAgentParams(vrouterPod *VrouterPod,
 
 // UpdateAgentConfigMapForPod recalculates files `/etc/contrailconfigmaps/config_name.{$pod_ip}` in the agent configMap
 func (c *Vrouter) UpdateAgentConfigMapForPod(vrouterPod *VrouterPod,
-	clusterParams *ClusterParams,
+	clusterNodes *ClusterNodes,
 	hostVars *map[string]string,
 	configMap *corev1.ConfigMap,
 	client client.Client,
@@ -924,8 +918,8 @@ func (c *Vrouter) UpdateAgentConfigMapForPod(vrouterPod *VrouterPod,
 	configMap.Data["vrouter-nodemgr.env."+podIP] = ""
 
 	configMap.Data["vrouter-provisioner.env."+podIP] = ProvisionerEnvData(
-		clusterParams.ConfigNodes, clusterParams.ControlNodes,
-		vrouterPod.Pod.Annotations["hostname"], c.Spec.CommonConfiguration.AuthParameters)
+		clusterNodes, vrouterPod.Pod.Annotations["hostname"],
+		c.Spec.CommonConfiguration.AuthParameters)
 
 	return client.Update(context.Background(), configMap)
 }
@@ -955,10 +949,10 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 	if err != nil {
 		return true, err
 	}
-	clusterParams := ClusterParams{ConfigNodes: c.GetConfigNodes(clnt), ControlNodes: controlNodesList}
+	clusterNodes := ClusterNodes{ConfigNodes: c.GetConfigNodes(clnt), ControlNodes: controlNodesList}
 
-	log.Info("UpdateAgent start", "clusterParams", clusterParams)
-	params, err := c.GetParamsEnv(clnt, &clusterParams)
+	log.Info("UpdateAgent start", "clusterNodes", clusterNodes)
+	params, err := c.GetParamsEnv(clnt, &clusterNodes)
 	if err != nil {
 		return true, err
 	}
@@ -1015,7 +1009,7 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 			return true, err
 		}
 
-		if err := c.UpdateAgentConfigMapForPod(vrouterPod, &clusterParams, &hostVars, configMap, clnt); err != nil {
+		if err := c.UpdateAgentConfigMapForPod(vrouterPod, &clusterNodes, &hostVars, configMap, clnt); err != nil {
 			log.Error(err, "UpdateAgentConfigMapForPod failed")
 			return true, err
 		}
@@ -1030,8 +1024,8 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 		return false, nil
 	}
 
-	provData := ProvisionerEnvData(clusterParams.ConfigNodes, clusterParams.ControlNodes,
-		vrouterPod.Pod.Annotations["hostname"], c.Spec.CommonConfiguration.AuthParameters)
+	provData := ProvisionerEnvData(&clusterNodes, vrouterPod.Pod.Annotations["hostname"],
+		c.Spec.CommonConfiguration.AuthParameters)
 
 	// wait till new files is delivered to agent
 	eq, err := vrouterPod.IsAgentConfigsAvaliable(c, provData, configMap)
@@ -1051,8 +1045,8 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 		return true, err
 	}
 
-	agentStatus.ConfigNodes = clusterParams.ConfigNodes
-	agentStatus.ControlNodes = clusterParams.ControlNodes
+	agentStatus.ConfigNodes = clusterNodes.ConfigNodes
+	agentStatus.ControlNodes = clusterNodes.ControlNodes
 
 	needReconcile := agentStatus.Status != "Ready"
 	agentStatus.Status = "Ready"

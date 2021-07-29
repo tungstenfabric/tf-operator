@@ -101,6 +101,15 @@ type PodConfiguration struct {
 	LogLevel string `json:"logLevel,omitempty"`
 }
 
+type ClusterNodes struct {
+    AnalyticsNodes       string
+    AnalyticsDBNodes     string
+    AnalyticsAlarmNodes  string
+    AnalyticsSnmpNodes   string
+    ConfigNodes          string
+    ControlNodes         string
+}
+
 //GetReplicas is used to get number of desired pods.
 func (cc *PodConfiguration) GetReplicas() int32 {
 	if cc.Replicas != nil {
@@ -1160,11 +1169,10 @@ func (c *CassandraClusterConfiguration) FillWithDefaultValues() {
 }
 
 // ProvisionerEnvData returns provisioner env data
-func ProvisionerEnvData(configAPINodes, controlNodes, hostname string, authParams *AuthParameters) string {
+func ProvisionerEnvData(clusterNodes *ClusterNodes, hostname string, authParams *AuthParameters) string {
 	var bufEnv bytes.Buffer
 	err := templates.ProvisionerConfig.Execute(&bufEnv, struct {
-		ConfigAPINodes         string
-		ControlNodes           string
+		ClusterNodes           ClusterNodes
 		Hostname               string
 		SignerCAFilepath       string
 		Retries                string
@@ -1172,8 +1180,7 @@ func ProvisionerEnvData(configAPINodes, controlNodes, hostname string, authParam
 		AuthMode               AuthenticationMode
 		KeystoneAuthParameters *KeystoneAuthParameters
 	}{
-		ConfigAPINodes:         configAPINodes,
-		ControlNodes:           controlNodes,
+		ClusterNodes:           *clusterNodes,
 		Hostname:               hostname,
 		SignerCAFilepath:       certificates.SignerCAFilepath,
 		AuthMode:               authParams.AuthMode,

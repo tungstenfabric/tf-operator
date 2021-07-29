@@ -5,6 +5,7 @@ import (
 	"context"
 	"sort"
 	"strconv"
+	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -167,6 +168,13 @@ func (c *AnalyticsSnmp) InstanceConfiguration(configMapName string,
 	sort.Strings(zookeeperEndpointList)
 	zookeeperEndpointListCommaSeparated := configtemplates.JoinListWithSeparator(zookeeperEndpointList, ",")
 
+	var podIPList []string
+	for _, pod := range podList {
+		podIPList = append(podIPList, pod.Status.PodIP)
+	}
+	sort.SliceStable(podIPList, func(i, j int) bool { return podIPList[i] < podIPList[j] })
+	analyticsSnmpNodes := strings.Join(podIPList, ",")
+
 	for _, pod := range podList {
 		hostname := pod.Annotations["hostname"]
 		podIP := pod.Status.PodIP
@@ -321,8 +329,10 @@ func (c *AnalyticsSnmp) InstanceConfiguration(configMapName string,
 	}
 
 	// update with provisioner configs
+	clusterNodes := ClusterNodes{ConfigNodes: configApiIPCommaSeparated,
+		AnalyticsSnmpNodes: analyticsSnmpNodes}
 	configMapInstanceDynamicConfig.Data["analyticssnmp-provisioner.env"] = ProvisionerEnvData(
-		configApiIPCommaSeparated, "", "", c.Spec.CommonConfiguration.AuthParameters)
+		&clusterNodes, "", c.Spec.CommonConfiguration.AuthParameters)
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }

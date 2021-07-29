@@ -265,14 +265,22 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 		}
 	}
 
+	var cassandraPodIPList []string
+	for _, pod := range podList {
+		cassandraPodIPList = append(cassandraPodIPList, pod.Status.PodIP)
+	}
+	sort.SliceStable(cassandraPodIPList, func(i, j int) bool { return cassandraPodIPList[i] < cassandraPodIPList[j] })
+	cassandraIPListCommaSeparated := strings.Join(cassandraPodIPList, ",")
+
 	configNodes, err := c.GetConfigNodes(request, client)
 	if err != nil {
 		return err
 	}
 	// update with provisioner configs
-	configMapInstanceDynamicConfig.Data["cassandra-provisioner.env"] = ProvisionerEnvData(
-		configtemplates.JoinListWithSeparator(configNodes, ","), "", "", c.Spec.CommonConfiguration.AuthParameters)
-
+	clusterNodes := ClusterNodes{ConfigNodes: configtemplates.JoinListWithSeparator(configNodes, ","),
+		AnalyticsDBNodes: cassandraIPListCommaSeparated}
+	configMapInstanceDynamicConfig.Data["cassandra-provisioner.env"] = ProvisionerEnvData(&clusterNodes,
+		"", c.Spec.CommonConfiguration.AuthParameters)
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)
 }
 

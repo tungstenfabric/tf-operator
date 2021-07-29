@@ -382,9 +382,9 @@ func (c *Control) InstanceConfiguration(request reconcile.Request,
 
 		// it is enough to provide own pod listen address as CONTROL_NODES list, as it is used
 		// by provisioner to lookup own IP only
-		controlNodes := podListenAddress
+		clusterNodes := ClusterNodes{ConfigNodes: configApiIPListCommaSeparated, ControlNodes: podListenAddress}
 		configMapInstanceDynamicConfig.Data["control-provisioner.env."+podIP] = ProvisionerEnvData(
-			configApiIPListCommaSeparated, controlNodes, hostname, c.Spec.CommonConfiguration.AuthParameters)
+			&clusterNodes, hostname, c.Spec.CommonConfiguration.AuthParameters)
 	}
 
 	return client.Update(context.TODO(), configMapInstanceDynamicConfig)

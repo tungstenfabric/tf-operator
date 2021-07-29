@@ -43,10 +43,10 @@ CONTAINER_LOG_DIR=/var/log/contrail
 VROUTER_ENCRYPTION=false
 
 #TODO uncomment parameters to export after debug
-CONTROL_NODES="{{ .ClusterParams.ControlNodes }}"
-DNS_NODES="{{ .ClusterParams.ControlNodes }}"
-CONFIG_NODES="{{ .ClusterParams.ConfigNodes }}"
-ANALYTICS_NODES="{{ .ClusterParams.ConfigNodes }}"
+CONTROL_NODES="{{ .ClusterNodes.ControlNodes }}"
+DNS_NODES="{{ .ClusterNodes.ControlNodes }}"
+CONFIG_NODES="{{ .ClusterNodes.ConfigNodes }}"
+ANALYTICS_NODES="{{ .ClusterNodes.ConfigNodes }}"
 
 # Cloud Orchestration
 CLOUD_ORCHESTRATOR="{{ .ServiceConfig.CloudOrchestrator }}"
