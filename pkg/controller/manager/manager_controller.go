@@ -30,6 +30,8 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
+
+	configv1 "github.com/openshift/api/config/v1"
 )
 
 var log = logf.Log.WithName("controller_manager")
@@ -616,6 +618,25 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 			requeueErr = err
 		}
 		log.Error(err, "processKubemanager")
+	}
+
+	if v1alpha1.IsOpenshift() {
+		openshiftConfig := &configv1.Network{}
+		ctx := context.Background()
+		if err := r.Client.Get(ctx, types.NamespacedName{Name: "cluster"}, openshiftConfig); err != nil {
+			return reconcile.Result{}, fmt.Errorf("Failed to get openshift network config, err=%+v", err)
+		}
+		if openshiftConfig.Spec.NetworkType == "TF" ||  openshiftConfig.Spec.NetworkType == "Contrail" {
+			openshiftConfig.Status.ClusterNetwork = openshiftConfig.Spec.ClusterNetwork
+			openshiftConfig.Status.ServiceNetwork = openshiftConfig.Spec.ServiceNetwork
+			openshiftConfig.Status.NetworkType = openshiftConfig.Spec.NetworkType
+			if err := r.Client.Status().Update(context.TODO(), openshiftConfig); err != nil {
+				if v1alpha1.IsOKForRequeque(err) {
+					return requeueReconcile, fmt.Errorf("Failed to update openshift network status, err=%+v", err)
+				}
+				return reconcile.Result{}, err
+			}
+		}
 	}
 
 	r.setConditions(instance)
