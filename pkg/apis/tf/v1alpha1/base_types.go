@@ -1975,6 +1975,10 @@ func CanReconcile(resourceKind string, clnt client.Client) (bool, error) {
 		return false, err
 	}
 	if ziuStage == -1 {
+		if ziuStage == -1 {
+			f, err := IsZiuRequired(clnt)
+			return !f, err
+		}
 		return true, nil
 	}
 	// Always block vrouter reconcile if ZIU is working

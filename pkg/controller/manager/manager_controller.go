@@ -457,17 +457,28 @@ func processZiuStage(ziuStage v1alpha1.ZIUStatus, clnt client.Client) error {
 
 func ReconcileZiu(log logr.Logger, clnt client.Client) (reconcile.Result, error) {
 	reqLogger := log.WithName("ZIU")
+	restartTime, _ := time.ParseDuration("15s")
+	requeueResult := reconcile.Result{Requeue: true, RequeueAfter: restartTime}
 
 	ziuStage, err := v1alpha1.GetZiuStage(clnt)
-	if err != nil || ziuStage < 0 {
+	if err != nil {
+		reqLogger.Error(err, "Error in ZIU")
+		return requeueResult, err
+	}
+	if ziuStage < 0 {
+		var f bool
+		f, err = v1alpha1.IsZiuRequired(clnt)
 		if err != nil {
 			reqLogger.Error(err, "Error in ZIU")
+			return requeueResult, err
+		}
+		if f {
+			log.Info("Start ZIU process")
+			err = v1alpha1.InitZiu(clnt)
+			return requeueResult, err
 		}
 		return reconcile.Result{}, err
 	}
-
-	restartTime, _ := time.ParseDuration("15s")
-	requeueResult := reconcile.Result{Requeue: true, RequeueAfter: restartTime}
 
 	// We have to wait previous stage updated and ready
 	if ziuStage > 0 {
