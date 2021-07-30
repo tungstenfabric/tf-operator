@@ -22,8 +22,10 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -58,6 +60,8 @@ type ServiceStatus struct {
 	Active  *bool   `json:"active,omitempty"`
 	Created *bool   `json:"created,omitempty"`
 }
+
+var isOpenshift bool
 
 // PodConfiguration is the common services struct.
 // +k8s:openapi-gen=true
@@ -1626,4 +1630,27 @@ func IsOKForRequeque(err error) bool {
 		return true
 	}
 	return false
+}
+
+func IsOpenshift() bool {
+	return isOpenshift
+}
+
+func SetDeployerType(client client.Client) error {
+	u := &unstructured.UnstructuredList{}
+	u.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "machineconfiguration.openshift.io",
+		Kind:    "MachineConfig",
+		Version: "v1",
+	})
+
+	if err := client.List(context.Background(), u); err != nil {
+		if strings.Contains(err.Error(), "no matches for kind \"MachineConfig\"") {
+			isOpenshift = false
+			return nil
+		}
+		return err
+	}
+	isOpenshift = true
+	return nil
 }

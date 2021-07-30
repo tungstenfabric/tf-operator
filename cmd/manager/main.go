@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"runtime"
+	"strconv"
 	"time"
 
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
@@ -13,7 +14,9 @@ import (
 	_ "github.com/operator-framework/operator-sdk/pkg/metrics"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
 	"github.com/spf13/pflag"
+	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -66,6 +69,18 @@ func runOperator(sigHandler <-chan struct{}) error {
                 log.Error(err, "")
                 os.Exit(1)
         }
+
+	var clnt client.Client
+	if clnt, err = client.New(cfg, client.Options{}); err != nil {
+		log.Error(err, "Failed to create client")
+		return err
+	}
+
+	if err = v1alpha1.SetDeployerType(clnt); err != nil {
+		log.Error(err, "Failed SetDeployerType()")
+		return err
+	}
+	log.Info("IsOpenshift=" + strconv.FormatBool(v1alpha1.IsOpenshift()))
 
         // Setup all Controllers.
         if err := controller.AddToManager(mgr); err != nil {

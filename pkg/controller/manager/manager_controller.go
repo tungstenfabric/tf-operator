@@ -1,14 +1,17 @@
 package manager
 
 import (
+        "fmt"
 	"context"
 	"time"
+        "strings"
 
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -24,6 +27,8 @@ import (
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
+
+	configv1 "github.com/openshift/api/config/v1"
 )
 
 var log = logf.Log.WithName("controller_manager")
@@ -241,6 +246,29 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 			requeueErr = err
 		}
 		log.Error(err, "processKubemanagers")
+	}
+
+	if v1alpha1.IsOpenshift() {
+		openshiftConfig := &configv1.Network{}
+		ctx := context.Background()
+		if err := r.client.Get(ctx, types.NamespacedName{Name: "cluster"}, openshiftConfig); err != nil {
+			if strings.Contains(err.Error(), "no kind is registered for the type v1.Network") {
+				return reconcile.Result{}, nil
+			} else {
+				return reconcile.Result{}, fmt.Errorf("Failed to get openshift network configuration, err=%+v", err)
+			}
+		}
+		if openshiftConfig.Spec.NetworkType == "TF" ||  openshiftConfig.Spec.NetworkType == "Contrail" {
+			openshiftConfig.Status.ClusterNetwork = openshiftConfig.Spec.ClusterNetwork
+			openshiftConfig.Status.ServiceNetwork = openshiftConfig.Spec.ServiceNetwork
+			openshiftConfig.Status.NetworkType = openshiftConfig.Spec.NetworkType
+			if err := r.client.Status().Update(context.TODO(), openshiftConfig); err != nil {
+				if v1alpha1.IsOKForRequeque(err) {
+					return requeueReconcile, fmt.Errorf("Failed to update openshift network status, err=%+v", err)
+				}
+				return reconcile.Result{}, err
+			}
+		}
 	}
 
 	r.setConditions(instance)
