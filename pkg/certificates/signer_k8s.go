@@ -192,7 +192,7 @@ func (s *signerK8S) SignCertificate(secret *corev1.Secret, certTemplate x509.Cer
 
 	certPem, err := csr.WaitForCertificate(ctx, s.betav1Csr, req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to wait signed certificate for subject %s, req: %s, err: %w", certTemplate.Subject, req, err)
+		return nil, fmt.Errorf("failed to wait signed certificate for subject %s, err: %w", certTemplate.Subject, err)
 	}
 
 	return certPem, nil

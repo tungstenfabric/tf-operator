@@ -26,11 +26,11 @@ var coreAPI corev1api.CoreV1Interface
 var betav1Csr beta1cert.CertificateSigningRequestInterface
 
 // Allows to overwrite clientset for unittests
-func SetClientset(c corev1api.CoreV1Interface) {
+func SetClientset(v1 corev1api.CoreV1Interface, v1Csr beta1cert.CertificateSigningRequestInterface) {
 	lock.Lock()
 	defer lock.Unlock()
-	coreAPI = c
-	// clientset = c
+	coreAPI = v1
+	betav1Csr = v1Csr
 }
 
 // GetClientConfig first tries to get a config object which uses the service account kubernetes gives to pods,

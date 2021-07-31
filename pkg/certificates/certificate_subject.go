@@ -42,7 +42,7 @@ const (
 	certKeyLength      = 2048
 )
 
-func generateSerialNumber() (*big.Int, error) {
+func GenerateSerialNumber() (*big.Int, error) {
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	return rand.Int(rand.Reader, serialNumberLimit)
 }
@@ -72,7 +72,7 @@ func (c CertificateSubject) generateCertificateTemplate(client client.Client) (x
 	notBefore := time.Now()
 	notAfter := notBefore.Add(certValidityPeriod)
 
-	serialNumber, err := generateSerialNumber()
+	serialNumber, err := GenerateSerialNumber()
 	if err != nil {
 		return x509.Certificate{}, nil, fmt.Errorf("fail to generate serial number: %w", err)
 	}

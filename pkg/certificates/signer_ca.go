@@ -2,6 +2,7 @@ package certificates
 
 import (
 	"context"
+	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -82,66 +83,46 @@ func GetCaCertSecret(cl client.Client, ns string) (*corev1.Secret, error) {
 	return secret, err
 }
 
-func (s *signer) SignCertificate(_ *core.Secret, certTemplate x509.Certificate, privateKey *rsa.PrivateKey) ([]byte, error) {
-	caSecret, err := GetCaCertSecret(s.client, s.owner.GetNamespace())
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to get secret %s with ca cert: %w", caSecret.Name, err)
-	}
-
-	caCertPemBlock, err := GetAndDecodePem(caSecret.Data, SelfSignerCAFilename)
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode ca cert pem: %w", err)
-	}
-
-	caCert, err := x509.ParseCertificate(caCertPemBlock.Bytes)
+func SignCertificateSelfCA(caCertDer, caPrivateKeyDer []byte, certTemplate x509.Certificate, publicKey crypto.PublicKey) ([]byte, error) {
+	caCert, err := x509.ParseCertificate(caCertDer)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse ca cert: %w", err)
 	}
-
-	caCertPrivKeyPemBlock, err := GetAndDecodePem(caSecret.Data, SignerCAPrivateKeyFilename)
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode ca cert priv key pem: %w", err)
-	}
-
-	caCertPrivKey, err := x509.ParsePKCS1PrivateKey(caCertPrivKeyPemBlock.Bytes)
+	caCertPrivKey, err := x509.ParsePKCS1PrivateKey(caPrivateKeyDer)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse ca cert: %w", err)
 	}
-
-	certBytes, err := x509.CreateCertificate(rand.Reader, &certTemplate, caCert, privateKey.Public(), caCertPrivKey)
-
+	certBytes, err := x509.CreateCertificate(rand.Reader, &certTemplate, caCert, publicKey, caCertPrivKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign certificate: %w", err)
 	}
-
 	certPem, err := EncodeInPemFormat(certBytes, CertificatePemType)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode certificate with pem format: %w", err)
 	}
-
 	return certPem, nil
 }
 
-func (s *signer) getSelfCA() ([]byte, error) {
+func (s *signer) SignCertificate(_ *core.Secret, certTemplate x509.Certificate, privateKey *rsa.PrivateKey) ([]byte, error) {
 	caSecret, err := GetCaCertSecret(s.client, s.owner.GetNamespace())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get secret %s with ca cert: %w", caSecret.Name, err)
 	}
-	caCertPemBlock, err := GetAndDecodePem(caSecret.Data, SelfSignerCAFilename)
+	caCertBlock, err := GetAndDecodePem(caSecret.Data, SelfSignerCAFilename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode ca cert pem: %w", err)
 	}
-	return caCertPemBlock.Bytes, nil
+	caCertPrivKeyBlock, err := GetAndDecodePem(caSecret.Data, SignerCAPrivateKeyFilename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode ca priv key pem: %w", err)
+	}
+	return SignCertificateSelfCA(caCertBlock.Bytes, caCertPrivKeyBlock.Bytes, certTemplate, privateKey.Public())
 }
 
 func (s *signer) Validate(cert *x509.Certificate) error {
-	caCert, err := s.getSelfCA()
+	caSecret, err := GetCaCertSecret(s.client, s.owner.GetNamespace())
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get self CA secret %s: %w", CaSecretName, err)
 	}
-	return ValidateCert(cert, caCert)
+	return ValidateCert(cert, caSecret.Data[SelfSignerCAFilename])
 }
