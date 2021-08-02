@@ -624,7 +624,11 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 		openshiftConfig := &configv1.Network{}
 		ctx := context.Background()
 		if err := r.Client.Get(ctx, types.NamespacedName{Name: "cluster"}, openshiftConfig); err != nil {
-			return reconcile.Result{}, fmt.Errorf("Failed to get openshift network config, err=%+v", err)
+			if strings.Contains(err.Error(), "no kind is registered for the type v1.Network") {
+				return reconcile.Result{}, nil
+			} else {
+				return reconcile.Result{}, fmt.Errorf("Failed to get openshift network configuration, err=%+v", err)
+			}
 		}
 		if openshiftConfig.Spec.NetworkType == "TF" ||  openshiftConfig.Spec.NetworkType == "Contrail" {
 			openshiftConfig.Status.ClusterNetwork = openshiftConfig.Spec.ClusterNetwork
