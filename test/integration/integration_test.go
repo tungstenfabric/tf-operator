@@ -299,11 +299,50 @@ func TestReconcileManager(t *testing.T) {
 	stage, err := v1alpha1.GetZiuStage(clnt)
 	require.NoError(t, err)
 	require.Equal(t, -1, int(stage))
+	result, err := reconcileManager.Reconcile(reconcileRequest)
+	require.NoError(t, err)
+	require.Equal(t, reconcile.Result{}, result)
+
+}
+
+func TestReconcileManagerZIU(t *testing.T) {
+	initialData := GetAllTestData("master")
+	objects := getObjectsList(initialData)
+	runtimeScheme := runtimeScheme(t)
+
+	var reconcileRequest reconcile.Request = reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      "cluster1",
+			Namespace: "tf"},
+	}
+	clnt := fake.NewFakeClientWithScheme(runtimeScheme, objects...)
+	var reconcileManager *manager.ReconcileManager = &manager.ReconcileManager{
+		Client:  clnt,
+		Scheme:  runtimeScheme,
+		Manager: nil}
+
+	require.NoError(t, v1alpha1.SetZiuStage(-1, clnt))
+	stage, err := v1alpha1.GetZiuStage(clnt)
+	require.NoError(t, err)
+	require.Equal(t, -1, int(stage))
 
 	result, err := reconcileManager.Reconcile(reconcileRequest)
 	require.NoError(t, err)
 	require.Equal(t, reconcile.Result{}, result)
 
+	sts := &appsv1.StatefulSet{}
+	nsName := types.NamespacedName{Name: "kubemanager1-kubemanager-statefulset", Namespace: "tf"}
+	require.NoError(t, clnt.Get(context.Background(), nsName, sts))
+	ss := strings.Split(sts.Spec.Template.Spec.Containers[0].Image, ":")
+	ss[len(ss)-1] = "test-ziu"
+	sts.Spec.Template.Spec.Containers[0].Image = strings.Join(ss[:], ":")
+	require.NoError(t, clnt.Status().Update(context.TODO(), sts))
+	result, err = reconcileManager.Reconcile(reconcileRequest)
+	require.NoError(t, err)
+	require.Equal(t, true, result.Requeue)
+	ziuStage, err := v1alpha1.GetZiuStage(clnt)
+	require.NoError(t, err)
+	require.Equal(t, 0, int(ziuStage))
 }
 
 func TestZIU_Master(t *testing.T) {
