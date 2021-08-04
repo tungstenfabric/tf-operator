@@ -1,6 +1,11 @@
 package k8s
 
-import "sigs.k8s.io/yaml"
+import (
+	"crypto/md5"
+	"encoding/hex"
+
+	"sigs.k8s.io/yaml"
+)
 
 func YamlToStruct(yamlString string, structPointer interface{}) error {
 	jsonData, err := yaml.YAMLToJSON([]byte(yamlString))
@@ -13,4 +18,9 @@ func YamlToStruct(yamlString string, structPointer interface{}) error {
 	}
 
 	return nil
+}
+
+func Md5Sum(v []byte) string {
+	s := md5.Sum(v)
+	return hex.EncodeToString(s[:])
 }

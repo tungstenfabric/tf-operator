@@ -132,14 +132,7 @@ version = SSLv23
 `))
 
 // CassandraCommandTemplate start script
-var CassandraCommandTemplate = template.Must(template.New("").Parse(`#!/bin/bash
-set -ex;
-echo "INFO: $(date): wait cqlshrc.${POD_IP}" ;
-while [ ! -e /etc/contrailconfigmaps/cqlshrc.${POD_IP} ] ; do sleep 1; done ;
-echo "INFO: $(date): wait cassandra.${POD_IP}.yaml" ;
-while [ ! -e /etc/contrailconfigmaps/cassandra.${POD_IP}.yaml ] ; do sleep 1; done ;
-echo "INFO: $(date): configs ready" ;
-
+var CassandraCommandTemplate = template.Must(template.New("").Parse(`
 # generate keystore for ssl
 rm -f /etc/keystore/server-truststore.jks /etc/keystore/server-keystore.jks ;
 mkdir -p /etc/keystore ;
@@ -160,8 +153,8 @@ rm -f /etc/cassandra/cassandra.yaml ;
 cp /etc/contrailconfigmaps/cassandra.${POD_IP}.yaml /etc/cassandra/cassandra.yaml ;
 cat /etc/cassandra/cassandra.yaml ;
 
-# safe pid for ReloadService function
-echo $$ > /service.pid.reload ;
+# for gracefull shutdown implemented in docker-entrypoint.sh in trap_cassandra_term
+export CASSANDRA_JMX_LOCAL_PORT={{ .JmxLocalPort }}
 
 # start service
 exec /docker-entrypoint.sh -f -Dcassandra.jmx.local.port={{ .JmxLocalPort }} -Dcassandra.config=file:///etc/contrailconfigmaps/cassandra.${POD_IP}.yaml

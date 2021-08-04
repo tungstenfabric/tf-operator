@@ -1,9 +1,14 @@
 package k8s
 
 import (
+	"context"
+	"strings"
+
 	core "k8s.io/api/core/v1"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -50,4 +55,32 @@ func (k *Kubernetes) Secret(name, ownerType string, owner v1.Object) *Secret {
 // Service is used to create Service object
 func (k *Kubernetes) Service(name string, servType core.ServiceType, ports map[int32]string, ownerType string, owner v1.Object) *Service {
 	return &Service{name: name, servType: servType, ports: ports, ownerType: ownerType, owner: owner, client: k.client, scheme: k.scheme}
+}
+
+var isOpenshift bool = false
+
+func IsOpenshift() bool {
+	return isOpenshift
+}
+
+func SetDeployerTypeE(v bool) {
+	isOpenshift = v
+}
+
+func SetDeployerType(client client.Client) error {
+	u := &unstructured.UnstructuredList{}
+	u.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "machineconfiguration.openshift.io",
+		Kind:    "MachineConfigList",
+		Version: "v1",
+	})
+	if err := client.List(context.Background(), u); err != nil {
+		if strings.Contains(err.Error(), "no matches for kind \"MachineConfig\"") {
+			SetDeployerTypeE(false)
+			return nil
+		}
+		return err
+	}
+	SetDeployerTypeE(true)
+	return nil
 }

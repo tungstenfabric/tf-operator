@@ -375,11 +375,26 @@ func (c *Analytics) CreateConfigMap(configMapName string,
 	client client.Client,
 	scheme *runtime.Scheme,
 	request reconcile.Request) (*corev1.ConfigMap, error) {
+	data := make(map[string]string)
+	data["run-collector.sh"] = c.CommonStartupScript(
+		"exec /usr/bin/contrail-collector --conf_file /etc/contrailconfigmaps/collector.${POD_IP}",
+		map[string]string{
+			"collector.${POD_IP}":       "",
+			"vnc_api_lib.ini.${POD_IP}": "vnc_api_lib.ini",
+		})
+	data["run-analyticsapi.sh"] = c.CommonStartupScript(
+		"exec /usr/bin/contrail-analytics-api -c /etc/contrailconfigmaps/analyticsapi.${POD_IP} -c /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP}",
+		map[string]string{
+			"analyticsapi.${POD_IP}":                "",
+			"contrail-keystone-auth.conf.${POD_IP}": "",
+			"vnc_api_lib.ini.${POD_IP}":             "vnc_api_lib.ini",
+		})
 	return CreateConfigMap(configMapName,
 		client,
 		scheme,
 		request,
 		"analytics",
+		data,
 		c)
 }
 

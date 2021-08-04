@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
@@ -234,36 +235,33 @@ func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 
 	utils.CleanupContainers(&statefulSet.Spec.Template.Spec, instance.Spec.ServiceConfiguration.Containers)
-	for idx, container := range statefulSet.Spec.Template.Spec.Containers {
+	for idx := range statefulSet.Spec.Template.Spec.Containers {
 
-		if container.Name == "rabbitmq" {
-			command := []string{"bash", "-c",
-				"while [[ ! -f /etc/contrailconfigmaps/run.sh ]]; do echo wait for config && sleep 1; done; " +
-					"cp -f /etc/contrailconfigmaps/run.sh ./run.sh; " +
-					"chmod 755 ./run.sh; " +
-					"./run.sh",
-			}
-			instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
-			if instanceContainer.Command == nil {
-				(&statefulSet.Spec.Template.Spec.Containers[idx]).Command = command
-			} else {
-				(&statefulSet.Spec.Template.Spec.Containers[idx]).Command = instanceContainer.Command
-			}
+		container := &statefulSet.Spec.Template.Spec.Containers[idx]
+		instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
+		if instanceContainer == nil {
+			reqLogger.Info(fmt.Sprintf("There is no %s container in the manifect", container.Name))
+			continue
+		}
 
-			volumeMountList := []corev1.VolumeMount{}
-			if len((&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts) > 0 {
-				volumeMountList = (&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts
-			}
-			volumeMount := corev1.VolumeMount{
+		if instanceContainer.Command != nil {
+			container.Command = instanceContainer.Command
+		}
+
+		container.Image = instanceContainer.Image
+
+		container.VolumeMounts = append(container.VolumeMounts,
+			corev1.VolumeMount{
 				Name:      request.Name + "-" + instanceType + "-volume",
 				MountPath: "/etc/contrailconfigmaps",
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
+			},
+		)
+		v1alpha1.AddCertsMounts(request.Name, container)
+		v1alpha1.SetLogLevelEnv(instance.Spec.CommonConfiguration.LogLevel, container)
 
-			(&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts = volumeMountList
-			v1alpha1.AddCertsMounts(request.Name, &statefulSet.Spec.Template.Spec.Containers[idx])
-
-			(&statefulSet.Spec.Template.Spec.Containers[idx]).Image = instanceContainer.Image
+		if container.Command == nil {
+			command := []string{"bash", fmt.Sprintf("/etc/contrailconfigmaps/run-%s.sh", container.Name)}
+			container.Command = command
 		}
 	}
 

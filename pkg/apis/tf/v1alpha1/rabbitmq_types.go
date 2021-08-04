@@ -188,14 +188,6 @@ func (c *Rabbitmq) InstanceConfiguration(podList []corev1.Pod, client client.Cli
 		panic(err)
 	}
 	data["definitions.json"] = rabbitmqDefinitionBuffer.String()
-
-	var rabbitmqConfigBuffer bytes.Buffer
-	err = configtemplates.RabbitmqConfig.Execute(&rabbitmqConfigBuffer, struct{}{})
-	if err != nil {
-		panic(err)
-	}
-	data["run.sh"] = rabbitmqConfigBuffer.String()
-
 	return
 }
 
@@ -256,11 +248,36 @@ func (c *Rabbitmq) CreateConfigMap(configMapName string,
 	client client.Client,
 	scheme *runtime.Scheme,
 	request reconcile.Request) (*corev1.ConfigMap, error) {
+
+	data := make(map[string]string)
+	var rabbitmqConfigBuffer bytes.Buffer
+	err := configtemplates.RabbitmqConfig.Execute(&rabbitmqConfigBuffer, struct{}{})
+	if err != nil {
+		panic(err)
+	}
+	data["run-rabbitmq.sh"] = CommonStartupScriptEx(
+		rabbitmqConfigBuffer.String(),
+		"",
+		map[string]string{
+			"rabbitmq.conf.${POD_IP}":     "rabbitmq.conf",
+			"rabbitmq-env.conf.${POD_IP}": "rabbitmq-env.conf",
+			"rabbitmq.nodes":              "rabbitmq.nodes",
+			"plugins.conf":                "plugins.conf",
+			"definitions.json":            "definitions.json",
+			"rabbitmq-common.env":         "rabbitmq-common.env",
+			"0":                           "0",
+		},
+		"/etc/contrailconfigmaps",
+		"/etc/rabbitmq",
+		"",
+	)
+
 	return CreateConfigMap(configMapName,
 		client,
 		scheme,
 		request,
 		"rabbitmq",
+		data,
 		c)
 }
 

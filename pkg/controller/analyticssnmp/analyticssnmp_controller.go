@@ -435,45 +435,11 @@ func (r *ReconcileAnalyticsSnmp) GetSTS(request reconcile.Request, instance *v1a
 			},
 		)
 		v1alpha1.AddCertsMounts(request.Name, container)
+		v1alpha1.SetLogLevelEnv(instance.Spec.CommonConfiguration.LogLevel, container)
 
-		if container.Name == "analytics-snmp-collector" {
-			if container.Command == nil {
-				command := []string{"bash", "-c", instance.CommonStartupScript(
-					"exec /usr/bin/tf-snmp-collector -c /etc/contrailconfigmaps/tf-snmp-collector.${POD_IP} --device-config-file /etc/contrail/device.ini",
-					map[string]string{
-						"tf-snmp-collector.${POD_IP}": "",
-						"vnc_api_lib.ini.${POD_IP}":   "vnc_api_lib.ini",
-					}),
-				}
-				container.Command = command
-			}
-		}
-
-		if container.Name == "analytics-snmp-topology" {
-			if container.Command == nil {
-				command := []string{"bash", "-c", instance.CommonStartupScript(
-					"exec /usr/bin/tf-topology -c /etc/contrailconfigmaps/tf-topology.${POD_IP}",
-					map[string]string{
-						"tf-topology.${POD_IP}":     "",
-						"vnc_api_lib.ini.${POD_IP}": "vnc_api_lib.ini",
-					}),
-				}
-				container.Command = command
-			}
-		}
-
-		if container.Name == "nodemanager" {
-			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/analyticssnmp-nodemanager-runner.sh"}
-				container.Command = command
-			}
-		}
-
-		if container.Name == "provisioner" {
-			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/analyticssnmp-provisioner.sh"}
-				container.Command = command
-			}
+		if container.Command == nil {
+			command := []string{"bash", fmt.Sprintf("/etc/contrailconfigmaps/run-%s.sh", container.Name)}
+			container.Command = command
 		}
 	}
 

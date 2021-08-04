@@ -203,11 +203,41 @@ func (c *Webui) CreateConfigMap(configMapName string,
 	client client.Client,
 	scheme *runtime.Scheme,
 	request reconcile.Request) (*corev1.ConfigMap, error) {
+
+	data := make(map[string]string)
+	data["run-webuiweb.sh"] = c.CommonStartupScript(
+		// use copy as webui resolves symlinks just to "..data/config.global.js.10.0.0.206"
+		// instead of resolve like
+		//    readlink -e /etc/contrailconfigmaps/config.global.js.10.0.0.206
+		//    /etc/contrailconfigmaps/..2021_02_28_17_21_52.558864405/config.global.js.10.0.0.206
+		"rm -rf /etc/contrail; mkdir -p /etc/contrail; "+
+			"cp /etc/contrailconfigmaps/config.global.js.${POD_IP} /etc/contrail/config.global.js; "+
+			"cp /etc/contrailconfigmaps/contrail-webui-userauth.js.${POD_IP} /etc/contrail/contrail-webui-userauth.js; "+
+			"exec /usr/bin/node /usr/src/contrail/contrail-web-core/webServerStart.js",
+		map[string]string{
+			"config.global.js.${POD_IP}":           "",
+			"contrail-webui-userauth.js.${POD_IP}": "",
+		})
+	data["run-webuijob.sh"] = c.CommonStartupScript(
+		// use copy as webui resolves symlinks just to "..data/config.global.js.10.0.0.206"
+		// instead of resolve like
+		//    readlink -e /etc/contrailconfigmaps/config.global.js.10.0.0.206
+		//    /etc/contrailconfigmaps/..2021_02_28_17_21_52.558864405/config.global.js.10.0.0.206
+		"rm -rf /etc/contrail; mkdir -p /etc/contrail; "+
+			"cp /etc/contrailconfigmaps/config.global.js.${POD_IP} /etc/contrail/config.global.js; "+
+			"cp /etc/contrailconfigmaps/contrail-webui-userauth.js.${POD_IP} /etc/contrail/contrail-webui-userauth.js; "+
+			"exec /usr/bin/node /usr/src/contrail/contrail-web-core/jobServerStart.js",
+		map[string]string{
+			"config.global.js.${POD_IP}":           "",
+			"contrail-webui-userauth.js.${POD_IP}": "",
+		})
+
 	return CreateConfigMap(configMapName,
 		client,
 		scheme,
 		request,
 		"webui",
+		data,
 		c)
 }
 

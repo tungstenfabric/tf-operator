@@ -2,6 +2,7 @@ package vrouter
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -288,6 +289,7 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 			},
 		)
 		v1alpha1.AddCertsMounts(request.Name, container)
+		v1alpha1.SetLogLevelEnv(instance.Spec.CommonConfiguration.LogLevel, container)
 
 		container.EnvFrom = append(container.EnvFrom, corev1.EnvFromSource{
 			ConfigMapRef: &corev1.ConfigMapEnvSource{
@@ -299,37 +301,9 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 
 		container.Image = instanceContainer.Image
 
-		if container.Name == "vrouteragent" {
-			if container.Command == nil {
-				command := []string{"bash", "-c", v1alpha1.CommonStartupScript(
-					"mkdir -p /var/log/contrail/vrouter-agent; "+
-						"source /etc/contrailconfigmaps/params.env.${POD_IP}; "+
-						"source /actions.sh; "+
-						"prepare_agent; "+
-						"link_file contrail-vrouter-agent.conf.${POD_IP} contrail-vrouter-agent.conf; "+
-						"link_file contrail-lbaas.auth.conf.${POD_IP} contrail-lbaas.auth.conf; "+
-						"link_file vnc_api_lib.ini.${POD_IP} vnc_api_lib.ini; "+
-						// agent handles errors w/o -e (use of -e leads to un-recovered bind iface on cleanup)
-						"set +e; "+
-						"start_agent; ",
-					map[string]string{"params.env.${POD_IP}": ""}),
-				}
-				container.Command = command
-			}
-		}
-
-		if container.Name == "nodemanager" {
-			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/vrouter-nodemanager-runner.sh"}
-				container.Command = command
-			}
-		}
-
-		if container.Name == "provisioner" {
-			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/vrouter-provisioner.sh"}
-				container.Command = command
-			}
+		if container.Command == nil {
+			command := []string{"bash", fmt.Sprintf("/etc/contrailconfigmaps/run-%s.sh", container.Name)}
+			container.Command = command
 		}
 	}
 

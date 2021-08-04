@@ -67,6 +67,16 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
+          securityContext:
+            capabilities:
+              add:
+              - SYS_PTRACE
+              - KILL
+          volumeMounts:
+          - mountPath: /var/lib/tftp
+            name: tftp
+          - mountPath: /var/lib/dnsmasq
+            name: dnsmasq
         - name: dnsmasq
           image: tungstenfabric/contrail-external-dnsmasq:latest
           env:
@@ -76,6 +86,16 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
+          securityContext:
+            capabilities:
+              add:
+              - NET_ADMIN
+              - NET_RAW
+          volumeMounts:
+          - mountPath: /var/lib/tftp
+            name: tftp
+          - mountPath: /var/lib/dnsmasq
+            name: dnsmasq
         - name: schematransformer
           image: tungstenfabric/contrail-controller-config-schema:latest
           env:

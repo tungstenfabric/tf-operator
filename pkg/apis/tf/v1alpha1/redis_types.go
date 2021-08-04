@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"reflect"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -97,11 +98,27 @@ func (c *Redis) CreateConfigMap(configMapName string,
 	scheme *runtime.Scheme,
 	request reconcile.Request) (*corev1.ConfigMap, error) {
 
+	data := make(map[string]string)
+	redisPort := *c.ConfigurationParameters().RedisPort
+	data["run-redis.sh"] = c.CommonStartupScript(
+		fmt.Sprintf("exec redis-server --lua-time-limit 15000 --dbfilename '' --bind 127.0.0.1 --port %d", redisPort),
+		map[string]string{},
+	)
+	data["run-stunnel.sh"] = c.CommonStartupScript(
+		"mkdir -p /etc/stunnel /var/run/stunnel; "+
+			"cat /etc/certificates/server-key-${POD_IP}.pem /etc/certificates/server-${POD_IP}.crt > /etc/stunnel/private.pem; "+
+			"chmod 600 /etc/stunnel/private.pem; "+
+			"exec stunnel /etc/contrailconfigmaps/stunnel.${POD_IP}",
+		map[string]string{
+			"stunnel.${POD_IP}": "",
+		})
+
 	configMap, err := CreateConfigMap(configMapName,
 		client,
 		scheme,
 		request,
 		"redis",
+		data,
 		c)
 	if err != nil {
 		return nil, err

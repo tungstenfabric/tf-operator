@@ -103,7 +103,7 @@ func (to *KubernetesClusterConfig) replaceFields(from KubernetesClusterConfig) *
 }
 
 func (c *KubernetesClusterConfig) fillWithDefaultValues() {
-	if !IsOpenshift() {
+	if !k8s.IsOpenshift() {
 		c.ClusterName = KubernetesClusterName
 		c.Networking.DNSDomain = KubernetesDNSDomainName
 		c.Networking.PodSubnet = KubernetesPodSubnet
@@ -225,7 +225,6 @@ func ClusterParameters(client client.Client) (*KubernetesClusterConfig, error) {
 	if err := clusterConfig.fillWithClusterConfigMap(); err != nil {
 		return nil, err
 	}
-
 
 	resultConfig := defaultConfig.replaceFields(kubeadmConfig).
 		replaceFields(clusterConfig)

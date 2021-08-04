@@ -246,17 +246,15 @@ func (r *ReconcileRedis) Reconcile(request reconcile.Request) (reconcile.Result,
 				MountPath: "/etc/contrailconfigmaps",
 			})
 		v1alpha1.AddCertsMounts(request.Name, container)
+		v1alpha1.SetLogLevelEnv(instance.Spec.CommonConfiguration.LogLevel, container)
+
+		if container.Command == nil {
+			command := []string{"bash", fmt.Sprintf("/etc/contrailconfigmaps/run-%s.sh", container.Name)}
+			container.Command = command
+		}
 
 		switch container.Name {
-
 		case "redis":
-			if container.Command == nil {
-				command := []string{"bash", "-c",
-					fmt.Sprintf("exec redis-server --lua-time-limit 15000 --dbfilename '' --bind 127.0.0.1 --port %d", redisPort),
-				}
-				container.Command = command
-			}
-
 			readinessProbe := corev1.Probe{
 				FailureThreshold: 3,
 				PeriodSeconds:    3,
@@ -277,21 +275,6 @@ func (r *ReconcileRedis) Reconcile(request reconcile.Request) (reconcile.Result,
 			}
 			container.ReadinessProbe = &readinessProbe
 			container.StartupProbe = &startupProbe
-
-		case "stunnel":
-			if container.Command == nil {
-				command := []string{"bash", "-c", instance.CommonStartupScript(
-					"mkdir -p /etc/stunnel /var/run/stunnel; "+
-						"cat /etc/certificates/server-key-${POD_IP}.pem /etc/certificates/server-${POD_IP}.crt > /etc/stunnel/private.pem; "+
-						"chmod 600 /etc/stunnel/private.pem; "+
-						"exec stunnel /etc/contrailconfigmaps/stunnel.${POD_IP}",
-					map[string]string{
-						"stunnel.${POD_IP}": "",
-					}),
-				}
-
-				container.Command = command
-			}
 		}
 	}
 

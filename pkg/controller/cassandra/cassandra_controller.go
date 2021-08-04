@@ -2,11 +2,11 @@ package cassandra
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
-	"github.com/tungstenfabric/tf-operator/pkg/randomstring"
 
 	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
@@ -174,7 +174,7 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	// reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Reconciling Cassandra")
-	instanceType := "cassandra"
+	instanceType := v1alpha1.CassandraInstanceType
 
 	// Check ZIU status
 	f, err := v1alpha1.CanReconcile("Cassandra", r.Client)
@@ -205,25 +205,8 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
-	secretKeystore, err := instance.CreateSecret(request.Name+"-secret", r.Client, r.Scheme, request)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-	_, KPok := secretKeystore.Data["keystorePassword"]
-	_, TPok := secretKeystore.Data["truststorePassword"]
-	if !KPok || !TPok {
-		secretKeystore.Data = map[string][]byte{
-			"keystorePassword":   []byte(randomstring.RandString{Size: 10}.Generate()),
-			"truststorePassword": []byte(randomstring.RandString{Size: 10}.Generate()),
-		}
-		if err = r.Client.Update(context.TODO(), secretKeystore); err != nil {
-			return reconcile.Result{}, err
-		}
-	}
-
 	configMapName := request.Name + "-" + instanceType + "-configmap"
-	configMap, err := instance.CreateConfigMap(configMapName, r.Client, r.Scheme, request)
-	if err != nil {
+	if _, err = instance.CreateConfigMap(configMapName, r.Client, r.Scheme, request); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -273,15 +256,16 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 			},
 		)
 		v1alpha1.AddCertsMounts(request.Name, container)
+		v1alpha1.SetLogLevelEnv(instance.Spec.CommonConfiguration.LogLevel, container)
 
 		container.Image = instanceContainer.Image
 
-		if container.Name == "cassandra" {
-			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/cassandra-run.sh"}
-				container.Command = command
-			}
+		if container.Command == nil {
+			command := []string{"bash", fmt.Sprintf("/etc/contrailconfigmaps/run-%s.sh", container.Name)}
+			container.Command = command
+		}
 
+		if container.Name == "cassandra" {
 			var jvmOpts string
 			if instance.Spec.ServiceConfiguration.MinHeapSize != "" {
 				jvmOpts = "-Xms" + instance.Spec.ServiceConfiguration.MinHeapSize
@@ -294,20 +278,6 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 					Name:  "JVM_EXTRA_OPTS",
 					Value: jvmOpts,
 				})
-			}
-		}
-
-		if container.Name == "nodemanager" {
-			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/cassandra-nodemanager-runner.sh"}
-				container.Command = command
-			}
-		}
-
-		if container.Name == "provisioner" {
-			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/cassandra-provisioner.sh"}
-				container.Command = command
 			}
 		}
 	}
@@ -384,48 +354,21 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		}
 	}
 
-	falseVal := false
-	if instance.Status.ConfigChanged == nil {
-		instance.Status.ConfigChanged = &falseVal
-	}
-	beforeCheck := *instance.Status.ConfigChanged
-	newConfigMap := &corev1.ConfigMap{}
-	if err = r.Client.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: request.Namespace}, newConfigMap); err != nil {
-		return reconcile.Result{}, err
-	}
-	changedServices := make(map[*corev1.Pod][]string)
-	for _, pod := range podIPList {
-		if diff := instance.ConfigDataDiff(&pod, configMap, newConfigMap, databaseNodeType); len(diff) > 0 {
-			changedServices[&pod] = diff
-		}
-	}
-	*instance.Status.ConfigChanged = len(changedServices) > 0
-
-	requeu := false
-	if *instance.Status.ConfigChanged {
-		reqLogger.Info("Reload services")
-		if err = instance.ReloadServices(changedServices, r.Client); err != nil {
-			reqLogger.Error(err, "Reload services failed")
-		}
-		requeu = true
-	}
-
 	currentSTS, err := instance.QuerySTS(statefulSet.Name, statefulSet.Namespace, r.Client)
 	if err != nil {
 		reqLogger.Error(err, "QuerySTS failed")
 		return reconcile.Result{}, err
 	}
-	if instance.UpdateStatus(cassandraConfig, podIPMap, currentSTS) || beforeCheck {
+	if instance.UpdateStatus(cassandraConfig, podIPMap, currentSTS) {
 		reqLogger.Info("Update Status")
 		if err = r.Client.Status().Update(context.TODO(), instance); err != nil && !v1alpha1.IsOKForRequeque(err) {
 			reqLogger.Error(err, "Update Status failed")
+			return reconcile.Result{}, err
 		}
-		requeu = true
-	}
-
-	reqLogger.Info("Done", "requeu", requeu)
-	if requeu {
+		reqLogger.Info("End and requeue reconcile")
 		return requeueReconcile, nil
 	}
+
+	reqLogger.Info("End")
 	return reconcile.Result{}, nil
 }

@@ -508,16 +508,86 @@ func (c *Config) InstanceConfiguration(podList []corev1.Pod, client client.Clien
 	return
 }
 
+func (c *Config) configApiStartScript() string {
+	apiWorkerCount := c.Spec.ServiceConfiguration.APIWorkerCount
+	if apiWorkerCount == nil || *apiWorkerCount == 1 {
+		return c.CommonStartupScript(
+			"exec /usr/bin/contrail-api --conf_file /etc/contrailconfigmaps/api.0.${POD_IP} --conf_file /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP} --worker_id 0",
+			map[string]string{
+				"api.0.${POD_IP}":                       "",
+				"contrail-keystone-auth.conf.${POD_IP}": "",
+				"vnc_api_lib.ini.${POD_IP}":             "vnc_api_lib.ini",
+			})
+	}
+	configs := map[string]string{
+		"api-uwsgi.ini.${POD_IP}":               "contrail-api-uwsgi.ini",
+		"contrail-keystone-auth.conf.${POD_IP}": "contrail-keystone-auth.conf",
+		"vnc_api_lib.ini.${POD_IP}":             "vnc_api_lib.ini",
+	}
+	for i := 0; i < *apiWorkerCount; i++ {
+		iStr := strconv.Itoa(i)
+		configs["api."+iStr+".${POD_IP}"] = "contrail-api-" + iStr + ".conf"
+	}
+	return c.CommonStartupScript(
+		"exec $(which uwsgi) /etc/contrail/contrail-api-uwsgi.ini",
+		configs,
+	)
+}
+
 // CreateConfigMap makes default empty ConfigMap
 func (c *Config) CreateConfigMap(configMapName string,
 	client client.Client,
 	scheme *runtime.Scheme,
 	request reconcile.Request) (*corev1.ConfigMap, error) {
+
+	data := make(map[string]string)
+	data["run-api.sh"] = c.configApiStartScript()
+	data["run-devicemanager.sh"] = c.CommonStartupScript(
+		// exec /usr/bin/contrail-device-manager is importnant as
+		// as dm use search by inclusion in cmd line to kill others
+		// and occasionally kill parent bash (and himself indirectly)
+		"exec /usr/bin/contrail-device-manager --conf_file /etc/contrailconfigmaps/devicemanager.${POD_IP}"+
+			" --conf_file /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP}"+
+			" --fabric_ansible_conf_file /etc/contrailconfigmaps/contrail-fabric-ansible.conf.${POD_IP}",
+		map[string]string{
+			"devicemanager.${POD_IP}":                "",
+			"contrail-fabric-ansible.conf.${POD_IP}": "",
+			"contrail-keystone-auth.conf.${POD_IP}":  "",
+			"vnc_api_lib.ini.${POD_IP}":              "vnc_api_lib.ini",
+		})
+	data["run-dnsmasq.sh"] = c.CommonStartupScript(
+		// exec dnsmasq is important because dm does process
+		// management by names and search in cmd line
+		// (to avoid wrong trigger of search on bash cmd)
+		"mkdir -p /var/lib/dnsmasq ; "+
+			"rm -f /var/lib/dnsmasq/base.conf ; "+
+			"cp /etc/contrailconfigmaps/dnsmasq_base.${POD_IP} /var/lib/dnsmasq/base.conf ; "+
+			"exec dnsmasq -k -p0 --conf-file=/etc/contrailconfigmaps/dnsmasq.${POD_IP}",
+		map[string]string{
+			"dnsmasq.${POD_IP}":      "",
+			"dnsmasq_base.${POD_IP}": "",
+		})
+	data["run-servicemonitor.sh"] = c.CommonStartupScript(
+		"exec /usr/bin/contrail-svc-monitor --conf_file /etc/contrailconfigmaps/servicemonitor.${POD_IP} --conf_file /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP}",
+		map[string]string{
+			"servicemonitor.${POD_IP}":              "",
+			"contrail-keystone-auth.conf.${POD_IP}": "",
+			"vnc_api_lib.ini.${POD_IP}":             "vnc_api_lib.ini",
+		})
+	data["run-schematransformer.sh"] = c.CommonStartupScript(
+		"exec /usr/bin/contrail-schema --conf_file /etc/contrailconfigmaps/schematransformer.${POD_IP}  --conf_file /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP}",
+		map[string]string{
+			"schematransformer.${POD_IP}":           "",
+			"contrail-keystone-auth.conf.${POD_IP}": "",
+			"vnc_api_lib.ini.${POD_IP}":             "vnc_api_lib.ini",
+		})
+
 	return CreateConfigMap(configMapName,
 		client,
 		scheme,
 		request,
 		"config",
+		data,
 		c)
 }
 

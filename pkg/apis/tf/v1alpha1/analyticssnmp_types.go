@@ -83,11 +83,25 @@ func (c *AnalyticsSnmp) CreateConfigMap(configMapName string,
 	scheme *runtime.Scheme,
 	request reconcile.Request) (*corev1.ConfigMap, error) {
 
+	data := make(map[string]string)
+	data["run-analytics-snmp-collector.sh"] = c.CommonStartupScript(
+		"exec /usr/bin/tf-snmp-collector -c /etc/contrailconfigmaps/tf-snmp-collector.${POD_IP} --device-config-file /etc/contrail/device.ini",
+		map[string]string{
+			"tf-snmp-collector.${POD_IP}": "",
+			"vnc_api_lib.ini.${POD_IP}":   "vnc_api_lib.ini",
+		})
+	data["run-analytics-snmp-topology.sh"] = c.CommonStartupScript(
+		"exec /usr/bin/tf-topology -c /etc/contrailconfigmaps/tf-topology.${POD_IP}",
+		map[string]string{
+			"tf-topology.${POD_IP}":     "",
+			"vnc_api_lib.ini.${POD_IP}": "vnc_api_lib.ini",
+		})
 	return CreateConfigMap(configMapName,
 		client,
 		scheme,
 		request,
 		"analyticssnmp",
+		data,
 		c)
 }
 

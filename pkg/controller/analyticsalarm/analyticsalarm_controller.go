@@ -1,17 +1,14 @@
 package analyticsalarm
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"text/template"
 	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
-	"github.com/tungstenfabric/tf-operator/pkg/randomstring"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -443,93 +440,13 @@ func (r *ReconcileAnalyticsAlarm) GetSTS(request reconcile.Request, instance *v1
 			},
 		)
 		v1alpha1.AddCertsMounts(request.Name, container)
+		v1alpha1.SetLogLevelEnv(instance.Spec.CommonConfiguration.LogLevel, container)
 
-		if container.Name == "analytics-alarm-gen" {
-			if container.Command == nil {
-				command := []string{"bash", "-c", instance.CommonStartupScript(
-					"exec /usr/bin/contrail-alarm-gen -c /etc/contrailconfigmaps/tf-alarm-gen.${POD_IP}",
-					map[string]string{
-						"tf-alarm-gen.${POD_IP}":    "",
-						"vnc_api_lib.ini.${POD_IP}": "vnc_api_lib.ini",
-					}),
-				}
-				container.Command = command
-			}
-		}
-
-		if container.Name == "kafka" {
-			secret, err := instance.CreateSecret(request.Name+"-secret", r.Client, r.Scheme, request)
-			if err != nil {
-				reqLogger.Error(err, "Cannot create Secret")
-				return nil, err
-			}
-			_, KPok := secret.Data["keystorePassword"]
-			_, TPok := secret.Data["truststorePassword"]
-			if !KPok || !TPok {
-				secret.Data = map[string][]byte{
-					"keystorePassword":   []byte(randomstring.RandString{Size: 10}.Generate()),
-					"truststorePassword": []byte(randomstring.RandString{Size: 10}.Generate()),
-				}
-				if err = r.Client.Update(context.TODO(), secret); err != nil {
-					reqLogger.Error(err, "Cannot update secret")
-					return nil, err
-				}
-			}
-			kafkaKeystorePassword := string(secret.Data["keystorePassword"])
-			kafkaTruststorePassword := string(secret.Data["truststorePassword"])
-			var kafkaInitKeystoreCommandBuffer bytes.Buffer
-			err = kafkaInitKeystoreCommandTemplate.Execute(&kafkaInitKeystoreCommandBuffer, kafkaInitKeystoreCommandData{
-				KeystorePassword:   kafkaKeystorePassword,
-				TruststorePassword: kafkaTruststorePassword,
-				CAFilePath:         v1alpha1.SignerCAFilepath,
-			})
-			if err != nil {
-				panic(err)
-			}
-
-			if container.Command == nil {
-				command := []string{"bash", "-c", instance.CommonStartupScript(
-					kafkaInitKeystoreCommandBuffer.String()+
-						"bin/kafka-server-start.sh /etc/contrailconfigmaps/kafka.config.${POD_IP}",
-					map[string]string{
-						"kafka.config.${POD_IP}": "",
-					}),
-				}
-				container.Command = command
-			}
-		}
-
-		if container.Name == "nodemanager" {
-			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/analyticsalarm-nodemanager-runner.sh"}
-				container.Command = command
-			}
-		}
-
-		if container.Name == "provisioner" {
-			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/analyticsalarm-provisioner.sh"}
-				container.Command = command
-			}
+		if container.Command == nil {
+			command := []string{"bash", fmt.Sprintf("/etc/contrailconfigmaps/run-%s.sh", container.Name)}
+			container.Command = command
 		}
 	}
 
 	return statefulSet, nil
-}
-
-var kafkaInitKeystoreCommandTemplate = template.Must(template.New("").Parse(`
-rm -f /etc/keystore/server-truststore.jks /etc/keystore/server-keystore.jks
-mkdir -p /etc/keystore
-openssl pkcs12 -export -in /etc/certificates/server-${POD_IP}.crt -inkey /etc/certificates/server-key-${POD_IP}.pem -chain -CAfile {{ .CAFilePath }} -password pass:{{ .TruststorePassword }} -name localhost -out TmpFileKeyStore ;
-openssl pkcs12 -password pass:{{ .TruststorePassword }} -in TmpFileKeyStore -info -chain -nokeys
-openssl pkcs12 -password pass:{{ .TruststorePassword }} -in TmpFileKeyStore -info -chain -nokeys -cacerts 2>/dev/null | sed -n '/-\+BEGIN.*-\+/,/-\+END .*-\+/p' > TmpCA.pem
-cat TmpCA.pem
-keytool -keystore /etc/keystore/server-truststore.jks -keypass {{ .KeystorePassword }} -storepass {{ .TruststorePassword }} -noprompt -alias CARoot -import -file TmpCA.pem ;
-keytool -importkeystore -deststorepass {{ .KeystorePassword }} -destkeypass {{ .KeystorePassword }} -destkeystore /etc/keystore/server-keystore.jks -deststoretype pkcs12 -srcstorepass {{ .TruststorePassword }} -srckeystore TmpFileKeyStore -srcstoretype PKCS12 -alias localhost -noprompt ;
-`))
-
-type kafkaInitKeystoreCommandData struct {
-	KeystorePassword   string
-	TruststorePassword string
-	CAFilePath         string
 }

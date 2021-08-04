@@ -299,40 +299,17 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 			})
 
 		v1alpha1.AddCertsMounts(request.Name, container)
+		v1alpha1.SetLogLevelEnv(instance.Spec.CommonConfiguration.LogLevel, container)
+
+		if container.Command == nil {
+			command := []string{"bash", fmt.Sprintf("/etc/contrailconfigmaps/run-%s.sh", container.Name)}
+			container.Command = command
+		}
 
 		switch container.Name {
 
 		case "api":
 			apiWorkerCount := instance.Spec.ServiceConfiguration.APIWorkerCount
-			if container.Command == nil {
-				var command []string
-
-				if apiWorkerCount == nil || *apiWorkerCount == 1 {
-					command = []string{"bash", "-c", instance.CommonStartupScript(
-						"exec /usr/bin/contrail-api --conf_file /etc/contrailconfigmaps/api.0.${POD_IP} --conf_file /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP} --worker_id 0",
-						map[string]string{
-							"api.0.${POD_IP}":                       "",
-							"contrail-keystone-auth.conf.${POD_IP}": "",
-							"vnc_api_lib.ini.${POD_IP}":             "vnc_api_lib.ini",
-						}),
-					}
-				} else {
-					configs := map[string]string{
-						"api-uwsgi.ini.${POD_IP}":               "contrail-api-uwsgi.ini",
-						"contrail-keystone-auth.conf.${POD_IP}": "contrail-keystone-auth.conf",
-						"vnc_api_lib.ini.${POD_IP}":             "vnc_api_lib.ini",
-					}
-					for i := 0; i < *apiWorkerCount; i++ {
-						iStr := strconv.Itoa(i)
-						configs["api."+iStr+".${POD_IP}"] = "contrail-api-" + iStr + ".conf"
-					}
-					command = []string{"bash", "-c", instance.CommonStartupScript(
-						"exec $(which uwsgi) /etc/contrail/contrail-api-uwsgi.ini",
-						configs,
-					)}
-				}
-				container.Command = command
-			}
 			if apiWorkerCount != nil && *apiWorkerCount > 1 {
 				container.Env = append(container.Env, corev1.EnvVar{
 					Name:  "CONFIG_API_WORKER_COUNT",
@@ -340,113 +317,7 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 				})
 			}
 
-		case "devicemanager":
-			if container.Command == nil {
-				// exec /usr/bin/contrail-device-manager is importnant as
-				// as dm use search byt inclusion in cmd line to kill others
-				// and occasionally kill parent bash (and himself indirectly)
-				command := []string{"bash", "-c", instance.CommonStartupScript(
-					"exec /usr/bin/contrail-device-manager --conf_file /etc/contrailconfigmaps/devicemanager.${POD_IP}"+
-						" --conf_file /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP}"+
-						" --fabric_ansible_conf_file /etc/contrailconfigmaps/contrail-fabric-ansible.conf.${POD_IP}",
-					map[string]string{
-						"devicemanager.${POD_IP}":                "",
-						"contrail-fabric-ansible.conf.${POD_IP}": "",
-						"contrail-keystone-auth.conf.${POD_IP}":  "",
-						"vnc_api_lib.ini.${POD_IP}":              "vnc_api_lib.ini",
-					}),
-				}
-				container.Command = command
-			}
-
-			container.SecurityContext = &corev1.SecurityContext{
-				Capabilities: &corev1.Capabilities{
-					Add: []corev1.Capability{"SYS_PTRACE", "KILL"},
-				},
-			}
-
-			container.VolumeMounts = append(container.VolumeMounts,
-				corev1.VolumeMount{
-					Name:      "tftp",
-					MountPath: "/var/lib/tftp",
-				},
-				corev1.VolumeMount{
-					Name:      "dnsmasq",
-					MountPath: "/var/lib/dnsmasq",
-				},
-			)
-
-		case "dnsmasq":
-			if container.Command == nil {
-				// exec dnsmasq is important because dm does process
-				// management by names and search in cmd line
-				// (to avoid wrong trigger of search on bash cmd)
-				command := []string{"bash", "-c", instance.CommonStartupScript(
-					"mkdir -p /var/lib/dnsmasq ; "+
-						"rm -f /var/lib/dnsmasq/base.conf ; "+
-						"cp /etc/contrailconfigmaps/dnsmasq_base.${POD_IP} /var/lib/dnsmasq/base.conf ; "+
-						"exec dnsmasq -k -p0 --conf-file=/etc/contrailconfigmaps/dnsmasq.${POD_IP}",
-					map[string]string{
-						"dnsmasq.${POD_IP}":      "",
-						"dnsmasq_base.${POD_IP}": "",
-					}),
-				}
-				container.Command = command
-			}
-
-			container.SecurityContext = &corev1.SecurityContext{
-				Capabilities: &corev1.Capabilities{
-					Add: []corev1.Capability{"NET_ADMIN", "NET_RAW"},
-				},
-			}
-
-			container.VolumeMounts = append(container.VolumeMounts,
-				corev1.VolumeMount{
-					Name:      "tftp",
-					MountPath: "/var/lib/tftp",
-				},
-				corev1.VolumeMount{
-					Name:      "dnsmasq",
-					MountPath: "/var/lib/dnsmasq",
-				},
-			)
-
-		case "servicemonitor":
-			if container.Command == nil {
-				command := []string{"bash", "-c", instance.CommonStartupScript(
-					"exec /usr/bin/contrail-svc-monitor --conf_file /etc/contrailconfigmaps/servicemonitor.${POD_IP} --conf_file /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP}",
-					map[string]string{
-						"servicemonitor.${POD_IP}":              "",
-						"contrail-keystone-auth.conf.${POD_IP}": "",
-						"vnc_api_lib.ini.${POD_IP}":             "vnc_api_lib.ini",
-					}),
-				}
-				container.Command = command
-			}
-
-		case "schematransformer":
-			if container.Command == nil {
-				command := []string{"bash", "-c", instance.CommonStartupScript(
-					"exec /usr/bin/contrail-schema --conf_file /etc/contrailconfigmaps/schematransformer.${POD_IP}  --conf_file /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP}",
-					map[string]string{
-						"schematransformer.${POD_IP}":           "",
-						"contrail-keystone-auth.conf.${POD_IP}": "",
-						"vnc_api_lib.ini.${POD_IP}":             "vnc_api_lib.ini",
-					}),
-				}
-				container.Command = command
-			}
-
-		case "nodemanager":
-			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/config-nodemanager-runner.sh"}
-				container.Command = command
-			}
 		case "provisioner":
-			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/config-provisioner.sh"}
-				container.Command = command
-			}
 			if instance.Spec.ServiceConfiguration.LinklocalServiceConfig != nil {
 				ll := instance.ConfigurationParameters().LinklocalServiceConfig
 				container.Env = append(container.Env,
@@ -483,7 +354,7 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 		toolsImage = strings.Replace(ic.Image, "contrail-node-init", "contrail-tools", 1)
 	}
 
-	extraVolumes := !v1alpha1.IsOpenshift() && !v1alpha1.IsVrouterExists(r.Client)
+	extraVolumes := !k8s.IsOpenshift() && !v1alpha1.IsVrouterExists(r.Client)
 
 	if extraVolumes {
 		statefulSet.Spec.Template.Spec.Volumes = append(statefulSet.Spec.Template.Spec.Volumes,
@@ -508,6 +379,7 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 		}
 
 		v1alpha1.AddCertsMounts(request.Name, container)
+		v1alpha1.SetLogLevelEnv(instance.Spec.CommonConfiguration.LogLevel, container)
 
 		switch container.Name {
 

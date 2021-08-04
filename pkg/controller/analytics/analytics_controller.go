@@ -2,6 +2,7 @@ package analytics
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -312,45 +313,11 @@ func (r *ReconcileAnalytics) Reconcile(request reconcile.Request) (reconcile.Res
 				MountPath: "/etc/contrailconfigmaps",
 			})
 		v1alpha1.AddCertsMounts(request.Name, container)
+		v1alpha1.SetLogLevelEnv(instance.Spec.CommonConfiguration.LogLevel, container)
 
-		switch container.Name {
-
-		case "analyticsapi":
-			if container.Command == nil {
-				command := []string{"bash", "-c", instance.CommonStartupScript(
-					"exec /usr/bin/contrail-analytics-api -c /etc/contrailconfigmaps/analyticsapi.${POD_IP} -c /etc/contrailconfigmaps/contrail-keystone-auth.conf.${POD_IP}",
-					map[string]string{
-						"analyticsapi.${POD_IP}":                "",
-						"contrail-keystone-auth.conf.${POD_IP}": "",
-						"vnc_api_lib.ini.${POD_IP}":             "vnc_api_lib.ini",
-					}),
-				}
-				container.Command = command
-			}
-
-		case "collector":
-			if container.Command == nil {
-				command := []string{"bash", "-c", instance.CommonStartupScript(
-					"exec /usr/bin/contrail-collector --conf_file /etc/contrailconfigmaps/collector.${POD_IP}",
-					map[string]string{
-						"collector.${POD_IP}":       "",
-						"vnc_api_lib.ini.${POD_IP}": "vnc_api_lib.ini",
-					}),
-				}
-				container.Command = command
-			}
-
-		case "nodemanager":
-			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/analytics-nodemanager-runner.sh"}
-				container.Command = command
-			}
-
-		case "provisioner":
-			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/analytics-provisioner.sh"}
-				container.Command = command
-			}
+		if container.Command == nil {
+			command := []string{"bash", fmt.Sprintf("/etc/contrailconfigmaps/run-%s.sh", container.Name)}
+			container.Command = command
 		}
 	}
 

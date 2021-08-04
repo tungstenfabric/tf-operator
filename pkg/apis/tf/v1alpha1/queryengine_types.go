@@ -186,11 +186,20 @@ func (c *QueryEngine) CreateConfigMap(configMapName string,
 	client client.Client,
 	scheme *runtime.Scheme,
 	request reconcile.Request) (*corev1.ConfigMap, error) {
+
+	data := make(map[string]string)
+	data["run-queryengine.sh"] = c.CommonStartupScript(
+		"exec /usr/bin/contrail-query-engine --conf_file /etc/contrailconfigmaps/queryengine.${POD_IP}",
+		map[string]string{
+			"queryengine.${POD_IP}": "",
+		})
+
 	return CreateConfigMap(configMapName,
 		client,
 		scheme,
 		request,
 		"queryengine",
+		data,
 		c)
 }
 

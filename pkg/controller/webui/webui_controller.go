@@ -2,6 +2,7 @@ package webui
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -274,44 +275,32 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 	instance.AddSecretVolumesToIntendedSTS(statefulSet, map[string]string{secretCertificates.Name: request.Name + "-secret-certificates"})
 
 	utils.CleanupContainers(&statefulSet.Spec.Template.Spec, instance.Spec.ServiceConfiguration.Containers)
-	for idx, container := range statefulSet.Spec.Template.Spec.Containers {
-		if container.Name == "webuiweb" {
-			command := []string{"bash", "-c", instance.CommonStartupScript(
-				// use copy as webui resolves symlinks just to "..data/config.global.js.10.0.0.206"
-				// instead of resolve like
-				//    readlink -e /etc/contrailconfigmaps/config.global.js.10.0.0.206
-				//    /etc/contrailconfigmaps/..2021_02_28_17_21_52.558864405/config.global.js.10.0.0.206
-				"rm -rf /etc/contrail; mkdir -p /etc/contrail; "+
-					"cp /etc/contrailconfigmaps/config.global.js.${POD_IP} /etc/contrail/config.global.js; "+
-					"cp /etc/contrailconfigmaps/contrail-webui-userauth.js.${POD_IP} /etc/contrail/contrail-webui-userauth.js; "+
-					"exec /usr/bin/node /usr/src/contrail/contrail-web-core/webServerStart.js",
-				map[string]string{
-					"config.global.js.${POD_IP}":           "",
-					"contrail-webui-userauth.js.${POD_IP}": "",
-				}),
-			}
+	for idx := range statefulSet.Spec.Template.Spec.Containers {
 
-			instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
-			if instanceContainer.Command == nil {
-				(&statefulSet.Spec.Template.Spec.Containers[idx]).Command = command
-			} else {
-				(&statefulSet.Spec.Template.Spec.Containers[idx]).Command = instanceContainer.Command
-			}
-			volumeMountList := []corev1.VolumeMount{}
-			if len((&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts) > 0 {
-				volumeMountList = (&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts
-			}
-			volumeMount := corev1.VolumeMount{
+		container := &statefulSet.Spec.Template.Spec.Containers[idx]
+
+		instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
+		if instanceContainer.Command != nil {
+			container.Command = instanceContainer.Command
+		}
+
+		container.Image = instanceContainer.Image
+
+		container.VolumeMounts = append(container.VolumeMounts,
+			corev1.VolumeMount{
 				Name:      request.Name + "-" + instanceType + "-volume",
 				MountPath: "/etc/contrailconfigmaps",
-			}
-			volumeMountList = append(volumeMountList, volumeMount)
-			(&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts = volumeMountList
+			})
+		v1alpha1.AddCertsMounts(request.Name, container)
+		v1alpha1.SetLogLevelEnv(instance.Spec.CommonConfiguration.LogLevel, container)
 
-			v1alpha1.AddCertsMounts(request.Name, &statefulSet.Spec.Template.Spec.Containers[idx])
+		if container.Command == nil {
+			command := []string{"bash", fmt.Sprintf("/etc/contrailconfigmaps/run-%s.sh", container.Name)}
+			container.Command = command
+		}
 
-			(&statefulSet.Spec.Template.Spec.Containers[idx]).Image = instanceContainer.Image
-			readinessProbe := corev1.Probe{
+		if container.Name == "webuiweb" {
+			container.ReadinessProbe = &corev1.Probe{
 				FailureThreshold: 3,
 				PeriodSeconds:    3,
 				Handler: corev1.Handler{
@@ -322,7 +311,7 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 					},
 				},
 			}
-			startUpProbe := corev1.Probe{
+			container.StartupProbe = &corev1.Probe{
 				FailureThreshold: 30,
 				PeriodSeconds:    3,
 				Handler: corev1.Handler{
@@ -333,44 +322,6 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 					},
 				},
 			}
-			(&statefulSet.Spec.Template.Spec.Containers[idx]).ReadinessProbe = &readinessProbe
-			(&statefulSet.Spec.Template.Spec.Containers[idx]).StartupProbe = &startUpProbe
-		}
-		if container.Name == "webuijob" {
-			command := []string{"bash", "-c", instance.CommonStartupScript(
-				// use copy as webui resolves symlinks just to "..data/config.global.js.10.0.0.206"
-				// instead of resolve like
-				//    readlink -e /etc/contrailconfigmaps/config.global.js.10.0.0.206
-				//    /etc/contrailconfigmaps/..2021_02_28_17_21_52.558864405/config.global.js.10.0.0.206
-				"rm -rf /etc/contrail; mkdir -p /etc/contrail; "+
-					"cp /etc/contrailconfigmaps/config.global.js.${POD_IP} /etc/contrail/config.global.js; "+
-					"cp /etc/contrailconfigmaps/contrail-webui-userauth.js.${POD_IP} /etc/contrail/contrail-webui-userauth.js; "+
-					"exec /usr/bin/node /usr/src/contrail/contrail-web-core/jobServerStart.js",
-				map[string]string{
-					"config.global.js.${POD_IP}":           "",
-					"contrail-webui-userauth.js.${POD_IP}": "",
-				}),
-			}
-
-			instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
-			if instanceContainer.Command == nil {
-				(&statefulSet.Spec.Template.Spec.Containers[idx]).Command = command
-			} else {
-				(&statefulSet.Spec.Template.Spec.Containers[idx]).Command = instanceContainer.Command
-			}
-			volumeMountList := []corev1.VolumeMount{}
-			if len((&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts) > 0 {
-				volumeMountList = (&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts
-			}
-			volumeMountList = append(volumeMountList,
-				corev1.VolumeMount{
-					Name:      request.Name + "-" + instanceType + "-volume",
-					MountPath: "/etc/contrailconfigmaps",
-				})
-			(&statefulSet.Spec.Template.Spec.Containers[idx]).VolumeMounts = volumeMountList
-			v1alpha1.AddCertsMounts(request.Name, &statefulSet.Spec.Template.Spec.Containers[idx])
-
-			(&statefulSet.Spec.Template.Spec.Containers[idx]).Image = instanceContainer.Image
 		}
 	}
 

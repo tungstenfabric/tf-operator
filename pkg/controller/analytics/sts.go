@@ -25,10 +25,6 @@ spec:
     spec:
       dnsPolicy: ClusterFirstWithHostNet
       hostNetwork: true
-      # nodemanager pidhost and
-      # deviceManager pushes configuration to dnsmasq service and then needs to restart it by sending a signal.
-      # Therefore those services needs to share a one process namespace
-      shareProcessNamespace: true
       restartPolicy: Always
       nodeSelector:
         node-role.kubernetes.io/master: ""

@@ -2,6 +2,7 @@ package queryengine
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -312,19 +313,11 @@ func (r *ReconcileQueryEngine) Reconcile(request reconcile.Request) (reconcile.R
 				MountPath: "/etc/contrailconfigmaps",
 			})
 		v1alpha1.AddCertsMounts(request.Name, container)
+		v1alpha1.SetLogLevelEnv(instance.Spec.CommonConfiguration.LogLevel, container)
 
-		switch container.Name {
-
-		case "queryengine":
-			if container.Command == nil {
-				command := []string{"bash", "-c", instance.CommonStartupScript(
-					"exec /usr/bin/contrail-query-engine --conf_file /etc/contrailconfigmaps/queryengine.${POD_IP}",
-					map[string]string{
-						"queryengine.${POD_IP}": "",
-					}),
-				}
-				container.Command = command
-			}
+		if container.Command == nil {
+			command := []string{"bash", fmt.Sprintf("/etc/contrailconfigmaps/run-%s.sh", container.Name)}
+			container.Command = command
 		}
 	}
 
