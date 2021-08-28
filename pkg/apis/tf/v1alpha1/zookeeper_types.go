@@ -132,11 +132,22 @@ func (c *Zookeeper) CreateConfigMap(configMapName string,
 	client client.Client,
 	scheme *runtime.Scheme,
 	request reconcile.Request) (*corev1.ConfigMap, error) {
+	data := make(map[string]string)
+	data["run-zookeeper.sh"] = c.CommonStartupScriptZK(
+		"exec zkServer.sh --config /var/lib/zookeeper start-foreground",
+		map[string]string{
+			"log4j.properties":        "log4j.properties",
+			"configuration.xsl":       "configuration.xsl",
+			"zoo.cfg":                 "zoo.cfg",
+			"zoo.cfg.dynamic.$POD_IP": "zoo.cfg.dynamic",
+			"myid.$POD_IP":            "myid",
+		})
 	return CreateConfigMap(configMapName,
 		client,
 		scheme,
 		request,
 		"zookeeper",
+		data,
 		c)
 }
 
@@ -337,23 +348,6 @@ func (c *Zookeeper) ConfigurationParameters() ZookeeperConfiguration {
 //  configs - config files to be waited for and to be linked from configmap mount
 //   to a destination config folder (if destination is empty no link be done, only wait), e.g.
 //   { "api.${POD_IP}": "", "vnc_api.ini.${POD_IP}": "vnc_api.ini"}
-func (c *Zookeeper) CommonStartupScript(command string, configs map[string]string) string {
-	var buf bytes.Buffer
-	err := configtemplates.CommonRunConfig.Execute(&buf, struct {
-		Command        string
-		Configs        map[string]string
-		ConfigMapMount string
-		DstConfigPath  string
-		CAFilePath     string
-	}{
-		Command:        command,
-		Configs:        configs,
-		ConfigMapMount: "/etc/contrailconfigmaps",
-		DstConfigPath:  "/var/lib/zookeeper",
-		CAFilePath:     SignerCAFilepath,
-	})
-	if err != nil {
-		panic(err)
-	}
-	return buf.String()
+func (c *Zookeeper) CommonStartupScriptZK(command string, configs map[string]string) string {
+	return CommonStartupScriptEx(command, "", configs, "/etc/contrailconfigmaps", "/var/lib/zookeeper", "")
 }

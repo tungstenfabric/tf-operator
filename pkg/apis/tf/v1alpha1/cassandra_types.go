@@ -16,6 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
+	"github.com/tungstenfabric/tf-operator/pkg/randomstring"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -97,6 +98,8 @@ type CassandraList struct {
 
 var cassandraLog = logf.Log.WithName("controller_cassandra")
 
+const CassandraInstanceType = "cassandra"
+
 func init() {
 	SchemeBuilder.Register(&Cassandra{}, &CassandraList{})
 }
@@ -105,8 +108,8 @@ func init() {
 func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 	podList []corev1.Pod,
 	client client.Client) error {
-	instanceType := "cassandra"
-	instanceConfigMapName := request.Name + "-" + instanceType + "-configmap"
+
+	instanceConfigMapName := request.Name + "-" + CassandraInstanceType + "-configmap"
 	configMapInstanceDynamicConfig := &corev1.ConfigMap{}
 	err := client.Get(context.TODO(),
 		types.NamespacedName{Name: instanceConfigMapName, Namespace: request.Namespace},
@@ -204,10 +207,10 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 		}
 		cassandraCqlShrcConfigString := cassandraCqlShrcBuffer.String()
 
-		logLevels := map[string]string {
-			"info":		"INFO",
-			"debug":	"DEBUG",
-			"error":	"ERROR",
+		logLevels := map[string]string{
+			"info":  "INFO",
+			"debug": "DEBUG",
+			"error": "ERROR",
 		}
 
 		logLevel := "INFO"
@@ -241,7 +244,7 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 			CAFilePath:               SignerCAFilepath,
 			MinimumDiskGB:            *cassandraConfig.MinimumDiskGB,
 			// TODO: move to params
-			LogLevel:                 logLevel,
+			LogLevel: logLevel,
 		})
 		if err != nil {
 			panic(err)
@@ -308,22 +311,12 @@ func (c *Cassandra) CreateConfigMap(configMapName string,
 	scheme *runtime.Scheme,
 	request reconcile.Request) (*corev1.ConfigMap, error) {
 
-	cassandraConfig := c.ConfigurationParameters()
-	configMap, err := CreateConfigMap(configMapName,
-		client,
-		scheme,
-		request,
-		"cassandra",
-		c)
+	cassandraSecret, err := c.ensureKeystoreSecret(client, scheme, request)
 	if err != nil {
 		return nil, err
 	}
 
-	cassandraSecret := &corev1.Secret{}
-	if err := client.Get(context.TODO(), types.NamespacedName{Name: request.Name + "-secret", Namespace: request.Namespace}, cassandraSecret); err != nil {
-		return nil, err
-	}
-
+	cassandraConfig := c.ConfigurationParameters()
 	var cassandraCommandBuffer bytes.Buffer
 	err = configtemplates.CassandraCommandTemplate.Execute(&cassandraCommandBuffer, struct {
 		KeystorePassword   string
@@ -339,13 +332,22 @@ func (c *Cassandra) CreateConfigMap(configMapName string,
 	if err != nil {
 		panic(err)
 	}
-	cassandraCommandString := cassandraCommandBuffer.String()
-	configMap.Data["cassandra-run.sh"] = cassandraCommandString
 
-	if err = client.Update(context.TODO(), configMap); err != nil {
-		return nil, err
-	}
-	return configMap, nil
+	data := make(map[string]string)
+	data["run-cassandra.sh"] = c.CommonStartupScript(
+		cassandraCommandBuffer.String(),
+		map[string]string{
+			"cqlshrc.${POD_IP}":        "",
+			"cassandra.${POD_IP}.yaml": "",
+		})
+
+	return CreateConfigMap(configMapName,
+		client,
+		scheme,
+		request,
+		"cassandra",
+		data,
+		c)
 }
 
 // CreateSecret creates a secret.
@@ -353,12 +355,26 @@ func (c *Cassandra) CreateSecret(secretName string,
 	client client.Client,
 	scheme *runtime.Scheme,
 	request reconcile.Request) (*corev1.Secret, error) {
+
 	return CreateSecret(secretName,
 		client,
 		scheme,
 		request,
 		"cassandra",
 		c)
+}
+
+func (c *Cassandra) ensureKeystoreSecret(
+	client client.Client,
+	scheme *runtime.Scheme,
+	request reconcile.Request,
+) (*corev1.Secret, error) {
+
+	data := map[string][]byte{
+		"keystorePassword":   []byte(randomstring.RandString{Size: 10}.Generate()),
+		"truststorePassword": []byte(randomstring.RandString{Size: 10}.Generate()),
+	}
+	return CreateSecretEx(request.Name+"-secret", client, scheme, request, CassandraInstanceType, data, c)
 }
 
 // PrepareSTS prepares the intended deployment for the Cassandra object.
@@ -543,47 +559,11 @@ func (c *Cassandra) UpdateStatus(cassandraConfig *CassandraConfiguration, podNam
 	return changed || (c.Status.ConfigChanged != nil && *c.Status.ConfigChanged)
 }
 
-// ConfigDataDiff compare configmaps and retursn list of services to be reloaded
-func (c *Cassandra) ConfigDataDiff(pod *corev1.Pod, v1 *corev1.ConfigMap, v2 *corev1.ConfigMap, databaseNodeType string) []string {
-	podIP := pod.Status.PodIP
-	srvMap := map[string][]string{
-		"cassandra":   {"cassandra." + podIP + ".yaml", "cqlshrc." + podIP},
-		"nodemanager": {databaseNodeType + "-nodemgr.conf." + podIP, databaseNodeType + "-nodemgr.env." + podIP, "vnc_api_lib.ini." + podIP},
-	}
-	var res []string
-	for srv, maps := range srvMap {
-		for _, d := range maps {
-			if v1.Data[d] != v2.Data[d] {
-				res = append(res, srv)
-				break
-			}
-		}
-	}
-
-	return res
-}
-
-// ReloadServices reload servics for pods after changed configs
-func (c *Cassandra) ReloadServices(srvList map[*corev1.Pod][]string, clnt client.Client) error {
-	restartList := make(map[*corev1.Pod][]string)
-	reloadList := make(map[*corev1.Pod][]string)
-	for pod := range srvList {
-		for idx := range srvList[pod] {
-			// cassandra needs restart
-			if srvList[pod][idx] == "cassandra" {
-				restartList[pod] = append(restartList[pod], srvList[pod][idx])
-			} else {
-				reloadList[pod] = append(reloadList[pod], srvList[pod][idx])
-			}
-		}
-	}
-	err1 := RestartServices(restartList, clnt, cassandraLog)
-	err2 := ReloadServices(reloadList, clnt, cassandraLog)
-	if err1 != nil && err2 != nil {
-		return &CombinedError{[]error{err1, err2}}
-	}
-	if err1 != nil {
-		return err1
-	}
-	return err2
+// CommonStartupScript prepare common run service script
+//  command - is a final command to run
+//  configs - config files to be waited for and to be linked from configmap mount
+//   to a destination config folder (if destination is empty no link be done, only wait), e.g.
+//   { "api.${POD_IP}": "", "vnc_api.ini.${POD_IP}": "vnc_api.ini"}
+func (c *Cassandra) CommonStartupScript(command string, configs map[string]string) string {
+	return CommonStartupScript(command, configs)
 }

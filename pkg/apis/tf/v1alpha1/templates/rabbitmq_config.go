@@ -3,15 +3,7 @@ package templates
 import "text/template"
 
 // RabbitmqConfig is the template of the Rabbitmq service configuration.
-var RabbitmqConfig = template.Must(template.New("").Parse(`#!/bin/bash
-function link_file() {
-  local src=/etc/contrailconfigmaps/$1
-  local dst=/etc/rabbitmq/${2:-${1}}
-  echo INFO: $(date): wait for $src
-  while [ ! -e $src ] ; do sleep 1; done
-  echo INFO: $(date): link $src => $dst
-  ln -sf $src $dst
-}
+var RabbitmqConfig = template.Must(template.New("").Parse(`
 
 function test_in_cluster() {
   if local status=$(rabbitmqctl cluster_status --node $1 --formatter json) ; then
@@ -22,21 +14,13 @@ for i in filter(lambda j: j == "$2", x.get("nodes", {}).get("disc", [])):
   print(i)
 SCRIPT
 )"
-  return
+    return
   fi
   return 1
 }
 
-mkdir -p /etc/rabbitmq
-link_file rabbitmq.conf.${POD_IP} rabbitmq.conf
-link_file rabbitmq-env.conf.${POD_IP} rabbitmq-env.conf
-link_file rabbitmq.nodes
-link_file plugins.conf
-link_file definitions.json
-link_file rabbitmq-common.env
-link_file 0
-
 source /etc/rabbitmq/rabbitmq-common.env
+
 mkdir -p /var/lib/rabbitmq /var/log/rabbitmq
 echo $RABBITMQ_ERLANG_COOKIE > /var/lib/rabbitmq/.erlang.cookie
 set -x
@@ -46,17 +30,34 @@ touch /var/run/rabbitmq.pid
 chown -R rabbitmq:rabbitmq /var/lib/rabbitmq /var/log/rabbitmq /var/run/rabbitmq.pid /etc/rabbitmq
 export RABBITMQ_NODENAME=rabbit@${POD_IP}
 bootstrap_node="rabbit@$(cat /etc/rabbitmq/0)"
+
+rpid=""
+
+function stop_rabbitmq() {
+  echo "INFO: $(date): stop_rabbitmq"
+  rabbitmqctl --node $RABBITMQ_NODENAME shutdown
+  local p=$(cat /var/run/rabbitmq.pid)
+  if [ -n "$p" ] && kill -0 $p 2>/dev/null ; then
+    echo "INFO: $(date): stop_rabbitmq: kill $p"
+    kill $p
+    wait $p
+  fi
+  if [ -n "$rpid" ] && kill -0 $rpid 2>/dev/null ; then
+    echo "INFO: $(date): stop_rabbitmq: kill $rpid"
+    kill $rpid
+    wait $rpid
+  fi
+  echo "INFO: $(date): stop_rabbitmq: done"
+}
+
+trap 'stop_rabbitmq' SIGTERM
+
 if [[ "$RABBITMQ_NODENAME" == "$bootstrap_node" ]] ; then
-  rabbitmq-server
+  rabbitmq-server &
+  rpid=$!
 else
-  rpid=""
   while true ; do
-    date
-    rabbitmqctl --node $RABBITMQ_NODENAME shutdown
-    if [ -n "$rpid" ] && kill -0 $rpid 2>/dev/null ; then
-      kill -9 $rpid
-      wait $rpid
-    fi
+    stop_rabbitmq
     rabbitmq-server &
     rpid=$!
     kill -0 $rpid || continue
@@ -96,9 +97,9 @@ else
     rabbitmqctl --node $RABBITMQ_NODENAME start_app || continue
     break
   done
-  jobs
-  fg
 fi
+ps -eF
+wait $rpid
 `))
 
 // RabbitmqDefinition is the template for Rabbitmq user/vhost configuration

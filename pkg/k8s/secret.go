@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"context"
+	"fmt"
 
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -18,21 +19,26 @@ type Secret struct {
 	owner     v1.Object
 	scheme    *runtime.Scheme
 	client    client.Client
+	Secret    *core.Secret
 }
 
 type SecretFiller interface {
-	FillSecret(sc *core.Secret) error
+	FillSecret(sc *core.Secret, force bool) error
 }
 
-func (s *Secret) EnsureExists(dataSetter SecretFiller) error {
+func (s *Secret) EnsureExists(dataSetter SecretFiller, force bool) error {
 	secret, err := s.createNewOrGetExistingSecret()
 	if err != nil {
+		return fmt.Errorf("Failed to create or get secret: %w", err)
+	}
+	if err = dataSetter.FillSecret(secret, force); err != nil {
 		return err
 	}
-	_, err = controllerutil.CreateOrUpdate(context.Background(), s.client, secret, func() error {
-		return dataSetter.FillSecret(secret)
-	})
-	return err
+	if err = s.client.Update(context.Background(), secret); err != nil {
+		return fmt.Errorf("Failed to update secret: %w", err)
+	}
+	s.Secret = secret
+	return nil
 }
 
 func (s *Secret) createNewOrGetExistingSecret() (*core.Secret, error) {

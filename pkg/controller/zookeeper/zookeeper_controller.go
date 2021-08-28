@@ -2,6 +2,7 @@ package zookeeper
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -233,21 +234,11 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 			},
 		)
 		v1alpha1.AddCertsMounts(request.Name, container)
+		v1alpha1.SetLogLevelEnv(instance.Spec.CommonConfiguration.LogLevel, container)
 
-		if container.Name == "zookeeper" {
-			if container.Command == nil {
-				command := []string{"bash", "-c", instance.CommonStartupScript(
-					"zkServer.sh --config /var/lib/zookeeper start-foreground",
-					map[string]string{
-						"log4j.properties":        "log4j.properties",
-						"configuration.xsl":       "configuration.xsl",
-						"zoo.cfg":                 "zoo.cfg",
-						"zoo.cfg.dynamic.$POD_IP": "zoo.cfg.dynamic",
-						"myid.$POD_IP":            "myid",
-					}),
-				}
-				container.Command = command
-			}
+		if container.Command == nil {
+			command := []string{"bash", fmt.Sprintf("/etc/contrailconfigmaps/run-%s.sh", container.Name)}
+			container.Command = command
 		}
 	}
 

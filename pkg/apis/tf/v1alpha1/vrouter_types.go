@@ -237,11 +237,43 @@ func (c *Vrouter) CreateConfigMap(configMapName string,
 	client client.Client,
 	scheme *runtime.Scheme,
 	request reconcile.Request) (*corev1.ConfigMap, error) {
+
+	data := make(map[string]string)
+	initCmd := "wait_file /etc/contrailconfigmaps/params.env.${POD_IP}; " +
+		"source /etc/contrailconfigmaps/params.env.${POD_IP}; " +
+		"source /common.sh; " +
+		"source /agent-functions.sh; " +
+		"source /actions.sh; " +
+		"mkdir -p /var/log/contrail/vrouter-agent; " +
+		"prepare_agent; " +
+		"echo INFO: prepare_agent done"
+	data["run-vrouteragent.sh"] = CommonStartupScriptEx(
+		// agent handles errors w/o -e (use of -e leads to un-recovered bind iface on cleanup)
+		"source /etc/contrailconfigmaps/params.env.${POD_IP}; "+
+			"source /common.sh; "+
+			"source /agent-functions.sh; "+
+			"source /actions.sh; "+
+			// set_traps needed as it is run as child but init cmd in parent
+			"set +e; set_traps; start_agent; "+
+			"echo INFO: agent finished",
+		initCmd,
+		map[string]string{
+			"params.env.${POD_IP}":                  "",
+			"contrail-vrouter-agent.conf.${POD_IP}": "contrail-vrouter-agent.conf",
+			"contrail-lbaas.auth.conf.${POD_IP}":    "contrail-lbaas.auth.conf",
+			"vnc_api_lib.ini.${POD_IP}":             "vnc_api_lib.ini",
+		},
+		"/etc/contrailconfigmaps",
+		"/etc/contrail",
+		"HUP",
+	)
+
 	return CreateConfigMap(configMapName,
 		client,
 		scheme,
 		request,
 		"vrouter",
+		data,
 		c)
 }
 
@@ -641,7 +673,7 @@ func (c *Vrouter) GetParamsEnv(clnt client.Client, clusterNodes *ClusterNodes) (
 		LogLevel      string
 	}{
 		ServiceConfig: *vrouterConfig,
-		ClusterNodes: *clusterNodes,
+		ClusterNodes:  *clusterNodes,
 		LogLevel:      ConvertLogLevel(c.Spec.CommonConfiguration.LogLevel),
 	})
 	if err != nil {

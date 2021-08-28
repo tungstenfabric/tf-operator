@@ -1,8 +1,10 @@
 package certificates
 
 import (
+	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha1"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
@@ -10,8 +12,6 @@ import (
 	"net"
 	"strings"
 	"time"
-
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // CertificateSubject certificate subject
@@ -47,6 +47,18 @@ func GenerateSerialNumber() (*big.Int, error) {
 	return rand.Int(rand.Reader, serialNumberLimit)
 }
 
+func HashPublicKey(key crypto.PublicKey) ([]byte, error) {
+	b, err := x509.MarshalPKIXPublicKey(key)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to hash key: %s", err)
+	}
+	h := sha1.New()
+	if _, err = h.Write(b); err != nil {
+		return nil, fmt.Errorf("Unable to hash key: %s", err)
+	}
+	return h.Sum(nil), nil
+}
+
 func splitFqdn(n string) []string {
 	result := []string{}
 	pn := ""
@@ -62,7 +74,7 @@ func splitFqdn(n string) []string {
 	return result
 }
 
-func (c CertificateSubject) generateCertificateTemplate(client client.Client) (x509.Certificate, *rsa.PrivateKey, error) {
+func (c CertificateSubject) generateCertificateTemplate() (x509.Certificate, *rsa.PrivateKey, error) {
 	certPrivKey, err := rsa.GenerateKey(rand.Reader, certKeyLength)
 
 	if err != nil {
@@ -75,6 +87,10 @@ func (c CertificateSubject) generateCertificateTemplate(client client.Client) (x
 	serialNumber, err := GenerateSerialNumber()
 	if err != nil {
 		return x509.Certificate{}, nil, fmt.Errorf("fail to generate serial number: %w", err)
+	}
+	keyId, err := HashPublicKey(certPrivKey.Public())
+	if err != nil {
+		return x509.Certificate{}, nil, fmt.Errorf("failed to get SubjectKeyId: %w", err)
 	}
 
 	fullName := c.hostname
@@ -113,7 +129,9 @@ func (c CertificateSubject) generateCertificateTemplate(client client.Client) (x
 	}
 
 	certificateTemplate := x509.Certificate{
-		SerialNumber: serialNumber,
+		SerialNumber:   serialNumber,
+		SubjectKeyId:   keyId[:],
+		AuthorityKeyId: keyId[:],
 		Subject: pkix.Name{
 			CommonName:         c.ip,
 			Country:            []string{"US"},

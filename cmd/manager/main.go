@@ -14,6 +14,7 @@ import (
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
 	"github.com/spf13/pflag"
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
+	"github.com/tungstenfabric/tf-operator/pkg/k8s"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -72,11 +73,11 @@ func runOperator(sigHandler <-chan struct{}) (err error) {
 		return err
 	}
 
-	if err = v1alpha1.SetDeployerType(clnt); err != nil {
+	if err = k8s.SetDeployerType(clnt); err != nil {
 		log.Error(err, "Failed SetDeployerType()")
 		return err
 	}
-	log.Info("IsOpenshift=" + strconv.FormatBool(v1alpha1.IsOpenshift()))
+	log.Info("IsOpenshift=" + strconv.FormatBool(k8s.IsOpenshift()))
 
 	// Check is ZIU Required?
 	if f, err := v1alpha1.IsZiuRequired(clnt); err != nil {

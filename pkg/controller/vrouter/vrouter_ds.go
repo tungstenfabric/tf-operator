@@ -2,6 +2,7 @@ package vrouter
 
 import (
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
+	"github.com/tungstenfabric/tf-operator/pkg/k8s"
 	apps "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -123,7 +124,7 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 			MountPath: "/dev",
 		},
 	}
-	if !v1alpha1.IsOpenshift() {
+	if !k8s.IsOpenshift() {
 		podInitContainerMounts = append(podInitContainerMounts,
 			corev1.VolumeMount{
 				Name:      "host-sysctl",
@@ -353,7 +354,7 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 			},
 		},
 	}
-	if !v1alpha1.IsOpenshift() {
+	if !k8s.IsOpenshift() {
 		podVolumes = append(podVolumes,
 			corev1.Volume{
 				Name: "host-sysctl",

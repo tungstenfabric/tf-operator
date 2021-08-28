@@ -33,7 +33,6 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
@@ -69,8 +68,6 @@ type ServiceStatus struct {
 	Created *bool   `json:"created,omitempty"`
 }
 
-var isOpenshift bool
-
 // PodConfiguration is the common services struct.
 // +k8s:openapi-gen=true
 type PodConfiguration struct {
@@ -97,12 +94,12 @@ type PodConfiguration struct {
 }
 
 type ClusterNodes struct {
-    AnalyticsNodes       string
-    AnalyticsDBNodes     string
-    AnalyticsAlarmNodes  string
-    AnalyticsSnmpNodes   string
-    ConfigNodes          string
-    ControlNodes         string
+	AnalyticsNodes      string
+	AnalyticsDBNodes    string
+	AnalyticsAlarmNodes string
+	AnalyticsSnmpNodes  string
+	ConfigNodes         string
+	ControlNodes        string
 }
 
 var ZiuKindsNoVrouterCNI = []string{
@@ -385,6 +382,17 @@ func GetConfigMap(name, ns string, client client.Client) (*corev1.ConfigMap, err
 	return configMap, err
 }
 
+func prepConfigData(instanceType string, data map[string]string, configMap *corev1.ConfigMap) {
+	if configMap.Data == nil {
+		configMap.Data = make(map[string]string)
+	}
+	for k, v := range data {
+		configMap.Data[k] = v
+	}
+	configMap.Data["run-provisioner.sh"] = ProvisionerRunnerData(instanceType + "-provisioner")
+	configMap.Data["run-nodemanager.sh"] = NodemanagerStartupScript()
+}
+
 // CreateConfigMap creates a config map based on the instance type.
 func CreateConfigMap(
 	configMapName string,
@@ -392,15 +400,12 @@ func CreateConfigMap(
 	scheme *runtime.Scheme,
 	request reconcile.Request,
 	instanceType string,
+	data map[string]string,
 	object v1.Object) (*corev1.ConfigMap, error) {
 
 	configMap, err := GetConfigMap(configMapName, request.Namespace, client)
 	if err == nil {
-		if configMap.Data == nil {
-			configMap.Data = make(map[string]string)
-			configMap.Data[instanceType+"-nodemanager-runner.sh"] = GetNodemanagerRunner()
-			configMap.Data[instanceType+"-provisioner.sh"] = ProvisionerRunnerData(instanceType + "-provisioner")
-		}
+		prepConfigData(instanceType, data, configMap)
 		return configMap, client.Update(context.TODO(), configMap)
 	}
 	if !k8serrors.IsNotFound(err) {
@@ -409,11 +414,8 @@ func CreateConfigMap(
 	// TODO: Bug. If config map exists without labels and references, they won't be updated
 	configMap.SetName(configMapName)
 	configMap.SetNamespace(request.Namespace)
-	configMap.SetLabels(map[string]string{"tf_manager": instanceType,
-		instanceType: request.Name})
-	configMap.Data = make(map[string]string)
-	configMap.Data[instanceType+"-nodemanager-runner.sh"] = GetNodemanagerRunner()
-	configMap.Data[instanceType+"-provisioner.sh"] = ProvisionerRunnerData(instanceType + "-provisioner")
+	configMap.SetLabels(map[string]string{"tf_manager": instanceType, instanceType: request.Name})
+	prepConfigData(instanceType, data, configMap)
 	if err = controllerutil.SetControllerReference(object, configMap, scheme); err != nil {
 		return nil, err
 	}
@@ -423,22 +425,22 @@ func CreateConfigMap(
 	return configMap, nil
 }
 
-// CreateSecret creates a secret based on the instance type.
-func CreateSecret(secretName string,
+// CreateSecretEx creates a secret based on the instance type.
+func CreateSecretEx(secretName string,
 	client client.Client,
 	scheme *runtime.Scheme,
 	request reconcile.Request,
 	instanceType string,
+	data map[string][]byte,
 	object v1.Object) (*corev1.Secret, error) {
+
 	secret := &corev1.Secret{}
 	err := client.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: request.Namespace}, secret)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
 			secret.SetName(secretName)
 			secret.SetNamespace(request.Namespace)
-			secret.SetLabels(map[string]string{"tf_manager": instanceType,
-				instanceType: request.Name})
-			var data = make(map[string][]byte)
+			secret.SetLabels(map[string]string{"tf_manager": instanceType, instanceType: request.Name})
 			secret.Data = data
 			if err = controllerutil.SetControllerReference(object, secret, scheme); err != nil {
 				return nil, err
@@ -449,6 +451,17 @@ func CreateSecret(secretName string,
 		}
 	}
 	return secret, nil
+}
+
+func CreateSecret(secretName string,
+	client client.Client,
+	scheme *runtime.Scheme,
+	request reconcile.Request,
+	instanceType string,
+	object v1.Object) (*corev1.Secret, error) {
+
+	emptyData := make(map[string][]byte)
+	return CreateSecretEx(secretName, client, scheme, request, instanceType, emptyData, object)
 }
 
 // PrepareSTS prepares the intended podList.
@@ -562,37 +575,35 @@ func AddVolumesToIntendedDS(ds *appsv1.DaemonSet, volumeConfigMapMap map[string]
 
 // AddCAVolumeToIntendedSTS adds volumes to a deployment.
 func AddCAVolumeToIntendedSTS(sts *appsv1.StatefulSet) {
-	if SignerCAConfigMapName != "" && SignerCAMountPath != "" {
-		AddVolumesToIntendedSTS(sts, map[string]string{
-			SignerCAConfigMapName: "ca-certs",
-		})
-	}
+	AddVolumesToIntendedSTS(sts, map[string]string{
+		certificates.CAConfigMapName: "ca-certs",
+	})
 }
 
 // AddCAVolumeToIntendedDS adds volumes to a deployment.
 func AddCAVolumeToIntendedDS(ds *appsv1.DaemonSet) {
-	if SignerCAConfigMapName != "" && SignerCAMountPath != "" {
-		AddVolumesToIntendedDS(ds, map[string]string{
-			SignerCAConfigMapName: "ca-certs",
-		})
-	}
+	AddVolumesToIntendedDS(ds, map[string]string{
+		certificates.CAConfigMapName: "ca-certs",
+	})
 }
 
 func AddCertsMounts(name string, container *corev1.Container) {
-	if SignerCAConfigMapName != "" && SignerCAMountPath != "" {
-		container.VolumeMounts = append(container.VolumeMounts,
-			corev1.VolumeMount{
-				Name:      "ca-certs",
-				MountPath: SignerCAMountPath,
-			},
-		)
-	}
+	container.VolumeMounts = append(container.VolumeMounts,
+		corev1.VolumeMount{
+			Name:      "ca-certs",
+			MountPath: SignerCAMountPath,
+		},
+	)
 	container.VolumeMounts = append(container.VolumeMounts,
 		corev1.VolumeMount{
 			Name:      name + "-secret-certificates",
 			MountPath: "/etc/certificates",
 		},
 	)
+}
+
+func SetLogLevelEnv(logLevel string, container *corev1.Container) {
+	container.Env = append(container.Env, corev1.EnvVar{Name: "LOG_LEVEL", Value: ConvertLogLevel(logLevel)})
 }
 
 // AddSecretVolumesToIntendedSTS adds volumes to a deployment.
@@ -1392,7 +1403,7 @@ func ProvisionerEnvDataEx(
 		VrouterGateway         string
 		L3MHCidr               string
 	}{
-		ClusterNodes:          *clusterNodes,
+		ClusterNodes:           *clusterNodes,
 		Hostname:               hostname,
 		SignerCAFilepath:       SignerCAFilepath,
 		AuthMode:               authParams.AuthMode,
@@ -1423,15 +1434,6 @@ func ProvisionerRunnerData(configMapName string) string {
 // RemoveProvisionerConfigMapData update provisioner data in config map
 func RemoveProvisionerConfigMapData(configMapName string, configMap *corev1.ConfigMap) {
 	delete(configMap.Data, configMapName+".env")
-}
-
-// GetNodemanagerRunner returns nodemanagaer runner script
-func GetNodemanagerRunner() string {
-	var bufRun bytes.Buffer
-	if err := templates.NodemanagerRunner.Execute(&bufRun, struct{}{}); err != nil {
-		panic(err)
-	}
-	return bufRun.String()
 }
 
 // ExecCmdInContainer runs command inside a container
@@ -1468,69 +1470,6 @@ func (e *CombinedError) Error() string {
 		}
 	}
 	return res
-}
-
-func contains(arr []string, v *corev1.ContainerStatus) bool {
-	for _, i := range arr {
-		if i == v.Name {
-			return true
-		}
-	}
-	return false
-}
-
-// ReloadContainers sends sighup to all runnig conainers in a pod
-func ReloadContainers(pod *corev1.Pod, containers []string, signal string, clnt client.Client, log logr.Logger) error {
-	l := log.WithName(pod.Name).WithName("ReloadContainers(" + signal + ")")
-	var errors []error
-	for _, cs := range pod.Status.ContainerStatuses {
-		if !contains(containers, &cs) {
-			continue
-		}
-		ll := l.WithName(cs.Name)
-		if cs.State.Terminated != nil && cs.State.Waiting != nil {
-			ll.Info("Skip", "state", cs.State)
-			continue
-		}
-		if stdout, stderr, err := SendSignal(pod, cs.Name, signal); err != nil {
-			ll.Error(err, "Failed", "stdout", stdout, "stderr", stderr)
-			errors = append(errors, err)
-			continue
-		}
-		ll.Info("Reloaded")
-	}
-	if len(errors) > 0 {
-		return &CombinedError{errors: errors}
-	}
-	return nil
-}
-
-// ReloadServices sends sighup to given runnig conainers in a pod
-func ReloadServices(srvList map[*corev1.Pod][]string, clnt client.Client, log logr.Logger) error {
-	var errors []error
-	for pod, containers := range srvList {
-		if err := ReloadContainers(pod, containers, "HUP", clnt, log); err != nil {
-			errors = append(errors, err)
-		}
-	}
-	if len(errors) > 0 {
-		return &CombinedError{errors: errors}
-	}
-	return nil
-}
-
-// RestartServices sends sigterm to given runnig conainers in a pod
-func RestartServices(srvList map[*corev1.Pod][]string, clnt client.Client, log logr.Logger) error {
-	var errors []error
-	for pod, containers := range srvList {
-		if err := ReloadContainers(pod, containers, "TERM", clnt, log); err != nil {
-			errors = append(errors, err)
-		}
-	}
-	if len(errors) > 0 {
-		return &CombinedError{errors: errors}
-	}
-	return nil
 }
 
 // EncryptString returns sha
@@ -1773,25 +1712,55 @@ func AddNodemanagerVolumes(podSpec *corev1.PodSpec, configuration PodConfigurati
 //  configs - config files to be waited for and to be linked from configmap mount
 //   to a destination config folder (if destination is empty no link be done, only wait), e.g.
 //   { "api.${POD_IP}": "", "vnc_api.ini.${POD_IP}": "vnc_api.ini"}
-func CommonStartupScript(command string, configs map[string]string) string {
+func CommonStartupScriptEx(command string, initCommand string, configs map[string]string, srcDir string, dstDir string, updateSignal string) string {
+
+	us := updateSignal
+	if us == "" {
+		us = "TERM"
+	}
 	var buf bytes.Buffer
 	err := configtemplates.CommonRunConfig.Execute(&buf, struct {
 		Command        string
+		InitCommand    string
 		Configs        map[string]string
 		ConfigMapMount string
 		DstConfigPath  string
 		CAFilePath     string
+		UpdateSignal   string
 	}{
 		Command:        command,
+		InitCommand:    initCommand,
 		Configs:        configs,
-		ConfigMapMount: "/etc/contrailconfigmaps",
-		DstConfigPath:  "/etc/contrail",
+		ConfigMapMount: srcDir,
+		DstConfigPath:  dstDir,
 		CAFilePath:     SignerCAFilepath,
+		UpdateSignal:   us,
 	})
 	if err != nil {
 		panic(err)
 	}
 	return buf.String()
+}
+
+// CommonStartupScript prepare common run service script
+//  command - is a final command to run
+//  configs - config files to be waited for and to be linked from configmap mount
+//   to a destination config folder (if destination is empty no link be done, only wait), e.g.
+//   { "api.${POD_IP}": "", "vnc_api.ini.${POD_IP}": "vnc_api.ini"}
+func CommonStartupScript(command string, configs map[string]string) string {
+	return CommonStartupScriptEx(command, "", configs, "/etc/contrailconfigmaps", "/etc/contrail", "")
+}
+
+// NodemanagerStartupScript returns nodemanagaer runner script
+func NodemanagerStartupScript() string {
+	return CommonStartupScript(
+		"source /etc/contrailconfigmaps/${NODE_TYPE}-nodemgr.env.${POD_IP}; "+
+			"exec /usr/bin/contrail-nodemgr --nodetype=contrail-${NODE_TYPE}",
+		map[string]string{
+			"${NODE_TYPE}-nodemgr.env.${POD_IP}":  "",
+			"vnc_api_lib.ini.${POD_IP}":           "vnc_api_lib.ini",
+			"${NODE_TYPE}-nodemgr.conf.${POD_IP}": "contrail-${NODE_TYPE}-nodemgr.conf",
+		})
 }
 
 func addGroup(ng int64, a []int64) []int64 {
@@ -2076,29 +2045,6 @@ func IsUnstructuredActive(kind string, name string, namespace string, clnt clien
 	return *(status.Status.Active)
 }
 
-func IsOpenshift() bool {
-	return isOpenshift
-}
-
-func SetDeployerType(client client.Client) error {
-	u := &unstructured.UnstructuredList{}
-	u.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "machineconfiguration.openshift.io",
-		Kind:    "MachineConfig",
-		Version: "v1",
-	})
-
-	if err := client.List(context.Background(), u); err != nil {
-		if strings.Contains(err.Error(), "no matches for kind \"MachineConfig\"") {
-			isOpenshift = false
-			return nil
-		}
-		return err
-	}
-	isOpenshift = true
-	return nil
-}
-
 func IsVrouterExists(client client.Client) bool {
 	vrouter := &VrouterList{}
 	err := client.List(context.Background(), vrouter)
@@ -2112,10 +2058,9 @@ func ConvertLogLevel(logLevel string) string {
 		"warning":  "SYS_WARN",
 		"error":    "SYS_ERR",
 		"critical": "SYS_CRIT",
-		"none":     "",
 	}
-	if logLevels[logLevel] == "" {
-		return logLevel
+	if l, ok := logLevels[logLevel]; ok {
+		return l
 	}
-	return logLevels[logLevel]
+	return logLevel
 }

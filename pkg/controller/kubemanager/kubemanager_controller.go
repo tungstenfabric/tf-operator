@@ -302,18 +302,11 @@ func (r *ReconcileKubemanager) Reconcile(request reconcile.Request) (reconcile.R
 			},
 		)
 		v1alpha1.AddCertsMounts(request.Name, container)
+		v1alpha1.SetLogLevelEnv(instance.Spec.CommonConfiguration.LogLevel, container)
 
-		if container.Name == "kubemanager" {
-			if container.Command == nil {
-				command := []string{"bash", "-c", instance.CommonStartupScript(
-					"exec /usr/bin/contrail-kube-manager -c /etc/contrailconfigmaps/kubemanager.${POD_IP}",
-					map[string]string{
-						"kubemanager.${POD_IP}":     "",
-						"vnc_api_lib.ini.${POD_IP}": "vnc_api_lib.ini",
-					}),
-				}
-				container.Command = command
-			}
+		if container.Command == nil {
+			command := []string{"bash", fmt.Sprintf("/etc/contrailconfigmaps/run-%s.sh", container.Name)}
+			container.Command = command
 		}
 	}
 

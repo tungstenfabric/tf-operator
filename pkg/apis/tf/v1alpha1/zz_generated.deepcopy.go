@@ -2700,11 +2700,6 @@ func (in *VrouterStatus) DeepCopyInto(out *VrouterStatus) {
 		*out = new(bool)
 		**out = **in
 	}
-	if in.ActiveOnControllers != nil {
-		in, out := &in.ActiveOnControllers, &out.ActiveOnControllers
-		*out = new(bool)
-		**out = **in
-	}
 	return
 }
 

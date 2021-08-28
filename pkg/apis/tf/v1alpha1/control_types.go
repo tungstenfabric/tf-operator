@@ -200,7 +200,7 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 	logLevel := ConvertLogLevel(c.Spec.CommonConfiguration.LogLevel)
 
 	controlNodes, err := GetControlNodes(c.GetNamespace(), c.Name,
-	c.Spec.ServiceConfiguration.DataSubnet, client)
+		c.Spec.ServiceConfiguration.DataSubnet, client)
 	if err != nil {
 		return
 	}
@@ -392,11 +392,33 @@ func (c *Control) CreateConfigMap(configMapName string,
 	client client.Client,
 	scheme *runtime.Scheme,
 	request reconcile.Request) (*corev1.ConfigMap, error) {
+
+	data := make(map[string]string)
+	data["run-control.sh"] = c.CommonStartupScript(
+		"exec /usr/bin/contrail-control --conf_file /etc/contrailconfigmaps/control.${POD_IP}",
+		map[string]string{
+			"control.${POD_IP}": "",
+		})
+	data["run-named.sh"] = c.CommonStartupScript(
+		"touch /var/log/contrail/contrail-named.log; "+
+			"chgrp contrail /var/log/contrail/contrail-named.log; "+
+			"chmod g+w /var/log/contrail/contrail-named.log; "+
+			"exec /usr/bin/contrail-named -f -g -u contrail -c /etc/contrailconfigmaps/named.${POD_IP}",
+		map[string]string{
+			"named.${POD_IP}": "",
+		})
+	data["run-dns.sh"] = c.CommonStartupScript(
+		"exec /usr/bin/contrail-dns --conf_file /etc/contrailconfigmaps/dns.${POD_IP}",
+		map[string]string{
+			"dns.${POD_IP}": "",
+		})
+
 	return CreateConfigMap(configMapName,
 		client,
 		scheme,
 		request,
 		"control",
+		data,
 		c)
 }
 

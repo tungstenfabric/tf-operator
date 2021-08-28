@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"bytes"
 	"context"
+	"html/template"
 	"sort"
 	"strconv"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
+	"github.com/tungstenfabric/tf-operator/pkg/randomstring"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -74,17 +76,78 @@ func init() {
 	SchemeBuilder.Register(&AnalyticsAlarm{}, &AnalyticsAlarmList{})
 }
 
+func (c *AnalyticsAlarm) ensureKafkaSecret(client client.Client, scheme *runtime.Scheme, request reconcile.Request) (string, string, error) {
+	s, err := CreateSecretEx(
+		request.Name+"-secret", client, scheme, request, "kafka",
+		map[string][]byte{
+			"keystorePassword":   []byte(randomstring.RandString{Size: 10}.Generate()),
+			"truststorePassword": []byte(randomstring.RandString{Size: 10}.Generate()),
+		},
+		c)
+	if err != nil {
+		return "", "", err
+	}
+	return string(s.Data["keystorePassword"]), string(s.Data["truststorePassword"]), nil
+}
+
+func kafkaInitKeystoreCommand(kafkaKeystorePassword, kafkaTruststorePassword string) string {
+	kafkaInitKeystoreCommandTemplate := template.Must(template.New("").Parse(`
+rm -f /etc/keystore/server-truststore.jks /etc/keystore/server-keystore.jks
+mkdir -p /etc/keystore
+openssl pkcs12 -export -in /etc/certificates/server-${POD_IP}.crt -inkey /etc/certificates/server-key-${POD_IP}.pem -chain -CAfile {{ .CAFilePath }} -password pass:{{ .TruststorePassword }} -name localhost -out TmpFileKeyStore ;
+openssl pkcs12 -password pass:{{ .TruststorePassword }} -in TmpFileKeyStore -info -chain -nokeys
+openssl pkcs12 -password pass:{{ .TruststorePassword }} -in TmpFileKeyStore -info -chain -nokeys -cacerts 2>/dev/null | sed -n '/-\+BEGIN.*-\+/,/-\+END .*-\+/p' > TmpCA.pem
+cat TmpCA.pem
+keytool -keystore /etc/keystore/server-truststore.jks -keypass {{ .KeystorePassword }} -storepass {{ .TruststorePassword }} -noprompt -alias CARoot -import -file TmpCA.pem ;
+keytool -importkeystore -deststorepass {{ .KeystorePassword }} -destkeypass {{ .KeystorePassword }} -destkeystore /etc/keystore/server-keystore.jks -deststoretype pkcs12 -srcstorepass {{ .TruststorePassword }} -srckeystore TmpFileKeyStore -srcstoretype PKCS12 -alias localhost -noprompt ;
+`))
+	type kafkaInitKeystoreCommandData struct {
+		KeystorePassword   string
+		TruststorePassword string
+		CAFilePath         string
+	}
+	var kafkaInitKeystoreCommandBuffer bytes.Buffer
+	err := kafkaInitKeystoreCommandTemplate.Execute(&kafkaInitKeystoreCommandBuffer, kafkaInitKeystoreCommandData{
+		KeystorePassword:   kafkaKeystorePassword,
+		TruststorePassword: kafkaTruststorePassword,
+		CAFilePath:         SignerCAFilepath,
+	})
+	if err != nil {
+		panic(err)
+	}
+	return kafkaInitKeystoreCommandBuffer.String()
+}
+
 // CreateConfigMap creates analytics alarm config map
 func (c *AnalyticsAlarm) CreateConfigMap(configMapName string,
 	client client.Client,
 	scheme *runtime.Scheme,
 	request reconcile.Request) (*corev1.ConfigMap, error) {
 
+	keyPwd, storePwd, err := c.ensureKafkaSecret(client, scheme, request)
+	if err != nil {
+		return nil, err
+	}
+	data := make(map[string]string)
+	data["run-kafka.sh"] = c.CommonStartupScript(
+		kafkaInitKeystoreCommand(keyPwd, storePwd)+
+			"exec bin/kafka-server-start.sh /etc/contrailconfigmaps/kafka.config.${POD_IP}",
+		map[string]string{
+			"kafka.config.${POD_IP}": "",
+		})
+	data["run-analytics-alarm-gen.sh"] = c.CommonStartupScript(
+		"exec /usr/bin/contrail-alarm-gen -c /etc/contrailconfigmaps/tf-alarm-gen.${POD_IP}",
+		map[string]string{
+			"tf-alarm-gen.${POD_IP}":    "",
+			"vnc_api_lib.ini.${POD_IP}": "vnc_api_lib.ini",
+		})
+
 	return CreateConfigMap(configMapName,
 		client,
 		scheme,
 		request,
 		"analyticsalarm",
+		data,
 		c)
 }
 

@@ -2855,12 +2855,6 @@ func schema_pkg_apis_tf_v1alpha1_VrouterStatus(ref common.ReferenceCallback) com
 							Format: "",
 						},
 					},
-					"activeOnControllers": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"boolean"},
-							Format: "",
-						},
-					},
 				},
 			},
 		},

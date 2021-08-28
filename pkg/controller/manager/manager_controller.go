@@ -30,6 +30,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
+	"github.com/tungstenfabric/tf-operator/pkg/k8s"
 
 	configv1 "github.com/openshift/api/config/v1"
 )
@@ -631,7 +632,7 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 		log.Error(err, "processKubemanager")
 	}
 
-	if v1alpha1.IsOpenshift() {
+	if k8s.IsOpenshift() {
 		openshiftConfig := &configv1.Network{}
 		ctx := context.Background()
 		if err := r.Client.Get(ctx, types.NamespacedName{Name: "cluster"}, openshiftConfig); err != nil {
@@ -641,7 +642,7 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 				return reconcile.Result{}, fmt.Errorf("Failed to get openshift network configuration, err=%+v", err)
 			}
 		}
-		if openshiftConfig.Spec.NetworkType == "TF" ||  openshiftConfig.Spec.NetworkType == "Contrail" {
+		if openshiftConfig.Spec.NetworkType == "TF" || openshiftConfig.Spec.NetworkType == "Contrail" {
 			openshiftConfig.Status.ClusterNetwork = openshiftConfig.Spec.ClusterNetwork
 			openshiftConfig.Status.ServiceNetwork = openshiftConfig.Spec.ServiceNetwork
 			openshiftConfig.Status.NetworkType = openshiftConfig.Spec.NetworkType

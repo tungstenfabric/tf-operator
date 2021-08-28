@@ -51,7 +51,7 @@ var caSecretCassandra = &corev1.Secret{
 		Name:      "contrail-ca-certificate",
 		Namespace: "test-ns",
 	},
-	Data: nil,
+	Data: map[string][]byte{"ca-bundle.crt": {}},
 }
 
 var cassandraCM = &corev1.ConfigMap{

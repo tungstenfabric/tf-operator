@@ -2,6 +2,7 @@ package control
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
@@ -291,67 +292,13 @@ func (r *ReconcileControl) Reconcile(request reconcile.Request) (reconcile.Resul
 				MountPath: "/etc/contrailconfigmaps",
 			})
 		v1alpha1.AddCertsMounts(request.Name, container)
+		v1alpha1.SetLogLevelEnv(instance.Spec.CommonConfiguration.LogLevel, container)
 
 		container.Image = instanceContainer.Image
 
-		if container.Name == "control" {
-			if container.Command == nil {
-				command := []string{"bash", "-c", instance.CommonStartupScript(
-					"exec /usr/bin/contrail-control --conf_file /etc/contrailconfigmaps/control.${POD_IP}",
-					map[string]string{
-						"control.${POD_IP}": "",
-					}),
-				}
-				container.Command = command
-			}
-		}
-
-		if container.Name == "named" {
-			instanceContainer := utils.GetContainerFromList(container.Name, instance.Spec.ServiceConfiguration.Containers)
-			if instanceContainer.Command == nil {
-				command := []string{"bash", "-c", instance.CommonStartupScript(
-					"touch /var/log/contrail/contrail-named.log; "+
-						"chgrp contrail /var/log/contrail/contrail-named.log; "+
-						"chmod g+w /var/log/contrail/contrail-named.log; "+
-						"exec /usr/bin/contrail-named -f -g -u contrail -c /etc/contrailconfigmaps/named.${POD_IP}",
-					map[string]string{
-						"named.${POD_IP}": "",
-					}),
-				}
-
-				container.Command = command
-			}
-
-			var privileged bool = true
-			container.SecurityContext = &corev1.SecurityContext{
-				Privileged: &privileged,
-			}
-		}
-
-		if container.Name == "dns" {
-			if container.Command == nil {
-				command := []string{"bash", "-c", instance.CommonStartupScript(
-					"exec /usr/bin/contrail-dns --conf_file /etc/contrailconfigmaps/dns.${POD_IP}",
-					map[string]string{
-						"dns.${POD_IP}": "",
-					}),
-				}
-				container.Command = command
-			}
-		}
-
-		if container.Name == "nodemanager" {
-			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/control-nodemanager-runner.sh"}
-				container.Command = command
-			}
-		}
-
-		if container.Name == "provisioner" {
-			if container.Command == nil {
-				command := []string{"bash", "/etc/contrailconfigmaps/control-provisioner.sh"}
-				container.Command = command
-			}
+		if container.Command == nil {
+			command := []string{"bash", fmt.Sprintf("/etc/contrailconfigmaps/run-%s.sh", container.Name)}
+			container.Command = command
 		}
 	}
 

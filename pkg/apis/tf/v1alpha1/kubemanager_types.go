@@ -263,7 +263,16 @@ func (c *Kubemanager) InstanceConfiguration(podList []corev1.Pod, client client.
 
 // CreateConfigMap creates empty configmap
 func (c *Kubemanager) CreateConfigMap(configMapName string, client client.Client, scheme *runtime.Scheme, request reconcile.Request) (*corev1.ConfigMap, error) {
-	return CreateConfigMap(configMapName, client, scheme, request, "kubemanager", c)
+
+	data := make(map[string]string)
+	data["run-kubemanager.sh"] = c.CommonStartupScript(
+		"exec /usr/bin/contrail-kube-manager -c /etc/contrailconfigmaps/kubemanager.${POD_IP}",
+		map[string]string{
+			"kubemanager.${POD_IP}":     "",
+			"vnc_api_lib.ini.${POD_IP}": "vnc_api_lib.ini",
+		})
+
+	return CreateConfigMap(configMapName, client, scheme, request, "kubemanager", data, c)
 }
 
 // IsActive returns true if instance is active.
