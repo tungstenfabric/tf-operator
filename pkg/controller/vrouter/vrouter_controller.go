@@ -195,11 +195,6 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, nil
 	}
 
-	configMapEnv, err := instance.CreateEnvConfigMap(instanceType, r.Client, r.Scheme, request)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
 	cniConfigMap, err := instance.CreateCNIConfigMap(r.Client, r.Scheme, request)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -278,14 +273,6 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 				MountPath: certificates.SignerCAMountPath,
 			})
 
-		container.EnvFrom = append(container.EnvFrom, corev1.EnvFromSource{
-			ConfigMapRef: &corev1.ConfigMapEnvSource{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: configMapEnv.Name,
-				},
-			},
-		})
-
 		container.Image = instanceContainer.Image
 
 		if container.Name == "vrouteragent" {
@@ -346,14 +333,6 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 				Name:      csrSignerCaVolumeName,
 				MountPath: certificates.SignerCAMountPath,
 			})
-
-		container.EnvFrom = append(container.EnvFrom, corev1.EnvFromSource{
-			ConfigMapRef: &corev1.ConfigMapEnvSource{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: configMapEnv.Name,
-				},
-			},
-		})
 
 		if container.Name == "vrouterkernelinit" {
 			if instance.Spec.ServiceConfiguration.Distribution != nil || instance.Spec.ServiceConfiguration.Distribution == &ubuntu {

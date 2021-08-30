@@ -467,20 +467,6 @@ func (c *Vrouter) PodsCertSubjects(domain string, podList []corev1.Pod) []certif
 	return PodsCertSubjects(domain, podList, c.Spec.CommonConfiguration.HostNetwork, altIPs)
 }
 
-// CreateEnvConfigMap creates vRouter configMaps with rendered values
-func (c *Vrouter) CreateEnvConfigMap(instanceType string, client client.Client, scheme *runtime.Scheme, request reconcile.Request) (*corev1.ConfigMap, error) {
-	envVariablesConfigMapName := request.Name + "-" + instanceType + "-configmap-env"
-	envVariablesConfigMap, err := c.CreateConfigMap(envVariablesConfigMapName, client, scheme, request)
-	if err != nil {
-		return nil, err
-	}
-	envVariablesConfigMap.Data, err = c.getVrouterEnvironmentData(client)
-	if err != nil {
-		return nil, err
-	}
-	return envVariablesConfigMap, client.Update(context.TODO(), envVariablesConfigMap)
-}
-
 // CreateCNIConfigMap creates vRouter configMaps with rendered values
 func (c *Vrouter) CreateCNIConfigMap(client client.Client, scheme *runtime.Scheme, request reconcile.Request) (*corev1.ConfigMap, error) {
 	config, err := c.GetCNIConfig(client, request)
@@ -612,16 +598,6 @@ func (c *Vrouter) VrouterConfigurationParameters(client client.Client) (*Vrouter
 	return vrouterConfiguration, nil
 }
 
-func (c *Vrouter) getVrouterEnvironmentData(clnt client.Client) (map[string]string, error) {
-	envVariables := make(map[string]string)
-	if vrouterConfig, err := c.VrouterConfigurationParameters(clnt); err == nil {
-		for key, value := range vrouterConfig.EnvVariablesConfig {
-			envVariables[key] = value
-		}
-	}
-	return envVariables, nil
-}
-
 // GetNodeDSPod returns daemonset pod by name
 func (c *Vrouter) GetNodeDSPod(nodeName string, daemonset *appsv1.DaemonSet, clnt client.Client) *corev1.Pod {
 	allPods := &corev1.PodList{}
@@ -716,7 +692,7 @@ func (c *Vrouter) GetParamsEnv(clnt client.Client, clusterNodes *ClusterNodes) (
 	var vrouterManifestParamsEnv bytes.Buffer
 	err = configtemplates.VRouterAgentParams.Execute(&vrouterManifestParamsEnv, struct {
 		ServiceConfig VrouterConfiguration
-		ClusterNodes ClusterNodes
+		ClusterNodes  ClusterNodes
 	}{
 		ServiceConfig: *vrouterConfig,
 		ClusterNodes:  *clusterNodes,
