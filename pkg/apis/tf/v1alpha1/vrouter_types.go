@@ -475,20 +475,6 @@ func (c *Vrouter) PodIPListAndIPMapFromInstance(instanceType string, request rec
 	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, "")
 }
 
-// CreateEnvConfigMap creates vRouter configMaps with rendered values
-func (c *Vrouter) CreateEnvConfigMap(instanceType string, client client.Client, scheme *runtime.Scheme, request reconcile.Request) (*corev1.ConfigMap, error) {
-	envVariablesConfigMapName := request.Name + "-" + instanceType + "-configmap-env"
-	envVariablesConfigMap, err := c.CreateConfigMap(envVariablesConfigMapName, client, scheme, request)
-	if err != nil {
-		return nil, err
-	}
-	envVariablesConfigMap.Data, err = c.getVrouterEnvironmentData(client)
-	if err != nil {
-		return nil, err
-	}
-	return envVariablesConfigMap, client.Update(context.TODO(), envVariablesConfigMap)
-}
-
 // CreateCNIConfigMap creates vRouter configMaps with rendered values
 func (c *Vrouter) CreateCNIConfigMap(client client.Client, scheme *runtime.Scheme, request reconcile.Request) (*corev1.ConfigMap, error) {
 	config, err := c.GetCNIConfig(client, request)
@@ -615,16 +601,6 @@ func (c *Vrouter) VrouterConfigurationParameters(client client.Client) (*Vrouter
 	}
 
 	return vrouterConfiguration, nil
-}
-
-func (c *Vrouter) getVrouterEnvironmentData(clnt client.Client) (map[string]string, error) {
-	envVariables := make(map[string]string)
-	if vrouterConfig, err := c.VrouterConfigurationParameters(clnt); err == nil {
-		for key, value := range vrouterConfig.EnvVariablesConfig {
-			envVariables[key] = value
-		}
-	}
-	return envVariables, nil
 }
 
 // GetNodeDSPod returns daemonset pod by name
