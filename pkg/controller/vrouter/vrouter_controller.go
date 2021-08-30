@@ -207,11 +207,6 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, nil
 	}
 
-	configMapEnv, err := instance.CreateEnvConfigMap(instanceType, r.Client, r.Scheme, request)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
 	cniConfigMap, err := instance.CreateCNIConfigMap(r.Client, r.Scheme, request)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -291,14 +286,6 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 		v1alpha1.AddCertsMounts(request.Name, container)
 		v1alpha1.SetLogLevelEnv(instance.Spec.CommonConfiguration.LogLevel, container)
 
-		container.EnvFrom = append(container.EnvFrom, corev1.EnvFromSource{
-			ConfigMapRef: &corev1.ConfigMapEnvSource{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: configMapEnv.Name,
-				},
-			},
-		})
-
 		container.Image = instanceContainer.Image
 
 		if container.Command == nil {
@@ -330,14 +317,6 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 			})
 
 		v1alpha1.AddCertsMounts(request.Name, container)
-
-		container.EnvFrom = append(container.EnvFrom, corev1.EnvFromSource{
-			ConfigMapRef: &corev1.ConfigMapEnvSource{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: configMapEnv.Name,
-				},
-			},
-		})
 
 		if container.Name == "vroutercni" {
 			if container.Command == nil {

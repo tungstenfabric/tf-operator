@@ -9,6 +9,28 @@ import (
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+func updateContainerEnv(v *v1alpha1.Vrouter, c *corev1.Container) {
+	env := []corev1.EnvVar{}
+	for i := range c.Env {
+		n := c.Env[i].Name
+		if ev, ok := v.Spec.ServiceConfiguration.EnvVariablesConfig[n]; ok {
+			env = append(env, corev1.EnvVar{Name: n, Value: ev})
+		} else {
+			env = append(env, c.Env[i])
+		}
+	}
+	c.Env = env
+}
+
+func updateEnv(v *v1alpha1.Vrouter, ds *apps.DaemonSet) {
+	for idx := range ds.Spec.Template.Spec.Containers {
+		updateContainerEnv(v, &ds.Spec.Template.Spec.Containers[idx])
+	}
+	for idx := range ds.Spec.Template.Spec.InitContainers {
+		updateContainerEnv(v, &ds.Spec.Template.Spec.InitContainers[idx])
+	}
+}
+
 //GetDaemonset returns DaemonSet object for vRouter
 func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestrator string) *apps.DaemonSet {
 	var labelsMountPermission int32 = 0644
@@ -398,7 +420,7 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 		Spec:       podSpec,
 	}
 
-	var daemonSet = apps.DaemonSet{
+	var daemonSet = &apps.DaemonSet{
 		TypeMeta: meta.TypeMeta{
 			Kind:       "DaemonSet",
 			APIVersion: "apps/v1",
@@ -413,5 +435,6 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 		},
 	}
 
-	return &daemonSet
+	updateEnv(c, daemonSet)
+	return daemonSet
 }
