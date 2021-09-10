@@ -693,7 +693,14 @@ func containersChanged(first *corev1.PodTemplateSpec,
 					)
 					break
 				}
-				if !cmp.Equal(container1.Env,
+				sort.SliceStable(
+					container1.Env,
+					func(i, j int) bool { return container1.Env[i].Name < container1.Env[j].Name })
+				sort.SliceStable(
+					container2.Env,
+					func(i, j int) bool { return container2.Env[i].Name < container2.Env[j].Name })
+				if !cmp.Equal(
+					container1.Env,
 					container2.Env,
 					cmpopts.IgnoreFields(corev1.ObjectFieldSelector{}, "APIVersion"),
 				) {

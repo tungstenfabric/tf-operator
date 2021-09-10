@@ -9,17 +9,23 @@ import (
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func updateContainerEnv(v *v1alpha1.Vrouter, c *corev1.Container) {
-	env := []corev1.EnvVar{}
-	for i := range c.Env {
-		n := c.Env[i].Name
-		if ev, ok := v.Spec.ServiceConfiguration.EnvVariablesConfig[n]; ok {
-			env = append(env, corev1.EnvVar{Name: n, Value: ev})
-		} else {
-			env = append(env, c.Env[i])
+func contains(n string, l []corev1.EnvVar) (*corev1.EnvVar, bool) {
+	for _, v := range l {
+		if v.Name == n {
+			return &v, true
 		}
 	}
-	c.Env = env
+	return nil, false
+}
+
+func updateContainerEnv(v *v1alpha1.Vrouter, c *corev1.Container) {
+	for n, v := range v.Spec.ServiceConfiguration.EnvVariablesConfig {
+		if pe, ok := contains(n, c.Env) ; ok {
+			pe.Value = v
+		} else {
+			c.Env = append(c.Env, corev1.EnvVar{Name: n, Value: v})
+		}
+	}
 }
 
 func updateEnv(v *v1alpha1.Vrouter, ds *apps.DaemonSet) {
