@@ -1,6 +1,11 @@
 [
-{%- if CONFIGDB_MIN_HEAP_SIZE | default("") != "" and CONFIGDB_MAX_HEAP_SIZE | default("") != "" -%}
   {
+    "op": "test",
+    "path": "/spec/services/cassandras/0/metadata/name",
+    "value": "configdb1"
+  }
+{%- if CONFIGDB_MIN_HEAP_SIZE | default("") != "" and CONFIGDB_MAX_HEAP_SIZE | default("") != "" -%}
+  ,{
     "op": "replace",
     "path": "/spec/services/cassandras/0/spec/serviceConfiguration/minHeapSize",
     "value": "{{ CONFIGDB_MIN_HEAP_SIZE }}"

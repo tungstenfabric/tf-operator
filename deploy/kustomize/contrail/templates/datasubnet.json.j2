@@ -1,6 +1,11 @@
 [
-{%- if DATA_NETWORK | default("") != "" -%}
   {
+    "op": "test",
+    "path": "/spec/services/controls/0/metadata/name",
+    "value": "control1"
+  }
+{%- if DATA_NETWORK | default("") != "" -%}
+  ,{
     "op": "add",
     "path": "/spec/services/controls/0/spec/serviceConfiguration/dataSubnet",
     "value": "{{ DATA_NETWORK }}"

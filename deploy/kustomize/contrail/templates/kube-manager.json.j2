@@ -4,8 +4,13 @@
 {%- endif -%}
 {%- endif -%}
 [
-{%- if KUBERNETES_PUBLIC_FIP_POOL is defined -%}
   {
+    "op": "test",
+    "path": "/spec/services/kubemanagers/0/metadata/name",
+    "value": "kubemanager1"
+  }
+{%- if KUBERNETES_PUBLIC_FIP_POOL is defined -%}
+  ,{
     "op": "replace",
     "path": "/spec/services/kubemanagers/0/spec/serviceConfiguration/publicFIPPool",
     "value": "{{ KUBERNETES_PUBLIC_FIP_POOL }}"
