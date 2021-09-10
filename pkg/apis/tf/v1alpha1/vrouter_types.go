@@ -408,6 +408,12 @@ func (c *Vrouter) UpdateDS(ds *appsv1.DaemonSet,
 					containersChanges = true
 					break
 				}
+				sort.SliceStable(
+					intendedContainer.Env,
+					func(i, j int) bool { return intendedContainer.Env[i].Name < intendedContainer.Env[j].Name })
+				sort.SliceStable(
+					currentContainer.Env,
+					func(i, j int) bool { return currentContainer.Env[i].Name < currentContainer.Env[j].Name })
 				if !cmp.Equal(intendedContainer.Env, currentContainer.Env,
 					cmpopts.IgnoreFields(corev1.ObjectFieldSelector{}, "APIVersion"),
 				) {
@@ -620,7 +626,7 @@ func (c *Vrouter) GetAgentNodes(daemonset *appsv1.DaemonSet, clnt client.Client)
 
 	// TODO get nodes based on node selector
 	// for ns_key, ns_value := range daemonset.Spec.Template.Spec.NodeSelector {
-	//   log.Info(fmt.Sprintf("Node selector = '%v' : '%v'",ns_key,ns_value))
+	//   vrouter_log.Info(fmt.Sprintf("Node selector = '%v' : '%v'",ns_key,ns_value))
 	// }
 
 	// Get Nodes for check agent Status
@@ -752,7 +758,7 @@ wait_vhost0 1 0 || exit 0 ;
 func (vrouterPod *VrouterPod) NeedVhostReload() (bool, error) {
 	stdout, stderr, err := vrouterPod.ValidateVrouterNIC()
 	if err != nil {
-		log.Error(err, "NeedVhostReload failed", "stdout", stdout, "stderr", stderr)
+		vrouter_log.Error(err, "NeedVhostReload failed", "stdout", stdout, "stderr", stderr)
 		return false, err
 	}
 	scanner := bufio.NewScanner(strings.NewReader(stdout))
@@ -920,14 +926,14 @@ func (c *Vrouter) RemoveAgentConfigMapForPod(vrouterPod *VrouterPod,
 // UpdateAgent waits for config updates and reload containers
 func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouterPod *VrouterPod, configMap *corev1.ConfigMap, clnt client.Client) (bool, error) {
 
-	log := vrouter_log.WithName("UpdateAgent").WithValues("nodeName", nodeName)
+	ll := vrouter_log.WithName("UpdateAgent").WithValues("nodeName", nodeName)
 	controlNodesList, err := c.GetControlNodes(clnt)
 	if err != nil {
 		return true, err
 	}
 	clusterNodes := ClusterNodes{ConfigNodes: c.GetConfigNodes(clnt), ControlNodes: controlNodesList}
 
-	log.Info("UpdateAgent start", "clusterNodes", clusterNodes)
+	ll.Info("Check params", "clusterNodes", clusterNodes)
 	params, err := c.GetParamsEnv(clnt, &clusterNodes)
 	if err != nil {
 		return true, err
@@ -938,23 +944,23 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 
 		if agentStatus.Status != "Updating" {
 			if err := c.UpdateAgentParams(vrouterPod, params, configMap, clnt); err != nil {
-				log.Error(err, "UpdateAgentParams failed")
+				ll.Error(err, "UpdateAgentParams failed")
 				return true, err
 			}
-			log.Info("Start update", "currentSha", agentStatus.EncryptedParams, "newSha", paramsSha256)
+			ll.Info("Start update", "currentSha", agentStatus.EncryptedParams, "newSha", paramsSha256)
 			agentStatus.Status = "Updating"
 			// let params.env be populated to nodes
 			return true, nil
 		}
 
 		if !vrouterPod.IsAgentContainerRunning() {
-			log.Info("Agent container is not runned yet")
+			ll.Info("Agent container is not runned yet")
 			return true, nil
 		}
 
 		eq, err := vrouterPod.IsFileInAgentContainerEqualTo("/etc/contrailconfigmaps/params.env."+vrouterPod.Pod.Status.PodIP, params)
 		if err != nil || !eq {
-			log.Info("params.env is not ready", "err", err)
+			ll.Info("params.env is not ready", "err", err)
 			// reset status to allow UpdateAgentParams on next iteration as params might be changed since that one more times
 			agentStatus.Status = "Starting"
 			return true, err
@@ -962,41 +968,41 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 
 		if needReload, err := vrouterPod.NeedVhostReload(); err != nil || needReload {
 			if needReload {
-				log.Info("Vhost is needed to be reinit, delete pod", "pod", vrouterPod.Pod.Name)
+				ll.Info("Vhost is needed to be reinit, delete pod", "pod", vrouterPod.Pod.Name)
 				if err = c.RemoveAgentConfigMapForPod(vrouterPod, configMap, clnt); err != nil {
-					log.Error(err, "RemoveAgentConfigMapForPod failed")
+					ll.Error(err, "RemoveAgentConfigMapForPod failed")
 					return true, err
 				}
 				if err = clnt.Delete(context.Background(), vrouterPod.Pod); err != nil {
-					log.Error(err, "Remove pod failed", "pod", vrouterPod.Pod.Name)
+					ll.Error(err, "Remove pod failed", "pod", vrouterPod.Pod.Name)
 				}
 			}
 			return true, err
 		}
 
 		if stdout, stderr, err := vrouterPod.RecalculateAgentParameters(); err != nil {
-			log.Error(err, "RecalculateAgentParameters failed", "stdout", stdout, "stderr", stderr)
+			ll.Error(err, "RecalculateAgentParameters failed", "stdout", stdout, "stderr", stderr)
 			return true, err
 		}
 
 		hostVars := make(map[string]string)
 		if stdout, stderr, err := vrouterPod.GetAgentParameters(&hostVars); err != nil {
-			log.Error(err, "GetAgentParameters failed", "stdout", stdout, "stderr", stderr)
+			ll.Error(err, "GetAgentParameters failed", "stdout", stdout, "stderr", stderr)
 			return true, err
 		}
 
 		if err := c.UpdateAgentConfigMapForPod(vrouterPod, &clusterNodes, &hostVars, configMap, clnt); err != nil {
-			log.Error(err, "UpdateAgentConfigMapForPod failed")
+			ll.Error(err, "UpdateAgentConfigMapForPod failed")
 			return true, err
 		}
 
 		// Update sha as update of configmap called successfully
 		agentStatus.EncryptedParams = paramsSha256
-		log.Info("Params sha updated", "sha", paramsSha256)
+		ll.Info("Params sha updated", "sha", paramsSha256)
 	}
 
 	if agentStatus.Status == "Ready" {
-		log.Info("Agent is in Ready state, no changes")
+		ll.Info("Agent is in Ready state, no changes")
 		return false, nil
 	}
 
@@ -1006,18 +1012,18 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 	// wait till new files is delivered to agent
 	eq, err := vrouterPod.IsAgentConfigsAvaliable(c, provData, configMap)
 	if err != nil || !eq {
-		log.Info("Configs are not available", "err", err)
+		ll.Info("Configs are not available", "err", err)
 		return true, err
 	}
 
 	// Send SIGHUP то container process to reload config file
 	if err = vrouterPod.ReloadNodemanager(); err != nil {
-		log.Error(err, "ReloadNodemanager failed")
+		ll.Error(err, "ReloadNodemanager failed")
 		return true, err
 	}
 
 	if err = vrouterPod.ReloadAgentConfigs(); err != nil {
-		log.Error(err, "ReloadAgentConfigs failed")
+		ll.Error(err, "ReloadAgentConfigs failed")
 		return true, err
 	}
 
@@ -1027,7 +1033,7 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 	needReconcile := agentStatus.Status != "Ready"
 	agentStatus.Status = "Ready"
 
-	log.Info("UpdateAgent finished", "needReconcile", needReconcile)
+	ll.Info("UpdateAgent finished", "needReconcile", needReconcile)
 	return needReconcile, nil
 }
 
@@ -1035,40 +1041,40 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 func (vrouterPod *VrouterPod) IsAgentConfigsAvaliable(vrouter *Vrouter, provisionerData string, configMap *corev1.ConfigMap) (bool, error) {
 	podIP := vrouterPod.Pod.Status.PodIP
 
-	log := vrouter_log.WithName("IsAgentConfigsAvaliable").WithName(podIP)
+	ll := vrouter_log.WithName("IsAgentConfigsAvaliable").WithName(podIP)
 
 	path := "/etc/contrailconfigmaps/contrail-vrouter-agent.conf." + podIP
 	eq, err := vrouterPod.IsFileInAgentContainerEqualTo(path, configMap.Data["contrail-vrouter-agent.conf."+podIP])
 	if err != nil || !eq {
-		log.Info("contrail-vrouter-agent.conf not ready", "err", err)
+		ll.Info("contrail-vrouter-agent.conf not ready", "err", err)
 		return eq, err
 	}
 
 	path = "/etc/contrailconfigmaps/contrail-lbaas.auth.conf." + podIP
 	eq, err = vrouterPod.IsFileInAgentContainerEqualTo(path, configMap.Data["contrail-lbaas.auth.conf."+podIP])
 	if err != nil || !eq {
-		log.Info("contrail-lbaas.auth.conf not ready", "err", err)
+		ll.Info("contrail-lbaas.auth.conf not ready", "err", err)
 		return eq, err
 	}
 
 	path = "/etc/contrailconfigmaps/vnc_api_lib.ini." + podIP
 	eq, err = vrouterPod.IsFileInAgentContainerEqualTo(path, configMap.Data["vnc_api_lib.ini."+podIP])
 	if err != nil || !eq {
-		log.Info("vnc_api_lib.ini not ready", "err", err)
+		ll.Info("vnc_api_lib.ini not ready", "err", err)
 		return eq, nil
 	}
 
 	path = "/etc/contrailconfigmaps/vrouter-nodemgr.conf." + podIP
 	eq, err = vrouterPod.IsFileInAgentContainerEqualTo(path, configMap.Data["vrouter-nodemgr.conf."+podIP])
 	if err != nil || !eq {
-		log.Info("vrouter-nodemgr.conf not ready", "err", err)
+		ll.Info("vrouter-nodemgr.conf not ready", "err", err)
 		return eq, nil
 	}
 
 	path = "/etc/contrailconfigmaps/vrouter-provisioner.env." + podIP
 	eq, err = vrouterPod.IsFileInAgentContainerEqualTo(path, provisionerData)
 	if err != nil || !eq {
-		log.Info("vrouter-provisioner.env."+podIP+" not ready", "err", err)
+		ll.Info("vrouter-provisioner.env."+podIP+" not ready", "err", err)
 		return eq, nil
 	}
 

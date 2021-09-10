@@ -160,6 +160,13 @@ XMPP_SSL_ENABLE="{{ .ServiceConfig.XmppSslEnable }}"
 HUGE_PAGES_2MB="{{ default 0 .ServiceConfig.HugePages2M }}"
 HUGE_PAGES_1GB="{{ default 0 .ServiceConfig.HugePages1G }}"
 
+# Custom envs from user
+{{ if .ServiceConfig.EnvVariablesConfig }}
+{{ range $k, $v := .ServiceConfig.EnvVariablesConfig }}
+{{ $k }}="{{ $v }}"
+{{ end }}
+{{ end }}
+
 set +o allexport
 `))
 
@@ -168,6 +175,7 @@ servers={{ .XMPP_SERVERS_LIST }}
 {{ if .SUBCLUSTER }}subcluster_name={{ .SUBCLUSTER }}{{ end }}
 [DEFAULT]
 http_server_ip={{ .INTROSPECT_IP }}
+{{ if .VROUTER_AGENT_INTROSPECT_PORT }}http_server_port={{ .VROUTER_AGENT_INTROSPECT_PORT }}{{ end }}
 collectors={{ .COLLECTOR_SERVERS }}
 log_file={{ .CONTAINER_LOG_DIR }}/contrail-vrouter-agent.log
 log_level={{ .LOG_LEVEL }}
@@ -187,9 +195,9 @@ physical_uio_driver={{ .DPDK_UIO_DRIVER }}
 {{ else }}
 physical_interface_mac = {{ .PHYS_INT_MAC }}
 {{ end }}
-{{ if .TSN_AGENT_MODE }}agent_mode = {{ .TSN_AGENT_MODE }}{{ end }}
+{{ if .TSN_AGENT_MODE }}agent_mode={{ .TSN_AGENT_MODE }}{{ end }}
 
-tsn_servers = {{ .TSN_NODES | replace "," " " }}
+tsn_servers={{ .TSN_NODES | replace "," " " }}
 
 [SANDESH]
 introspect_ssl_enable={{ .INTROSPECT_SSL_ENABLE }}
@@ -232,14 +240,14 @@ netns_command=/usr/bin/opencontrail-vrouter-netns
 docker_command=/usr/bin/opencontrail-vrouter-docker
 
 [HYPERVISOR]
-type = {{ .HYPERVISOR_TYPE }}
+type={{ .HYPERVISOR_TYPE }}
 {{ if and (eq .CLOUD_ORCHESTRATOR "vcenter") (not .TSN_AGENT_MODE ) }}
-vmware_physical_interface = {{ .VMWARE_PHYS_INT }}
-vmware_mode = vcenter
+vmware_physical_interface={{ .VMWARE_PHYS_INT }}
+vmware_mode=vcenter
 {{ end }}
 
 [FLOWS]
-fabric_snat_hash_table_size = {{ .FABRIC_SNAT_HASH_TABLE_SIZE }}
+fabric_snat_hash_table_size={{ .FABRIC_SNAT_HASH_TABLE_SIZE }}
 
 {{ if and (and .PRIORITY_ID (ne .AGENT_MODE "dpdk" )) (ne .IS_VLAN_ENABLED "true") }}
 {{ $priority_id_list := .PRIORITY_ID | splitList ","  }}
@@ -278,8 +286,8 @@ crypt_interface={{ .VROUTER_CRYPT_INTERFACE }}
 {{ end }}
 
 [SESSION]
-slo_destination = {{ .SLO_DESTINATION }}
-sample_destination = {{ .SAMPLE_DESTINATION }}
+slo_destination={{ .SLO_DESTINATION }}
+sample_destination={{ .SAMPLE_DESTINATION }}
 {{ if .STATS_COLLECTOR_DESTINATION_PATH }}
 [STATS]
 stats_collector={{ .STATS_COLLECTOR_DESTINATION_PATH }}{{ end }}
