@@ -48,6 +48,7 @@ type ControlConfiguration struct {
 	XMPPPort          *int         `json:"xmppPort,omitempty"`
 	DNSPort           *int         `json:"dnsPort,omitempty"`
 	DNSIntrospectPort *int         `json:"dnsIntrospectPort,omitempty"`
+	Subcluster        string       `json:"subcluster,omitempty"`
 	// DataSubnet allow to set alternative network in which control, nodemanager
 	// and dns services will listen. Local pod address from this subnet will be
 	// discovered and used both in configuration for hostip directive and provision

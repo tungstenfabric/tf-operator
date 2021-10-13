@@ -150,7 +150,7 @@ SSL_ENABLE="{{ .ServiceConfig.SslEnable }}"
 VROUTER_GATEWAY="{{ .ServiceConfig.VrouterGateway }}"
 
 # XMPP
-#SUBCLUSTER="{{ .ServiceConfig.Subclaster }}"
+SUBCLUSTER="{{ .ServiceConfig.Subcluster }}"
 XMPP_SERVER_CA_CERTFILE="{{ .ServiceConfig.XmppServerCaCertfile }}"
 XMPP_SERVER_CERTFILE="{{ .ServiceConfig.XmppServerCertfile }}"
 XMPP_SERVER_KEYFILE="{{ .ServiceConfig.XmppServerKeyfile }}"

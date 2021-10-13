@@ -172,6 +172,8 @@ spec:
                   type: integer
                 dnsPort:
                   type: integer
+                subcluster:
+                  type: string
                 xmppPort:
                   type: integer
               type: object

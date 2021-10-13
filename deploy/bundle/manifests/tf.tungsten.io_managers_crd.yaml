@@ -2510,7 +2510,7 @@ spec:
                               statsCollectorDestinationPath:
                                 description: Collector
                                 type: string
-                              subclaster:
+                              subcluster:
                                 description: XMPP
                                 type: string
                               tsnAgentMode:

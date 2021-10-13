@@ -292,6 +292,17 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 			command := []string{"bash", fmt.Sprintf("/etc/contrailconfigmaps/run-%s.sh", container.Name)}
 			container.Command = command
 		}
+
+		switch container.Name {
+		case "provisioner":
+			if instance.Spec.ServiceConfiguration.Subcluster != "" {
+				container.Env = append(container.Env,
+					corev1.EnvVar{
+						Name:  "SUBCLUSTER",
+						Value: instance.Spec.ServiceConfiguration.Subcluster,
+					})
+			}
+		}
 	}
 
 	for idx := range daemonSet.Spec.Template.Spec.InitContainers {

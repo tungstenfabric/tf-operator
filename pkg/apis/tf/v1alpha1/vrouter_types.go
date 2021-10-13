@@ -193,7 +193,7 @@ type VrouterConfiguration struct {
 	DataSubnet                      string `json:"dataSubnet,omitempty"`
 
 	// XMPP
-	Subclaster           string `json:"subclaster,omitempty"`
+	Subcluster           string `json:"subcluster,omitempty"`
 	XmppServerCaCertfile string `json:"xmppServerCaCertfile,omitempty"`
 	XmppServerCertfile   string `json:"xmppServerCertfile,omitempty"`
 	XmppServerKeyfile    string `json:"xmppServerKeyfile,omitempty"`
