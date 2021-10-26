@@ -35,7 +35,6 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
-          analyticsInstance: analytics1
           containers:
           - name: queryengine
             image: contrail-analytics-query-engine
@@ -49,7 +48,6 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
-          analyticsInstance: analytics1
           containers:
           - name: nodemanager
             image: contrail-nodemgr
@@ -69,7 +67,6 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
-          analyticsInstance: analytics1
           containers:
           - name: nodemanager
             image: contrail-nodemgr
@@ -89,7 +86,6 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
-          analyticsInstance: analytics1
           containers:
           - name: cassandra
             image: contrail-external-cassandra
@@ -107,7 +103,6 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
-          analyticsInstance: analytics1
           containers:
           - name: api
             image: contrail-controller-config-api
@@ -136,7 +131,6 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
-          analyticsInstance: analytics1
           containers:
           - name: control
             image: contrail-controller-control-control
@@ -186,7 +180,6 @@ spec:
           nodeSelector:
             node-role.kubernetes.io/master: ""
         serviceConfiguration:
-          analyticsInstance: analytics1
           controlInstance: control1
           containers:
           - name: webuijob
