@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi7/ubi-minimal:latest
+FROM registry.access.redhat.com/ubi8:8.4
 
 MAINTAINER "Tungsten Fabric"
 ### Required OpenShift Labels
