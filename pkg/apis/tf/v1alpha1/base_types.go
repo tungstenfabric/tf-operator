@@ -1851,7 +1851,7 @@ func GetAnalyticsCassandraInstance(cl client.Client) (string, error) {
 	}
 	name := CassandraInstance
 	for _, c := range mgr.Spec.Services.Cassandras {
-		if c.Name == AnalyticsCassandraInstance {
+		if c.Metadata.Name == AnalyticsCassandraInstance {
 			name = AnalyticsCassandraInstance
 			break
 		}

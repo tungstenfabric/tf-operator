@@ -161,7 +161,7 @@ func iterateOverKindInstances(kind string,
 	var subRes map[string]interface{}
 	if reflect.TypeOf(service.Interface()).Kind() == reflect.Slice {
 		for i := 0; i < service.Len(); i++ {
-			meta := getChildObjectByIface("ObjectMeta", service.Index(i).Interface())
+			meta := getChildObjectByIface("Metadata", service.Index(i).Interface())
 			serviceInstanceName := getIfaceField("Name", meta).(string)
 			if subRes, err = runFn(kind, serviceInstanceName, true, clnt, params); err != nil {
 				return nil, err
@@ -172,7 +172,7 @@ func iterateOverKindInstances(kind string,
 		if reflect.ValueOf(service.Interface()).Kind() == reflect.Ptr && !reflect.ValueOf(service.Interface()).Elem().IsValid() {
 			panic(fmt.Errorf("Internatl error: invalide service iface kind %+v obj=%+v mgr=%+v", kind, service, mngr.Spec.Services))
 		}
-		meta := getChildObjectByIface("ObjectMeta", service.Interface())
+		meta := getChildObjectByIface("Metadata", service.Interface())
 		serviceInstanceName := getIfaceField("Name", meta).(string)
 		if subRes, err = runFn(kind, serviceInstanceName, false, clnt, params); err != nil {
 			return nil, err
@@ -703,7 +703,8 @@ func (r *ReconcileManager) processAnalytics(manager *v1alpha1.Manager) error {
 	}
 
 	analytics := &v1alpha1.Analytics{}
-	analytics.ObjectMeta = manager.Spec.Services.Analytics.ObjectMeta
+	analytics.ObjectMeta.Name = manager.Spec.Services.Analytics.Metadata.Name
+	analytics.ObjectMeta.Labels = manager.Spec.Services.Analytics.Metadata.Labels
 	analytics.ObjectMeta.Namespace = manager.Namespace
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, analytics, func() error {
 		analytics.Spec = manager.Spec.Services.Analytics.Spec
@@ -741,7 +742,8 @@ func (r *ReconcileManager) processQueryEngine(manager *v1alpha1.Manager) error {
 	}
 
 	queryengine := &v1alpha1.QueryEngine{}
-	queryengine.ObjectMeta = manager.Spec.Services.QueryEngine.ObjectMeta
+	queryengine.ObjectMeta.Name = manager.Spec.Services.QueryEngine.Metadata.Name
+	queryengine.ObjectMeta.Labels = manager.Spec.Services.QueryEngine.Metadata.Labels
 	queryengine.ObjectMeta.Namespace = manager.Namespace
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, queryengine, func() error {
 		queryengine.Spec = manager.Spec.Services.QueryEngine.Spec
@@ -779,7 +781,8 @@ func (r *ReconcileManager) processAnalyticsSnmp(manager *v1alpha1.Manager) error
 	}
 
 	analyticsSnmp := &v1alpha1.AnalyticsSnmp{}
-	analyticsSnmp.ObjectMeta = manager.Spec.Services.AnalyticsSnmp.ObjectMeta
+	analyticsSnmp.ObjectMeta.Name = manager.Spec.Services.AnalyticsSnmp.Metadata.Name
+	analyticsSnmp.ObjectMeta.Labels = manager.Spec.Services.AnalyticsSnmp.Metadata.Labels
 	analyticsSnmp.ObjectMeta.Namespace = manager.Namespace
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, analyticsSnmp, func() error {
 		analyticsSnmp.Spec = manager.Spec.Services.AnalyticsSnmp.Spec
@@ -817,7 +820,8 @@ func (r *ReconcileManager) processAnalyticsAlarm(manager *v1alpha1.Manager) erro
 	}
 
 	analyticsAlarm := &v1alpha1.AnalyticsAlarm{}
-	analyticsAlarm.ObjectMeta = manager.Spec.Services.AnalyticsAlarm.ObjectMeta
+	analyticsAlarm.ObjectMeta.Name = manager.Spec.Services.AnalyticsAlarm.Metadata.Name
+	analyticsAlarm.ObjectMeta.Labels = manager.Spec.Services.AnalyticsAlarm.Metadata.Labels
 	analyticsAlarm.ObjectMeta.Namespace = manager.Namespace
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, analyticsAlarm, func() error {
 		analyticsAlarm.Spec = manager.Spec.Services.AnalyticsAlarm.Spec
@@ -859,7 +863,8 @@ func (r *ReconcileManager) processZookeepers(manager *v1alpha1.Manager) error {
 	}
 
 	zookeeper := &v1alpha1.Zookeeper{}
-	zookeeper.ObjectMeta = manager.Spec.Services.Zookeeper.ObjectMeta
+	zookeeper.ObjectMeta.Name = manager.Spec.Services.Zookeeper.Metadata.Name
+	zookeeper.ObjectMeta.Labels = manager.Spec.Services.Zookeeper.Metadata.Labels
 	zookeeper.ObjectMeta.Namespace = manager.Namespace
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, zookeeper, func() error {
 		zookeeper.Spec = manager.Spec.Services.Zookeeper.Spec
@@ -878,7 +883,7 @@ func (r *ReconcileManager) processCassandras(manager *v1alpha1.Manager) error {
 	for _, existingCassandra := range manager.Status.Cassandras {
 		found := false
 		for _, intendedCassandra := range manager.Spec.Services.Cassandras {
-			if *existingCassandra.Name == intendedCassandra.Name {
+			if *existingCassandra.Name == intendedCassandra.Metadata.Name {
 				found = true
 				break
 			}
@@ -906,7 +911,8 @@ func (r *ReconcileManager) processCassandras(manager *v1alpha1.Manager) error {
 	cassandraStatusList := []*v1alpha1.ServiceStatus{}
 	for _, cassandraService := range manager.Spec.Services.Cassandras {
 		cassandra := &v1alpha1.Cassandra{}
-		cassandra.ObjectMeta = cassandraService.ObjectMeta
+		cassandra.ObjectMeta.Name = cassandraService.Metadata.Name
+		cassandra.ObjectMeta.Labels = cassandraService.Metadata.Labels
 		cassandra.ObjectMeta.Namespace = manager.Namespace
 		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, cassandra, func() error {
 			cassandra.Spec = cassandraService.Spec
@@ -929,7 +935,7 @@ func (r *ReconcileManager) processRedis(manager *v1alpha1.Manager) error {
 	for _, existingRedis := range manager.Status.Redis {
 		found := false
 		for _, intendedRedis := range manager.Spec.Services.Redis {
-			if *existingRedis.Name == intendedRedis.Name {
+			if *existingRedis.Name == intendedRedis.Metadata.Name {
 				found = true
 				break
 			}
@@ -957,7 +963,8 @@ func (r *ReconcileManager) processRedis(manager *v1alpha1.Manager) error {
 	redisStatusList := []*v1alpha1.ServiceStatus{}
 	for _, redisService := range manager.Spec.Services.Redis {
 		redis := &v1alpha1.Redis{}
-		redis.ObjectMeta = redisService.ObjectMeta
+		redis.ObjectMeta.Name = redisService.Metadata.Name
+		redis.ObjectMeta.Labels = redisService.Metadata.Labels
 		redis.ObjectMeta.Namespace = manager.Namespace
 		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, redis, func() error {
 			redis.Spec = redisService.Spec
@@ -1003,7 +1010,8 @@ func (r *ReconcileManager) processWebui(manager *v1alpha1.Manager) error {
 	}
 
 	webui := &v1alpha1.Webui{}
-	webui.ObjectMeta = manager.Spec.Services.Webui.ObjectMeta
+	webui.ObjectMeta.Name = manager.Spec.Services.Webui.Metadata.Name
+	webui.ObjectMeta.Labels = manager.Spec.Services.Webui.Metadata.Labels
 	webui.ObjectMeta.Namespace = manager.Namespace
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, webui, func() error {
 		webui.Spec = manager.Spec.Services.Webui.Spec
@@ -1043,7 +1051,8 @@ func (r *ReconcileManager) processConfig(manager *v1alpha1.Manager) error {
 	}
 
 	config := &v1alpha1.Config{}
-	config.ObjectMeta = manager.Spec.Services.Config.ObjectMeta
+	config.ObjectMeta.Name = manager.Spec.Services.Config.Metadata.Name
+	config.ObjectMeta.Labels = manager.Spec.Services.Config.Metadata.Labels
 	config.ObjectMeta.Namespace = manager.Namespace
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, config, func() error {
 		config.Spec = manager.Spec.Services.Config.Spec
@@ -1085,7 +1094,8 @@ func (r *ReconcileManager) processKubemanager(manager *v1alpha1.Manager) error {
 	}
 
 	kubemanager := &v1alpha1.Kubemanager{}
-	kubemanager.ObjectMeta = manager.Spec.Services.Kubemanager.ObjectMeta
+	kubemanager.ObjectMeta.Name = manager.Spec.Services.Kubemanager.Metadata.Name
+	kubemanager.ObjectMeta.Labels = manager.Spec.Services.Kubemanager.Metadata.Labels
 	kubemanager.ObjectMeta.Namespace = manager.Namespace
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, kubemanager, func() error {
 		kubemanager.Spec = manager.Spec.Services.Kubemanager.Spec
@@ -1103,7 +1113,7 @@ func (r *ReconcileManager) processControls(manager *v1alpha1.Manager) error {
 	for _, existingControl := range manager.Status.Controls {
 		found := false
 		for _, intendedControl := range manager.Spec.Services.Controls {
-			if *existingControl.Name == intendedControl.Name {
+			if *existingControl.Name == intendedControl.Metadata.Name {
 				found = true
 				break
 			}
@@ -1131,7 +1141,8 @@ func (r *ReconcileManager) processControls(manager *v1alpha1.Manager) error {
 	var controlServiceStatus []*v1alpha1.ServiceStatus
 	for _, controlService := range manager.Spec.Services.Controls {
 		control := &v1alpha1.Control{}
-		control.ObjectMeta = controlService.ObjectMeta
+		control.ObjectMeta.Name = controlService.Metadata.Name
+		control.ObjectMeta.Labels = controlService.Metadata.Labels
 		control.ObjectMeta.Namespace = manager.Namespace
 		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, control, func() error {
 			control.Spec = controlService.Spec
@@ -1176,7 +1187,8 @@ func (r *ReconcileManager) processRabbitMQ(manager *v1alpha1.Manager) error {
 	}
 
 	rabbitMQ := &v1alpha1.Rabbitmq{}
-	rabbitMQ.ObjectMeta = manager.Spec.Services.Rabbitmq.ObjectMeta
+	rabbitMQ.ObjectMeta.Name = manager.Spec.Services.Rabbitmq.Metadata.Name
+	rabbitMQ.ObjectMeta.Labels = manager.Spec.Services.Rabbitmq.Metadata.Labels
 	rabbitMQ.ObjectMeta.Namespace = manager.Namespace
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, rabbitMQ, func() error {
 		rabbitMQ.Spec = manager.Spec.Services.Rabbitmq.Spec
@@ -1197,7 +1209,7 @@ func (r *ReconcileManager) processVRouters(manager *v1alpha1.Manager) error {
 	for _, existingVRouter := range manager.Status.Vrouters {
 		found := false
 		for _, intendedVRouter := range manager.Spec.Services.Vrouters {
-			if *existingVRouter.Name == intendedVRouter.Name {
+			if *existingVRouter.Name == intendedVRouter.Metadata.Name {
 				found = true
 				break
 			}
@@ -1221,7 +1233,8 @@ func (r *ReconcileManager) processVRouters(manager *v1alpha1.Manager) error {
 	var vRouterServiceStatus []*v1alpha1.ServiceStatus
 	for _, vRouterService := range manager.Spec.Services.Vrouters {
 		vRouter := &v1alpha1.Vrouter{}
-		vRouter.ObjectMeta = vRouterService.ObjectMeta
+		vRouter.ObjectMeta.Name = vRouterService.Metadata.Name
+		vRouter.ObjectMeta.Labels = vRouterService.Metadata.Labels
 		vRouter.ObjectMeta.Namespace = manager.Namespace
 		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, vRouter, func() error {
 			vRouter.Spec.ServiceConfiguration = vRouterService.Spec.ServiceConfiguration
