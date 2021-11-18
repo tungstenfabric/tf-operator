@@ -346,14 +346,6 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 		}
 	}
 
-	statusImage := ""
-	toolsImage := ""
-
-	if ic := utils.GetContainerFromList("nodeinit", instance.Spec.ServiceConfiguration.Containers); ic != nil {
-		statusImage = strings.Replace(ic.Image, "contrail-node-init", "contrail-status", 1)
-		toolsImage = strings.Replace(ic.Image, "contrail-node-init", "contrail-tools", 1)
-	}
-
 	extraVolumes := !k8s.IsOpenshift() && !v1alpha1.IsVrouterExists(r.Client)
 
 	if extraVolumes {
@@ -384,6 +376,12 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 		switch container.Name {
 
 		case "nodeinit":
+			var statusImage string
+			if spc := utils.GetContainerFromList("nodeinit-status-prefetch", instance.Spec.ServiceConfiguration.Containers); spc != nil && spc.Image != "" {
+				statusImage = spc.Image
+			} else {
+				statusImage = strings.Replace(container.Image, "contrail-node-init", "contrail-status", 1)
+			}
 			container.Env = append(container.Env,
 				core.EnvVar{
 					Name:  "CONTRAIL_STATUS_IMAGE",
@@ -411,20 +409,6 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 						MountPath: "/etc/sysctl.d",
 					})
 			}
-
-		case "nodeinit-status-prefetch":
-			if container.Command == nil {
-				command := []string{"sh", "-c", "exit 0"}
-				container.Command = command
-			}
-			container.Image = statusImage
-
-		case "nodeinit-tools-prefetch":
-			if container.Command == nil {
-				command := []string{"sh", "-c", "exit 0"}
-				container.Command = command
-			}
-			container.Image = toolsImage
 		}
 	}
 

@@ -118,6 +118,10 @@ spec:
             image: contrail-nodemgr
           - name: nodeinit
             image: contrail-node-init
+          - name: nodeinit-status-prefetch
+            image: contrail-status
+          - name: nodeinit-tools-prefetch
+            image: contrail-tools
           - name: provisioner
             image: contrail-provisioner
     controls:

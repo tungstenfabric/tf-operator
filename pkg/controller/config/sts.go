@@ -165,8 +165,10 @@ spec:
               name: dev
         - name: nodeinit-status-prefetch
           image: tungstenfabric/contrail-status:latest
+          command: [ "sh", "-c", "exit 0" ]
         - name: nodeinit-tools-prefetch
           image: tungstenfabric/contrail-tools:latest
+          command: [ "sh", "-c", "exit 0" ]
       volumes:
         - hostPath:
             path: /var/lib/tftp

@@ -45,6 +45,10 @@ spec:
           containers:
           - name: nodeinit
             image: contrail-node-init
+          - name: nodeinit-status-prefetch
+            image: contrail-status
+          - name: nodeinit-tools-prefetch
+            image: contrail-tools
           - name: vrouterkernelinit
             image: contrail-vrouter-kernel-init
           - name: vrouterkernelbuildinit
