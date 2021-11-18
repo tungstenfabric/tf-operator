@@ -342,23 +342,16 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 		}
 
 		if container.Name == "nodeinit" {
-			statusImage := strings.Replace(container.Image, "contrail-node-init", "contrail-status", 1)
+			var statusImage string
+			if spc := utils.GetContainerFromList("nodeinit-status-prefetch", instance.Spec.ServiceConfiguration.Containers); spc != nil && spc.Image != "" {
+				statusImage = spc.Image
+			} else {
+				statusImage = strings.Replace(container.Image, "contrail-node-init", "contrail-status", 1)
+			}
 			container.Env = append(container.Env, corev1.EnvVar{
 				Name:  "CONTRAIL_STATUS_IMAGE",
 				Value: statusImage,
 			})
-		}
-
-		if container.Name == "nodeinit-status-prefetch" {
-			if ic := utils.GetContainerFromList("nodeinit", instance.Spec.ServiceConfiguration.Containers); ic != nil {
-				container.Image = strings.Replace(ic.Image, "contrail-node-init", "contrail-status", 1)
-			}
-		}
-
-		if container.Name == "nodeinit-tools-prefetch" {
-			if ic := utils.GetContainerFromList("nodeinit", instance.Spec.ServiceConfiguration.Containers); ic != nil {
-				container.Image = strings.Replace(ic.Image, "contrail-node-init", "contrail-tools", 1)
-			}
 		}
 	}
 

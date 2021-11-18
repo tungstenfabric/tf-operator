@@ -117,6 +117,12 @@ images:
 - name: contrail-node-init
   newTag: "{{ CONTRAIL_CONTAINER_TAG }}"
   newName: {{ CONTAINER_REGISTRY }}/contrail-node-init
+- name: contrail-status
+  newTag: "{{ CONTRAIL_CONTAINER_TAG }}"
+  newName: {{ CONTAINER_REGISTRY }}/contrail-status
+- name: contrail-tools
+  newTag: "{{ CONTRAIL_CONTAINER_TAG }}"
+  newName: {{ CONTAINER_REGISTRY }}/contrail-tools
 
 - name: contrail-controller-webui-job
   newTag: "{{ CONTRAIL_CONTAINER_TAG }}"
