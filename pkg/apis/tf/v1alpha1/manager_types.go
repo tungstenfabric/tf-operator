@@ -25,19 +25,117 @@ type ManagerSpec struct {
 // Services defines the desired state of Services.
 // +k8s:openapi-gen=true
 type Services struct {
-	AnalyticsSnmp  *AnalyticsSnmp  `json:"analyticsSnmp,omitempty"`
-	AnalyticsAlarm *AnalyticsAlarm `json:"analyticsAlarm,omitempty"`
-	Analytics      *Analytics      `json:"analytics,omitempty"`
-	Config         *Config         `json:"config,omitempty"`
-	Controls       []*Control      `json:"controls,omitempty"`
-	Kubemanager    *Kubemanager    `json:"kubemanager,omitempty"`
-	QueryEngine    *QueryEngine    `json:"queryengine,omitempty"`
-	Webui          *Webui          `json:"webui,omitempty"`
-	Vrouters       []*Vrouter      `json:"vrouters,omitempty"`
-	Cassandras     []*Cassandra    `json:"cassandras,omitempty"`
-	Zookeeper      *Zookeeper      `json:"zookeeper,omitempty"`
-	Rabbitmq       *Rabbitmq       `json:"rabbitmq,omitempty"`
-	Redis          []*Redis        `json:"redis,omitempty"`
+	AnalyticsSnmp  *AnalyticsSnmpInput  `json:"analyticsSnmp,omitempty"`
+	AnalyticsAlarm *AnalyticsAlarmInput `json:"analyticsAlarm,omitempty"`
+	Analytics      *AnalyticsInput      `json:"analytics,omitempty"`
+	Config         *ConfigInput         `json:"config,omitempty"`
+	Controls       []*ControlInput      `json:"controls,omitempty"`
+	Kubemanager    *KubemanagerInput    `json:"kubemanager,omitempty"`
+	QueryEngine    *QueryEngineInput    `json:"queryengine,omitempty"`
+	Webui          *WebuiInput          `json:"webui,omitempty"`
+	Vrouters       []*VrouterInput      `json:"vrouters,omitempty"`
+	Cassandras     []*CassandraInput    `json:"cassandras,omitempty"`
+	Zookeeper      *ZookeeperInput      `json:"zookeeper,omitempty"`
+	Rabbitmq       *RabbitmqInput       `json:"rabbitmq,omitempty"`
+	Redis          []*RedisInput        `json:"redis,omitempty"`
+}
+
+// AnalyticsSnmpInput is the Schema for the analytics API.
+// +k8s:openapi-gen=true
+type AnalyticsSnmpInput struct {
+	Metadata Metadata          `json:"metadata,omitempty"`
+	Spec     AnalyticsSnmpSpec `json:"spec,omitempty"`
+}
+
+// AnalyticsAlarmInput is the Schema for the analytics API.
+// +k8s:openapi-gen=true
+type AnalyticsAlarmInput struct {
+	Metadata Metadata           `json:"metadata,omitempty"`
+	Spec     AnalyticsAlarmSpec `json:"spec,omitempty"`
+}
+
+// AnalyticsInput is the Schema for the analytics API.
+// +k8s:openapi-gen=true
+type AnalyticsInput struct {
+	Metadata Metadata      `json:"metadata,omitempty"`
+	Spec     AnalyticsSpec `json:"spec,omitempty"`
+}
+
+// ConfigInput is the Schema for the analytics API.
+// +k8s:openapi-gen=true
+type ConfigInput struct {
+	Metadata Metadata   `json:"metadata,omitempty"`
+	Spec     ConfigSpec `json:"spec,omitempty"`
+}
+
+// ControlInput is the Schema for the analytics API.
+// +k8s:openapi-gen=true
+type ControlInput struct {
+	Metadata Metadata    `json:"metadata,omitempty"`
+	Spec     ControlSpec `json:"spec,omitempty"`
+}
+
+// KubemanagerInput is the Schema for the analytics API.
+// +k8s:openapi-gen=true
+type KubemanagerInput struct {
+	Metadata Metadata        `json:"metadata,omitempty"`
+	Spec     KubemanagerSpec `json:"spec,omitempty"`
+}
+
+// QueryEngineInput is the Schema for the analytics API.
+// +k8s:openapi-gen=true
+type QueryEngineInput struct {
+	Metadata Metadata        `json:"metadata,omitempty"`
+	Spec     QueryEngineSpec `json:"spec,omitempty"`
+}
+
+// WebuiInput is the Schema for the analytics API.
+// +k8s:openapi-gen=true
+type WebuiInput struct {
+	Metadata Metadata  `json:"metadata,omitempty"`
+	Spec     WebuiSpec `json:"spec,omitempty"`
+}
+
+// VrouterInput is the Schema for the analytics API.
+// +k8s:openapi-gen=true
+type VrouterInput struct {
+	Metadata Metadata    `json:"metadata,omitempty"`
+	Spec     VrouterSpec `json:"spec,omitempty"`
+}
+
+// CassandraInput is the Schema for the analytics API.
+// +k8s:openapi-gen=true
+type CassandraInput struct {
+	Metadata Metadata      `json:"metadata,omitempty"`
+	Spec     CassandraSpec `json:"spec,omitempty"`
+}
+
+// ZookeeperInput is the Schema for the analytics API.
+// +k8s:openapi-gen=true
+type ZookeeperInput struct {
+	Metadata Metadata      `json:"metadata,omitempty"`
+	Spec     ZookeeperSpec `json:"spec,omitempty"`
+}
+
+// RabbitmqInput is the Schema for the analytics API.
+// +k8s:openapi-gen=true
+type RabbitmqInput struct {
+	Metadata Metadata     `json:"metadata,omitempty"`
+	Spec     RabbitmqSpec `json:"spec,omitempty"`
+}
+
+// RedisInput is the Schema for the analytics API.
+// +k8s:openapi-gen=true
+type RedisInput struct {
+	Metadata Metadata  `json:"metadata,omitempty"`
+	Spec     RedisSpec `json:"spec,omitempty"`
+}
+
+// Input data is the Schema for the analytics API.
+// +k8s:openapi-gen=true
+type Metadata struct {
+	Name   string            `json:"name,omitempty"`
+	Labels map[string]string `json:"labels,omitempty"`
 }
 
 // ManagerConfiguration is the common services struct.
@@ -195,14 +293,14 @@ func (m *Manager) GetObjectFromObjectList(objectList *[]*interface{}, request re
 func (m Manager) IsClusterReady() bool {
 	for _, cassandraService := range m.Spec.Services.Cassandras {
 		for _, cassandraStatus := range m.Status.Cassandras {
-			if cassandraService.Name == *cassandraStatus.Name && !cassandraStatus.ready() {
+			if cassandraService.Metadata.Name == *cassandraStatus.Name && !cassandraStatus.ready() {
 				return false
 			}
 		}
 	}
 	for _, controlService := range m.Spec.Services.Controls {
 		for _, controlStatus := range m.Status.Controls {
-			if controlService.Name == *controlStatus.Name && !controlStatus.ready() {
+			if controlService.Metadata.Name == *controlStatus.Name && !controlStatus.ready() {
 				return false
 			}
 		}
@@ -210,7 +308,7 @@ func (m Manager) IsClusterReady() bool {
 
 	for _, vrouterService := range m.Spec.Services.Vrouters {
 		for _, vrouterStatus := range m.Status.Vrouters {
-			if vrouterService.Name == *vrouterStatus.Name && !vrouterStatus.ready() {
+			if vrouterService.Metadata.Name == *vrouterStatus.Name && !vrouterStatus.ready() {
 				return false
 			}
 		}
@@ -218,7 +316,7 @@ func (m Manager) IsClusterReady() bool {
 
 	for _, redisService := range m.Spec.Services.Redis {
 		for _, redisStatus := range m.Status.Redis {
-			if redisService.Name == *redisStatus.Name && !redisStatus.ready() {
+			if redisService.Metadata.Name == *redisStatus.Name && !redisStatus.ready() {
 				return false
 			}
 		}
@@ -251,7 +349,7 @@ func (m *Manager) IsVrouterActiveOnControllers(clnt client.Client) bool {
 	}
 	spec := m.Spec.Services.Vrouters[0]
 	vrouter := &Vrouter{}
-	if err := clnt.Get(context.TODO(), types.NamespacedName{Name: spec.Name, Namespace: m.Namespace}, vrouter); err != nil {
+	if err := clnt.Get(context.TODO(), types.NamespacedName{Name: spec.Metadata.Name, Namespace: m.Namespace}, vrouter); err != nil {
 		return false
 	}
 	if f, err := vrouter.IsActiveOnControllers(clnt); err == nil {

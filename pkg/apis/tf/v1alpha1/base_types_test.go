@@ -11,13 +11,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func getCassandras(names []string) []*Cassandra {
-	var res []*Cassandra
+func getCassandras(names []string) []*CassandraInput {
+	var res []*CassandraInput
 	for _, n := range names {
-		res = append(res, &Cassandra{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      n,
-				Namespace: "tf",
+		res = append(res, &CassandraInput{
+			Metadata: Metadata{
+				Name: n,
+				Labels: map[string]string{
+					"tf_cluster": "cluster1",
+				},
 			},
 		})
 	}
