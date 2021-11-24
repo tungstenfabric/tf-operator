@@ -674,13 +674,47 @@ func CreateServiceSTS(instance v1.Object,
 	return
 }
 
+func _contains(name string, containers []corev1.Container) bool {
+	for _, c := range containers {
+		if name == c.Name {
+			return true
+		}
+	}
+	return false
+}
+
+func _diff(first, second []corev1.Container) (added []string, deleted []string) {
+	added = []string{}
+	deleted = []string{}
+	for _, c := range first {
+		if !_contains(c.Name, second) {
+			deleted = append(deleted, c.Name)
+		}
+	}
+	for _, c := range second {
+		if !_contains(c.Name, first) {
+			added = append(added, c.Name)
+		}
+	}
+	return
+}
+
 // TODO: Make it more intellectual. Now it's checks only images and envs.
 func containersChanged(first *corev1.PodTemplateSpec,
 	second *corev1.PodTemplateSpec,
 ) (changed bool) {
 	changed = false
 	logger := log.WithName("containerDiff")
-
+	// check if same containers
+	if added, deleted := _diff(first.Spec.Containers, second.Spec.Containers); len(added) != 0 || len(deleted) != 0 {
+		changed = true
+		logger.Info("Containers changed",
+			"Added containers", added,
+			"Deleted containers", deleted,
+		)
+		return
+	}
+	// same containers, check images and env variables
 	for _, container1 := range first.Spec.Containers {
 		for _, container2 := range second.Spec.Containers {
 			if container1.Name == container2.Name {
