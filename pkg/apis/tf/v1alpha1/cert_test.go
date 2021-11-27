@@ -446,9 +446,9 @@ func TestOpenshiftCARenewal(t *testing.T) {
 	require.Equal(t, string(csrIfaceImpl.caCertPem), string(tt))
 	t.Logf("DBG: ocp ca\n%s", string(tt))
 	require.NoError(t, InitCA(cl, scheme, ownerCA, owner_ca_type))
-	validateCAConfigMap(t, cl, csrIfaceImpl.caCertPem)
 	require.NotEqual(t, string(oldCA), string(csrIfaceImpl.caCertPem), "CA must be changed")
-	// check cert is invalide now
+	validateCAConfigMap(t, cl, csrIfaceImpl.caCertPem)
+	// check cert is invalid now
 	certs := getServerCerts(t, cl)
 	for _, c := range certs {
 		_, err := certificates.ValidateCert(c, csrIfaceImpl.caCertPem)

@@ -123,6 +123,12 @@ func getValidatedCAWithSecrets(signer *signerK8S, cl client.Client) ([]byte, boo
 		l.Error(err, "Test cert is invalid")
 		return nil, false, err
 	}
+	// check if CA configmap upto date
+	if _, err := ValidateCert(certs[0], []byte(cm.Data[CAFilename])); err != nil {
+		l.Info("CA configmap is invalid", "reason", err)
+		return chain, false, nil
+	}
+	// check if md5 annotaition same
 	authorityKeyId := fmt.Sprintf("%X", certs[0].AuthorityKeyId)
 	l.Info("CA", "cm ca md5", cm.Annotations["ca-md5"], "secret ca md5", s.Annotations["ca-md5"], "issuer", certs[0].Issuer.CommonName, "authorityKeyId", authorityKeyId)
 	return chain, cm.Annotations["ca-md5"] == s.Annotations["ca-md5"], nil

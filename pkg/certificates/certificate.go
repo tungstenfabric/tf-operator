@@ -132,22 +132,17 @@ func CreateOrUpdateCAConfigMap(caCert []byte, cl client.Client, scheme *runtime.
 
 func (r *Certificate) createCertificateForPod(subject CertificateSubject, secret *corev1.Secret, force bool) error {
 	l := log.WithName("createCertificateForPod").WithName(subject.name)
+	cm, err := GetCAConfigMap(secret.GetNamespace(), r.client)
+	if err != nil {
+		return err
+	}
 	if ok, cert := r.certInSecret(secret, subject.ip); !force && ok {
-		cm, err := GetCAConfigMap(secret.GetNamespace(), r.client)
-		if err != nil {
-			return err
-		}
 		if secret.Annotations["ca-md5"] == cm.Annotations["ca-md5"] {
-			if cachain, err := ValidateCert(cert, []byte(cm.Data[CAFilename])); err == nil {
-				chainMd5 := k8s.Md5Sum(cachain)
-				if cm.Annotations["ca-md5"] == chainMd5 {
-					l.Info("Not changed", "md5", secret.Annotations["ca-md5"])
-					return nil
-				} else {
-					l.Info("CA changed", "configmap", cm.Annotations["ca-md5"], "chain", chainMd5)
-				}
+			if _, err := ValidateCert(cert, []byte(cm.Data[CAFilename])); err == nil {
+				l.Info("CA not changed and Cert is valid", "ca-md5", secret.Annotations["ca-md5"])
+				return nil
 			} else {
-				l.Info("Cert invalid")
+				l.Info("Cert invalid", "reason", err)
 			}
 		} else {
 			l.Info("CA changed", "configmap", cm.Annotations["ca-md5"], "secret", secret.Annotations["ca-md5"])
@@ -157,7 +152,7 @@ func (r *Certificate) createCertificateForPod(subject CertificateSubject, secret
 	if err != nil {
 		return fmt.Errorf("failed to generate certificate template for %s, %s: %w", subject.hostname, subject.name, err)
 	}
-	certPem, caCert, err := r.signer.SignCertificate(secret, certificateTemplate, privateKey)
+	certPem, _, err := r.signer.SignCertificate(secret, certificateTemplate, privateKey)
 	if err != nil {
 		return fmt.Errorf("failed to sign certificate for subject %+v, err=%w", subject, err)
 	}
@@ -167,8 +162,7 @@ func (r *Certificate) createCertificateForPod(subject CertificateSubject, secret
 	if secret.Annotations == nil {
 		secret.Annotations = make(map[string]string)
 	}
-	caMd5 := k8s.Md5Sum(caCert)
-	secret.Annotations["ca-md5"] = caMd5
+	secret.Annotations["ca-md5"] = cm.Annotations["ca-md5"]
 	delete(secret.Annotations, "changed-ca-md5")
 	l.Info("Secret updated", "ca md5", secret.Annotations["ca-md5"])
 	return nil
