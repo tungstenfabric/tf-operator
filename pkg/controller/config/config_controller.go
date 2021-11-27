@@ -355,7 +355,7 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 				},
 				corev1.EnvVar{
 					Name:  "ENABLE_4BYTE_AS",
-					Value: strconv.FormatBool(*cfg.BgpAutoMesh),
+					Value: strconv.FormatBool(*cfg.BgpEnable4Byte),
 				},
 			)
 		}
