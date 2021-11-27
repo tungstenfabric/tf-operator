@@ -76,6 +76,9 @@ type ConfigConfiguration struct {
 	FabricMgmtIP                string                  `json:"fabricMgmtIP,omitempty"`
 	LinklocalServiceConfig      *LinklocalServiceConfig `json:"linklocalServiceConfig,omitempty"`
 	UseExternalTFTP             *bool                   `json:"useExternalTFTP,omitempty"`
+	BgpAutoMesh                 *bool                   `json:"bgpAutoMesh,omitempty"`
+	BgpEnable4Byte              *bool                   `json:"bgpEnable4Byte,omitempty"`
+	GloblaASNNumber             *int                    `json:"globlaASNNumber,omitempty"`
 }
 
 // LinklocalServiceConfig is the Spec for link local coniguration
@@ -759,6 +762,24 @@ func (c *Config) ConfigurationParameters() ConfigConfiguration {
 		useExternalTFTP = *c.Spec.ServiceConfiguration.UseExternalTFTP
 	}
 	configConfiguration.UseExternalTFTP = &useExternalTFTP
+
+	bgpAutoMesh := BgpAutoMesh
+	if c.Spec.ServiceConfiguration.BgpAutoMesh != nil {
+		bgpAutoMesh = *c.Spec.ServiceConfiguration.BgpAutoMesh
+	}
+	configConfiguration.BgpAutoMesh = &bgpAutoMesh
+
+	bgpEnable4Byte := BgpEnable4Byte
+	if c.Spec.ServiceConfiguration.BgpEnable4Byte != nil {
+		bgpEnable4Byte = *c.Spec.ServiceConfiguration.BgpEnable4Byte
+	}
+	configConfiguration.BgpEnable4Byte = &bgpEnable4Byte
+
+	globlaASNNumber := BgpAsn
+	if c.Spec.ServiceConfiguration.GloblaASNNumber != nil {
+		globlaASNNumber = *c.Spec.ServiceConfiguration.GloblaASNNumber
+	}
+	configConfiguration.GloblaASNNumber = &globlaASNNumber
 
 	return configConfiguration
 }

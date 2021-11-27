@@ -50,6 +50,7 @@ const (
 	AlarmgenRedisAggregateDbOffset              string = "1"
 	BgpPort                                     int    = 179
 	BgpAutoMesh                                 bool   = true
+	BgpEnable4Byte                              bool   = false
 	BgpAsn                                      int    = 64512
 	CollectorPort                               int    = 8086
 	CollectorIntrospectPort                     int    = 8089
