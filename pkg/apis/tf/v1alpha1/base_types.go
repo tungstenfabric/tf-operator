@@ -699,24 +699,12 @@ func _diff(first, second []corev1.Container) (added []string, deleted []string) 
 	return
 }
 
-// TODO: Make it more intellectual. Now it's checks only images and envs.
-func containersChanged(first *corev1.PodTemplateSpec,
-	second *corev1.PodTemplateSpec,
+func _containersChanged(first []corev1.Container,
+	second []corev1.Container,
 ) (changed bool) {
-	changed = false
 	logger := log.WithName("containerDiff")
-	// check if same containers
-	if added, deleted := _diff(first.Spec.Containers, second.Spec.Containers); len(added) != 0 || len(deleted) != 0 {
-		changed = true
-		logger.Info("Containers changed",
-			"Added containers", added,
-			"Deleted containers", deleted,
-		)
-		return
-	}
-	// same containers, check images and env variables
-	for _, container1 := range first.Spec.Containers {
-		for _, container2 := range second.Spec.Containers {
+	for _, container1 := range first {
+		for _, container2 := range second {
 			if container1.Name == container2.Name {
 				if container1.Image != container2.Image {
 					changed = true
@@ -749,6 +737,30 @@ func containersChanged(first *corev1.PodTemplateSpec,
 			}
 		}
 	}
+	return
+
+}
+
+// TODO: Make it more intellectual. Now it's checks only images and envs.
+func containersChanged(first *corev1.PodTemplateSpec,
+	second *corev1.PodTemplateSpec,
+) (changed bool) {
+	changed = false
+	logger := log.WithName("containersChanged")
+	// check if same containers
+	if added, deleted := _diff(first.Spec.Containers, second.Spec.Containers); len(added) != 0 || len(deleted) != 0 {
+		changed = true
+		logger.Info("Containers changed",
+			"Added containers", added,
+			"Deleted containers", deleted,
+		)
+		return
+	}
+	// same containers, check images and env variables
+	if changed = _containersChanged(first.Spec.Containers, second.Spec.Containers); changed {
+		return
+	}
+	changed = _containersChanged(first.Spec.InitContainers, second.Spec.InitContainers)
 	return
 }
 

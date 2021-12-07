@@ -5,12 +5,9 @@ import (
 	"bytes"
 	"context"
 	"reflect"
-	"sort"
 	"strconv"
 	"strings"
 
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -410,42 +407,7 @@ func (c *Vrouter) UpdateDS(ds *appsv1.DaemonSet,
 		}
 		return err
 	}
-	containersChanges := false
-	for _, intendedContainer := range ds.Spec.Template.Spec.Containers {
-		for _, currentContainer := range currentDS.Spec.Template.Spec.Containers {
-			if intendedContainer.Name == currentContainer.Name {
-				if intendedContainer.Image != currentContainer.Image {
-					vrouter_log.Info("Image changed",
-						"container", currentContainer.Name,
-						"currentContainer.Image", currentContainer.Image,
-						"intendedContainer.Image", intendedContainer.Image,
-					)
-					containersChanges = true
-					break
-				}
-				sort.SliceStable(
-					intendedContainer.Env,
-					func(i, j int) bool { return intendedContainer.Env[i].Name < intendedContainer.Env[j].Name })
-				sort.SliceStable(
-					currentContainer.Env,
-					func(i, j int) bool { return currentContainer.Env[i].Name < currentContainer.Env[j].Name })
-				if !cmp.Equal(intendedContainer.Env, currentContainer.Env,
-					cmpopts.IgnoreFields(corev1.ObjectFieldSelector{}, "APIVersion"),
-				) {
-					containersChanges = true
-					vrouter_log.Info("Env changed",
-						"container", currentContainer.Name,
-						"currentContainer.Env", currentContainer.Env,
-						"intendedContainer.Env", intendedContainer.Env,
-					)
-					break
-				}
-			}
-		}
-		if containersChanges {
-			break
-		}
-	}
+	containersChanges := containersChanged(&ds.Spec.Template, &currentDS.Spec.Template)
 
 	if containersChanges {
 
