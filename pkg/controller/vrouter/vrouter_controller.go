@@ -29,7 +29,7 @@ import (
 
 var log = logf.Log.WithName("controller_vrouter")
 var restartTime, _ = time.ParseDuration("3s")
-var reconcileRequeue = reconcile.Result{Requeue: true, RequeueAfter: restartTime}
+var requeueReconcile = reconcile.Result{Requeue: true, RequeueAfter: restartTime}
 
 func resourceHandler(myclient client.Client) handler.Funcs {
 	appHandler := handler.Funcs{
@@ -375,7 +375,7 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 	if err = instance.UpdateDS(daemonSet, &instance.Spec.CommonConfiguration, instanceType, request, r.Scheme, r.Client); err != nil {
 		if v1alpha1.IsOKForRequeque(err) {
 			reqLogger.Info("Faile to update the daemonset, and reconcile is restarting.")
-			return reconcileRequeue, nil
+			return requeueReconcile, nil
 		}
 		reqLogger.Error(err, "Failed to update the daemon set.")
 		return reconcile.Result{}, err
@@ -391,7 +391,7 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 			reqLogger.Error(err, "Failed to update pods annotations.")
 			return reconcile.Result{}, err
 		}
-		return reconcileRequeue, nil
+		return requeueReconcile, nil
 	}
 
 	if len(podIPMap) > 0 {
@@ -405,7 +405,7 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 				reqLogger.Error(err, "Failed to manage node status")
 				return reconcile.Result{}, err
 			}
-			return reconcileRequeue, nil
+			return requeueReconcile, nil
 		}
 	}
 
@@ -451,16 +451,21 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 			reqLogger.Error(err, "Failed to update status.")
 			return reconcile.Result{}, err
 		}
-		return reconcileRequeue, nil
+		return requeueReconcile, nil
 	}
 
 	instance.Status.Active = &falseVal
 	if err = instance.SetInstanceActive(r.Client, instance.Status.Active, daemonSet, request, instance); err != nil {
 		if v1alpha1.IsOKForRequeque(err) {
-			return reconcileRequeue, nil
+			return requeueReconcile, nil
 		}
 		reqLogger.Error(err, "Failed to set instance active")
 		return reconcile.Result{}, err
+	}
+
+	if !*instance.Status.Active {
+		reqLogger.Info("Not Active => requeue reconcile")
+		return requeueReconcile, nil
 	}
 
 	return reconcile.Result{}, nil

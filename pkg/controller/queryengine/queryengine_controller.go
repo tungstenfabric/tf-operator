@@ -422,6 +422,11 @@ func (r *ReconcileQueryEngine) Reconcile(request reconcile.Request) (reconcile.R
 		return reconcile.Result{}, err
 	}
 
+	if !*instance.Status.Active {
+		reqLogger.Info("Not Active => requeue reconcile")
+		return requeueReconcile, nil
+	}
+
 	reqLogger.Info("Done")
 	return reconcile.Result{}, nil
 }
