@@ -366,6 +366,11 @@ func (r *ReconcileAnalyticsAlarm) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, err
 	}
 
+	if !*instance.Status.Active {
+		reqLogger.Info("Not Active => requeue reconcile")
+		return requeueReconcile, nil
+	}
+
 	reqLogger.Info("Done")
 	return reconcile.Result{}, nil
 }

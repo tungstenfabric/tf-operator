@@ -346,5 +346,11 @@ func (r *ReconcileRabbitmq) Reconcile(request reconcile.Request) (reconcile.Resu
 		reqLogger.Error(err, "Failed to set instance active.")
 		return reconcile.Result{}, err
 	}
+
+	if !*instance.Status.Active {
+		reqLogger.Info("Not Active => requeue reconcile")
+		return requeueReconcile, nil
+	}
+
 	return reconcile.Result{}, nil
 }

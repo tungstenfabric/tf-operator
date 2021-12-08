@@ -413,6 +413,11 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 		return reconcile.Result{}, err
 	}
 
+	if !*instance.Status.Active {
+		reqLogger.Info("Not Active => requeue reconcile")
+		return requeueReconcile, nil
+	}
+
 	return reconcile.Result{}, nil
 }
 
