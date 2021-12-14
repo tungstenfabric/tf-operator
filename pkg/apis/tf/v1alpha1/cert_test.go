@@ -200,7 +200,7 @@ func initApis() {
 		caCertPem:       nil,
 		caPrivateKeyPem: nil,
 	}
-	k8s.SetClientset(fakeClientSet.CoreV1(), csrIfaceImpl)
+	k8s.SetClientset(fakeClientSet.CoreV1(), csrIfaceImpl, fakeClientSet)
 }
 
 var owner_ca_type string = "manager"

@@ -266,7 +266,7 @@ func requireAllStsTag(t *testing.T, tag string, mgr *manager.ReconcileManager) {
 func init() {
 	os.Setenv(k8sutil.WatchNamespaceEnvVar, "tf")
 	fakeClientSet := fakeclient.NewSimpleClientset()
-	k8s.SetClientset(fakeClientSet.CoreV1(), nil)
+	k8s.SetClientset(fakeClientSet.CoreV1(), nil, fakeClientSet)
 	// fakeDiscovery, ok := fakeClientSet.Discovery().(*fakediscovery.FakeDiscovery)
 	// require.Equal(t, true, ok)
 	// fakeDiscovery.Fake.Resources = append(fakeDiscovery.Fake.Resources, &metav1.APIResourceList{
