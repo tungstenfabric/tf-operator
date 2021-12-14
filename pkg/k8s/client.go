@@ -21,16 +21,17 @@ import (
 
 var lock = sync.Mutex{}
 
-var clientset *kubernetes.Clientset
+var clientset kubernetes.Interface
 var coreAPI corev1api.CoreV1Interface
 var betav1Csr beta1cert.CertificateSigningRequestInterface
 
 // Allows to overwrite clientset for unittests
-func SetClientset(v1 corev1api.CoreV1Interface, v1Csr beta1cert.CertificateSigningRequestInterface) {
+func SetClientset(v1 corev1api.CoreV1Interface, v1Csr beta1cert.CertificateSigningRequestInterface, clset kubernetes.Interface) {
 	lock.Lock()
 	defer lock.Unlock()
 	coreAPI = v1
 	betav1Csr = v1Csr
+	clientset = clset
 }
 
 // GetClientConfig first tries to get a config object which uses the service account kubernetes gives to pods,
@@ -50,11 +51,17 @@ func getClientConfig() *rest.Config {
 	return config
 }
 
-func getClientset() *kubernetes.Clientset {
+func getClientset() kubernetes.Interface {
 	if clientset == nil {
 		clientset = kubernetes.NewForConfigOrDie(getClientConfig())
 	}
 	return clientset
+}
+
+func GetClientset() kubernetes.Interface {
+	lock.Lock()
+	defer lock.Unlock()
+	return getClientset()
 }
 
 // GetCoreV1 first tries to get a config object which uses the service account kubernetes gives to pods,
