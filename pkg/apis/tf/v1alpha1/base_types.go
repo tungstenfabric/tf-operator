@@ -807,10 +807,13 @@ func UpdateSTS(stsName string,
 	if force || containersChanged(&sts.Spec.Template, template) {
 		logger.Info("Some of container images or env changed, or force mode", "force", force)
 		changed = true
-		if template != nil {
-			sts.Spec.Template = *template
-		}
-		sts.Spec.Template.Labels["change-at"] = time.Now().Format("2006-01-02-15-04-05")
+		sts.Spec.Template = *template
+	}
+
+	if !changed && !cmp.Equal(sts.Spec.Template.Spec.NodeSelector, template.Spec.NodeSelector) {
+		sts.Spec.Template.Spec.NodeSelector = template.Spec.NodeSelector
+		logger.Info("nodeSelector changed")
+		changed = true
 	}
 
 	replicas, err := GetReplicas(cl, template.Spec.NodeSelector)
@@ -837,6 +840,7 @@ func UpdateSTS(stsName string,
 	if !changed {
 		return
 	}
+	sts.Spec.Template.Labels["change-at"] = time.Now().Format("2006-01-02-15-04-05")
 
 	if err = cl.Update(context.TODO(), sts); err != nil {
 		return

@@ -130,6 +130,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	if err := c.Watch(&source.Kind{Type: &corev1.Node{}}, nodeChangeHandler(mgr.GetClient())); err != nil {
+		return err
+	}
+
 	serviceMap := map[string]string{"tf_manager": instanceType}
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
 	podHandler := resourceHandler(mgr.GetClient())
@@ -265,6 +269,7 @@ func (r *ReconcileAnalyticsAlarm) Reconcile(request reconcile.Request) (reconcil
 	if err != nil {
 		return reconcile.Result{}, nil
 	}
+
 	if err = v1alpha1.EnsureServiceAccount(&statefulSet.Spec.Template.Spec,
 		instanceType, instance.Spec.CommonConfiguration.ImagePullSecrets,
 		r.Client, request, r.Scheme, instance); err != nil {
@@ -305,7 +310,8 @@ func (r *ReconcileAnalyticsAlarm) Reconcile(request reconcile.Request) (reconcil
 
 	if len(podIPMap) > 0 {
 		// TODO: Services can be run on masters only, ensure that pods number is
-		if nodes, err := v1alpha1.GetControllerNodes(r.Client); err != nil || len(podIPList) < len(nodes) {
+		nodeselector := instance.Spec.CommonConfiguration.NodeSelector
+		if nodes, err := v1alpha1.GetNodes(nodeselector, r.Client); err != nil || len(podIPList) < len(nodes) {
 			// to avoid redundand sts-es reloading configure only as STS pods are ready
 			reqLogger.Error(err, "Not enough pods are ready to generate configs %v < %v", len(podIPList), len(nodes))
 			return requeueReconcile, err

@@ -129,6 +129,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	if err := c.Watch(&source.Kind{Type: &corev1.Node{}}, nodeChangeHandler(mgr.GetClient())); err != nil {
+		return err
+	}
+
 	// Watch for changes to PODs.
 	serviceMap := map[string]string{"tf_manager": "vrouter"}
 	srcPod := &source.Kind{Type: &corev1.Pod{}}
