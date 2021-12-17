@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"reflect"
 	"regexp"
 	"sort"
@@ -354,8 +355,11 @@ type PodAlternativeIPs struct {
 // which can be later used for generating certificate for given pod.
 func PodsCertSubjects(domain string, podList []corev1.Pod, podAltIPs PodAlternativeIPs) []certificates.CertificateSubject {
 	var pods []certificates.CertificateSubject
+	var osName string
+	if hn, err := os.Hostname(); err != nil && hn != "" {
+		osName = hn
+	}
 	for _, pod := range podList {
-		hostname := pod.Spec.NodeName
 		var alternativeIPs []string
 		if podAltIPs.ServiceIP != "" {
 			alternativeIPs = append(alternativeIPs, podAltIPs.ServiceIP)
@@ -369,7 +373,15 @@ func PodsCertSubjects(domain string, podList []corev1.Pod, podAltIPs PodAlternat
 				}
 			}
 		}
-		podInfo := certificates.NewSubject(pod.Name, domain, hostname, pod.Status.PodIP, alternativeIPs)
+		altNames := []string{
+			pod.Spec.NodeName,
+			pod.Spec.Hostname,
+		}
+		if osName != "" {
+			altNames = append(altNames, osName)
+		}
+		podInfo := certificates.NewSubject(pod.Name, domain, pod.Spec.NodeName,
+			pod.Status.PodIP, alternativeIPs, altNames)
 		pods = append(pods, podInfo)
 	}
 	return pods

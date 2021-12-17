@@ -16,16 +16,19 @@ import (
 
 // CertificateSubject certificate subject
 type CertificateSubject struct {
-	name           string
-	domain         string
-	hostname       string
-	ip             string
-	alternativeIPs []string
+	name             string
+	domain           string
+	hostname         string
+	ip               string
+	alternativeIPs   []string
+	alternativeNames []string
 }
 
 // NewSubject creates new certificate subject
-func NewSubject(name, domain, hostname, ip string, alternativeIPs []string) CertificateSubject {
-	return CertificateSubject{name: name, domain: domain, hostname: hostname, ip: ip, alternativeIPs: alternativeIPs}
+func NewSubject(name, domain, hostname, ip string, alternativeIPs, alternativeNames []string) CertificateSubject {
+	return CertificateSubject{
+		name: name, domain: domain, hostname: hostname, ip: ip,
+		alternativeIPs: alternativeIPs, alternativeNames: alternativeNames}
 }
 
 func contains(list []string, val string) bool {
@@ -114,16 +117,16 @@ func (c CertificateSubject) generateCertificateTemplate() (x509.Certificate, *rs
 		}
 	}
 
+	additionalNames := c.alternativeNames
 	for _, ip := range _ips {
-		hostNames, err := net.LookupAddr(ip)
-		if err != nil {
-			continue
+		if names, err := net.LookupAddr(ip); err == nil {
+			additionalNames = append(additionalNames, names...)
 		}
-		for _, h := range hostNames {
-			for _, n := range splitFqdn(h) {
-				if !contains(altDNSNames, n) {
-					altDNSNames = append(altDNSNames, n)
-				}
+	}
+	for _, h := range additionalNames {
+		for _, n := range splitFqdn(h) {
+			if !contains(altDNSNames, n) {
+				altDNSNames = append(altDNSNames, n)
 			}
 		}
 	}
