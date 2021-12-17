@@ -107,9 +107,12 @@ func (c CertificateSubject) generateCertificateTemplate() (x509.Certificate, *rs
 		altDNSNames = append(altDNSNames, shortAndDomainName)
 	}
 
-	var ips []net.IP
-	var _ips []string
-	ips = append(ips, net.ParseIP(c.ip))
+	ips := []net.IP{
+		net.ParseIP(c.ip),
+	}
+	_ips := []string{
+		c.ip,
+	}
 	for _, ip := range c.alternativeIPs {
 		if !contains(_ips, ip) {
 			ips = append(ips, net.ParseIP(ip))
