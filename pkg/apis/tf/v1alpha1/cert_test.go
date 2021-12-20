@@ -16,10 +16,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
-	"k8s.io/api/certificates/v1beta1"
+	v1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	beta1cert "k8s.io/client-go/kubernetes/typed/certificates/v1beta1"
+	v1cert "k8s.io/client-go/kubernetes/typed/certificates/v1"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -90,70 +90,56 @@ func getSelfCASecret(validityDuration time.Duration) (*corev1.Secret, error) {
 }
 
 type csrIface struct {
-	v1Csr                       beta1cert.CertificateSigningRequestInterface
+	v1Csr                       v1cert.CertificateSigningRequestInterface
 	caCertPem                   []byte
 	caPrivateKeyPem             []byte
 	caIntermediateCertPem       []byte
 	caIntermediatePrivateKeyPem []byte
 }
 
-func (c *csrIface) Create(r *v1beta1.CertificateSigningRequest) (*v1beta1.CertificateSigningRequest, error) {
-	return c.v1Csr.Create(r)
+func (c *csrIface) Create(ctx context.Context, r *v1.CertificateSigningRequest, opts metav1.CreateOptions) (*v1.CertificateSigningRequest, error) {
+	return c.v1Csr.Create(ctx, r, opts)
 }
 
-func (c *csrIface) Update(r *v1beta1.CertificateSigningRequest) (*v1beta1.CertificateSigningRequest, error) {
-	return c.v1Csr.Update(r)
+func (c *csrIface) Update(ctx context.Context, r *v1.CertificateSigningRequest, opts metav1.UpdateOptions) (*v1.CertificateSigningRequest, error) {
+	return c.v1Csr.Update(ctx, r, opts)
 }
 
-func (c *csrIface) UpdateStatus(r *v1beta1.CertificateSigningRequest) (*v1beta1.CertificateSigningRequest, error) {
-	return c.v1Csr.UpdateStatus(r)
+func (c *csrIface) UpdateStatus(ctx context.Context, r *v1.CertificateSigningRequest, opts metav1.UpdateOptions) (*v1.CertificateSigningRequest, error) {
+	return c.v1Csr.UpdateStatus(ctx, r, opts)
 }
 
-func (c *csrIface) Delete(name string, options *metav1.DeleteOptions) error {
-	return c.v1Csr.Delete(name, options)
+func (c *csrIface) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+	return c.v1Csr.Delete(ctx, name, opts)
 }
 
-func (c *csrIface) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
-	return c.v1Csr.DeleteCollection(options, listOptions)
+func (c *csrIface) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
+	return c.v1Csr.DeleteCollection(ctx, opts, listOpts)
 }
 
-func (c *csrIface) Get(name string, options metav1.GetOptions) (*v1beta1.CertificateSigningRequest, error) {
-	return c.v1Csr.Get(name, options)
-}
-func (c *csrIface) List(opts metav1.ListOptions) (*v1beta1.CertificateSigningRequestList, error) {
-	// var l *v1beta1.CertificateSigningRequestList
-	// var err error
-	// if l, err = c.v1Csr.List(opts); err == nil {
-	// 	if opts.FieldSelector != "" {
-	// 		s := fields.ParseSelectorOrDie(opts.FieldSelector)
-	// 		var items []v1beta1.CertificateSigningRequest
-	// 		for _, i := range l.Items {
-	// 			if _, ok := s.RequiresExactMatch(i.Name); ok {
-	// 				items = append(items, i)
-	// 			}
-	// 		}
-	// 		l.Items = items
-	// 	}
-	// }
-	// return l, err
-	return c.v1Csr.List(opts)
-}
-func (c *csrIface) Watch(opts metav1.ListOptions) (watch.Interface, error) {
-	return c.v1Csr.Watch(opts)
+func (c *csrIface) Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.CertificateSigningRequest, error) {
+	return c.v1Csr.Get(ctx, name, opts)
 }
 
-func (c *csrIface) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.CertificateSigningRequest, err error) {
-	result, err = c.v1Csr.Patch(name, pt, data, subresources...)
+func (c *csrIface) List(ctx context.Context, opts metav1.ListOptions) (*v1.CertificateSigningRequestList, error) {
+	return c.v1Csr.List(ctx, opts)
+}
+func (c *csrIface) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
+	return c.v1Csr.Watch(ctx, opts)
+}
+
+func (c *csrIface) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.CertificateSigningRequest, err error) {
+	result, err = c.v1Csr.Patch(ctx, name, pt, data, opts, subresources...)
 	return
 }
 
-func (c *csrIface) UpdateApproval(r *v1beta1.CertificateSigningRequest) (*v1beta1.CertificateSigningRequest, error) {
+func (c *csrIface) UpdateApproval(ctx context.Context, certificateSigningRequestName string, certificateSigningRequest *v1.CertificateSigningRequest, opts metav1.UpdateOptions) (*v1.CertificateSigningRequest, error) {
 	var err error
-	if r, err = c.v1Csr.UpdateApproval(r); err != nil {
-		return r, err
+	if certificateSigningRequest, err = c.v1Csr.UpdateApproval(ctx, certificateSigningRequestName, certificateSigningRequest, metav1.UpdateOptions{}); err != nil {
+		return certificateSigningRequest, err
 	}
 	var csrBlock *pem.Block
-	csrBlock, _ = pem.Decode(r.Spec.Request)
+	csrBlock, _ = pem.Decode(certificateSigningRequest.Spec.Request)
 	var csr *x509.CertificateRequest
 	if csr, err = x509.ParseCertificateRequest(csrBlock.Bytes); err != nil {
 		return nil, err
@@ -178,11 +164,11 @@ func (c *csrIface) UpdateApproval(r *v1beta1.CertificateSigningRequest) (*v1beta
 	caCertBlock, _ := pem.Decode(c.caCertPem)
 	caPrivateKeyBlock, _ := pem.Decode(c.caPrivateKeyPem)
 
-	if r.Status.Certificate, _, err = certificates.SignCertificateSelfCA(caCertBlock.Bytes, caPrivateKeyBlock.Bytes, certificateTemplate, csr.PublicKey); err != nil {
+	if certificateSigningRequest.Status.Certificate, _, err = certificates.SignCertificateSelfCA(caCertBlock.Bytes, caPrivateKeyBlock.Bytes, certificateTemplate, csr.PublicKey); err != nil {
 		return nil, err
 	}
-	r, err = c.v1Csr.UpdateStatus(r)
-	return r, err
+	certificateSigningRequest, err = c.v1Csr.UpdateStatus(ctx, certificateSigningRequest, metav1.UpdateOptions{})
+	return certificateSigningRequest, err
 }
 
 func init() {
@@ -190,17 +176,44 @@ func init() {
 	certificates.Now = nil
 }
 
+type fakeClientSet struct {
+	fakeclient.Clientset
+	csrIface *csrIface
+}
+
+type fakeCertV1 struct {
+	v1cert.CertificatesV1Interface
+	fake *fakeClientSet
+}
+
+func (c *fakeClientSet) CertificatesV1() v1cert.CertificatesV1Interface {
+	fake := &fakeCertV1{}
+	fake.CertificatesV1Interface = c.Clientset.CertificatesV1()
+	fake.fake = c
+	return fake
+}
+
+func (c *fakeCertV1) CertificateSigningRequests() v1cert.CertificateSigningRequestInterface {
+	return c.fake.csrIface
+}
+
+var fakeClientSetImpl *fakeClientSet = nil
 var csrIfaceImpl *csrIface = nil
 
 func initApis() {
+	// dont use unknown legacy in UT as it is implements v1 version
+	// for legacy it is needed to add betav1
+	certificates.K8SSignerName = "kubernetes.io/kubelet-serving"
 	k8s.SetDeployerTypeE(false)
-	fakeClientSet := fakeclient.NewSimpleClientset()
-	csrIfaceImpl = &csrIface{
-		v1Csr:           fakeClientSet.CertificatesV1beta1().CertificateSigningRequests(),
+	fakeClientSetImpl = &fakeClientSet{}
+	fakeClientSetImpl.Clientset = *fakeclient.NewSimpleClientset()
+	fakeClientSetImpl.csrIface = &csrIface{
+		v1Csr:           fakeClientSetImpl.Clientset.CertificatesV1().CertificateSigningRequests(),
 		caCertPem:       nil,
 		caPrivateKeyPem: nil,
 	}
-	k8s.SetClientset(fakeClientSet.CoreV1(), csrIfaceImpl, fakeClientSet)
+	csrIfaceImpl = fakeClientSetImpl.csrIface
+	k8s.SetClientset(fakeClientSetImpl.CoreV1(), fakeClientSetImpl)
 }
 
 var owner_ca_type string = "manager"
@@ -379,8 +392,8 @@ func setOpenshiftCAObjects(t *testing.T) {
 	require.NoError(t, err, "Failed to generate CA cert")
 
 	cm := getOpenShiftCAConfigMap(string(ca))
-	_ = k8s.GetCoreV1().ConfigMaps(cm.GetNamespace()).Delete(cm.Name, &metav1.DeleteOptions{})
-	_, err = k8s.GetCoreV1().ConfigMaps(cm.GetNamespace()).Create(cm)
+	_ = k8s.GetCoreV1().ConfigMaps(cm.GetNamespace()).Delete(context.TODO(), cm.Name, metav1.DeleteOptions{})
+	_, err = k8s.GetCoreV1().ConfigMaps(cm.GetNamespace()).Create(context.TODO(), cm, metav1.CreateOptions{})
 	require.NoError(t, err, "Failed to create Openshift CA configmap")
 
 	csrIfaceImpl.caCertPem = make([]byte, len(ca))
@@ -482,8 +495,8 @@ func getK8SCAConfigMap(caCert []byte) *corev1.ConfigMap {
 
 func setK8SCAConfigMap(t *testing.T, caCert []byte) {
 	cm := getK8SCAConfigMap(caCert)
-	_ = k8s.GetCoreV1().ConfigMaps(cm.GetNamespace()).Delete(cm.Name, &metav1.DeleteOptions{})
-	_, err := k8s.GetCoreV1().ConfigMaps(cm.GetNamespace()).Create(cm)
+	_ = k8s.GetCoreV1().ConfigMaps(cm.GetNamespace()).Delete(context.TODO(), cm.Name, metav1.DeleteOptions{})
+	_, err := k8s.GetCoreV1().ConfigMaps(cm.GetNamespace()).Create(context.TODO(), cm, metav1.CreateOptions{})
 	require.NoError(t, err, "Failed to create K8S CA configmap")
 
 }

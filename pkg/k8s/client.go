@@ -10,7 +10,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
-	beta1cert "k8s.io/client-go/kubernetes/typed/certificates/v1beta1"
+	v1cert "k8s.io/client-go/kubernetes/typed/certificates/v1"
 	corev1api "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -23,14 +23,12 @@ var lock = sync.Mutex{}
 
 var clientset kubernetes.Interface
 var coreAPI corev1api.CoreV1Interface
-var betav1Csr beta1cert.CertificateSigningRequestInterface
 
 // Allows to overwrite clientset for unittests
-func SetClientset(v1 corev1api.CoreV1Interface, v1Csr beta1cert.CertificateSigningRequestInterface, clset kubernetes.Interface) {
+func SetClientset(v1 corev1api.CoreV1Interface, clset kubernetes.Interface) {
 	lock.Lock()
 	defer lock.Unlock()
 	coreAPI = v1
-	betav1Csr = v1Csr
 	clientset = clset
 }
 
@@ -74,13 +72,10 @@ func GetCoreV1() corev1api.CoreV1Interface {
 	return coreAPI
 }
 
-func GetBetaV1Csr() beta1cert.CertificateSigningRequestInterface {
+func GetV1Csr() v1cert.CertificateSigningRequestInterface {
 	lock.Lock()
 	defer lock.Unlock()
-	if betav1Csr == nil {
-		betav1Csr = getClientset().CertificatesV1beta1().CertificateSigningRequests()
-	}
-	return betav1Csr
+	return getClientset().CertificatesV1().CertificateSigningRequests()
 }
 
 // ExecToPodThroughAPI uninterractively exec to the pod with the command specified.
