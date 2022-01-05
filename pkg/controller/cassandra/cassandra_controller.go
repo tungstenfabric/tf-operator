@@ -369,6 +369,11 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		return requeueReconcile, nil
 	}
 
+	if !*instance.Status.Active {
+		reqLogger.Info("Not Active => requeue reconcile")
+		return requeueReconcile, nil
+	}
+
 	reqLogger.Info("End")
 	return reconcile.Result{}, nil
 }

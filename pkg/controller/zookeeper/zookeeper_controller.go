@@ -336,6 +336,12 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 		reqLogger.Error(err, "Failed to set instance active.")
 		return reconcile.Result{}, err
 	}
+
+	if !*instance.Status.Active {
+		reqLogger.Info("Not Active => requeue reconcile")
+		return requeueReconcile, nil
+	}
+
 	return reconcile.Result{}, nil
 }
 func (r *ReconcileZookeeper) ensurePodDisruptionBudgetExists(zookeeper *v1alpha1.Zookeeper) error {
