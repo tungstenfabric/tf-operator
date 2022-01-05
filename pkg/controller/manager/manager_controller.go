@@ -301,6 +301,8 @@ func isServiceUpdated(ziuStage v1alpha1.ZIUStatus, clnt client.Client) (bool, er
 // check if STS Updated Replicas is the same with Replicas
 // if it is return true, otherwise, return false
 func isServiceInstanceUpdated(kind string, serviceName string, isSlice bool, clnt client.Client, params map[string]interface{}) (map[string]interface{}, error) {
+
+	ll := log.WithName("isServiceInstanceUpdated").WithName(serviceName)
 	updatedFalse := map[string]interface{}{"Updated": false}
 	updatedTrue := map[string]interface{}{"Updated": true}
 	var err error
@@ -311,6 +313,7 @@ func isServiceInstanceUpdated(kind string, serviceName string, isSlice bool, cln
 	if err = clnt.Get(context.Background(), types.NamespacedName{Name: stsName, Namespace: "tf"}, sts); err != nil {
 		if errors.IsNotFound(err) {
 			// We have to wait when sts will bw set up
+			ll.Info(fmt.Sprintf("STS %s not found", stsName))
 			return updatedFalse, nil
 		}
 		return updatedFalse, err
@@ -346,11 +349,13 @@ func isServiceInstanceUpdated(kind string, serviceName string, isSlice bool, cln
 
 	// Find a container with the same name in STS template
 	if !checkContainersTag(managerContainerName, managerContainerImage, sts.Spec.Template.Spec.Containers) {
+		ll.Info(fmt.Sprintf("Container %s/%s is not updated, spec: %+v", managerContainerName, managerContainerImage, sts.Spec.Template.Spec.Containers))
 		return updatedFalse, nil
 	}
 
 	// check if STS Updated Replicas is the same with Replicas
 	if sts.Status.Replicas != sts.Status.UpdatedReplicas {
+		ll.Info(fmt.Sprintf("STS replicas not udpated: Replicas(%d) != UpdatedReplicas(%d)", sts.Status.Replicas, sts.Status.UpdatedReplicas))
 		return updatedFalse, nil
 	}
 	// Get service pods
@@ -361,14 +366,19 @@ func isServiceInstanceUpdated(kind string, serviceName string, isSlice bool, cln
 	for _, podItem := range pods.Items {
 		if podItem.Status.Phase != corev1.PodPhase("Running") ||
 			!cmpContainers(sts.Spec.Template.Spec.Containers, podItem.Spec.Containers) {
+			if podItem.Status.Phase != corev1.PodPhase("Running") {
+				ll.Info(fmt.Sprintf("STS pod not ready: name=%s phase=%s ", podItem.Name, podItem.Status.Phase))
+			} else {
+				ll.Info("Pod containers are not ready, spec: %+v, pod: %+v", sts.Spec.Template.Spec.Containers, podItem.Spec.Containers)
+			}
 			return updatedFalse, nil
 		}
 	}
 	// Check if Service has Active status
 	if !v1alpha1.IsUnstructuredActive(kind, serviceName, "tf", clnt) {
+		ll.Info("Service is not active")
 		return updatedFalse, nil
 	}
-
 	// All looks updated
 	return updatedTrue, nil
 }
@@ -486,7 +496,7 @@ func ReconcileZiu(log logr.Logger, clnt client.Client) (reconcile.Result, error)
 	// We have to wait previous stage updated and ready
 	if ziuStage > 0 {
 		if isUpdated, err := isServiceUpdated(ziuStage-1, clnt); err != nil || !isUpdated {
-			reqLogger.Info("Wait for updating services", "ziuStage", ziuStage, "err", err)
+			reqLogger.Info("Wait for updating services", "ziuStage", ziuStage-1, "err", err)
 			return requeueResult, err
 		}
 	}

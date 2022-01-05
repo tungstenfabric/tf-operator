@@ -313,7 +313,7 @@ func (r *ReconcileAnalyticsAlarm) Reconcile(request reconcile.Request) (reconcil
 		nodeselector := instance.Spec.CommonConfiguration.NodeSelector
 		if nodes, err := v1alpha1.GetNodes(nodeselector, r.Client); err != nil || len(podIPList) < len(nodes) {
 			// to avoid redundand sts-es reloading configure only as STS pods are ready
-			reqLogger.Error(err, "Not enough pods are ready to generate configs %v < %v", len(podIPList), len(nodes))
+			reqLogger.Error(err, "Not enough pods are ready to generate configs (pods < nodes)", "pods", len(podIPList), "nodes", len(nodes))
 			return requeueReconcile, err
 		}
 
