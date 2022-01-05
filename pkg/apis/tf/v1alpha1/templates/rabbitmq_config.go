@@ -151,6 +151,9 @@ ssl_options.keyfile = /etc/certificates/server-key-{{ .PodIP }}.pem
 ssl_options.certfile = /etc/certificates/server-{{ .PodIP }}.crt
 ssl_options.verify = verify_peer
 ssl_options.fail_if_no_peer_cert = true
+ssl_options.versions.1 = tlsv1.2
+ssl_options.honor_cipher_order = true
+ssl_options.honor_ecc_order = true
 cluster_partition_handling = {{ .ClusterPartitionHandling }}
 log.file.level = {{ lowerOrDefault .LogLevel "info" }}
 {{ if .TCPListenOptions }}
