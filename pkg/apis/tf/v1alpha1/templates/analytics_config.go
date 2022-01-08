@@ -38,9 +38,12 @@ redis_ca_cert={{ .CAFilePath }}
 introspect_ssl_enable=True
 introspect_ssl_insecure=True
 sandesh_ssl_enable=True
-sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
-sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
-sandesh_ca_cert={{ .CAFilePath }}`))
+sandesh_keyfile=/etc/certificates/client-key-{{ .PodIP }}.pem
+sandesh_certfile=/etc/certificates/client-{{ .PodIP }}.crt
+sandesh_server_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+sandesh_server_certfile=/etc/certificates/server-{{ .PodIP }}.crt
+sandesh_ca_cert={{ .CAFilePath }}
+`))
 
 // CollectorConfig is the template of the Collector service configuration.
 var CollectorConfig = template.Must(template.New("").Parse(`[DEFAULT]
@@ -94,16 +97,18 @@ rabbitmq_vhost={{ .RabbitmqVhost }}
 rabbitmq_user={{ .RabbitmqUser }}
 rabbitmq_password={{ .RabbitmqPassword }}
 rabbitmq_use_ssl=True
-rabbitmq_ssl_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
-rabbitmq_ssl_certfile=/etc/certificates/server-{{ .PodIP }}.crt
+rabbitmq_ssl_keyfile=/etc/certificates/client-key-{{ .PodIP }}.pem
+rabbitmq_ssl_certfile=/etc/certificates/client-{{ .PodIP }}.crt
 rabbitmq_ssl_ca_certs={{ .CAFilePath }}
 rabbitmq_ssl_version=tlsv1_2
 [SANDESH]
 introspect_ssl_enable=True
 introspect_ssl_insecure=True
 sandesh_ssl_enable=True
-sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
-sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
+sandesh_keyfile=/etc/certificates/client-key-{{ .PodIP }}.pem
+sandesh_certfile=/etc/certificates/client-{{ .PodIP }}.crt
+sandesh_server_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+sandesh_server_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 sandesh_ca_cert={{ .CAFilePath }}
 [DATABASE]
 disk_usage_percentage.high_watermark0=90

@@ -102,6 +102,8 @@ function configs_unchanged() {
   {{ end }}
   check_hash_impl /etc/certificates/server-key-${POD_IP}.pem || changed=1
   check_hash_impl /etc/certificates/server-${POD_IP}.crt || changed=1
+  check_hash_impl /etc/certificates/client-key-${POD_IP}.pem || changed=1
+  check_hash_impl /etc/certificates/client-${POD_IP}.crt || changed=1
   check_hash_impl {{ .CAFilePath }} || changed=1
   return $changed
 }
@@ -124,6 +126,8 @@ touch $sig_file
 while [ -e $sig_file ] ; do
   wait_file /etc/certificates/server-key-${POD_IP}.pem
   wait_file /etc/certificates/server-${POD_IP}.crt
+  wait_file /etc/certificates/client-key-${POD_IP}.pem
+  wait_file /etc/certificates/client-${POD_IP}.crt
   wait_file {{ .CAFilePath }}
   {{ range $src, $dst := .Configs }}
   link_file {{ $src }} {{ $dst }}

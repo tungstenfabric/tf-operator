@@ -30,8 +30,8 @@ rabbitmq_vhost={{ .RabbitmqVhost }}
 rabbitmq_user={{ .RabbitmqUser }}
 rabbitmq_password={{ .RabbitmqPassword }}
 rabbitmq_use_ssl=True
-kombu_ssl_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
-kombu_ssl_certfile=/etc/certificates/server-{{ .PodIP }}.crt
+kombu_ssl_keyfile=/etc/certificates/client-key-{{ .PodIP }}.pem
+kombu_ssl_certfile=/etc/certificates/client-{{ .PodIP }}.crt
 kombu_ssl_ca_certs={{ .CAFilePath }}
 kombu_ssl_version=tlsv1_2
 [KAFKA]
@@ -52,7 +52,9 @@ redis_ca_cert={{ .CAFilePath }}
 introspect_ssl_enable=True
 introspect_ssl_insecure=True
 sandesh_ssl_enable=True
-sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
-sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
+sandesh_keyfile=/etc/certificates/client-key-{{ .PodIP }}.pem
+sandesh_certfile=/etc/certificates/client-{{ .PodIP }}.crt
+sandesh_server_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+sandesh_server_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 sandesh_ca_cert={{ .CAFilePath }}
 `))

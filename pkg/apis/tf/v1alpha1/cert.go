@@ -81,8 +81,8 @@ func retrieveDataIPs(pod corev1.Pod) []string {
 	return altIPs
 }
 
-// EnsureCertificatesExist ensures pod cert is issued
-func EnsureCertificatesExist(instance metav1.Object, pods []corev1.Pod, instanceType string, cl client.Client, scheme *runtime.Scheme) error {
+// EnsureCertificatesExistEx ensures pod cert is issued
+func EnsureCertificatesExistEx(instance metav1.Object, pods []corev1.Pod, instanceType string, clientAuth bool, cl client.Client, scheme *runtime.Scheme) error {
 	// This might be called from reconsiles.. need sync
 	_Lock.Lock()
 	defer _Lock.Unlock()
@@ -94,10 +94,22 @@ func EnsureCertificatesExist(instance metav1.Object, pods []corev1.Pod, instance
 		return err
 	}
 	altIPs := PodAlternativeIPs{Retriever: retrieveDataIPs}
-	subjects := PodsCertSubjects(domain, pods, altIPs)
+	subjects := PodsCertSubjects(domain, pods, altIPs, clientAuth)
 	crt, err := certificates.NewCertificate(signer, cl, scheme, instance, subjects, instanceType)
 	if err != nil {
 		return err
 	}
 	return crt.EnsureExistsAndIsSigned(false)
+}
+
+// EnsureCertificatesExist ensures pod server cert is issued
+func EnsureCertificatesExist(instance metav1.Object, pods []corev1.Pod, instanceType string, cl client.Client, scheme *runtime.Scheme) error {
+	// issue server side cert
+	clientAuth := false
+	if err := EnsureCertificatesExistEx(instance, pods, instanceType, clientAuth, cl, scheme); err != nil {
+		return err
+	}
+	// issue client certs (for now used for rabbit clients only)
+	clientAuth = true
+	return EnsureCertificatesExistEx(instance, pods, instanceType, clientAuth, cl, scheme)
 }

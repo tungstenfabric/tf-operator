@@ -136,7 +136,7 @@ func (r *Certificate) createCertificateForPod(subject CertificateSubject, secret
 	if err != nil {
 		return err
 	}
-	if ok, cert := r.certInSecret(secret, subject.ip); !force && ok {
+	if ok, cert := r.certInSecret(secret, subject); !force && ok {
 		if secret.Annotations["ca-md5"] == cm.Annotations["ca-md5"] {
 			if _, err := ValidateCert(cert, []byte(cm.Data[CAFilename])); err == nil {
 				l.Info("CA not changed and Cert is valid", "ca-md5", secret.Annotations["ca-md5"])
@@ -157,8 +157,8 @@ func (r *Certificate) createCertificateForPod(subject CertificateSubject, secret
 		return fmt.Errorf("failed to sign certificate for subject %+v, err=%w", subject, err)
 	}
 	certPrivKeyPem, _ := EncodeInPemFormat(x509.MarshalPKCS1PrivateKey(privateKey), PrivateKeyPemType)
-	secret.Data[serverPrivateKeyFileName(subject.ip)] = certPrivKeyPem
-	secret.Data[serverCertificateFileName(subject.ip)] = certPem
+	secret.Data[serverPrivateKeyFileName(subject)] = certPrivKeyPem
+	secret.Data[serverCertificateFileName(subject)] = certPem
 	if secret.Annotations == nil {
 		secret.Annotations = make(map[string]string)
 	}
@@ -168,9 +168,9 @@ func (r *Certificate) createCertificateForPod(subject CertificateSubject, secret
 	return nil
 }
 
-func (r *Certificate) certInSecret(secret *corev1.Secret, podIP string) (bool, *x509.Certificate) {
-	certPem, certOk := secret.Data[serverCertificateFileName(podIP)]
-	_, pemOk := secret.Data[serverPrivateKeyFileName(podIP)]
+func (r *Certificate) certInSecret(secret *corev1.Secret, subject CertificateSubject) (bool, *x509.Certificate) {
+	certPem, certOk := secret.Data[serverCertificateFileName(subject)]
+	_, pemOk := secret.Data[serverPrivateKeyFileName(subject)]
 	if !pemOk || !certOk {
 		return false, nil
 	}
@@ -184,12 +184,19 @@ func (r *Certificate) certInSecret(secret *corev1.Secret, podIP string) (bool, *
 	return true, certs[0]
 }
 
-func serverPrivateKeyFileName(ip string) string {
-	return fmt.Sprintf("server-key-%s.pem", ip)
+func certFilePrefix(subject CertificateSubject) string {
+	if subject.clientAuth {
+		return "client"
+	}
+	return "server"
 }
 
-func serverCertificateFileName(ip string) string {
-	return fmt.Sprintf("server-%s.crt", ip)
+func serverPrivateKeyFileName(subject CertificateSubject) string {
+	return fmt.Sprintf("%s-key-%s.pem", certFilePrefix(subject), subject.ip)
+}
+
+func serverCertificateFileName(subject CertificateSubject) string {
+	return fmt.Sprintf("%s-%s.crt", certFilePrefix(subject), subject.ip)
 }
 
 func isRootCA(c *x509.Certificate) bool {

@@ -37,8 +37,8 @@ rabbit_vhost={{ .RabbitmqVhost }}
 rabbit_user={{ .RabbitmqUser }}
 rabbit_password={{ .RabbitmqPassword }}
 rabbit_use_ssl=True
-kombu_ssl_keyfile=/etc/certificates/server-key-{{ .ListenAddress }}.pem
-kombu_ssl_certfile=/etc/certificates/server-{{ .ListenAddress }}.crt
+kombu_ssl_keyfile=/etc/certificates/client-key-{{ .ListenAddress }}.pem
+kombu_ssl_certfile=/etc/certificates/client-{{ .ListenAddress }}.crt
 kombu_ssl_ca_certs={{ .CAFilePath }}
 kombu_ssl_version=tlsv1_2
 rabbit_health_check_interval=10
@@ -52,8 +52,10 @@ zk_server_ip={{ .ZookeeperServerList }}
 introspect_ssl_enable=True
 introspect_ssl_insecure=True
 sandesh_ssl_enable=True
-sandesh_keyfile=/etc/certificates/server-key-{{ .ListenAddress }}.pem
-sandesh_certfile=/etc/certificates/server-{{ .ListenAddress }}.crt
+sandesh_keyfile=/etc/certificates/client-key-{{ .ListenAddress }}.pem
+sandesh_certfile=/etc/certificates/client-{{ .ListenAddress }}.crt
+sandesh_server_keyfile=/etc/certificates/server-key-{{ .ListenAddress }}.pem
+sandesh_server_certfile=/etc/certificates/server-{{ .ListenAddress }}.crt
 sandesh_ca_cert={{ .CAFilePath }}
 
 {{ if eq .AuthMode "keystone" }}

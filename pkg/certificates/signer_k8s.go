@@ -57,7 +57,8 @@ func InitK8SCA(cl client.Client, scheme *runtime.Scheme, owner metav1.Object) (C
 
 func ensureTestCertificatesExist(signer *signerK8S, cl client.Client) (*corev1.Secret, error) {
 	l := log.WithName("ensureTestCertificatesExist")
-	subjects := []CertificateSubject{NewSubject("test", "local", "localhost", "127.0.0.1", []string{}, []string{})}
+	clientAuth := false
+	subjects := []CertificateSubject{NewSubject("test", "local", "localhost", "127.0.0.1", []string{}, []string{}, clientAuth)}
 	crt, err := NewCertificate(signer, cl, signer.scheme, signer.owner, subjects, "manager")
 	if err != nil {
 		l.Error(err, "Failed to create new test cert")

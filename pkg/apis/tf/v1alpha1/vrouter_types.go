@@ -154,10 +154,12 @@ type VrouterConfiguration struct {
 	BarbicanUser       string `json:"barbicanUser,omitempty"`
 
 	// Sandesh
-	SandeshCaCertfile string `json:"sandeshCaCertfile,omitempty"`
-	SandeshCertfile   string `json:"sandeshCertfile,omitempty"`
-	SandeshKeyfile    string `json:"sandeshKeyfile,omitempty"`
-	SandeshSslEnable  *bool  `json:"sandeshSslEnable,omitempty"`
+	SandeshCaCertfile     string `json:"sandeshCaCertfile,omitempty"`
+	SandeshCertfile       string `json:"sandeshCertfile,omitempty"`
+	SandeshKeyfile        string `json:"sandeshKeyfile,omitempty"`
+	SandeshServerCertfile string `json:"sandeshServerCertfile,omitempty"`
+	SandeshServerKeyfile  string `json:"sandeshServerKeyfile,omitempty"`
+	SandeshSslEnable      *bool  `json:"sandeshSslEnable,omitempty"`
 
 	// Server SSL
 	ServerCaCertfile string `json:"serverCaCertfile,omitempty"`
@@ -490,6 +492,8 @@ func (c *Vrouter) VrouterConfigurationParameters(client client.Client) (*Vrouter
 	falseVal := false
 	defCert := "/etc/certificates/server-${POD_IP}.crt"
 	defKey := "/etc/certificates/server-key-${POD_IP}.pem"
+	defClientCert := "/etc/certificates/client-${POD_IP}.crt"
+	defClientKey := "/etc/certificates/client-key-${POD_IP}.pem"
 
 	if vrouterConfiguration.LogLocal == nil {
 		ll := LogLocal
@@ -535,10 +539,10 @@ func (c *Vrouter) VrouterConfigurationParameters(client client.Client) (*Vrouter
 		vrouterConfiguration.XmppServerCaCertfile = vrouterConfiguration.ServerCaCertfile
 	}
 	if vrouterConfiguration.XmppServerCertfile == "" {
-		vrouterConfiguration.XmppServerCertfile = vrouterConfiguration.ServerCertfile
+		vrouterConfiguration.XmppServerCertfile = defClientCert
 	}
 	if vrouterConfiguration.XmppServerKeyfile == "" {
-		vrouterConfiguration.XmppServerKeyfile = vrouterConfiguration.ServerKeyfile
+		vrouterConfiguration.XmppServerKeyfile = defClientKey
 	}
 
 	if vrouterConfiguration.SandeshSslEnable == nil {
@@ -548,10 +552,16 @@ func (c *Vrouter) VrouterConfigurationParameters(client client.Client) (*Vrouter
 		vrouterConfiguration.SandeshCaCertfile = vrouterConfiguration.ServerCaCertfile
 	}
 	if vrouterConfiguration.SandeshCertfile == "" {
-		vrouterConfiguration.SandeshCertfile = vrouterConfiguration.ServerCertfile
+		vrouterConfiguration.SandeshCertfile = defClientCert
 	}
 	if vrouterConfiguration.SandeshKeyfile == "" {
-		vrouterConfiguration.SandeshKeyfile = vrouterConfiguration.ServerKeyfile
+		vrouterConfiguration.SandeshKeyfile = defClientKey
+	}
+	if vrouterConfiguration.SandeshServerCertfile == "" {
+		vrouterConfiguration.SandeshServerCertfile = defCert
+	}
+	if vrouterConfiguration.SandeshServerKeyfile == "" {
+		vrouterConfiguration.SandeshServerKeyfile = defKey
 	}
 
 	if vrouterConfiguration.IntrospectSslEnable == nil {

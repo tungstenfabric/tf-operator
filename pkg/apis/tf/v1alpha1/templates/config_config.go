@@ -49,8 +49,8 @@ rabbit_vhost={{ .RabbitmqVhost }}
 rabbit_user={{ .RabbitmqUser }}
 rabbit_password={{ .RabbitmqPassword }}
 rabbit_use_ssl=True
-kombu_ssl_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
-kombu_ssl_certfile=/etc/certificates/server-{{ .PodIP }}.crt
+kombu_ssl_keyfile=/etc/certificates/client-key-{{ .PodIP }}.pem
+kombu_ssl_certfile=/etc/certificates/client-{{ .PodIP }}.crt
 kombu_ssl_ca_certs={{ .CAFilePath }}
 kombu_ssl_version=tlsv1_2
 rabbit_health_check_interval=10
@@ -62,9 +62,12 @@ enable_api_stats_log=True
 introspect_ssl_enable=True
 introspect_ssl_insecure=True
 sandesh_ssl_enable=True
-sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
-sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
-sandesh_ca_cert={{ .CAFilePath }}`))
+sandesh_keyfile=/etc/certificates/client-key-{{ .PodIP }}.pem
+sandesh_certfile=/etc/certificates/client-{{ .PodIP }}.crt
+sandesh_server_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+sandesh_server_certfile=/etc/certificates/server-{{ .PodIP }}.crt
+sandesh_ca_cert={{ .CAFilePath }}
+`))
 
 // ConfigAPIUwsgiIniConfig is uwsgi.conf file, used by api when api worker count is greater than one.
 var ConfigAPIUwsgiIniConfig = template.Must(template.New("").Parse(`[uwsgi]
@@ -113,8 +116,8 @@ rabbit_vhost={{ .RabbitmqVhost }}
 rabbit_user={{ .RabbitmqUser }}
 rabbit_password={{ .RabbitmqPassword }}
 rabbit_use_ssl=True
-kombu_ssl_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
-kombu_ssl_certfile=/etc/certificates/server-{{ .PodIP }}.crt
+kombu_ssl_keyfile=/etc/certificates/client-key-{{ .PodIP }}.pem
+kombu_ssl_certfile=/etc/certificates/client-{{ .PodIP }}.crt
 kombu_ssl_ca_certs={{ .CAFilePath }}
 kombu_ssl_version=tlsv1_2
 rabbit_health_check_interval=10
@@ -123,9 +126,12 @@ collectors={{ .CollectorServerList }}
 introspect_ssl_enable=True
 introspect_ssl_insecure=True
 sandesh_ssl_enable=True
-sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
-sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
-sandesh_ca_cert={{ .CAFilePath }}`))
+sandesh_keyfile=/etc/certificates/client-key-{{ .PodIP }}.pem
+sandesh_certfile=/etc/certificates/client-{{ .PodIP }}.crt
+sandesh_server_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+sandesh_server_certfile=/etc/certificates/server-{{ .PodIP }}.crt
+sandesh_ca_cert={{ .CAFilePath }}
+`))
 
 // ConfigKeystoneAuthConf is the template of the DeviceManager keystone auth configuration.
 var ConfigKeystoneAuthConf = template.Must(template.New("").Parse(`
@@ -164,9 +170,12 @@ collectors={{ .CollectorServerList }}
 introspect_ssl_enable=True
 introspect_ssl_insecure=True
 sandesh_ssl_enable=True
-sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
-sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
-sandesh_ca_cert={{ .CAFilePath }}`))
+sandesh_keyfile=/etc/certificates/client-key-{{ .PodIP }}.pem
+sandesh_certfile=/etc/certificates/client-{{ .PodIP }}.crt
+sandesh_server_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+sandesh_server_certfile=/etc/certificates/server-{{ .PodIP }}.crt
+sandesh_ca_cert={{ .CAFilePath }}
+`))
 
 // ConfigDNSMasqBaseConfig is the template of the DNSMasq service configuration.
 var ConfigDNSMasqBaseConfig = template.Must(template.New("").Parse(`log-facility=/var/log/contrail/dnsmasq.log
@@ -202,8 +211,8 @@ rabbit_vhost={{ .RabbitmqVhost }}
 rabbit_user={{ .RabbitmqUser }}
 rabbit_password={{ .RabbitmqPassword }}
 rabbit_use_ssl=True
-kombu_ssl_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
-kombu_ssl_certfile=/etc/certificates/server-{{ .PodIP }}.crt
+kombu_ssl_keyfile=/etc/certificates/client-key-{{ .PodIP }}.pem
+kombu_ssl_certfile=/etc/certificates/client-{{ .PodIP }}.crt
 kombu_ssl_ca_certs={{ .CAFilePath }}
 kombu_ssl_version=tlsv1_2
 rabbit_health_check_interval=10
@@ -212,14 +221,17 @@ collectors={{ .CollectorServerList }}
 introspect_ssl_enable=True
 introspect_ssl_insecure=True
 sandesh_ssl_enable=True
-sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
-sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
+sandesh_keyfile=/etc/certificates/client-key-{{ .PodIP }}.pem
+sandesh_certfile=/etc/certificates/client-{{ .PodIP }}.crt
+sandesh_server_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+sandesh_server_certfile=/etc/certificates/server-{{ .PodIP }}.crt
 sandesh_ca_cert={{ .CAFilePath }}
 [SECURITY]
 use_certs=True
 ca_certs={{ .CAFilePath }}
 certfile=/etc/certificates/server-{{ .PodIP }}.crt
-keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem`))
+keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+`))
 
 // ConfigServicemonitorConfig is the template of the ServiceMonitor service configuration.
 var ConfigServicemonitorConfig = template.Must(template.New("").Parse(`[DEFAULTS]
@@ -241,8 +253,8 @@ rabbit_vhost={{ .RabbitmqVhost }}
 rabbit_user={{ .RabbitmqUser }}
 rabbit_password={{ .RabbitmqPassword }}
 rabbit_use_ssl=True
-kombu_ssl_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
-kombu_ssl_certfile=/etc/certificates/server-{{ .PodIP }}.crt
+kombu_ssl_keyfile=/etc/certificates/client-key-{{ .PodIP }}.pem
+kombu_ssl_certfile=/etc/certificates/client-{{ .PodIP }}.crt
 kombu_ssl_ca_certs={{ .CAFilePath }}
 kombu_ssl_version=tlsv1_2
 rabbit_health_check_interval=10
@@ -265,6 +277,9 @@ aaa_mode={{ .AAAMode }}
 introspect_ssl_enable=True
 introspect_ssl_insecure=True
 sandesh_ssl_enable=True
-sandesh_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
-sandesh_certfile=/etc/certificates/server-{{ .PodIP }}.crt
-sandesh_ca_cert={{ .CAFilePath }}`))
+sandesh_keyfile=/etc/certificates/client-key-{{ .PodIP }}.pem
+sandesh_certfile=/etc/certificates/client-{{ .PodIP }}.crt
+sandesh_server_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
+sandesh_server_certfile=/etc/certificates/server-{{ .PodIP }}.crt
+sandesh_ca_cert={{ .CAFilePath }}
+`))

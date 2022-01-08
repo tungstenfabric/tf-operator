@@ -22,13 +22,15 @@ type CertificateSubject struct {
 	ip               string
 	alternativeIPs   []string
 	alternativeNames []string
+	clientAuth       bool
 }
 
 // NewSubject creates new certificate subject
-func NewSubject(name, domain, hostname, ip string, alternativeIPs, alternativeNames []string) CertificateSubject {
+func NewSubject(name, domain, hostname, ip string, alternativeIPs, alternativeNames []string, clientAuth bool) CertificateSubject {
 	return CertificateSubject{
 		name: name, domain: domain, hostname: hostname, ip: ip,
-		alternativeIPs: alternativeIPs, alternativeNames: alternativeNames}
+		alternativeIPs: alternativeIPs, alternativeNames: alternativeNames,
+		clientAuth: clientAuth}
 }
 
 func contains(list []string, val string) bool {
@@ -151,7 +153,11 @@ func (c CertificateSubject) generateCertificateTemplate() (x509.Certificate, *rs
 		NotBefore:   notBefore,
 		NotAfter:    notAfter,
 		KeyUsage:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+	}
+	if c.clientAuth {
+		certificateTemplate.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
+	} else {
+		certificateTemplate.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth}
 	}
 
 	return certificateTemplate, certPrivKey, nil

@@ -215,8 +215,8 @@ func TestCassandraConfigMapsWithDefaultValues(t *testing.T) {
 	assert.Equal(t, "7201", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_jmx_port").String())
 	assert.Equal(t, "4", cassandraNodemanagerConfig.Section("DEFAULTS").Key("minimum_diskGB").String())
 	assert.Equal(t, "1.1.1.1:8086 2.2.2.2:8086", cassandraNodemanagerConfig.Section("COLLECTOR").Key("server_list").String())
-	assert.Equal(t, "/etc/certificates/server-key-1.1.1.1.pem", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_keyfile").String())
-	assert.Equal(t, "/etc/certificates/server-1.1.1.1.crt", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_certfile").String())
+	assert.Equal(t, "/etc/certificates/client-key-1.1.1.1.pem", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_keyfile").String())
+	assert.Equal(t, "/etc/certificates/client-1.1.1.1.crt", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_certfile").String())
 	assert.Equal(t, "/etc/ssl/certs/kubernetes/ca-bundle.crt", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_ca_cert").String())
 
 	cassandraNodemanagerConfig, err = ini.Load([]byte(cassandraConfigMap.Data["database-nodemgr.conf.2.2.2.2"]))
@@ -228,8 +228,8 @@ func TestCassandraConfigMapsWithDefaultValues(t *testing.T) {
 	assert.Equal(t, "7201", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_jmx_port").String())
 	assert.Equal(t, "4", cassandraNodemanagerConfig.Section("DEFAULTS").Key("minimum_diskGB").String())
 	assert.Equal(t, "1.1.1.1:8086 2.2.2.2:8086", cassandraNodemanagerConfig.Section("COLLECTOR").Key("server_list").String())
-	assert.Equal(t, "/etc/certificates/server-key-2.2.2.2.pem", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_keyfile").String())
-	assert.Equal(t, "/etc/certificates/server-2.2.2.2.crt", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_certfile").String())
+	assert.Equal(t, "/etc/certificates/client-key-2.2.2.2.pem", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_keyfile").String())
+	assert.Equal(t, "/etc/certificates/client-2.2.2.2.crt", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_certfile").String())
 	assert.Equal(t, "/etc/ssl/certs/kubernetes/ca-bundle.crt", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_ca_cert").String())
 
 	cassandraNodemanagerEnvConfig, err := ini.Load([]byte(cassandraConfigMap.Data["database-nodemgr.env.1.1.1.1"]))
@@ -349,8 +349,8 @@ func TestCassandraConfigMapsWithCustomValues(t *testing.T) {
 	assert.Equal(t, "7201", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_jmx_port").String())
 	assert.Equal(t, "4", cassandraNodemanagerConfig.Section("DEFAULTS").Key("minimum_diskGB").String())
 	assert.Equal(t, "1.1.1.1:8086 2.2.2.2:8086", cassandraNodemanagerConfig.Section("COLLECTOR").Key("server_list").String())
-	assert.Equal(t, "/etc/certificates/server-key-1.1.1.1.pem", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_keyfile").String())
-	assert.Equal(t, "/etc/certificates/server-1.1.1.1.crt", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_certfile").String())
+	assert.Equal(t, "/etc/certificates/client-key-1.1.1.1.pem", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_keyfile").String())
+	assert.Equal(t, "/etc/certificates/client-1.1.1.1.crt", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_certfile").String())
 	assert.Equal(t, "/etc/ssl/certs/kubernetes/ca-bundle.crt", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_ca_cert").String())
 
 	cassandraNodemanagerConfig, err = ini.Load([]byte(cassandraConfigMap.Data["database-nodemgr.conf.2.2.2.2"]))
@@ -362,8 +362,8 @@ func TestCassandraConfigMapsWithCustomValues(t *testing.T) {
 	assert.Equal(t, "7201", cassandraNodemanagerConfig.Section("DEFAULTS").Key("db_jmx_port").String())
 	assert.Equal(t, "4", cassandraNodemanagerConfig.Section("DEFAULTS").Key("minimum_diskGB").String())
 	assert.Equal(t, "1.1.1.1:8086 2.2.2.2:8086", cassandraNodemanagerConfig.Section("COLLECTOR").Key("server_list").String())
-	assert.Equal(t, "/etc/certificates/server-key-2.2.2.2.pem", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_keyfile").String())
-	assert.Equal(t, "/etc/certificates/server-2.2.2.2.crt", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_certfile").String())
+	assert.Equal(t, "/etc/certificates/client-key-2.2.2.2.pem", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_keyfile").String())
+	assert.Equal(t, "/etc/certificates/client-2.2.2.2.crt", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_certfile").String())
 	assert.Equal(t, "/etc/ssl/certs/kubernetes/ca-bundle.crt", cassandraNodemanagerConfig.Section("SANDESH").Key("sandesh_ca_cert").String())
 
 	cassandraNodemanagerEnvConfig, err := ini.Load([]byte(cassandraConfigMap.Data["database-nodemgr.env.1.1.1.1"]))

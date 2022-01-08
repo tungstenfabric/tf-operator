@@ -353,7 +353,7 @@ type PodAlternativeIPs struct {
 
 // PodsCertSubjects iterates over passed list of pods and for every pod prepares certificate subject
 // which can be later used for generating certificate for given pod.
-func PodsCertSubjects(domain string, podList []corev1.Pod, podAltIPs PodAlternativeIPs) []certificates.CertificateSubject {
+func PodsCertSubjects(domain string, podList []corev1.Pod, podAltIPs PodAlternativeIPs, clientAuth bool) []certificates.CertificateSubject {
 	var pods []certificates.CertificateSubject
 	var osName string
 	if hn, err := os.Hostname(); err != nil && hn != "" {
@@ -381,7 +381,7 @@ func PodsCertSubjects(domain string, podList []corev1.Pod, podAltIPs PodAlternat
 			altNames = append(altNames, osName)
 		}
 		podInfo := certificates.NewSubject(pod.Name, domain, pod.Spec.NodeName,
-			pod.Status.PodIP, alternativeIPs, altNames)
+			pod.Status.PodIP, alternativeIPs, altNames, clientAuth)
 		pods = append(pods, podInfo)
 	}
 	return pods
