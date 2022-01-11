@@ -1,11 +1,14 @@
 package analytics
 
 import (
+	"bytes"
+	"text/template"
+
 	"github.com/ghodss/yaml"
 	appsv1 "k8s.io/api/apps/v1"
 )
 
-var yamlDataAnalyticsSts = `
+var yamlDataAnalyticsSts = template.Must(template.New("").Parse(`
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -37,6 +40,10 @@ spec:
         - name: analyticsapi
           image: tungstenfabric/contrail-analytics-api:latest
           env:
+            - name: ANALYTICSDB_ENABLE
+              value: {{ .QueryEngineEnabled }}
+            - name: ANALYTICS_ALARM_ENABLE
+              value: {{ .AlarmEnabled }}
             - name: POD_IP
               valueFrom:
                 fieldRef:
@@ -115,16 +122,29 @@ spec:
                 apiVersion: v1
                 fieldPath: metadata.labels
               path: pod_labelsx
-          name: status`
+          name: status
+
+`))
 
 // GetSTS returns StatesfulSet object created from yamlDataAnalyticsSts
-func GetSTS() *appsv1.StatefulSet {
-	sts := appsv1.StatefulSet{}
-	err := yaml.Unmarshal([]byte(yamlDataAnalyticsSts), &sts)
+func GetSTS(queryengineEnabled bool, alarmEnabled bool) *appsv1.StatefulSet {
+	var buf bytes.Buffer
+	err := yamlDataAnalyticsSts.Execute(&buf, struct {
+		QueryEngineEnabled bool
+		AlarmEnabled       bool
+	}{
+		QueryEngineEnabled: queryengineEnabled,
+		AlarmEnabled:       alarmEnabled,
+	})
 	if err != nil {
 		panic(err)
 	}
-	jsonData, err := yaml.YAMLToJSON([]byte(yamlDataAnalyticsSts))
+	sts := appsv1.StatefulSet{}
+	err = yaml.Unmarshal(buf.Bytes(), &sts)
+	if err != nil {
+		panic(err)
+	}
+	jsonData, err := yaml.YAMLToJSON(buf.Bytes())
 	if err != nil {
 		panic(err)
 	}

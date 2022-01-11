@@ -1937,6 +1937,32 @@ func GetDatabaseNodeType(cl client.Client) (string, error) {
 	return "config-database", nil
 }
 
+// Return if queryengine is enabled
+func GetQueryEngineEnabled(cl client.Client) (bool, error) {
+	var mgr *Manager
+	var err error
+	if mgr, err = GetManagerObject(cl); err != nil {
+		return false, err
+	}
+	if mgr.Spec.Services.QueryEngine == nil {
+		return false, nil
+	}
+	return true, nil
+}
+
+// Return if analytics-alarm is enabled
+func GetAnalyticsAlarmEnabled(cl client.Client) (bool, error) {
+	var mgr *Manager
+	var err error
+	if mgr, err = GetManagerObject(cl); err != nil {
+		return false, err
+	}
+	if mgr.Spec.Services.AnalyticsAlarm == nil {
+		return false, nil
+	}
+	return true, nil
+}
+
 func updateMap(values map[string]string, data *map[string]string) {
 	for k, v := range values {
 		(*data)[k] = v

@@ -264,7 +264,16 @@ func (r *ReconcileAnalytics) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
-	statefulSet := GetSTS()
+	queryengineEnabled, err := v1alpha1.GetQueryEngineEnabled(r.Client)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	alarmEnabled, err := v1alpha1.GetAnalyticsAlarmEnabled(r.Client)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	statefulSet := GetSTS(queryengineEnabled, alarmEnabled)
 	if err = instance.PrepareSTS(statefulSet, &instance.Spec.CommonConfiguration, request, r.Scheme); err != nil {
 		reqLogger.Error(err, "Failed to prepare stateful set")
 		return reconcile.Result{}, err
