@@ -384,8 +384,8 @@ introspect_ssl_insecure=True
 sandesh_ssl_enable=True
 sandesh_keyfile={{ .SANDESH_KEYFILE }}
 sandesh_certfile={{ .SANDESH_CERTFILE }}
-sandesh_server_keyfile=/etc/certificates/server-key-{{ .PodIP }}.pem
-sandesh_server_certfile=/etc/certificates/server-{{ .PodIP }}.crt
+sandesh_server_keyfile={{ .SANDESH_SERVER_KEYFILE }}
+sandesh_server_certfile={{ .SANDESH_SERVER_CERTFILE }}
 sandesh_ca_cert={{ .SANDESH_CA_CERTFILE }}
 `))
 
