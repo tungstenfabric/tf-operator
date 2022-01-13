@@ -196,9 +196,20 @@ type ReconcileVrouter struct {
 func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithName("Reconcile").WithName(request.Name)
 	reqLogger.Info("Reconciling Vrouter")
+
+	// Check ZIU status - forbit update of agent configs if ziu is in progress
+	// to avoid races between updating pods and agent configurations
+	if f, err := v1alpha1.CanReconcile("Vrouter", r.Client); err != nil || !f {
+		if err != nil {
+			reqLogger.Error(err, "When check vrouter ziu status")
+		} else {
+			reqLogger.Info("vrouter reconcile blocks by ZIU status")
+		}
+		return reconcile.Result{Requeue: true, RequeueAfter: v1alpha1.ZiuRestartTime}, err
+	}
+
 	instanceType := "vrouter"
 	instance := &v1alpha1.Vrouter{}
-
 	err := r.Client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
