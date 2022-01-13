@@ -193,7 +193,7 @@ xmpp_auth_enable={{ .XMPP_SSL_ENABLE }}
 xmpp_server_cert={{ .XMPP_SERVER_CERTFILE }}
 xmpp_server_key={{ .XMPP_SERVER_KEYFILE }}
 xmpp_ca_cert={{ .XMPP_SERVER_CA_CERTFILE }}
-{{ if eq .AGENT_MODE "dpdk" }}
+{{ if eq (or .AGENT_MODE "kernel") "dpdk" }}
 platform={{ .AGENT_MODE }}
 physical_interface_mac={{ .PHYS_INT_MAC }}
 physical_interface_address={{ .PCI_ADDRESS }}
@@ -292,7 +292,7 @@ logical_queue={{ index $qos_logical_queue (sub (len $qos_logical_queue) 1) }}{{ 
 {{ if isEnabled .QOS_DEF_HW_QUEUE }}default_hw_queue=true{{ end }}
 {{ end }}
 
-{{ if eq .IS_ENCRYPTION_SUPPORTED_FLAG "true"}}
+{{ if eq (or .IS_ENCRYPTION_SUPPORTED_FLAG "false") "true" }}
 [CRYPT]
 crypt_interface={{ .VROUTER_CRYPT_INTERFACE }}
 {{ end }}
@@ -321,8 +321,7 @@ use_ssl = {{ .CONFIG_API_SSL_ENABLE }}
 {{ if isEnabled .CONFIG_API_SSL_ENABLE }}
 cafile = {{ .CONFIG_API_SERVER_CA_CERTFILE }}
 {{ end }}
-{{ if eq .AUTH_MODE "keystone" }}
-
+{{ if eq (or .AUTH_MODE "noauth") "keystone" }}
 ; Authentication settings (optional)
 [auth]
 AUTHN_TYPE = keystone
@@ -332,7 +331,7 @@ AUTHN_PORT = {{ .KEYSTONE_AUTH_ADMIN_PORT }}
 AUTHN_URL = {{ .KEYSTONE_AUTH_URL_TOKENS }}
 AUTHN_DOMAIN = {{ .KEYSTONE_AUTH_PROJECT_DOMAIN_NAME }}
 ;AUTHN_TOKEN_URL = http://127.0.0.1:35357/v2.0/tokens
-{{ if eq .KEYSTONE_AUTH_PROTO "https" }}
+{{ if eq (or .KEYSTONE_AUTH_PROTO "http") "https" }}
 insecure = {{ lower .KEYSTONE_AUTH_INSECURE }}
 certfile = {{ .KEYSTONE_AUTH_CERTFILE }}
 keyfile = {{ .KEYSTONE_AUTH_KEYFILE }}
