@@ -70,7 +70,7 @@ var ControlNamedConfig = template.Must(template.New("").Parse(`options {
 };
 key "rndc-key" {
     algorithm hmac-md5;
-    secret "xvysmOR8lnUQRBcunkC6vg==";
+    secret "{{ .RndcKey }}";
 };
 controls {
     inet 127.0.0.1 port 8094
@@ -95,7 +95,7 @@ logging {
 // ControlDNSConfig is the template of the Dns service configuration.
 var ControlDNSConfig = template.Must(template.New("").Parse(`[DEFAULT]
 collectors={{ .CollectorServerList }}
-named_config_file = /etc/contrailconfigmaps/named.{{ .PodIP }}
+named_config_file = contrail-named.conf
 named_config_directory = /etc/contrail/dns
 named_log_file = /var/log/contrail/contrail-named.log
 rndc_config_file = contrail-rndc.conf
@@ -164,4 +164,16 @@ vnc_client = vnc_api.VncApi(
     api_server_host=vncServerList.split(','),
     api_server_port={{ .APIServerPort }})
 vnc_client.bgp_router_delete(fq_name=['default-domain','default-project','ip-fabric','__default__', '{{ .Hostname }}' ])
+`))
+
+var ControlRNDCConfig = template.Must(template.New("").Parse(`
+key "rndc-key" {
+    algorithm hmac-md5;
+    secret "{{ .RndcKey }}";
+};
+options {
+    default-key "rndc-key";
+    default-server 127.0.0.1;
+    default-port 8094;
+};
 `))

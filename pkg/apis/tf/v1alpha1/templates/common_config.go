@@ -35,13 +35,19 @@ function wait_file() {
 }
 
 function link_file() {
-  local src={{ .ConfigMapMount }}/$1
+  local src=$1
+  if [[ "${src:0:1}" != "/" ]] ; then
+    src="{{ .ConfigMapMount }}/$src"
+  fi
   wait_file $src
-  if [[ -n "$2" ]] ; then
-    local ddir={{ .DstConfigPath }}
-    local dst=$ddir/$2
+
+  local dst=$2
+  if [[ -n "$dst" ]] ; then
+    if [[ "${dst:0:1}" != "/" ]] ; then
+      dst={{ .DstConfigPath }}/$dst
+    fi
     echo "INFO: $(date): link $src => $dst"
-    mkdir -p $ddir
+    mkdir -p $(dirname $dst)
     ln -sf $src $dst
   fi
 }
@@ -92,7 +98,11 @@ function check_hash_impl() {
 }
 
 function check_hash() {
-  check_hash_impl {{ .ConfigMapMount }}/$1
+  local src=$1
+  if [[ "${src:0:1}" != "/" ]] ; then
+    src="{{ .ConfigMapMount }}/$src"
+  fi
+  check_hash_impl $src
 }
 
 function configs_unchanged() {
