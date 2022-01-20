@@ -3,6 +3,7 @@ package cassandra
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -354,8 +355,37 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 			return reconcile.Result{}, err
 		}
 
-		if err = instance.InstanceConfiguration(request, podIPList, r.Client); err != nil {
+		seedsIPList := []string{}
+		for _, pod := range podIPList {
+
+			seedsIPList = append(seedsIPList, pod.Status.PodIP)
+		}
+		firstRun := len(instance.Status.Nodes) == 0
+		if firstRun {
+			seedsIPList = seedsIPList[:1]
+			podIPList = podIPList[:1]
+			podIPMap = map[string]string{podIPList[0].Name: podIPList[0].Status.PodIP}
+		} else if len(seedsIPList) < 3 {
+			seedsIPList = seedsIPList[:1]
+		} else {
+			seedsIPList = seedsIPList[:2]
+		}
+
+		if err = instance.InstanceConfiguration(request, podIPList, seedsIPList, r.Client); err != nil {
+			reqLogger.Error(err, "InstanceConfiguration failed")
 			return reconcile.Result{}, err
+		}
+
+		for i := 0; i < len(seedsIPList); i++ {
+			seedPod := podIPList[i]
+			ip_addr := seedsIPList[i]
+			command := "nodetool -p " + strconv.Itoa(*cassandraConfig.JmxLocalPort) + " status | grep \"UN \\+" + ip_addr + "\""
+			stdout, stderr, err := v1alpha1.ExecToContainer(&seedPod, instanceType, []string{"/usr/bin/bash", "-c", command}, nil)
+			if err != nil {
+				reqLogger.Info("Seed node not ready", "Pod", seedPod.Name, "IP", ip_addr, "err", err, "stdout", stdout, "stderr", stderr)
+				return requeueReconcile, nil
+			}
+			reqLogger.Info("Seed node ready", "Pod", seedPod.Name, "IP", ip_addr, "err", err, "stdout", stdout, "stderr", stderr)
 		}
 	}
 

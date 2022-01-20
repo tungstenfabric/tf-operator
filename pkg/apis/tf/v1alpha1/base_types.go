@@ -1115,6 +1115,7 @@ func PodIPListAndIPMapFromInstance(instanceType string,
 		}
 		podList = append(podList, *pod)
 	}
+	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Name < podList[j].Name })
 	return podList, podNameIPMap, nil
 }
 

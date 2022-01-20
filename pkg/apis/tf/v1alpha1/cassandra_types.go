@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"reflect"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -107,6 +106,7 @@ func init() {
 // InstanceConfiguration creates the cassandra instance configuration.
 func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 	podList []corev1.Pod,
+	seedsIPList []string,
 	client client.Client) error {
 
 	instanceConfigMapName := request.Name + "-" + CassandraInstanceType + "-configmap"
@@ -127,14 +127,10 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 		return err
 	}
 
-	seedsListString := strings.Join(c.seeds(podList), ",")
-	cassandraLog.Info("InstanceConfiguration", "seedsListString", seedsListString)
-
 	var cassandraPodIPList []string
 	for _, pod := range podList {
 		cassandraPodIPList = append(cassandraPodIPList, pod.Status.PodIP)
 	}
-	sort.SliceStable(cassandraPodIPList, func(i, j int) bool { return cassandraPodIPList[i] < cassandraPodIPList[j] })
 	cassandraIPListCommaSeparated := strings.Join(cassandraPodIPList, ",")
 
 	configNodesInformation, err := NewConfigClusterConfiguration(ConfigInstance, request.Namespace, client)
@@ -157,8 +153,9 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 	collectorEndpointList := configtemplates.EndpointList(analyticsNodesInformation.CollectorServerIPList, analyticsNodesInformation.CollectorPort)
 	collectorEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(collectorEndpointList, " ")
 	apiServerIPListCommaSeparated := configtemplates.JoinListWithSeparator(configNodesInformation.APIServerIPList, ",")
-	for _, pod := range podList {
+	seedsListString := strings.Join(seedsIPList, ",")
 
+	for _, pod := range podList {
 		var cassandraConfigBuffer bytes.Buffer
 		err = configtemplates.CassandraConfig.Execute(&cassandraConfigBuffer, struct {
 			Seeds               string
@@ -481,21 +478,6 @@ func (c *Cassandra) ConfigurationParameters() *CassandraConfiguration {
 	cassandraConfiguration.MinimumDiskGB = &minimumDiskGB
 
 	return cassandraConfiguration
-}
-
-func (c *Cassandra) seeds(podList []corev1.Pod) []string {
-	pods := make([]corev1.Pod, len(podList))
-	copy(pods, podList)
-	sort.SliceStable(pods, func(i, j int) bool { return pods[i].Name < pods[j].Name })
-	var seeds []string
-	for _, pod := range pods {
-		seeds = append(seeds, pod.Status.PodIP)
-	}
-	if len(seeds) > 2 {
-		numberOfSeeds := (len(seeds) - 1) / 2
-		seeds = seeds[:numberOfSeeds+1]
-	}
-	return seeds
 }
 
 // UpdateStatus manages the status of the Cassandra nodes.

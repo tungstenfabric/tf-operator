@@ -39,6 +39,8 @@ var cassandraPodList = []corev1.Pod{
 	},
 }
 
+var cassandraSeedList = []string{"1.1.1.1", "2.2.2.2"}
+
 var cassandraRequest = reconcile.Request{
 	NamespacedName: types.NamespacedName{
 		Name:      "configdb1",
@@ -162,7 +164,7 @@ func TestCassandraConfigMapsWithDefaultValues(t *testing.T) {
 
 	require.NoError(t, InitCA(cl, scheme, &cassandra, "cassandra"))
 
-	require.NoError(t, cassandra.InstanceConfiguration(cassandraRequest, cassandraPodList, cl))
+	require.NoError(t, cassandra.InstanceConfiguration(cassandraRequest, cassandraPodList, cassandraSeedList, cl))
 
 	var cassandraConfigMap = &corev1.ConfigMap{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "configdb1-cassandra-configmap", Namespace: "test-ns"}, cassandraConfigMap), "Error while gathering cassandra config map")
@@ -286,7 +288,7 @@ func TestCassandraConfigMapsWithCustomValues(t *testing.T) {
 
 	require.NoError(t, InitCA(cl, scheme, &cassandra, "cassandra"))
 
-	require.NoError(t, cassandra.InstanceConfiguration(cassandraRequest, cassandraPodList, cl))
+	require.NoError(t, cassandra.InstanceConfiguration(cassandraRequest, cassandraPodList, cassandraSeedList, cl))
 
 	var cassandraConfigMap = &corev1.ConfigMap{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "configdb1-cassandra-configmap", Namespace: "test-ns"}, cassandraConfigMap), "Error while gathering cassandra config map")
