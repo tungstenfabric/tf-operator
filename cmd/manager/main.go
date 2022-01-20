@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"math/rand"
+	"os"
 	"runtime"
 	"strconv"
 	"time"
@@ -23,11 +24,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/tungstenfabric/tf-operator/pkg/apis"
+	cert "github.com/tungstenfabric/tf-operator/pkg/certificates"
 	"github.com/tungstenfabric/tf-operator/pkg/controller"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/kubemanager"
 )
 
 var log = logf.Log.WithName("cmd")
+
+func setSignerName() {
+	if signer, ok := os.LookupEnv("SIGNER_NAME"); ok {
+		cert.K8SSignerName = signer
+	}
+	log.Info(fmt.Sprintf("K8S SignerName: '%s'", cert.K8SSignerName))
+}
 
 func printVersion() {
 	log.Info(fmt.Sprintf("Go Version: %s", runtime.Version()))
@@ -136,6 +145,7 @@ func main() {
 	logf.SetLogger(zap.Logger())
 
 	printVersion()
+	setSignerName()
 
 	sigHandler := signals.SetupSignalHandler()
 

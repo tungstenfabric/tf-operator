@@ -132,8 +132,11 @@ sudo systemctl restart docker
 wget -nv https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz
 sudo tar -C /usr/local -xzf go1.14.2.linux-amd64.tar.gz
 rm -f go1.14.2.linux-amd64.tar.gz
-sudo wget  -nv https://github.com/operator-framework/operator-sdk/releases/download/v0.17.2/operator-sdk-v0.17.2-x86_64-linux-gnu -O /usr/local/bin/operator-sdk
+sudo wget -nv https://github.com/operator-framework/operator-sdk/releases/download/v0.18.2/operator-sdk-v0.18.2-x86_64-linux-gnu -O /usr/local/bin/operator-sdk
 sudo chmod 755 /usr/local/bin/operator-sdk
+
+# for macos:
+# wget -nv https://github.com/operator-framework/operator-sdk/releases/download/v0.18.2/operator-sdk-v0.18.2-x86_64-apple-darwin -O /usr/local/bin/operator-sdk
 
 #update user variables
 echo export PATH=$PATH:/usr/local/go/bin >> $HOME/.bashrc

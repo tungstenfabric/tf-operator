@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"strconv"
@@ -64,7 +65,7 @@ func yamlToStruct(yamlString string, structPointer interface{}) error {
 var getConfigMapFromOtherNamespace = func(name string, namespace string) (*v1.ConfigMap, error) {
 	// getConfigMapFromOtherNamespace use requests to k8s api. Thats why we
 	// create it as a variable to have an ability to mock it in the unit tests.
-	configMap, err := k8s.GetCoreV1().ConfigMaps(namespace).Get(name, metav1.GetOptions{})
+	configMap, err := k8s.GetCoreV1().ConfigMaps(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			clusterInfoLog.Error(err, fmt.Sprintf("CoreV1.ConfigMaps failed to get %v", name))
