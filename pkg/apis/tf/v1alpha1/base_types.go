@@ -2030,6 +2030,54 @@ func InitZiu(clnt client.Client) (err error) {
 	return
 }
 
+func ziuCheckContainerImage(m *Manager) (stsName string, image string) {
+	stsName = ""
+	image = ""
+	var cc []*Container = nil
+	if m.Spec.Services.Kubemanager != nil {
+		stsName = m.Spec.Services.Kubemanager.Metadata.Name + "-kubemanager"
+		cc = m.Spec.Services.Kubemanager.Spec.ServiceConfiguration.Containers
+	} else if m.Spec.Services.Webui != nil {
+		stsName = m.Spec.Services.Webui.Metadata.Name + "-webui"
+		cc = m.Spec.Services.Webui.Spec.ServiceConfiguration.Containers
+	} else if len(m.Spec.Services.Controls) > 0 {
+		stsName = m.Spec.Services.Controls[0].Metadata.Name + "-control"
+		cc = m.Spec.Services.Controls[0].Spec.ServiceConfiguration.Containers
+	} else if m.Spec.Services.Rabbitmq != nil {
+		stsName = m.Spec.Services.Rabbitmq.Metadata.Name + "-rabbitmq"
+		cc = m.Spec.Services.Rabbitmq.Spec.ServiceConfiguration.Containers
+	} else if m.Spec.Services.Zookeeper != nil {
+		stsName = m.Spec.Services.Zookeeper.Metadata.Name + "-zookeeper"
+		cc = m.Spec.Services.Zookeeper.Spec.ServiceConfiguration.Containers
+	} else if len(m.Spec.Services.Cassandras) > 0 {
+		stsName = m.Spec.Services.Cassandras[0].Metadata.Name + "-cassandra"
+		cc = m.Spec.Services.Cassandras[0].Spec.ServiceConfiguration.Containers
+	} else if m.Spec.Services.QueryEngine != nil {
+		stsName = m.Spec.Services.QueryEngine.Metadata.Name + "-queryengine"
+		cc = m.Spec.Services.QueryEngine.Spec.ServiceConfiguration.Containers
+	} else if len(m.Spec.Services.Redis) > 0 {
+		stsName = m.Spec.Services.Redis[0].Metadata.Name + "-redis"
+		cc = m.Spec.Services.Redis[0].Spec.ServiceConfiguration.Containers
+	} else if m.Spec.Services.AnalyticsSnmp != nil {
+		stsName = m.Spec.Services.AnalyticsSnmp.Metadata.Name + "-analyticssnmp"
+		cc = m.Spec.Services.AnalyticsSnmp.Spec.ServiceConfiguration.Containers
+	} else if m.Spec.Services.AnalyticsAlarm != nil {
+		stsName = m.Spec.Services.AnalyticsAlarm.Metadata.Name + "-analyticsalarm"
+		cc = m.Spec.Services.AnalyticsAlarm.Spec.ServiceConfiguration.Containers
+	} else if m.Spec.Services.Analytics != nil {
+		stsName = m.Spec.Services.Analytics.Metadata.Name + "-analytics"
+		cc = m.Spec.Services.Analytics.Spec.ServiceConfiguration.Containers
+	} else if m.Spec.Services.Config != nil {
+		stsName = m.Spec.Services.Config.Metadata.Name + "-config"
+		cc = m.Spec.Services.Config.Spec.ServiceConfiguration.Containers
+	}
+	if len(cc) > 0 {
+		stsName = stsName + "-statefulset"
+		image = cc[0].Image
+	}
+	return
+}
+
 // IsZiuRequired
 // Return true if manifests image tag (get kubemanager or webui depending on CNI)
 // is different from deployed STS
@@ -2038,18 +2086,13 @@ func IsZiuRequired(clnt client.Client) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	var manifestTag string
-	var stsName string
-	if manager.Spec.Services.Kubemanager != nil {
-		ss := strings.Split(manager.Spec.Services.Kubemanager.Spec.ServiceConfiguration.Containers[0].Image, ":")
-		manifestTag = ss[len(ss)-1]
-		stsName = KubemanagerInstance + "-kubemanager-statefulset"
-	} else {
-		// no vrouter case
-		ss := strings.Split(manager.Spec.Services.Webui.Spec.ServiceConfiguration.Containers[0].Image, ":")
-		manifestTag = ss[len(ss)-1]
-		stsName = WebuiInstance + "-webui-statefulset"
+	stsName, image := ziuCheckContainerImage(manager)
+	if stsName == "" || image == "" {
+		return false, nil
 	}
+	var manifestTag string
+	ss := strings.Split(image, ":")
+	manifestTag = ss[len(ss)-1]
 	sts := &appsv1.StatefulSet{}
 	nsName := types.NamespacedName{Name: stsName, Namespace: manager.GetNamespace()}
 	if err = clnt.Get(context.Background(), nsName, sts); err != nil {
@@ -2060,9 +2103,8 @@ func IsZiuRequired(clnt client.Client) (bool, error) {
 		return false, err
 	}
 	// Get first container tag from sts
-	ss := strings.Split(sts.Spec.Template.Spec.Containers[0].Image, ":")
+	ss = strings.Split(sts.Spec.Template.Spec.Containers[0].Image, ":")
 	deployedTag := ss[len(ss)-1]
-
 	return deployedTag != manifestTag, nil
 }
 

@@ -8,8 +8,10 @@ import (
 	"strconv"
 	"strings"
 
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -134,12 +136,12 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 	cassandraIPListCommaSeparated := strings.Join(cassandraPodIPList, ",")
 
 	configNodesInformation, err := NewConfigClusterConfiguration(ConfigInstance, request.Namespace, client)
-	if err != nil {
+	if err != nil && !k8serrors.IsNotFound(err) {
 		return err
 	}
 
 	analyticsNodesInformation, err := NewAnalyticsClusterConfiguration(AnalyticsInstance, request.Namespace, client)
-	if err != nil {
+	if err != nil && !k8serrors.IsNotFound(err) {
 		return err
 	}
 
