@@ -197,9 +197,11 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 
 		var cassandraCqlShrcBuffer bytes.Buffer
 		err = configtemplates.CassandraCqlShrc.Execute(&cassandraCqlShrcBuffer, struct {
-			CAFilePath string
+			CAFilePath    string
+			ListenAddress string
 		}{
-			CAFilePath: SignerCAFilepath,
+			CAFilePath:    SignerCAFilepath,
+			ListenAddress: pod.Status.PodIP,
 		})
 		if err != nil {
 			panic(err)

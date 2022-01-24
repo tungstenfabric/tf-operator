@@ -13,7 +13,6 @@ import (
 	"net"
 	"os"
 	"reflect"
-	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -31,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/google/go-cmp/cmp"
@@ -1883,12 +1881,7 @@ func DefaultSecurityContext(podSpec *corev1.PodSpec) {
 // suitable only if the update of the same object is not launched twice or more
 // times in the same reconciliation.
 func IsOKForRequeque(err error) bool {
-	regexpString := "Operation cannot be fulfilled on .*: the object has been modified; please apply your changes to the latest version and try again"
-	if isMatch, _ := regexp.Match(regexpString, []byte(err.Error())); isMatch {
-		logf.Log.WithName("ok_for_requeque_error_found").Info(err.Error())
-		return true
-	}
-	return false
+	return k8s.CanNeedRetry(err)
 }
 
 func GetManagerObject(clnt client.Client) (*Manager, error) {

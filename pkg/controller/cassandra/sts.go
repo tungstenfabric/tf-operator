@@ -52,6 +52,12 @@ spec:
         # TODO: move do go code for flexibility
         - name: NODE_TYPE
           value: {{ .DatabaseNodeType }}
+        - name: CQLSH_HOST
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: CQLSH_PORT
+          value: {{ .CqlPort }}
         lifecycle:
           preStop:
             exec:
@@ -132,9 +138,11 @@ func GetSTS(cassandraConfig *v1alpha1.CassandraConfiguration, databaseNodeType s
 	err := yamlDatacassandraSTS.Execute(&buf, struct {
 		LocalJmxPort     int
 		DatabaseNodeType string
+		CqlPort          int
 	}{
 		LocalJmxPort:     *cassandraConfig.JmxLocalPort,
 		DatabaseNodeType: databaseNodeType,
+		CqlPort:          *cassandraConfig.CqlPort,
 	})
 	if err != nil {
 		panic(err)

@@ -88,6 +88,7 @@ dynamic_snitch_update_interval_in_ms: 100
 dynamic_snitch_reset_interval_in_ms: 600000
 dynamic_snitch_badness_threshold: 0.1
 request_scheduler: org.apache.cassandra.scheduler.NoScheduler
+# node-to-node encrypion
 server_encryption_options:
   internode_encryption: all
   keystore: /etc/keystore/server-keystore.jks
@@ -96,11 +97,16 @@ server_encryption_options:
   truststore_password: {{ .TruststorePassword }}
   require_client_auth: true
   store_type: JKS
+# client-to-node encrypion
 client_encryption_options:
   enabled: true
   optional: false
   keystore: /etc/keystore/server-keystore.jks
   keystore_password: {{ .KeystorePassword }}
+  truststore: /etc/keystore/server-truststore.jks
+  truststore_password: {{ .TruststorePassword }}
+  require_client_auth: false
+  store_type: JKS
 internode_compression: all
 inter_dc_tcp_nodelay: false
 tracetype_query_ttl: 86400
@@ -129,19 +135,29 @@ var CassandraCqlShrc = template.Must(template.New("").Parse(`
 [ssl]
 certfile = {{ .CAFilePath }}
 version = SSLv23
+userkey = /etc/certificates/client-key-{{ .ListenAddress }}.pem
+usercert = /etc/certificates/client-{{ .ListenAddress }}.crt
 `))
 
 // CassandraCommandTemplate start script
 var CassandraCommandTemplate = template.Must(template.New("").Parse(`
-# generate keystore for ssl
-rm -f /etc/keystore/server-truststore.jks /etc/keystore/server-keystore.jks ;
-mkdir -p /etc/keystore ;
-openssl pkcs12 -export -in /etc/certificates/server-${POD_IP}.crt -inkey /etc/certificates/server-key-${POD_IP}.pem -chain -CAfile {{ .CAFilePath }} -password pass:{{ .TruststorePassword }} -name localhost -out TmpFileKeyStore ;
-openssl pkcs12 -password pass:{{ .TruststorePassword }} -in TmpFileKeyStore -info -chain -nokeys
-openssl pkcs12 -password pass:{{ .TruststorePassword }} -in TmpFileKeyStore -info -chain -nokeys -cacerts 2>/dev/null | sed -n '/-\+BEGIN.*-\+/,/-\+END .*-\+/p' > TmpCA.pem
-cat TmpCA.pem
-keytool -keystore /etc/keystore/server-truststore.jks -keypass {{ .KeystorePassword }} -storepass {{ .TruststorePassword }} -noprompt -alias CARoot -import -file TmpCA.pem ;
-keytool -importkeystore -deststorepass {{ .KeystorePassword }} -destkeypass {{ .KeystorePassword }} -destkeystore /etc/keystore/server-keystore.jks -deststoretype pkcs12 -srcstorepass {{ .TruststorePassword }} -srckeystore TmpFileKeyStore -srcstoretype PKCS12 -alias localhost -noprompt ;
+function _prepare_keystore() {
+  local type=$1
+  rm -f /etc/keystore/${type}-truststore.jks /etc/keystore/${type}-keystore.jks ;
+  mkdir -p /etc/keystore ;
+  openssl pkcs12 -export -in /etc/certificates/${type}-${POD_IP}.crt -inkey /etc/certificates/${type}-key-${POD_IP}.pem -chain -CAfile {{ .CAFilePath }} -password pass:{{ .TruststorePassword }} -name $type -out TmpFileKeyStore.$type ;
+  openssl pkcs12 -password pass:{{ .TruststorePassword }} -in TmpFileKeyStore.$type -info -chain -nokeys
+  openssl pkcs12 -password pass:{{ .TruststorePassword }} -in TmpFileKeyStore.$type -info -chain -nokeys -cacerts 2>/dev/null | sed -n '/-\+BEGIN.*-\+/,/-\+END .*-\+/p' > TmpCA.pem
+  cat TmpCA.pem
+  keytool -keystore /etc/keystore/${type}-truststore.jks -keypass {{ .KeystorePassword }} -storepass {{ .TruststorePassword }} -noprompt -alias CARoot -import -file TmpCA.pem ;
+  keytool -importkeystore -deststorepass {{ .KeystorePassword }} -destkeypass {{ .KeystorePassword }} -destkeystore /etc/keystore/${type}-keystore.jks -deststoretype pkcs12 -srcstorepass {{ .TruststorePassword }} -srckeystore TmpFileKeyStore.$type -srcstoretype PKCS12 -alias $type -noprompt ;
+}
+
+# generate server keystore for ssl
+_prepare_keystore server
+
+# generate client keystore for ssl
+_prepare_keystore client
 
 # for cqlsh cmd tool
 ln -sf /etc/contrailconfigmaps/cqlshrc.${POD_IP} /root/.cqlshrc ;
@@ -155,6 +171,7 @@ cat /etc/cassandra/cassandra.yaml ;
 
 # for gracefull shutdown implemented in docker-entrypoint.sh in trap_cassandra_term
 export CASSANDRA_JMX_LOCAL_PORT={{ .JmxLocalPort }}
+export CASSANDRA_LISTEN_ADDRESS=${POD_IP}
 
 # start service
 exec /docker-entrypoint.sh -f -Dcassandra.jmx.local.port={{ .JmxLocalPort }} -Dcassandra.config=file:///etc/contrailconfigmaps/cassandra.${POD_IP}.yaml
