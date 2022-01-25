@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
+	"k8s.io/client-go/discovery"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -31,11 +32,35 @@ import (
 
 var log = logf.Log.WithName("cmd")
 
-func setSignerName() {
-	if signer, ok := os.LookupEnv("SIGNER_NAME"); ok {
-		cert.K8SSignerName = signer
+func setClientSignerName(major, minor int) {
+	if signer, ok := os.LookupEnv("CLIENT_SIGNER_NAME"); ok {
+		cert.K8SClientSignerName = signer
+	} else if major > 1 || minor > 21 {
+		cert.K8SClientSignerName = ""
 	}
-	log.Info(fmt.Sprintf("K8S SignerName: '%s'", cert.K8SSignerName))
+	log.Info(fmt.Sprintf("K8S ClientSignerName: '%s'", cert.K8SClientSignerName))
+}
+
+func setServerSignerName(major, minor int) {
+	if signer, ok := os.LookupEnv("SERVER_SIGNER_NAME"); ok {
+		cert.K8SServerSignerName = signer
+	} else if major > 1 || minor > 21 {
+		cert.K8SServerSignerName = ""
+	}
+	log.Info(fmt.Sprintf("K8S ServerSignerName: '%s'", cert.K8SServerSignerName))
+}
+
+func setSignerName(clnt *discovery.DiscoveryClient) error {
+	if ver, err := clnt.ServerVersion(); err == nil {
+		major, _ := strconv.Atoi(ver.Major)
+		minor, _ := strconv.Atoi(ver.Minor)
+		log.Info(fmt.Sprintf("K8S Server Version: %d.%d", major, minor))
+		setClientSignerName(major, minor)
+		setServerSignerName(major, minor)
+	} else {
+		return err
+	}
+	return nil
 }
 
 func printVersion() {
@@ -87,6 +112,12 @@ func runOperator(sigHandler <-chan struct{}) (err error) {
 		return err
 	}
 	log.Info("IsOpenshift=" + strconv.FormatBool(k8s.IsOpenshift()))
+
+	dclnt := discovery.NewDiscoveryClientForConfigOrDie(cfg)
+	if err := setSignerName(dclnt); err != nil {
+		log.Error(err, "Failed set signer")
+		return err
+	}
 
 	// Check is ZIU Required?
 	if f, err := v1alpha1.IsZiuRequired(clnt); err != nil {
@@ -145,7 +176,6 @@ func main() {
 	logf.SetLogger(zap.Logger())
 
 	printVersion()
-	setSignerName()
 
 	sigHandler := signals.SetupSignalHandler()
 

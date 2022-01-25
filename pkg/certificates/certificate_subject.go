@@ -12,6 +12,8 @@ import (
 	"net"
 	"strings"
 	"time"
+
+	corev1 "k8s.io/api/core/v1"
 )
 
 // CertificateSubject certificate subject
@@ -44,7 +46,6 @@ func contains(list []string, val string) bool {
 
 const (
 	certValidityPeriod = 10 * 365 * 24 * time.Hour // 10 years
-	certKeyLength      = 2048
 )
 
 func GenerateSerialNumber() (*big.Int, error) {
@@ -79,23 +80,29 @@ func splitFqdn(n string) []string {
 	return result
 }
 
-func (c CertificateSubject) generateCertificateTemplate() (x509.Certificate, *rsa.PrivateKey, error) {
-	certPrivKey, err := rsa.GenerateKey(rand.Reader, certKeyLength)
-
+func (c CertificateSubject) getPrivKeyFromSecret(secret *corev1.Secret) (*rsa.PrivateKey, error) {
+	caCertBlock, err := GetAndDecodePem(secret.Data, serverPrivateKeyFileName(c))
 	if err != nil {
-		return x509.Certificate{}, nil, fmt.Errorf("failed to generate private key: %w", err)
+		return nil, err
 	}
+	var privKey *rsa.PrivateKey
+	if privKey, err = x509.ParsePKCS1PrivateKey(caCertBlock.Bytes); err != nil {
+		return nil, fmt.Errorf("Failed to parse private key: %w", err)
+	}
+	return privKey, nil
+}
 
+func (c CertificateSubject) generateCertificateTemplate(certPrivKey *rsa.PrivateKey) (x509.Certificate, error) {
 	notBefore := time.Now()
 	notAfter := notBefore.Add(certValidityPeriod)
 
 	serialNumber, err := GenerateSerialNumber()
 	if err != nil {
-		return x509.Certificate{}, nil, fmt.Errorf("fail to generate serial number: %w", err)
+		return x509.Certificate{}, fmt.Errorf("fail to generate serial number: %w", err)
 	}
 	keyId, err := HashPublicKey(certPrivKey.Public())
 	if err != nil {
-		return x509.Certificate{}, nil, fmt.Errorf("failed to get SubjectKeyId: %w", err)
+		return x509.Certificate{}, fmt.Errorf("failed to get SubjectKeyId: %w", err)
 	}
 
 	fullName := c.hostname
@@ -160,5 +167,5 @@ func (c CertificateSubject) generateCertificateTemplate() (x509.Certificate, *rs
 		certificateTemplate.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth}
 	}
 
-	return certificateTemplate, certPrivKey, nil
+	return certificateTemplate, nil
 }

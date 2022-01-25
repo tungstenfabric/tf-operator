@@ -203,7 +203,8 @@ var csrIfaceImpl *csrIface = nil
 func initApis() {
 	// dont use unknown legacy in UT as it is implements v1 version
 	// for legacy it is needed to add betav1
-	certificates.K8SSignerName = "kubernetes.io/kubelet-serving"
+	certificates.K8SClientSignerName = "kubernetes.io/kube-apiserver-client-kubelet"
+	certificates.K8SServerSignerName = "kubernetes.io/kubelet-serving"
 	k8s.SetDeployerTypeE(false)
 	fakeClientSetImpl = &fakeClientSet{}
 	fakeClientSetImpl.Clientset = *fakeclient.NewSimpleClientset()

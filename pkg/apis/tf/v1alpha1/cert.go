@@ -28,7 +28,8 @@ func InitCA(cl client.Client, scheme *runtime.Scheme, owner metav1.Object, owner
 	_Lock.Lock()
 	defer _Lock.Unlock()
 	var err error
-	signer, err = certificates.InitSelfCA(cl, scheme, owner, ownerType)
+	forceSelfCA := false
+	signer, err = certificates.InitSelfCA(cl, scheme, owner, ownerType, forceSelfCA)
 	if err == nil {
 		return touchCertSecretsOnCAUpdate(owner.GetNamespace(), cl)
 	}
@@ -39,7 +40,14 @@ func InitCA(cl client.Client, scheme *runtime.Scheme, owner metav1.Object, owner
 		if !k8serrors.IsNotFound(err) {
 			return err
 		}
-		return fmt.Errorf("Failed to init CA: neither self-signed CA secret %s nor K8S CA data %w", certificates.CaSecretName, err)
+		// fallback to own CA (k82 1.22 +)
+		forceSelfCA = true
+		if signer, err = certificates.InitSelfCA(cl, scheme, owner, ownerType, forceSelfCA); err != nil {
+			if !k8serrors.IsNotFound(err) {
+				return err
+			}
+			return fmt.Errorf("Failed to init CA: neither self-signed CA secret %s nor K8S CA data %w", certificates.CaSecretName, err)
+		}
 	}
 	return touchCertSecretsOnCAUpdate(owner.GetNamespace(), cl)
 }
