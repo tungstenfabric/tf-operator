@@ -3,6 +3,7 @@ package certificates
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
@@ -22,6 +23,8 @@ import (
 const (
 	CAFilename      = "ca-bundle.crt"
 	CAConfigMapName = "csr-signer-ca"
+
+	certKeyLength = 2048
 )
 
 var log = logf.Log.WithName("cert")
@@ -148,7 +151,14 @@ func (r *Certificate) createCertificateForPod(subject CertificateSubject, secret
 			l.Info("CA changed", "configmap", cm.Annotations["ca-md5"], "secret", secret.Annotations["ca-md5"])
 		}
 	}
-	certificateTemplate, privateKey, err := subject.generateCertificateTemplate()
+	privateKey, err := subject.getPrivKeyFromSecret(secret)
+	if err != nil {
+		privateKey, err = rsa.GenerateKey(rand.Reader, certKeyLength)
+		if err != nil {
+			return fmt.Errorf("Failed to generate private key: %w", err)
+		}
+	}
+	certificateTemplate, err := subject.generateCertificateTemplate(privateKey)
 	if err != nil {
 		return fmt.Errorf("failed to generate certificate template for %s, %s: %w", subject.hostname, subject.name, err)
 	}
@@ -191,8 +201,12 @@ func certFilePrefix(subject CertificateSubject) string {
 	return "server"
 }
 
+func keyFilePrefix(subject CertificateSubject) string {
+	return certFilePrefix(subject)
+}
+
 func serverPrivateKeyFileName(subject CertificateSubject) string {
-	return fmt.Sprintf("%s-key-%s.pem", certFilePrefix(subject), subject.ip)
+	return fmt.Sprintf("%s-key-%s.pem", keyFilePrefix(subject), subject.ip)
 }
 
 func serverCertificateFileName(subject CertificateSubject) string {

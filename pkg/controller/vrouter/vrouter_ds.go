@@ -20,7 +20,7 @@ func contains(n string, l []corev1.EnvVar) (*corev1.EnvVar, bool) {
 
 func updateContainerEnv(v *v1alpha1.Vrouter, c *corev1.Container) {
 	for n, v := range v.Spec.ServiceConfiguration.EnvVariablesConfig {
-		if pe, ok := contains(n, c.Env) ; ok {
+		if pe, ok := contains(n, c.Env); ok {
 			pe.Value = v
 		} else {
 			c.Env = append(c.Env, corev1.EnvVar{Name: n, Value: v})

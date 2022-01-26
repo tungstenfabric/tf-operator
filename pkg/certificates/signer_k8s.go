@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
+	"net"
 	"time"
 
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
@@ -14,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	corev1api "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/util/cert"
@@ -38,15 +40,27 @@ type signerK8S struct {
 }
 
 // NOTE: for now K8S generates certificate with Ext Usages that are incomatible with Contrail
-// kubernetes.io/kubelet-serving : RabbitMQ fails with 'upsupported ext usages' error
-// kubernetes.io/kube-apiserver-client         : Have only ClientAuth usages - RabbitMQ fails
+// kubernetes.io/kubelet-serving
+//      force to have only "TLS Web Server Authentication"
+// kubernetes.io/kube-apiserver-client
+//      force to have only TLS Web Client Authentication
 // kubernetes.io/kube-apiserver-client-kubelet
-// TODO: investigate if it is even possible to any otehr except old legacy signer.
-var K8SSignerName string = "kubernetes.io/legacy-unknown"
+//      force to have only TLS Web Client Authentication
+//      forbids alt subj extention
+// The above signers dont allow to get both client and servet auth
+// and force to have one of them. As the result it is not possible to use
+// them for Cassandra (and other cluster services like RabbitMQ) that need
+// to have a certificate either with both usages or w/o usages at all.
+// E.g. Cassandra can use only one certificate for inter-node communications
+// where each node is server and client same time.
+
+var K8SClientSignerName string = "kubernetes.io/legacy-unknown"
+var K8SServerSignerName string = "kubernetes.io/legacy-unknown"
 var AwailableSigners [4]string = [4]string{
-	"kubernetes.io/kube-apiserver-client",
-	"kubernetes.io/kube-apiserver-client-kubelet",
-	"kubernetes.io/kubelet-serving",
+	certificates.KubeAPIServerClientSignerName,        // kubernetes.io/kube-apiserver-client
+	certificates.KubeAPIServerClientKubeletSignerName, // kubernetes.io/kube-apiserver-client-kubelet
+	certificates.KubeletServingSignerName,             // kubernetes.io/kubelet-serving
+	// NOTE: removed in k8s 1.22
 	"kubernetes.io/legacy-unknown",
 }
 var Now = time.Now
@@ -54,25 +68,33 @@ var Now = time.Now
 func appendSignerSpecificUsages(usages *[]certificates.KeyUsage, signer string) {
 	// https://kubernetes.io/docs/reference/access-authn-authz/certificate-signing-requests/
 	usagesMap := map[string][]certificates.KeyUsage{
-		"kubernetes.io/kube-apiserver-client":         {certificates.UsageClientAuth},
-		"kubernetes.io/kube-apiserver-client-kubelet": {certificates.UsageClientAuth},
-		"kubernetes.io/kubelet-serving":               {certificates.UsageServerAuth},
-		"kubernetes.io/legacy-unknown":                {certificates.UsageClientAuth, certificates.UsageServerAuth},
+		certificates.KubeAPIServerClientSignerName:        {certificates.UsageClientAuth},
+		certificates.KubeAPIServerClientKubeletSignerName: {certificates.UsageClientAuth},
+		certificates.KubeletServingSignerName:             {certificates.UsageServerAuth},
+		"kubernetes.io/legacy-unknown":                    {certificates.UsageClientAuth, certificates.UsageServerAuth},
 	}
 	*usages = append(*usages, usagesMap[signer]...)
 }
 
 func adjustTemplate(certTemplate *x509.Certificate, signer string) {
 	// https://kubernetes.io/docs/reference/access-authn-authz/certificate-signing-requests/
-	if signer == "kubernetes.io/kube-apiserver-client-kubelet" || signer == "kubernetes.io/kubelet-serving" {
+	if signer == certificates.KubeAPIServerClientKubeletSignerName || signer == certificates.KubeletServingSignerName {
 		certTemplate.Subject.Organization = []string{"system:nodes"}
 		certTemplate.Subject.CommonName = "system:node:" + certTemplate.Subject.CommonName
+	}
+	if signer == certificates.KubeAPIServerClientKubeletSignerName {
+		certTemplate.DNSNames = []string{}
+		certTemplate.IPAddresses = []net.IP{}
 	}
 }
 
 func InitK8SCA(cl client.Client, scheme *runtime.Scheme, owner metav1.Object) (CertificateSigner, error) {
 	l := log.WithName("InitK8SCA")
 	l.Info("Init")
+	if K8SClientSignerName == "" || K8SServerSignerName == "" {
+		l.Info("Signer is not set")
+		return nil, errors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "Signer"}, "LegacyUnknown")
+	}
 	signer := getK8SSigner(k8s.GetCoreV1(), k8s.GetClientset(), scheme, owner)
 	caCert, ok, err := getValidatedCAWithSecrets(signer, cl)
 	if err != nil {
@@ -220,50 +242,75 @@ func getK8SSigner(cl corev1api.CoreV1Interface, clientset kubernetes.Interface, 
 	return &signerK8S{corev1: cl, clientset: clientset, scheme: scheme, owner: owner}
 }
 
+func isClientCert(certTemplate *x509.Certificate) bool {
+	return len(certTemplate.ExtKeyUsage) == 1 && certTemplate.ExtKeyUsage[0] == x509.ExtKeyUsageClientAuth
+}
+
+func updateApproval(r *certificates.CertificateSigningRequest) bool {
+	for _, c := range r.Status.Conditions {
+		if c.Type == certificates.CertificateApproved && c.Status == corev1.ConditionTrue {
+			return false
+		}
+	}
+	r.Status.Conditions = []certificates.CertificateSigningRequestCondition{
+		{
+			Type:    certificates.CertificateApproved,
+			Status:  corev1.ConditionTrue,
+			Reason:  "TFAutoApproved",
+			Message: "TFAutoApproved",
+		},
+	}
+	return true
+}
+
 func signCertificate(name string, certTemplate x509.Certificate, privateKey *rsa.PrivateKey, clientset kubernetes.Interface) ([]byte, error) {
 
+	var k8sSignerName string
+	if isClientCert(&certTemplate) {
+		k8sSignerName = K8SClientSignerName
+	} else {
+		k8sSignerName = K8SServerSignerName
+	}
+
 	// change CommonName and Organization depending on signer
-	adjustTemplate(&certTemplate, K8SSignerName)
+	adjustTemplate(&certTemplate, k8sSignerName)
 
 	csrv1 := clientset.CertificatesV1().CertificateSigningRequests()
 	csrName := "csr-" + name + "-" + certTemplate.Subject.CommonName
+
 	if err := csrv1.Delete(context.TODO(), csrName, metav1.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
 		return nil, fmt.Errorf("failed to delete old csr %s: %w ", csrName, err)
 	}
 
 	csrObj, err := cert.MakeCSR(privateKey, &certTemplate.Subject, certTemplate.DNSNames, certTemplate.IPAddresses)
 	if err != nil {
-		return nil, fmt.Errorf("failed to make csr %s: %w", csrName, err)
+		return nil, fmt.Errorf("failed to make csr %s (%s): %w", csrName, k8sSignerName, err)
 	}
 
 	usages := []certificates.KeyUsage{
 		certificates.UsageKeyEncipherment,
 		certificates.UsageDigitalSignature,
 	}
-	appendSignerSpecificUsages(&usages, K8SSignerName)
+	appendSignerSpecificUsages(&usages, k8sSignerName)
 
-	reqName, reqUID, err := csr.RequestCertificate(clientset, csrObj, csrName, K8SSignerName, usages, privateKey)
+	reqName, reqUID, err := csr.RequestCertificate(clientset, csrObj, csrName, k8sSignerName, usages, privateKey)
 	if err != nil {
-		return nil, fmt.Errorf("failed to request csr %s: %w", csrName, err)
+		return nil, fmt.Errorf("failed to request csr %s (%s): %w", csrName, k8sSignerName, err)
 	}
 
-	v1req, err := csrv1.Get(context.TODO(), reqName, metav1.GetOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to get req %s: %w", reqName, err)
-	}
-
-	condition := certificates.CertificateSigningRequestCondition{
-		Type:    certificates.CertificateApproved,
-		Status:  corev1.ConditionTrue,
-		Reason:  "AutoApproved",
-		Message: "AutoApproved",
-	}
-	v1req.Status.Conditions = append(v1req.Status.Conditions, condition)
-	log.Info(fmt.Sprintf("v1req.Spec.SignerName: %#v", v1req.Spec.SignerName))
-	// v1req.Spec.SignerName = K8SSignerName
-
-	if _, err = csrv1.UpdateApproval(context.TODO(), reqName, v1req, metav1.UpdateOptions{}); err != nil {
-		return nil, fmt.Errorf("failed to approve csr: %w", err)
+	for i := 1; i <= 3; i++ {
+		v1req, err := csrv1.Get(context.TODO(), reqName, metav1.GetOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get req %s: %w", reqName, err)
+		}
+		if !updateApproval(v1req) {
+			break
+		}
+		if _, err = csrv1.UpdateApproval(context.TODO(), reqName, v1req, metav1.UpdateOptions{}); err != nil {
+			if !k8s.CanNeedRetry(err) || i == 3 {
+				return nil, fmt.Errorf("failed to approve csr %s (%s): %w", csrName, k8sSignerName, err)
+			}
+		}
 	}
 
 	const certificateWaitTimeout = 2 * time.Minute
@@ -272,7 +319,8 @@ func signCertificate(name string, certTemplate x509.Certificate, privateKey *rsa
 
 	certPem, err := csr.WaitForCertificate(ctx, clientset, reqName, reqUID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to wait signed certificate for subject %s, err: %w", certTemplate.Subject, err)
+		return nil, fmt.Errorf("failed to wait signed certificate %s (%s) for subject %s, err: %w",
+			csrName, k8sSignerName, certTemplate.Subject, err)
 	}
 
 	if err := csrv1.Delete(context.TODO(), csrName, metav1.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {

@@ -143,14 +143,32 @@ usercert = /etc/certificates/client-{{ .ListenAddress }}.crt
 var CassandraCommandTemplate = template.Must(template.New("").Parse(`
 function _prepare_keystore() {
   local type=$1
-  rm -f /etc/keystore/${type}-truststore.jks /etc/keystore/${type}-keystore.jks ;
-  mkdir -p /etc/keystore ;
-  openssl pkcs12 -export -in /etc/certificates/${type}-${POD_IP}.crt -inkey /etc/certificates/${type}-key-${POD_IP}.pem -chain -CAfile {{ .CAFilePath }} -password pass:{{ .TruststorePassword }} -name $type -out TmpFileKeyStore.$type ;
+  rm -f /etc/keystore/${type}-truststore.jks /etc/keystore/${type}-keystore.jks
+  mkdir -p /etc/keystore
+  openssl pkcs12 -export -chain -name $type \
+    -in /etc/certificates/${type}-${POD_IP}.crt \
+    -inkey /etc/certificates/${type}-key-${POD_IP}.pem \
+    -CAfile {{ .CAFilePath }} \
+    -password pass:{{ .TruststorePassword }} \
+    -out TmpFileKeyStore.$type
   openssl pkcs12 -password pass:{{ .TruststorePassword }} -in TmpFileKeyStore.$type -info -chain -nokeys
-  openssl pkcs12 -password pass:{{ .TruststorePassword }} -in TmpFileKeyStore.$type -info -chain -nokeys -cacerts 2>/dev/null | sed -n '/-\+BEGIN.*-\+/,/-\+END .*-\+/p' > TmpCA.pem
-  cat TmpCA.pem
-  keytool -keystore /etc/keystore/${type}-truststore.jks -keypass {{ .KeystorePassword }} -storepass {{ .TruststorePassword }} -noprompt -alias CARoot -import -file TmpCA.pem ;
-  keytool -importkeystore -deststorepass {{ .KeystorePassword }} -destkeypass {{ .KeystorePassword }} -destkeystore /etc/keystore/${type}-keystore.jks -deststoretype pkcs12 -srcstorepass {{ .TruststorePassword }} -srckeystore TmpFileKeyStore.$type -srcstoretype PKCS12 -alias $type -noprompt ;
+  openssl pkcs12 -info -chain -nokeys -cacerts \
+    -password pass:{{ .TruststorePassword }} \
+    -in TmpFileKeyStore.$type  2>/dev/null | sed -n '/-\+BEGIN.*-\+/,/-\+END .*-\+/p' > TmpCA.pem.$type
+  cat TmpCA.pem.$type
+  keytool -import -noprompt -alias CARoot \
+    -keystore /etc/keystore/${type}-truststore.jks \
+    -keypass {{ .KeystorePassword }} \
+    -storepass {{ .TruststorePassword }} \
+    -file TmpCA.pem.$type
+  keytool -importkeystore -alias $type -noprompt \
+    -deststoretype PKCS12 \
+    -deststorepass {{ .KeystorePassword }} \
+    -destkeypass {{ .KeystorePassword }} \
+    -destkeystore /etc/keystore/${type}-keystore.jks \
+    -srcstoretype PKCS12 \
+    -srcstorepass {{ .TruststorePassword }} \
+    -srckeystore TmpFileKeyStore.$type
 }
 
 # generate server keystore for ssl
