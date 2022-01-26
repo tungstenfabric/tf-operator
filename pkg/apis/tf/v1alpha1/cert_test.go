@@ -200,11 +200,16 @@ func (c *fakeCertV1) CertificateSigningRequests() v1cert.CertificateSigningReque
 var fakeClientSetImpl *fakeClientSet = nil
 var csrIfaceImpl *csrIface = nil
 
-func initApis() {
-	// dont use unknown legacy in UT as it is implements v1 version
-	// for legacy it is needed to add betav1
-	certificates.K8SClientSignerName = "kubernetes.io/kube-apiserver-client-kubelet"
-	certificates.K8SServerSignerName = "kubernetes.io/kubelet-serving"
+func initApis(selfCA bool) {
+	if selfCA {
+		certificates.ClientSignerName = certificates.SelfSigner
+		certificates.ServerSignerName = certificates.SelfSigner
+	} else {
+		// dont use unknown legacy in UT as it is implements v1 version
+		// for legacy it is needed to add betav1
+		certificates.ClientSignerName = "kubernetes.io/kube-apiserver-client-kubelet"
+		certificates.ServerSignerName = "kubernetes.io/kubelet-serving"
+	}
 	k8s.SetDeployerTypeE(false)
 	fakeClientSetImpl = &fakeClientSet{}
 	fakeClientSetImpl.Clientset = *fakeclient.NewSimpleClientset()
@@ -257,7 +262,7 @@ func validateCAConfigMap(t *testing.T, cl client.Client, caCert []byte) {
 }
 
 func prepareSelfCA(t *testing.T) (*corev1.Secret, client.Client, *runtime.Scheme) {
-	initApis()
+	initApis(true)
 	scheme, err := SchemeBuilder.Build()
 	require.NoError(t, err, "Failed to build scheme")
 	require.NoError(t, corev1.SchemeBuilder.AddToScheme(scheme), "Failed to add CoreV1 into scheme")
@@ -286,7 +291,7 @@ func getServerCerts(t *testing.T, cl client.Client) []*x509.Certificate {
 }
 
 func TestSelfSignedCAInitEmptySecret(t *testing.T) {
-	initApis()
+	initApis(true)
 	scheme, err := SchemeBuilder.Build()
 	require.NoError(t, err, "Failed to build scheme")
 	require.NoError(t, corev1.SchemeBuilder.AddToScheme(scheme), "Failed to add CoreV1 into scheme")
@@ -361,7 +366,7 @@ func TestSelfSignedCARenewal(t *testing.T) {
 }
 
 func TestOpenshiftSelfCAInit(t *testing.T) {
-	initApis()
+	initApis(true)
 	// if openshift detected self ca must be used
 	k8s.SetDeployerTypeE(true)
 	myScheme, err := SchemeBuilder.Build()
@@ -404,7 +409,7 @@ func setOpenshiftCAObjects(t *testing.T) {
 }
 
 func prepareOpenshiftCA(t *testing.T) (client.Client, *runtime.Scheme) {
-	initApis()
+	initApis(false)
 	setOpenshiftCAObjects(t)
 	scheme, err := SchemeBuilder.Build()
 	require.NoError(t, err, "Failed to build scheme")
@@ -529,7 +534,7 @@ func setK8SCAObjects(t *testing.T, fakeIntermediate bool) {
 }
 
 func prepareK8SCA(t *testing.T, fakeIntermediate bool) (client.Client, *runtime.Scheme) {
-	initApis()
+	initApis(false)
 	setK8SCAObjects(t, fakeIntermediate)
 	scheme, err := SchemeBuilder.Build()
 	require.NoError(t, err, "Failed to build scheme")

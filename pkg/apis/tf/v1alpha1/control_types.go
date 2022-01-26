@@ -455,11 +455,6 @@ func (c *Control) AddVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeConfigM
 	AddVolumesToIntendedSTS(sts, volumeConfigMapMap)
 }
 
-// AddSecretVolumesToIntendedSTS adds volumes to the Rabbitmq deployment.
-func (c *Control) AddSecretVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeConfigMapMap map[string]string) {
-	AddSecretVolumesToIntendedSTS(sts, volumeConfigMapMap)
-}
-
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *Control) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
 	datanetwork := c.Spec.ServiceConfiguration.DataSubnet

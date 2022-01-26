@@ -232,7 +232,7 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	secretCertificates, err := instance.CreateSecret(request.Name+"-secret-certificates", r.Client, r.Scheme, request)
+	_, err = instance.CreateSecret(request.Name+"-secret-certificates", r.Client, r.Scheme, request)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -273,7 +273,6 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	configMapVolumeName := request.Name + "-agent-volume"
-	secretVolumeName := secretCertificates.Name
 	cniVolumeName := cniConfigMap.Name + "-cni-volume"
 	instance.AddVolumesToIntendedDS(daemonSet, map[string]string{
 		configMapAgent.Name: configMapVolumeName,
@@ -281,8 +280,7 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 	})
 
 	v1alpha1.AddCAVolumeToIntendedDS(daemonSet)
-
-	instance.AddSecretVolumesToIntendedDS(daemonSet, map[string]string{secretCertificates.Name: secretVolumeName})
+	v1alpha1.AddSecretVolumesToIntendedDS(daemonSet, request.Name)
 
 	for idx := range daemonSet.Spec.Template.Spec.Containers {
 

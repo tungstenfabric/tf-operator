@@ -11,6 +11,7 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/stretchr/testify/require"
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
+	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/analytics"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/analyticsalarm"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/analyticssnmp"
@@ -277,6 +278,9 @@ func init() {
 	// 		},
 	// 	},
 	// })
+
+	certificates.ClientSignerName = certificates.SelfSigner
+	certificates.ServerSignerName = certificates.SelfSigner
 }
 
 func TestReconcileManager(t *testing.T) {
@@ -286,6 +290,7 @@ func TestReconcileManager(t *testing.T) {
 		GetTestData("master", "ManagerList"),
 		GetTestData("master", "SecretList"),
 	)
+
 	var reconcileManager *manager.ReconcileManager = &manager.ReconcileManager{
 		Client:  clnt,
 		Scheme:  runtimeScheme,
@@ -302,7 +307,6 @@ func TestReconcileManager(t *testing.T) {
 	result, err := reconcileManager.Reconcile(reconcileRequest)
 	require.NoError(t, err)
 	require.Equal(t, reconcile.Result{}, result)
-
 }
 
 func TestReconcileManagerZIU(t *testing.T) {

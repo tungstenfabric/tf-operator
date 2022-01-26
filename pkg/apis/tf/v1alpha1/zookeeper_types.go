@@ -201,11 +201,6 @@ func (c *Zookeeper) AddVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeConfi
 	AddVolumesToIntendedSTS(sts, volumeConfigMapMap)
 }
 
-// AddSecretVolumesToIntendedSTS adds volumes to the Rabbitmq deployment.
-func (c *Zookeeper) AddSecretVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeConfigMapMap map[string]string) {
-	AddSecretVolumesToIntendedSTS(sts, volumeConfigMapMap)
-}
-
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *Zookeeper) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
 	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, "")

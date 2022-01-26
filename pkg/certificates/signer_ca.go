@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tungstenfabric/tf-operator/pkg/k8s"
 	core "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -48,29 +47,14 @@ type signer struct {
 	owner  metav1.Object
 }
 
-func InitSelfCA(cl client.Client, scheme *runtime.Scheme, owner metav1.Object, ownerType string, force bool) (CertificateSigner, error) {
+func InitSelfCA(cl client.Client, scheme *runtime.Scheme, owner metav1.Object, ownerType string) (CertificateSigner, error) {
 	l := log.WithName("InitSelfCA")
+	l.Info("Init")
 	ns := owner.GetNamespace()
 	caSecret, err := GetCaCertSecret(cl, ns)
 	if err != nil {
 		if !errors.IsNotFound(err) {
-			l.Info(fmt.Sprintf("Failed to check secret CA %s/%s", ns, CaSecretName))
-			return nil, err
-		}
-		if force {
-			// k8s 1.22+ removed legacy signer, other signers for now are not suitable
-			// so use own CA
-			l.Info("Force to use self CA")
-		} else if k8s.IsOpenshift() {
-			l.Info("Openshift always use self CA")
-			// TODO
-			// In Openshift builtin authority perform re-issue certeficate - it starts from single root CA,
-			// but at some moment of deploymnet in issue intermediate CA signed by root, and all next CSRs
-			// are signed by this intermediate CA. It cause to use ca-bundle.crt with intermediate and root CAs.
-			// But Contrail looks doest work with bundle correctly: collector, control and alarm sevices
-			// cannot use bundle to conenct to DBs.
-			// So, it is not posible for now use build-in authority in Openshift. Force to use self CA.
-		} else {
+			l.Error(err, fmt.Sprintf("Failed to check secret CA %s/%s", ns, CaSecretName))
 			return nil, err
 		}
 		caSecret = &corev1.Secret{

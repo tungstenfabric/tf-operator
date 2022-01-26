@@ -205,7 +205,7 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, nil
 	}
 
-	secretCertificates, err := instance.CreateSecret(request.Name+"-secret-certificates", r.Client, r.Scheme, request)
+	_, err = instance.CreateSecret(request.Name+"-secret-certificates", r.Client, r.Scheme, request)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -235,14 +235,12 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	}
 
 	configmapsVolumeName := request.Name + "-" + instanceType + "-volume"
-	secretVolumeName := request.Name + "-secret-certificates"
 	instance.AddVolumesToIntendedSTS(statefulSet, map[string]string{
 		configMapName: configmapsVolumeName,
 	})
 
 	v1alpha1.AddCAVolumeToIntendedSTS(statefulSet)
-
-	instance.AddSecretVolumesToIntendedSTS(statefulSet, map[string]string{secretCertificates.Name: secretVolumeName})
+	v1alpha1.AddSecretVolumesToIntendedSTS(statefulSet, request.Name)
 
 	utils.CleanupContainers(&statefulSet.Spec.Template.Spec, instance.Spec.ServiceConfiguration.Containers)
 	for idx := range statefulSet.Spec.Template.Spec.Containers {

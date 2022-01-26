@@ -402,10 +402,7 @@ func (r *ReconcileAnalyticsSnmp) GetSTS(request reconcile.Request, instance *v1a
 	})
 
 	v1alpha1.AddCAVolumeToIntendedSTS(statefulSet)
-
-	v1alpha1.AddSecretVolumesToIntendedSTS(statefulSet, map[string]string{
-		request.Name + "-secret-certificates": request.Name + "-secret-certificates",
-	})
+	v1alpha1.AddSecretVolumesToIntendedSTS(statefulSet, request.Name)
 
 	// Don't know what is it
 	statefulSet.Spec.Template.Spec.Affinity = &corev1.Affinity{

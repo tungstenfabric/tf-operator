@@ -15,7 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	corev1api "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/util/cert"
@@ -39,30 +38,6 @@ type signerK8S struct {
 	owner     metav1.Object
 }
 
-// NOTE: for now K8S generates certificate with Ext Usages that are incomatible with Contrail
-// kubernetes.io/kubelet-serving
-//      force to have only "TLS Web Server Authentication"
-// kubernetes.io/kube-apiserver-client
-//      force to have only TLS Web Client Authentication
-// kubernetes.io/kube-apiserver-client-kubelet
-//      force to have only TLS Web Client Authentication
-//      forbids alt subj extention
-// The above signers dont allow to get both client and servet auth
-// and force to have one of them. As the result it is not possible to use
-// them for Cassandra (and other cluster services like RabbitMQ) that need
-// to have a certificate either with both usages or w/o usages at all.
-// E.g. Cassandra can use only one certificate for inter-node communications
-// where each node is server and client same time.
-
-var K8SClientSignerName string = "kubernetes.io/legacy-unknown"
-var K8SServerSignerName string = "kubernetes.io/legacy-unknown"
-var AwailableSigners [4]string = [4]string{
-	certificates.KubeAPIServerClientSignerName,        // kubernetes.io/kube-apiserver-client
-	certificates.KubeAPIServerClientKubeletSignerName, // kubernetes.io/kube-apiserver-client-kubelet
-	certificates.KubeletServingSignerName,             // kubernetes.io/kubelet-serving
-	// NOTE: removed in k8s 1.22
-	"kubernetes.io/legacy-unknown",
-}
 var Now = time.Now
 
 func appendSignerSpecificUsages(usages *[]certificates.KeyUsage, signer string) {
@@ -91,13 +66,10 @@ func adjustTemplate(certTemplate *x509.Certificate, signer string) {
 func InitK8SCA(cl client.Client, scheme *runtime.Scheme, owner metav1.Object) (CertificateSigner, error) {
 	l := log.WithName("InitK8SCA")
 	l.Info("Init")
-	if K8SClientSignerName == "" || K8SServerSignerName == "" {
-		l.Info("Signer is not set")
-		return nil, errors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "Signer"}, "LegacyUnknown")
-	}
 	signer := getK8SSigner(k8s.GetCoreV1(), k8s.GetClientset(), scheme, owner)
 	caCert, ok, err := getValidatedCAWithSecrets(signer, cl)
 	if err != nil {
+		l.Error(err, "Failed to get K8S CA")
 		return nil, err
 	}
 	if !ok {
@@ -267,9 +239,9 @@ func signCertificate(name string, certTemplate x509.Certificate, privateKey *rsa
 
 	var k8sSignerName string
 	if isClientCert(&certTemplate) {
-		k8sSignerName = K8SClientSignerName
+		k8sSignerName = ClientSignerName
 	} else {
-		k8sSignerName = K8SServerSignerName
+		k8sSignerName = ServerSignerName
 	}
 
 	// change CommonName and Organization depending on signer

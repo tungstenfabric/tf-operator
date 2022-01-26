@@ -235,7 +235,7 @@ func (r *ReconcileControl) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	secretCertificates, err := instance.CreateSecret(request.Name+"-secret-certificates", r.Client, r.Scheme, request)
+	_, err = instance.CreateSecret(request.Name+"-secret-certificates", r.Client, r.Scheme, request)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -251,14 +251,12 @@ func (r *ReconcileControl) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	configmapsVolumeName := request.Name + "-" + instanceType + "-volume"
-	secretVolumeName := request.Name + "-secret-certificates"
 	instance.AddVolumesToIntendedSTS(statefulSet, map[string]string{
 		configMapName: configmapsVolumeName,
 	})
 
 	v1alpha1.AddCAVolumeToIntendedSTS(statefulSet)
-
-	instance.AddSecretVolumesToIntendedSTS(statefulSet, map[string]string{secretCertificates.Name: secretVolumeName})
+	v1alpha1.AddSecretVolumesToIntendedSTS(statefulSet, request.Name)
 
 	if instance.Spec.ServiceConfiguration.DataSubnet != "" {
 		if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {

@@ -251,11 +251,6 @@ func (c *Webui) AddVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeConfigMap
 	AddVolumesToIntendedSTS(sts, volumeConfigMapMap)
 }
 
-// AddSecretVolumesToIntendedSTS adds volumes to the Rabbitmq deployment.
-func (c *Webui) AddSecretVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeConfigMapMap map[string]string) {
-	AddSecretVolumesToIntendedSTS(sts, volumeConfigMapMap)
-}
-
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *Webui) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
 	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, "")

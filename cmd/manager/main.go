@@ -34,20 +34,20 @@ var log = logf.Log.WithName("cmd")
 
 func setClientSignerName(major, minor int) {
 	if signer, ok := os.LookupEnv("CLIENT_SIGNER_NAME"); ok {
-		cert.K8SClientSignerName = signer
-	} else if major > 1 || minor > 21 {
-		cert.K8SClientSignerName = ""
+		cert.ClientSignerName = signer
+	} else if major > 1 || minor > 21 || k8s.IsOpenshift() {
+		cert.ClientSignerName = cert.SelfSigner
 	}
-	log.Info(fmt.Sprintf("K8S ClientSignerName: '%s'", cert.K8SClientSignerName))
+	log.Info(fmt.Sprintf("ClientSignerName: '%s'", cert.ClientSignerName))
 }
 
 func setServerSignerName(major, minor int) {
 	if signer, ok := os.LookupEnv("SERVER_SIGNER_NAME"); ok {
-		cert.K8SServerSignerName = signer
-	} else if major > 1 || minor > 21 {
-		cert.K8SServerSignerName = ""
+		cert.ServerSignerName = signer
+	} else if major > 1 || minor > 21 || k8s.IsOpenshift() {
+		cert.ServerSignerName = cert.SelfSigner
 	}
-	log.Info(fmt.Sprintf("K8S ServerSignerName: '%s'", cert.K8SServerSignerName))
+	log.Info(fmt.Sprintf("ServerSignerName: '%s'", cert.ServerSignerName))
 }
 
 func setSignerName(clnt *discovery.DiscoveryClient) error {
@@ -57,6 +57,11 @@ func setSignerName(clnt *discovery.DiscoveryClient) error {
 		log.Info(fmt.Sprintf("K8S Server Version: %d.%d", major, minor))
 		setClientSignerName(major, minor)
 		setServerSignerName(major, minor)
+		if cert.ClientSignerName != cert.ServerSignerName &&
+			(cert.ClientSignerName == cert.SelfSigner || cert.ClientSignerName == cert.ExternalSigner) {
+			return fmt.Errorf("Client and Server signers mismatch client=%s server=%s",
+				cert.ClientSignerName, cert.ServerSignerName)
+		}
 	} else {
 		return err
 	}

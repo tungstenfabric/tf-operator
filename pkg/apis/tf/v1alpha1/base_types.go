@@ -573,6 +573,24 @@ func AddVolumesToPodSpec(spec *corev1.PodSpec, volumeConfigMapMap map[string]str
 	spec.Volumes = volumeList
 }
 
+func AddHostMountsToPodSpec(spec *corev1.PodSpec, volumeConfigMapMap map[string]string) {
+	volumeList := spec.Volumes
+	var hostPathType corev1.HostPathType = corev1.HostPathDirectory
+	for hostPath, volumeName := range volumeConfigMapMap {
+		volume := corev1.Volume{
+			Name: volumeName,
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: hostPath,
+					Type: &hostPathType,
+				},
+			},
+		}
+		volumeList = append(volumeList, volume)
+	}
+	spec.Volumes = volumeList
+}
+
 // AddVolumesToIntendedSTS adds volumes to a deployment.
 func AddVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeConfigMapMap map[string]string) {
 	AddVolumesToPodSpec(&sts.Spec.Template.Spec, volumeConfigMapMap)
@@ -585,16 +603,28 @@ func AddVolumesToIntendedDS(ds *appsv1.DaemonSet, volumeConfigMapMap map[string]
 
 // AddCAVolumeToIntendedSTS adds volumes to a deployment.
 func AddCAVolumeToIntendedSTS(sts *appsv1.StatefulSet) {
-	AddVolumesToIntendedSTS(sts, map[string]string{
-		certificates.CAConfigMapName: "ca-certs",
-	})
+	if certificates.ClientSignerName != certificates.ExternalSigner {
+		AddVolumesToIntendedSTS(sts, map[string]string{
+			certificates.CAConfigMapName: "ca-certs",
+		})
+	} else {
+		AddHostMountsToPodSpec(&sts.Spec.Template.Spec, map[string]string{
+			certificates.ExternalCAHostPath: "ca-certs",
+		})
+	}
 }
 
 // AddCAVolumeToIntendedDS adds volumes to a deployment.
 func AddCAVolumeToIntendedDS(ds *appsv1.DaemonSet) {
-	AddVolumesToIntendedDS(ds, map[string]string{
-		certificates.CAConfigMapName: "ca-certs",
-	})
+	if certificates.ClientSignerName != certificates.ExternalSigner {
+		AddVolumesToIntendedDS(ds, map[string]string{
+			certificates.CAConfigMapName: "ca-certs",
+		})
+	} else {
+		AddHostMountsToPodSpec(&ds.Spec.Template.Spec, map[string]string{
+			certificates.ExternalCAHostPath: "ca-certs",
+		})
+	}
 }
 
 func AddCertsMounts(name string, container *corev1.Container) {
@@ -602,12 +632,14 @@ func AddCertsMounts(name string, container *corev1.Container) {
 		corev1.VolumeMount{
 			Name:      "ca-certs",
 			MountPath: SignerCAMountPath,
+			ReadOnly:  true,
 		},
 	)
 	container.VolumeMounts = append(container.VolumeMounts,
 		corev1.VolumeMount{
 			Name:      name + "-secret-certificates",
 			MountPath: "/etc/certificates",
+			ReadOnly:  true,
 		},
 	)
 }
@@ -616,38 +648,33 @@ func SetLogLevelEnv(logLevel string, container *corev1.Container) {
 	container.Env = append(container.Env, corev1.EnvVar{Name: "LOG_LEVEL", Value: ConvertLogLevel(logLevel)})
 }
 
-// AddSecretVolumesToIntendedSTS adds volumes to a deployment.
-func AddSecretVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeSecretMap map[string]string) {
-	volumeList := sts.Spec.Template.Spec.Volumes
-	for secretName, volumeName := range volumeSecretMap {
+func addSecretVolumeToPopSpec(spec *corev1.PodSpec, name string) {
+	n := name + "-secret-certificates"
+	if certificates.ClientSignerName != certificates.ExternalSigner {
 		volume := corev1.Volume{
-			Name: volumeName,
+			Name: n,
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					SecretName: secretName,
+					SecretName: n,
 				},
 			},
 		}
-		volumeList = append(volumeList, volume)
+		spec.Volumes = append(spec.Volumes, volume)
+	} else {
+		AddHostMountsToPodSpec(spec, map[string]string{
+			certificates.ExternalCertHostPath: n,
+		})
 	}
-	sts.Spec.Template.Spec.Volumes = volumeList
+}
+
+// AddSecretVolumesToIntendedSTS adds volumes to a deployment.
+func AddSecretVolumesToIntendedSTS(sts *appsv1.StatefulSet, name string) {
+	addSecretVolumeToPopSpec(&sts.Spec.Template.Spec, name)
 }
 
 // AddSecretVolumesToIntendedDS adds volumes to a deployment.
-func AddSecretVolumesToIntendedDS(ds *appsv1.DaemonSet, volumeSecretMap map[string]string) {
-	volumeList := ds.Spec.Template.Spec.Volumes
-	for secretName, volumeName := range volumeSecretMap {
-		volume := corev1.Volume{
-			Name: volumeName,
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: secretName,
-				},
-			},
-		}
-		volumeList = append(volumeList, volume)
-	}
-	ds.Spec.Template.Spec.Volumes = volumeList
+func AddSecretVolumesToIntendedDS(ds *appsv1.DaemonSet, name string) {
+	addSecretVolumeToPopSpec(&ds.Spec.Template.Spec, name)
 }
 
 // QuerySTS queries the STS

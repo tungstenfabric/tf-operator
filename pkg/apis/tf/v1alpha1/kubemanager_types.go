@@ -307,11 +307,6 @@ func (c *Kubemanager) AddVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeCon
 	AddVolumesToIntendedSTS(sts, volumeConfigMapMap)
 }
 
-// AddSecretVolumesToIntendedSTS adds volumes to the Rabbitmq deployment.
-func (c *Kubemanager) AddSecretVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeConfigMapMap map[string]string) {
-	AddSecretVolumesToIntendedSTS(sts, volumeConfigMapMap)
-}
-
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *Kubemanager) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
 	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, "")

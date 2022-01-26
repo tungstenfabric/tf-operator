@@ -617,11 +617,6 @@ func (c *Config) AddVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeConfigMa
 	AddVolumesToIntendedSTS(sts, volumeConfigMapMap)
 }
 
-// AddSecretVolumesToIntendedSTS adds volumes to the Rabbitmq deployment.
-func (c *Config) AddSecretVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeConfigMapMap map[string]string) {
-	AddSecretVolumesToIntendedSTS(sts, volumeConfigMapMap)
-}
-
 // SetInstanceActive sets the Config instance to active
 func (c *Config) SetInstanceActive(client client.Client, activeStatus *bool, degradedStstus *bool, sts *appsv1.StatefulSet, request reconcile.Request) error {
 	if err := client.Get(context.TODO(), types.NamespacedName{Name: sts.Name, Namespace: request.Namespace}, sts); err != nil {

@@ -327,11 +327,6 @@ func (c *Vrouter) PrepareDaemonSet(ds *appsv1.DaemonSet,
 	return nil
 }
 
-// AddSecretVolumesToIntendedDS adds volumes to the Rabbitmq deployment.
-func (c *Vrouter) AddSecretVolumesToIntendedDS(ds *appsv1.DaemonSet, volumeConfigMapMap map[string]string) {
-	AddSecretVolumesToIntendedDS(ds, volumeConfigMapMap)
-}
-
 // SetDSCommonConfiguration takes common configuration parameters
 // and applies it to the pod.
 func SetDSCommonConfiguration(ds *appsv1.DaemonSet,

@@ -23,33 +23,23 @@ const (
 
 var signer certificates.CertificateSigner = nil
 
-func InitCA(cl client.Client, scheme *runtime.Scheme, owner metav1.Object, ownerType string) error {
+func InitCA(cl client.Client, scheme *runtime.Scheme, owner metav1.Object, ownerType string) (err error) {
 	// This might be called from reconsiles.. need sync
 	_Lock.Lock()
 	defer _Lock.Unlock()
-	var err error
-	forceSelfCA := false
-	signer, err = certificates.InitSelfCA(cl, scheme, owner, ownerType, forceSelfCA)
-	if err == nil {
-		return touchCertSecretsOnCAUpdate(owner.GetNamespace(), cl)
-	}
-	if !k8serrors.IsNotFound(err) {
-		return err
-	}
-	if signer, err = certificates.InitK8SCA(cl, scheme, owner); err != nil {
-		if !k8serrors.IsNotFound(err) {
-			return err
+	err = nil
+	if certificates.ClientSignerName != certificates.ExternalSigner {
+		if certificates.ClientSignerName == certificates.SelfSigner {
+			signer, err = certificates.InitSelfCA(cl, scheme, owner, ownerType)
+		} else {
+			signer, err = certificates.InitK8SCA(cl, scheme, owner)
 		}
-		// fallback to own CA (k82 1.22 +)
-		forceSelfCA = true
-		if signer, err = certificates.InitSelfCA(cl, scheme, owner, ownerType, forceSelfCA); err != nil {
-			if !k8serrors.IsNotFound(err) {
-				return err
-			}
-			return fmt.Errorf("Failed to init CA: neither self-signed CA secret %s nor K8S CA data %w", certificates.CaSecretName, err)
+		if err == nil {
+			err = touchCertSecretsOnCAUpdate(owner.GetNamespace(), cl)
 		}
 	}
-	return touchCertSecretsOnCAUpdate(owner.GetNamespace(), cl)
+	// Nothing to do for External signer
+	return
 }
 
 // touch secrets to trigger reconcieles
@@ -112,6 +102,9 @@ func EnsureCertificatesExistEx(instance metav1.Object, pods []corev1.Pod, instan
 
 // EnsureCertificatesExist ensures pod server cert is issued
 func EnsureCertificatesExist(instance metav1.Object, pods []corev1.Pod, instanceType string, cl client.Client, scheme *runtime.Scheme) error {
+	if certificates.ClientSignerName == certificates.ExternalSigner {
+		return nil
+	}
 	// issue server side cert
 	clientAuth := false
 	if err := EnsureCertificatesExistEx(instance, pods, instanceType, clientAuth, cl, scheme); err != nil {

@@ -8,6 +8,7 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 
 	"gopkg.in/ini.v1"
 	"gopkg.in/yaml.v2"
@@ -140,6 +141,8 @@ type CassandraParamsStruct struct {
 
 func init() {
 	os.Setenv(k8sutil.WatchNamespaceEnvVar, "tf")
+	certificates.ClientSignerName = certificates.SelfSigner
+	certificates.ServerSignerName = certificates.SelfSigner
 }
 
 func TestCassandraConfigMapsWithDefaultValues(t *testing.T) {

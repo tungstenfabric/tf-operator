@@ -31,7 +31,6 @@ import (
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
-	// configv1 "github.com/openshift/api/config/v1"
 )
 
 var log = logf.Log.WithName("controller_manager")
