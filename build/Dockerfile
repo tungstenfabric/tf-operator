@@ -1,29 +1,37 @@
 FROM registry.access.redhat.com/ubi8:8.4
 
+ARG VERSION="21.4.0"
+
 MAINTAINER "Tungsten Fabric"
+
 ### Required OpenShift Labels
-LABEL name="TF operator" \
-      maintainer="Tungsten Fabric" \
-      vendor="Tungsten Fabric" \
-      version="1.0.0-master" \
-      release="1.0.0-master" \
-      summary="Tungsten Fabric SDN operator" \
-      description="This operator will deploy and manage Tungsten Fabric to the cluster"
+LABEL \
+    name="TF operator" \
+    maintainer="Tungsten Fabric" \
+    vendor="Tungsten Fabric" \
+    version=$VERSION \
+    release=$VERSION \
+    summary="Tungsten Fabric SDN operator" \
+    description="This operator will deploy and manage Tungsten Fabric to the cluster"
 
-ENV OPERATOR=/usr/local/bin/tf-operator \
-    USER_UID=1999 \
-    USER_NAME=tf-operator
+ENV USER_UID=1999 \
+    USER_NAME=tf-operator \
+    HOME=/home/tf-operator \
+    CGO_ENABLED=1
 
-RUN mkdir -p /licenses
+RUN \
+    mkdir -p ${HOME} && \
+    chown -R ${USER_UID}:0 ${HOME} && \
+    chmod -R ug+rwx ${HOME} && \
+    echo "${USER_NAME}:x:${USER_UID}:${USER_UID}:${USER_NAME} user:${HOME}:/sbin/nologin" >> /etc/passwd && \
+    mkdir -p /licenses && \
+    yum -y update-minimal --security --sec-severity=Important --sec-severity=Critical && \
+    yum clean all -y && \
+    rm -rf /var/cache/yum
+
+COPY build/_output/bin/tf-operator /usr/local/bin/tf-operator
 COPY LICENSE /licenses/
 
-# install operator binary
-COPY build/_output/bin/tf-operator ${OPERATOR}
-ENV CGO_ENABLED=1
-
-COPY build/bin /usr/local/bin
-RUN /usr/local/bin/user_setup
-
-ENTRYPOINT ["/usr/local/bin/entrypoint"]
+ENTRYPOINT [ "/usr/local/bin/tf-operator" ]
 
 USER ${USER_UID}
