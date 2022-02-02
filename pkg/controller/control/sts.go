@@ -24,6 +24,7 @@ spec:
         app: control
         tf_manager: control
     spec:
+      shareProcessNamespace: true
       securityContext:
         fsGroup: 1999
       dnsPolicy: ClusterFirstWithHostNet

@@ -49,6 +49,7 @@ type ControlConfiguration struct {
 	DNSPort           *int         `json:"dnsPort,omitempty"`
 	DNSIntrospectPort *int         `json:"dnsIntrospectPort,omitempty"`
 	Subcluster        string       `json:"subcluster,omitempty"`
+	RndcKey           string       `json:"rndckey,omitempty"`
 	// DataSubnet allow to set alternative network in which control, nodemanager
 	// and dns services will listen. Local pod address from this subnet will be
 	// discovered and used both in configuration for hostip directive and provision
@@ -206,6 +207,17 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 		return
 	}
 
+	var controlRDNCConfigBuffer bytes.Buffer
+	err = configtemplates.ControlRNDCConfig.Execute(&controlRDNCConfigBuffer, struct {
+		RndcKey string
+	}{
+		RndcKey: controlConfig.RndcKey,
+	})
+	if err != nil {
+		panic(err)
+	}
+	data["contrail-rndc.conf"] = controlRDNCConfigBuffer.String()
+
 	for _, pod := range podList {
 		hostname := pod.Annotations["hostname"]
 		podIP := pod.Status.PodIP
@@ -259,7 +271,11 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 		data["control."+podIP] = controlControlConfigBuffer.String()
 
 		var controlNamedConfigBuffer bytes.Buffer
-		err = configtemplates.ControlNamedConfig.Execute(&controlNamedConfigBuffer, struct{}{})
+		err = configtemplates.ControlNamedConfig.Execute(&controlNamedConfigBuffer, struct {
+			RndcKey string
+		}{
+			RndcKey: controlConfig.RndcKey,
+		})
 		if err != nil {
 			panic(err)
 		}
@@ -404,14 +420,17 @@ func (c *Control) CreateConfigMap(configMapName string,
 		"touch /var/log/contrail/contrail-named.log; "+
 			"chgrp contrail /var/log/contrail/contrail-named.log; "+
 			"chmod g+w /var/log/contrail/contrail-named.log; "+
-			"exec /usr/bin/contrail-named -f -g -u contrail -c /etc/contrailconfigmaps/named.${POD_IP}",
+			"if [ ! -e /etc/contrail/dns/contrail-named.conf ]; then cp /etc/contrailconfigmaps/named.${POD_IP} /etc/contrail/dns/contrail-named.conf; fi;"+
+			"exec /usr/bin/contrail-named -f -g -u contrail -c /etc/contrail/dns/contrail-named.conf",
 		map[string]string{
 			"named.${POD_IP}": "",
 		})
 	data["run-dns.sh"] = c.CommonStartupScript(
 		"exec /usr/bin/contrail-dns --conf_file /etc/contrailconfigmaps/dns.${POD_IP}",
 		map[string]string{
-			"dns.${POD_IP}": "",
+			"dns.${POD_IP}":                         "/etc/contrail/contrail-dns.conf",
+			"/opt/contrail_dns/applynamedconfig.py": "/etc/contrail/dns/applynamedconfig.py",
+			"contrail-rndc.conf":                    "/etc/contrail/dns/contrail-rndc.conf",
 		})
 
 	return CreateConfigMap(configMapName,
@@ -508,6 +527,13 @@ func (c *Control) ConfigurationParameters() ControlConfiguration {
 	var xmppPort int
 	var dnsPort int
 	var dnsIntrospectPort int
+	var rndckey string
+
+	if c.Spec.ServiceConfiguration.RndcKey != "" {
+		rndckey = c.Spec.ServiceConfiguration.RndcKey
+	} else {
+		rndckey = RndcKey
+	}
 
 	if c.Spec.ServiceConfiguration.BGPPort != nil {
 		bgpPort = *c.Spec.ServiceConfiguration.BGPPort
@@ -544,6 +570,7 @@ func (c *Control) ConfigurationParameters() ControlConfiguration {
 	controlConfiguration.XMPPPort = &xmppPort
 	controlConfiguration.DNSPort = &dnsPort
 	controlConfiguration.DNSIntrospectPort = &dnsIntrospectPort
+	controlConfiguration.RndcKey = rndckey
 
 	return controlConfiguration
 }
