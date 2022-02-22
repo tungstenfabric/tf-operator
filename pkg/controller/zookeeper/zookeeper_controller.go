@@ -317,7 +317,14 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 			return reconcile.Result{}, err
 		}
 
-		if requeueNeeded, err := instance.ManageNodeStatus(podIPList, r.Client); err != nil || requeueNeeded {
+		var nodes map[string]string
+		var failedAddZKNode bool = false
+		if nodes, err = instance.AddZKNode(podIPList); err != nil {
+			reqLogger.Error(err, "Failed to add zookeeper node.")
+			failedAddZKNode = true
+		}
+
+		if requeueNeeded, err := instance.ManageNodeStatus(nodes, r.Client); err != nil || requeueNeeded || failedAddZKNode {
 			if err != nil {
 				reqLogger.Error(err, "Failed to manage node status.")
 				return reconcile.Result{}, err
