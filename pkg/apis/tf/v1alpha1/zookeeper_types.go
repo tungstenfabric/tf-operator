@@ -254,7 +254,25 @@ func (zp *zookeeperPod) registrate(zConfig ZookeeperConfiguration) error {
 	return err
 }
 
-func (c *Zookeeper) ManageNodeStatus(podIPList []corev1.Pod,
+func (c *Zookeeper) AddZKNode(podIPList []corev1.Pod) (nodes map[string]string, err error) {
+	config := c.ConfigurationParameters()
+
+	nodes = make(map[string]string)
+	for _, pod := range podIPList {
+		name := pod.ObjectMeta.Name
+		if _, _ok := c.Status.Nodes[name]; !_ok {
+			zpod := zookeeperPod{&pod}
+			if _err := zpod.registrate(config); _err != nil {
+				return nodes, _err
+			}
+		}
+		ip := pod.Status.PodIP
+		nodes[name] = ip
+	}
+	return nodes, nil
+}
+
+func (c *Zookeeper) ManageNodeStatus(nodes map[string]string,
 	client client.Client,
 ) (requequeNeeded bool, err error) {
 	requequeNeeded = false
@@ -262,26 +280,6 @@ func (c *Zookeeper) ManageNodeStatus(podIPList []corev1.Pod,
 
 	config := c.ConfigurationParameters()
 	clientPort := strconv.Itoa(*config.ClientPort)
-
-	nodes := make(map[string]string)
-	for _, pod := range podIPList {
-		name := pod.ObjectMeta.Name
-		ip := pod.Status.PodIP
-		zpod := zookeeperPod{&pod}
-
-		if _ip, _ok := c.Status.Nodes[name]; _ok && _ip == ip {
-			nodes[name] = ip
-			continue
-		}
-
-		if _err := zpod.registrate(config); _err == nil {
-			// Pod successfully registered
-			nodes[name] = ip
-		} else {
-			// Pod not registered
-			requequeNeeded = true
-		}
-	}
 
 	if c.Status.Ports.ClientPort != clientPort || !reflect.DeepEqual(c.Status.Nodes, nodes) {
 		c.Status.Ports.ClientPort = clientPort
