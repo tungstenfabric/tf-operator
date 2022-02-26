@@ -1,6 +1,7 @@
 FROM registry.access.redhat.com/ubi8:8.4
 
 ARG VERSION="21.4.0"
+ARG YUM_SM_PLUGIN_ENABLED=0
 
 MAINTAINER "Tungsten Fabric"
 
@@ -20,6 +21,7 @@ ENV USER_UID=1999 \
     CGO_ENABLED=1
 
 RUN \
+    sed -i "s/enabled=.*/enabled=$YUM_SM_PLUGIN_ENABLED/g" /etc/yum/pluginconf.d/subscription-manager.conf && \
     mkdir -p ${HOME} && \
     chown -R ${USER_UID}:0 ${HOME} && \
     chmod -R ug+rwx ${HOME} && \
