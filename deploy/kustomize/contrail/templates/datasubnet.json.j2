@@ -5,19 +5,5 @@
     "path": "/spec/services/controls/0/spec/serviceConfiguration/dataSubnet",
     "value": "{{ DATA_NETWORK }}"
   }
-{%- if CNI is not defined or CNI == "" -%}
-  ,{
-    "op": "add",
-    "path": "/spec/services/vrouters/0/spec/serviceConfiguration/dataSubnet",
-    "value": "{{ DATA_NETWORK }}"
-  }
-{%- if VROUTER_GATEWAY | default("") != "" -%}
-  ,{
-    "op": "add",
-    "path": "/spec/services/vrouters/0/spec/serviceConfiguration/vrouterGateway",
-    "value": "{{ VROUTER_GATEWAY }}"
-  }
-{%- endif -%}
-{%- endif -%}
 {%- endif -%}
 ]
