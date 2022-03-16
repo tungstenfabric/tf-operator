@@ -47,9 +47,6 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: status.podIP
-        - name: VENDOR_DOMAIN
-          value: io.tungsten
-        # TODO: move do go code for flexibility
         - name: NODE_TYPE
           value: {{ .DatabaseNodeType }}
         - name: CQLSH_HOST
@@ -83,8 +80,6 @@ spec:
         securityContext:
           privileged: true
         env:
-        - name: VENDOR_DOMAIN
-          value: io.tungsten
         - name: NODE_TYPE
           value: {{ .DatabaseNodeType }}
         - name: POD_IP

@@ -38,8 +38,6 @@ spec:
           env:
             - name: NODE_TYPE
               value: analytics-alarm
-            - name: VENDOR_DOMAIN
-              value: io.tungsten
             - name: POD_IP
               valueFrom:
                 fieldRef:
@@ -49,8 +47,6 @@ spec:
           env:
             - name: NODE_TYPE
               value: analytics-alarm
-            - name: VENDOR_DOMAIN
-              value: io.tungsten
             - name: POD_IP
               valueFrom:
                 fieldRef:
@@ -62,8 +58,6 @@ spec:
           env:
             - name: NODE_TYPE
               value: analytics-alarm
-            - name: VENDOR_DOMAIN
-              value: io.tungsten
             - name: POD_IP
               valueFrom:
                 fieldRef:
@@ -77,8 +71,6 @@ spec:
           env:
             - name: NODE_TYPE
               value: analytics-alarm
-            - name: VENDOR_DOMAIN
-              value: io.tungsten
             - name: POD_IP
               valueFrom:
                 fieldRef:

@@ -44,10 +44,6 @@ func GetDaemonset(c *v1alpha1.Vrouter, cniCfg *v1alpha1.CNIConfig, cloudOrchestr
 
 	envList := []corev1.EnvVar{
 		{
-			Name:  "VENDOR_DOMAIN",
-			Value: "io.tungsten",
-		},
-		{
 			Name:  "NODE_TYPE",
 			Value: "vrouter",
 		},
