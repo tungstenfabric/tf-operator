@@ -39,8 +39,6 @@ spec:
           env:
             - name: NODE_TYPE
               value: analytics-snmp
-            - name: VENDOR_DOMAIN
-              value: io.tungsten
             - name: POD_IP
               valueFrom:
                 fieldRef:
@@ -50,8 +48,6 @@ spec:
           env:
             - name: NODE_TYPE
               value: analytics-snmp
-            - name: VENDOR_DOMAIN
-              value: io.tungsten
             - name: POD_IP
               valueFrom:
                 fieldRef:
@@ -63,8 +59,6 @@ spec:
           env:
             - name: NODE_TYPE
               value: analytics-snmp
-            - name: VENDOR_DOMAIN
-              value: io.tungsten
             - name: POD_IP
               valueFrom:
                 fieldRef:
@@ -78,8 +72,6 @@ spec:
           env:
             - name: NODE_TYPE
               value: analytics-snmp
-            - name: VENDOR_DOMAIN
-              value: io.tungsten
             - name: POD_IP
               valueFrom:
                 fieldRef:
