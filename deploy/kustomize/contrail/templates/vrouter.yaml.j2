@@ -36,6 +36,9 @@ spec:
 {%- if VROUTER_GATEWAY is defined and VROUTER_GATEWAY != "" %}
           vrouterGateway: "{{ VROUTER_GATEWAY }}"
 {%- endif %}
+{%- if DATA_NETWORK | default("") != "" %}
+          dataSubnet: "{{ DATA_NETWORK }}"
+{%- endif %}
 {%- if HUGE_PAGES_2MB is defined and HUGE_PAGES_2MB != "" %}
           hugePages2M: {{ HUGE_PAGES_2MB }}
 {%- endif %}
