@@ -61,8 +61,6 @@ spec:
         - name: devicemanager
           image: tungstenfabric/contrail-controller-config-devicemgr:latest
           env:
-            - name: VENDOR_DOMAIN
-              value: io.tungsten
             - name: POD_IP
               valueFrom:
                 fieldRef:
@@ -80,8 +78,6 @@ spec:
         - name: dnsmasq
           image: tungstenfabric/contrail-external-dnsmasq:latest
           env:
-            - name: VENDOR_DOMAIN
-              value: io.tungsten
             - name: POD_IP
               valueFrom:
                 fieldRef:
@@ -115,8 +111,6 @@ spec:
           securityContext:
             privileged: true
           env:
-            - name: VENDOR_DOMAIN
-              value: io.tungsten
             - name: NODE_TYPE
               value: config
             - name: POD_IP
@@ -146,8 +140,6 @@ spec:
           securityContext:
             privileged: true
           env:
-            - name: VENDOR_DOMAIN
-              value: io.tungsten
             - name: NODE_TYPE
               value: config
             - name: POD_IP

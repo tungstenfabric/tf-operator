@@ -84,8 +84,6 @@ spec:
           securityContext:
             privileged: true
           env:
-            - name: VENDOR_DOMAIN
-              value: io.tungsten
             - name: NODE_TYPE
               value: control
             - name: POD_IP
