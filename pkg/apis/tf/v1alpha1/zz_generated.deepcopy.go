@@ -197,7 +197,7 @@ func (in *AnalyticsStatus) DeepCopyInto(out *AnalyticsStatus) {
 	}
 	if in.Nodes != nil {
 		in, out := &in.Nodes, &out.Nodes
-		*out = make(map[string]string, len(*in))
+		*out = make(map[string]NodeInfo, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
@@ -362,7 +362,7 @@ func (in *QueryEngineStatus) DeepCopyInto(out *QueryEngineStatus) {
 	}
 	if in.Nodes != nil {
 		in, out := &in.Nodes, &out.Nodes
-		*out = make(map[string]string, len(*in))
+		*out = make(map[string]NodeInfo, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
@@ -503,7 +503,7 @@ func (in *AnalyticsSnmpStatus) DeepCopyInto(out *AnalyticsSnmpStatus) {
 	}
 	if in.Nodes != nil {
 		in, out := &in.Nodes, &out.Nodes
-		*out = make(map[string]string, len(*in))
+		*out = make(map[string]NodeInfo, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
@@ -662,7 +662,7 @@ func (in *AnalyticsAlarmStatus) DeepCopyInto(out *AnalyticsAlarmStatus) {
 	}
 	if in.Nodes != nil {
 		in, out := &in.Nodes, &out.Nodes
-		*out = make(map[string]string, len(*in))
+		*out = make(map[string]NodeInfo, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
@@ -910,7 +910,7 @@ func (in *CommonStatus) DeepCopyInto(out *CommonStatus) {
 	}
 	if in.Nodes != nil {
 		in, out := &in.Nodes, &out.Nodes
-		*out = make(map[string]string, len(*in))
+		*out = make(map[string]NodeInfo, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
@@ -938,7 +938,7 @@ func (in *CassandraStatus) DeepCopyInto(out *CassandraStatus) {
 	}
 	if in.Nodes != nil {
 		in, out := &in.Nodes, &out.Nodes
-		*out = make(map[string]string, len(*in))
+		*out = make(map[string]NodeInfo, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
@@ -1248,7 +1248,7 @@ func (in *ConfigStatus) DeepCopyInto(out *ConfigStatus) {
 	}
 	if in.Nodes != nil {
 		in, out := &in.Nodes, &out.Nodes
-		*out = make(map[string]string, len(*in))
+		*out = make(map[string]NodeInfo, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
@@ -1510,7 +1510,7 @@ func (in *ControlStatus) DeepCopyInto(out *ControlStatus) {
 	}
 	if in.Nodes != nil {
 		in, out := &in.Nodes, &out.Nodes
-		*out = make(map[string]string, len(*in))
+		*out = make(map[string]NodeInfo, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
@@ -1719,7 +1719,7 @@ func (in *KubemanagerStatus) DeepCopyInto(out *KubemanagerStatus) {
 	}
 	if in.Nodes != nil {
 		in, out := &in.Nodes, &out.Nodes
-		*out = make(map[string]string, len(*in))
+		*out = make(map[string]NodeInfo, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
@@ -2214,7 +2214,7 @@ func (in *RabbitmqStatus) DeepCopyInto(out *RabbitmqStatus) {
 	}
 	if in.Nodes != nil {
 		in, out := &in.Nodes, &out.Nodes
-		*out = make(map[string]string, len(*in))
+		*out = make(map[string]NodeInfo, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
@@ -2379,7 +2379,7 @@ func (in *RedisStatus) DeepCopyInto(out *RedisStatus) {
 	}
 	if in.Nodes != nil {
 		in, out := &in.Nodes, &out.Nodes
-		*out = make(map[string]string, len(*in))
+		*out = make(map[string]NodeInfo, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
@@ -2737,7 +2737,7 @@ func (in *VrouterStatus) DeepCopyInto(out *VrouterStatus) {
 	*out = *in
 	if in.Nodes != nil {
 		in, out := &in.Nodes, &out.Nodes
-		*out = make(map[string]string, len(*in))
+		*out = make(map[string]NodeInfo, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
@@ -2930,7 +2930,7 @@ func (in *WebuiStatus) DeepCopyInto(out *WebuiStatus) {
 	}
 	if in.Nodes != nil {
 		in, out := &in.Nodes, &out.Nodes
-		*out = make(map[string]string, len(*in))
+		*out = make(map[string]NodeInfo, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
@@ -3138,7 +3138,7 @@ func (in *ZookeeperStatus) DeepCopyInto(out *ZookeeperStatus) {
 	}
 	if in.Nodes != nil {
 		in, out := &in.Nodes, &out.Nodes
-		*out = make(map[string]string, len(*in))
+		*out = make(map[string]NodeInfo, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}

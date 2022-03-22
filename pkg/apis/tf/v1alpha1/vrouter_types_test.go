@@ -18,9 +18,9 @@ func TestVrouterControlInstanceSelection(t *testing.T) {
 		},
 		Status: ControlStatus{
 			CommonStatus: CommonStatus{
-				Nodes: map[string]string{
-					"pod1": "1.1.1.1",
-					"pod2": "2.2.2.2",
+				Nodes: map[string]NodeInfo{
+					"pod1": {IP: "1.1.1.1", Hostname: "node1"},
+					"pod2": {IP: "2.2.2.2", Hostname: "node2"},
 				},
 			},
 		},
@@ -32,8 +32,8 @@ func TestVrouterControlInstanceSelection(t *testing.T) {
 		},
 		Status: ControlStatus{
 			CommonStatus: CommonStatus{
-				Nodes: map[string]string{
-					"pod3": "3.3.3.3",
+				Nodes: map[string]NodeInfo{
+					"pod3": {IP: "3.3.3.3", Hostname: "node3"},
 				},
 			},
 		},
@@ -74,8 +74,8 @@ func TestVrouterControlInstanceSelection(t *testing.T) {
 		vrouter2.Spec.ServiceConfiguration.ControlInstance, vrouter2.Spec.ServiceConfiguration.DataSubnet, cl)
 	require.NoError(t, err)
 
-	assert.Equal(t, "1.1.1.1,2.2.2.2", vrouter1Controls)
-	assert.Equal(t, "3.3.3.3", vrouter2Controls)
+	assert.Equal(t, "node1,node2", vrouter1Controls)
+	assert.Equal(t, "node3", vrouter2Controls)
 }
 
 func TestVrouterParamsTest(t *testing.T) {

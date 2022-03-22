@@ -220,7 +220,12 @@ spec:
                 type: boolean
               nodes:
                 additionalProperties:
-                  type: string
+                  properties:
+                    hostname:
+                      type: string
+                    ip:
+                      type: string
+                  type: object
                 type: object
               ports:
                 description: CassandraStatusPorts defines the status of the ports

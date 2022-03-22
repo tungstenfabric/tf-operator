@@ -234,16 +234,11 @@ func (c *AnalyticsAlarm) InstanceConfiguration(podList []corev1.Pod, client clie
 		minInsyncReplicas = 2
 	}
 
-	var kafkaServerSpaceSeparatedList string
-	var podIPList []string
-	for _, pod := range podList {
-		podIPList = append(podIPList, pod.Status.PodIP)
-	}
+	nodes := pods2nodes(podList)
 	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
-	sort.SliceStable(podIPList, func(i, j int) bool { return podIPList[i] < podIPList[j] })
 
-	kafkaServerSpaceSeparatedList = strings.Join(podIPList, ":9092 ") + ":9092"
-	analyticsAlarmNodes := strings.Join(podIPList, ",")
+	kafkaServerSpaceSeparatedList := strings.Join(nodes, ":9092 ") + ":9092"
+	analyticsAlarmNodes := strings.Join(nodes, ",")
 
 	kafkaSecret := &corev1.Secret{}
 	if err = client.Get(context.TODO(), types.NamespacedName{Name: c.Name + "-secret", Namespace: c.Namespace}, kafkaSecret); err != nil {
@@ -426,7 +421,7 @@ func (c *AnalyticsAlarm) CreateSecret(secretName string,
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
-func (c *AnalyticsAlarm) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
+func (c *AnalyticsAlarm) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]NodeInfo, error) {
 	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, "")
 }
 

@@ -168,7 +168,7 @@ func (c *Redis) SetInstanceActive(client client.Client, activeStatus *bool, degr
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
-func (c *Redis) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
+func (c *Redis) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]NodeInfo, error) {
 	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, "")
 }
 
@@ -178,16 +178,16 @@ func (c *Redis) QuerySTS(name string, namespace string, reconcileClient client.C
 }
 
 // ManageNodeStatus updates nodes in status
-func (c *Redis) ManageNodeStatus(podNameIPMap map[string]string,
+func (c *Redis) ManageNodeStatus(nodes map[string]NodeInfo,
 	client client.Client) (updated bool, err error) {
 	updated = false
 	err = nil
 
-	if reflect.DeepEqual(c.Status.Nodes, podNameIPMap) {
+	if reflect.DeepEqual(c.Status.Nodes, nodes) {
 		return
 	}
 
-	c.Status.Nodes = podNameIPMap
+	c.Status.Nodes = nodes
 	if err = client.Status().Update(context.TODO(), c); err != nil {
 		return
 	}

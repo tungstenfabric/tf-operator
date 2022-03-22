@@ -1044,6 +1044,10 @@ spec:
                                 type: integer
                               apiWorkerCount:
                                 type: integer
+                              bgpAutoMesh:
+                                type: boolean
+                              bgpEnable4Byte:
+                                type: boolean
                               containers:
                                 items:
                                   description: Container defines name, image and command.
@@ -1062,6 +1066,8 @@ spec:
                                 type: integer
                               fabricMgmtIP:
                                 type: string
+                              globlaASNNumber:
+                                type: integer
                               linklocalServiceConfig:
                                 description: LinklocalServiceConfig is the Spec for
                                   link local coniguration
@@ -1262,6 +1268,8 @@ spec:
                                   type: integer
                                 dnsPort:
                                   type: integer
+                                rndckey:
+                                  type: string
                                 subcluster:
                                   type: string
                                 xmppPort:
@@ -2273,6 +2281,10 @@ spec:
                                 sandeshCertfile:
                                   type: string
                                 sandeshKeyfile:
+                                  type: string
+                                sandeshServerCertfile:
+                                  type: string
+                                sandeshServerKeyfile:
                                   type: string
                                 sandeshSslEnable:
                                   type: boolean

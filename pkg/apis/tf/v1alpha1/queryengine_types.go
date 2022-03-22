@@ -101,12 +101,7 @@ func (c *QueryEngine) InstanceConfiguration(podList []corev1.Pod, client client.
 		return
 	}
 
-	var podIPList []string
-	for _, pod := range podList {
-		podIPList = append(podIPList, pod.Status.PodIP)
-	}
 	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
-	sort.SliceStable(podIPList, func(i, j int) bool { return podIPList[i] < podIPList[j] })
 
 	configApiList := make([]string, len(configNodesInformation.APIServerIPList))
 	copy(configApiList, configNodesInformation.APIServerIPList)
@@ -240,21 +235,21 @@ func (c *QueryEngine) SetInstanceActive(client client.Client, activeStatus *bool
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
-func (c *QueryEngine) PodIPListAndIPMapFromInstance(request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
+func (c *QueryEngine) PodIPListAndIPMapFromInstance(request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]NodeInfo, error) {
 	return PodIPListAndIPMapFromInstance("queryengine", request, reconcileClient, "")
 }
 
 // ManageNodeStatus updates nodes in status
-func (c *QueryEngine) ManageNodeStatus(podNameIPMap map[string]string,
+func (c *QueryEngine) ManageNodeStatus(nodes map[string]NodeInfo,
 	client client.Client) (updated bool, err error) {
 	updated = false
 	err = nil
 
-	if reflect.DeepEqual(c.Status.Nodes, podNameIPMap) {
+	if reflect.DeepEqual(c.Status.Nodes, nodes) {
 		return
 	}
 
-	c.Status.Nodes = podNameIPMap
+	c.Status.Nodes = nodes
 	if err = client.Status().Update(context.TODO(), c); err != nil {
 		return
 	}

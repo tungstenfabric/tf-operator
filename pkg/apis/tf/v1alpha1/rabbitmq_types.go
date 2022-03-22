@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -101,6 +102,16 @@ func (c *Rabbitmq) InstanceConfiguration(podList []corev1.Pod, client client.Cli
 
 	c.ConfigurationParameters()
 
+	rabbitmqNodes := []string{}
+	for _, pod := range podList {
+		myidString := pod.Name[len(pod.Name)-1:]
+		n := pod2node(pod)
+		data[myidString] = n
+		rabbitmqNodes = append(rabbitmqNodes, n)
+	}
+	data["rabbitmq.nodes"] = strings.Join(rabbitmqNodes, "\n")
+	data["plugins.conf"] = "[rabbitmq_management,rabbitmq_management_agent,rabbitmq_peer_discovery_k8s]."
+
 	for _, pod := range podList {
 		var rabbitmqPodConfig bytes.Buffer
 		err := configtemplates.RabbitmqPodConfig.Execute(&rabbitmqPodConfig, struct {
@@ -108,7 +119,7 @@ func (c *Rabbitmq) InstanceConfiguration(podList []corev1.Pod, client client.Cli
 			SignerCAFilepath         string
 			ClusterPartitionHandling string
 			PodIP                    string
-			PodsList                 []corev1.Pod
+			PodsList                 []string
 			TCPListenOptions         *TCPListenOptionsConfig
 			LogLevel                 string
 		}{
@@ -116,7 +127,7 @@ func (c *Rabbitmq) InstanceConfiguration(podList []corev1.Pod, client client.Cli
 			SignerCAFilepath:         SignerCAFilepath,
 			ClusterPartitionHandling: *c.Spec.ServiceConfiguration.ClusterPartitionHandling,
 			PodIP:                    pod.Status.PodIP,
-			PodsList:                 podList,
+			PodsList:                 rabbitmqNodes,
 			LogLevel:                 c.Spec.CommonConfiguration.LogLevel,
 			TCPListenOptions:         c.Spec.ServiceConfiguration.TCPListenOptions,
 		})
@@ -124,29 +135,21 @@ func (c *Rabbitmq) InstanceConfiguration(podList []corev1.Pod, client client.Cli
 			panic(err)
 		}
 		data["rabbitmq.conf."+pod.Status.PodIP] = rabbitmqPodConfig.String()
-		rabbitmqEnvConfigString := fmt.Sprintf("HOME=/var/lib/rabbitmq\n")
-		rabbitmqEnvConfigString = rabbitmqEnvConfigString + fmt.Sprintf("NODENAME=rabbit@%s\n", pod.Status.PodIP)
+		rabbitmqEnvConfigString := "HOME=/var/lib/rabbitmq\n"
+		rn := fmt.Sprintf("rabbit@%s", pod2node(pod))
+		rabbitmqEnvConfigString = rabbitmqEnvConfigString + fmt.Sprintf("NODENAME=%s\n", rn)
+		rabbitmqEnvConfigString = rabbitmqEnvConfigString + fmt.Sprintf("RABBITMQ_NODENAME=%s\n", rn)
 
 		data["rabbitmq-env.conf."+pod.Status.PodIP] = rabbitmqEnvConfigString
 	}
 
-	var rabbitmqNodes string
-	for _, pod := range podList {
-		myidString := pod.Name[len(pod.Name)-1:]
-		data[myidString] = pod.Status.PodIP
-		rabbitmqNodes = rabbitmqNodes + fmt.Sprintf("%s\n", pod.Status.PodIP)
-	}
-
-	data["rabbitmq.nodes"] = rabbitmqNodes
-	data["plugins.conf"] = "[rabbitmq_management,rabbitmq_management_agent,rabbitmq_peer_discovery_k8s]."
-
 	// common env vars
 	rabbitmqCommonEnvString := fmt.Sprintf("export RABBITMQ_ERLANG_COOKIE=%s\n", c.Spec.ServiceConfiguration.ErlangCookie)
-	rabbitmqCommonEnvString = rabbitmqCommonEnvString + fmt.Sprintf("export RABBITMQ_CONFIG_FILE=/etc/rabbitmq/rabbitmq.conf\n")
-	rabbitmqCommonEnvString = rabbitmqCommonEnvString + fmt.Sprintf("export RABBITMQ_CONF_ENV_FILE=/etc/rabbitmq/rabbitmq-env.conf\n")
-	rabbitmqCommonEnvString = rabbitmqCommonEnvString + fmt.Sprintf("export RABBITMQ_ENABLED_PLUGINS_FILE=/etc/rabbitmq/plugins.conf\n")
-	rabbitmqCommonEnvString = rabbitmqCommonEnvString + fmt.Sprintf("export RABBITMQ_USE_LONGNAME=true\n")
-	rabbitmqCommonEnvString = rabbitmqCommonEnvString + fmt.Sprintf("export RABBITMQ_PID_FILE=/var/run/rabbitmq.pid\n")
+	rabbitmqCommonEnvString = rabbitmqCommonEnvString + "export RABBITMQ_CONFIG_FILE=/etc/rabbitmq/rabbitmq.conf\n"
+	rabbitmqCommonEnvString = rabbitmqCommonEnvString + "export RABBITMQ_CONF_ENV_FILE=/etc/rabbitmq/rabbitmq-env.conf\n"
+	rabbitmqCommonEnvString = rabbitmqCommonEnvString + "export RABBITMQ_ENABLED_PLUGINS_FILE=/etc/rabbitmq/plugins.conf\n"
+	rabbitmqCommonEnvString = rabbitmqCommonEnvString + "export RABBITMQ_USE_LONGNAME=true\n"
+	rabbitmqCommonEnvString = rabbitmqCommonEnvString + "export RABBITMQ_PID_FILE=/var/run/rabbitmq.pid\n"
 
 	rabbitmqCommonEnvString = rabbitmqCommonEnvString + fmt.Sprintf("export ERL_EPMD_PORT=%d\n", *c.Spec.ServiceConfiguration.ErlEpmdPort)
 	distPort := *c.Spec.ServiceConfiguration.Port + 20000
@@ -331,7 +334,7 @@ func (c *Rabbitmq) AddVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeConfig
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
-func (c *Rabbitmq) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
+func (c *Rabbitmq) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]NodeInfo, error) {
 	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, "")
 }
 
@@ -340,19 +343,19 @@ func (c *Rabbitmq) SetInstanceActive(client client.Client, activeStatus *bool, d
 	return SetInstanceActive(client, activeStatus, degradedStatus, sts, request, c)
 }
 
-func (c *Rabbitmq) ManageNodeStatus(podNameIPMap map[string]string,
+func (c *Rabbitmq) ManageNodeStatus(nodes map[string]NodeInfo,
 	client client.Client) (updated bool, err error) {
 	updated = false
 	err = nil
 
 	c.ConfigurationParameters()
 	secret := c.Spec.ServiceConfiguration.Secret
-	if secret == c.Status.Secret && reflect.DeepEqual(c.Status.Nodes, podNameIPMap) {
+	if secret == c.Status.Secret && reflect.DeepEqual(c.Status.Nodes, nodes) {
 		return
 	}
 
 	c.Status.Secret = secret
-	c.Status.Nodes = podNameIPMap
+	c.Status.Nodes = nodes
 	if err = client.Status().Update(context.TODO(), c); err != nil {
 		return
 	}

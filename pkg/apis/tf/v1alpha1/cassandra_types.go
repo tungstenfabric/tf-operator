@@ -108,6 +108,7 @@ func init() {
 // InstanceConfiguration creates the cassandra instance configuration.
 func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 	podList []corev1.Pod,
+	nodes map[string]NodeInfo,
 	seedsIPList []string,
 	client client.Client) error {
 
@@ -131,7 +132,7 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 
 	var cassandraPodIPList []string
 	for _, pod := range podList {
-		cassandraPodIPList = append(cassandraPodIPList, pod.Status.PodIP)
+		cassandraPodIPList = append(cassandraPodIPList, nodes[pod.Name].Hostname)
 	}
 	cassandraIPListCommaSeparated := strings.Join(cassandraPodIPList, ",")
 
@@ -237,7 +238,7 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 		}{
 			ListenAddress:            pod.Status.PodIP,
 			PodIP:                    pod.Status.PodIP,
-			InstrospectListenAddress: c.Spec.CommonConfiguration.IntrospectionListenAddress(pod.Status.PodIP),
+			InstrospectListenAddress: c.Spec.CommonConfiguration.IntrospectionListenAddress(nodes[pod.Name].IP),
 			Hostname:                 pod.Annotations["hostname"],
 			CollectorServerList:      collectorEndpointListSpaceSeparated,
 			CassandraPort:            strconv.Itoa(*cassandraConfig.CqlPort),
@@ -390,7 +391,7 @@ func (c *Cassandra) AddVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeConfi
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
-func (c *Cassandra) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
+func (c *Cassandra) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]NodeInfo, error) {
 	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, "")
 }
 
@@ -480,13 +481,13 @@ func (c *Cassandra) ConfigurationParameters() *CassandraConfiguration {
 }
 
 // UpdateStatus manages the status of the Cassandra nodes.
-func (c *Cassandra) UpdateStatus(cassandraConfig *CassandraConfiguration, podNameIPMap map[string]string, sts *appsv1.StatefulSet) bool {
+func (c *Cassandra) UpdateStatus(cassandraConfig *CassandraConfiguration, nodes map[string]NodeInfo, sts *appsv1.StatefulSet) bool {
 	log := cassandraLog.WithName("UpdateStatus")
 	changed := false
 
-	if !reflect.DeepEqual(c.Status.Nodes, podNameIPMap) {
-		log.Info("Nodes", "new", podNameIPMap, "old", c.Status.Nodes)
-		c.Status.Nodes = podNameIPMap
+	if !reflect.DeepEqual(c.Status.Nodes, nodes) {
+		log.Info("Nodes", "new", nodes, "old", c.Status.Nodes)
+		c.Status.Nodes = nodes
 		changed = true
 	}
 
