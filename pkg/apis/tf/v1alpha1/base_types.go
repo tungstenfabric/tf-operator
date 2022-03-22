@@ -373,7 +373,7 @@ func PodsCertSubjects(domain string, podList []corev1.Pod, podAltIPs PodAlternat
 		}
 		altNames := []string{
 			pod.Spec.NodeName,
-			pod.Spec.Hostname,
+			pod.Annotations["hostname"],
 		}
 		if osName != "" {
 			altNames = append(altNames, osName)
@@ -1048,30 +1048,14 @@ func GetNodes(labelSelector map[string]string, c client.Client) ([]corev1.Node, 
 	return nodeList.Items, nil
 }
 
-// GetNodesByLabels requests nodes by labels
-func GetNodesByLabels(clnt client.Client, labels client.MatchingLabels) (string, error) {
-	pods := &corev1.PodList{}
-	if err := clnt.List(context.Background(), pods, labels); err != nil {
+// GetAnalyticsNodes returns analytics nodes list (str comma separated)
+func GetAnalyticsNodes(ns string, clnt client.Client) (string, error) {
+	cfg, err := NewAnalyticsClusterConfiguration(AnalyticsInstance, ns, clnt)
+	if err != nil && !k8serrors.IsNotFound(err) {
 		return "", err
 	}
+	return configtemplates.JoinListWithSeparator(cfg.AnalyticsServerIPList, ","), nil
 
-	arrIps := []string{}
-	for _, pod := range pods.Items {
-		if pod.Status.PodIP == "" || pod.Status.Phase != "Running" {
-			continue
-		}
-		arrIps = append(arrIps, pod.Status.PodIP)
-	}
-
-	sort.Strings(arrIps)
-	ips := strings.Join(arrIps[:], ",")
-	return ips, nil
-}
-
-// GetAnalyticsNodes returns analytics nodes list (str comma separated)
-func GetAnalyticsNodes(clnt client.Client) string {
-	ips, _ := GetNodesByLabels(clnt, client.MatchingLabels{"tf_manager": "analytics"})
-	return ips
 }
 
 func GetControllerNodes(c client.Client) ([]corev1.Node, error) {
@@ -1099,31 +1083,34 @@ func GetControlNodes(ns string, controlName string, cidr string, clnt client.Cli
 		return "", err
 	}
 	var ipList []string
-	for _, ip := range control.Status.Nodes {
+	for _, node := range control.Status.Nodes {
 		if cidr != "" {
 			_, network, _ := net.ParseCIDR(cidr)
-			if !network.Contains(net.ParseIP(ip)) {
+			if !network.Contains(net.ParseIP(node.IP)) {
 				continue
 			}
 		}
-		ipList = append(ipList, ip)
+		ipList = append(ipList, info2node(node))
 	}
 	sort.Strings(ipList)
 	return strings.Join(ipList, ","), nil
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
+// TODO: Implement selection of returning either ip's or hostnames
 func PodIPListAndIPMapFromInstance(instanceType string,
 	request reconcile.Request,
-	clnt client.Client, datanetwork string) ([]corev1.Pod, map[string]string, error) {
+	clnt client.Client, datanetwork string) ([]corev1.Pod, map[string]NodeInfo, error) {
 
 	allPods, err := SelectPods(request.Name, instanceType, request.Namespace, clnt)
 	if err != nil || len(allPods.Items) == 0 {
 		return nil, nil, err
 	}
 
-	var podNameIPMap = make(map[string]string)
+	var podNameIPMap = make(map[string]NodeInfo)
 	var podList = []corev1.Pod{}
+	var podIP string
+	var hostname string
 	for idx := range allPods.Items {
 		pod := &allPods.Items[idx]
 		if pod.Status.PodIP == "" || (pod.Status.Phase != "Running" && pod.Status.Phase != "Pending") {
@@ -1134,14 +1121,57 @@ func PodIPListAndIPMapFromInstance(instanceType string,
 			if err != nil {
 				return nil, nil, err
 			}
-			podNameIPMap[pod.Name] = ip
+			var names []string
+			if names, err = net.LookupAddr(ip); err == nil {
+				return nil, nil, err
+			}
+			podIP = ip
+			names = append(names, pod.Annotations["hostname"])
+			sort.SliceStable(names, func(i, j int) bool { return len(names[i]) > len(names[j]) })
+			hostname = names[0]
 		} else {
-			podNameIPMap[pod.Name] = pod.Status.PodIP
+			podIP = pod.Status.PodIP
+			hostname = pod.Annotations["hostname"]
 		}
+		podNameIPMap[pod.Name] = NodeInfo{IP: podIP, Hostname: hostname}
 		podList = append(podList, *pod)
 	}
 	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Name < podList[j].Name })
 	return podList, podNameIPMap, nil
+}
+
+func pod2node(pod corev1.Pod) string {
+	if k8s.IsOpenshift() {
+		return pod.Status.PodIP
+	}
+	return pod.Annotations["hostname"]
+}
+
+func info2node(node NodeInfo) string {
+	if k8s.IsOpenshift() {
+		return node.IP
+	}
+	return node.Hostname
+}
+
+func info2nodes(nodes map[string]NodeInfo) []string {
+	res := []string{}
+	if nodes != nil {
+		for _, node := range nodes {
+			res = append(res, info2node(node))
+		}
+		sort.SliceStable(res, func(i, j int) bool { return res[i] < res[j] })
+	}
+	return res
+}
+
+func pods2nodes(podList []corev1.Pod) []string {
+	var nodes []string
+	for _, pod := range podList {
+		nodes = append(nodes, pod2node(pod))
+	}
+	sort.SliceStable(nodes, func(i, j int) bool { return nodes[i] < nodes[j] })
+	return nodes
 }
 
 // NewCassandraClusterConfiguration gets a struct containing various representations of Cassandra nodes string.
@@ -1151,13 +1181,7 @@ func NewCassandraClusterConfiguration(name string, namespace string, client clie
 	if err != nil {
 		return CassandraClusterConfiguration{}, err
 	}
-	nodes := []string{}
-	if instance.Status.Nodes != nil {
-		for _, ip := range instance.Status.Nodes {
-			nodes = append(nodes, ip)
-		}
-		sort.SliceStable(nodes, func(i, j int) bool { return nodes[i] < nodes[j] })
-	}
+	nodes := info2nodes(instance.Status.Nodes)
 	config := instance.ConfigurationParameters()
 	clusterConfig := CassandraClusterConfiguration{
 		Port:         *config.Port,
@@ -1175,14 +1199,7 @@ func NewControlClusterConfiguration(name string, namespace string, myclient clie
 	if err != nil {
 		return ControlClusterConfiguration{}, err
 	}
-	nodes := []string{}
-	if instance.Status.Nodes != nil {
-		for _, ip := range instance.Status.Nodes {
-			nodes = append(nodes, ip)
-		}
-		sort.SliceStable(nodes, func(i, j int) bool { return nodes[i] < nodes[j] })
-	}
-
+	nodes := info2nodes(instance.Status.Nodes)
 	config := instance.ConfigurationParameters()
 	clusterConfig := ControlClusterConfiguration{
 		XMPPPort:            *config.XMPPPort,
@@ -1202,13 +1219,7 @@ func NewZookeeperClusterConfiguration(name, namespace string, client client.Clie
 	if err != nil {
 		return ZookeeperClusterConfiguration{}, err
 	}
-	nodes := []string{}
-	if instance.Status.Nodes != nil {
-		for _, ip := range instance.Status.Nodes {
-			nodes = append(nodes, ip)
-		}
-		sort.SliceStable(nodes, func(i, j int) bool { return nodes[i] < nodes[j] })
-	}
+	nodes := info2nodes(instance.Status.Nodes)
 	config := instance.ConfigurationParameters()
 	clusterConfig := ZookeeperClusterConfiguration{
 		ClientPort:   *config.ClientPort,
@@ -1224,13 +1235,7 @@ func NewRabbitmqClusterConfiguration(name, namespace string, client client.Clien
 	if err != nil {
 		return RabbitmqClusterConfiguration{}, err
 	}
-	nodes := []string{}
-	if instance.Status.Nodes != nil {
-		for _, ip := range instance.Status.Nodes {
-			nodes = append(nodes, ip)
-		}
-		sort.SliceStable(nodes, func(i, j int) bool { return nodes[i] < nodes[j] })
-	}
+	nodes := info2nodes(instance.Status.Nodes)
 	instance.ConfigurationParameters()
 	clusterConfig := RabbitmqClusterConfiguration{
 		Port:         *instance.Spec.ServiceConfiguration.Port,
@@ -1247,13 +1252,7 @@ func NewAnalyticsClusterConfiguration(name, namespace string, client client.Clie
 	if err != nil {
 		return AnalyticsClusterConfiguration{}, err
 	}
-	nodes := []string{}
-	if instance.Status.Nodes != nil {
-		for _, ip := range instance.Status.Nodes {
-			nodes = append(nodes, ip)
-		}
-		sort.SliceStable(nodes, func(i, j int) bool { return nodes[i] < nodes[j] })
-	}
+	nodes := info2nodes(instance.Status.Nodes)
 	config := instance.ConfigurationParameters()
 	clusterConfig := AnalyticsClusterConfiguration{
 		AnalyticsServerIPList: nodes,
@@ -1272,13 +1271,7 @@ func NewQueryEngineClusterConfiguration(name, namespace string, client client.Cl
 	if err != nil {
 		return QueryEngineClusterConfiguration{}, err
 	}
-	nodes := []string{}
-	if instance.Status.Nodes != nil {
-		for _, ip := range instance.Status.Nodes {
-			nodes = append(nodes, ip)
-		}
-		sort.SliceStable(nodes, func(i, j int) bool { return nodes[i] < nodes[j] })
-	}
+	nodes := info2nodes(instance.Status.Nodes)
 	config := instance.ConfigurationParameters()
 	clusterConfig := QueryEngineClusterConfiguration{
 		QueryEngineServerIPList: nodes,
@@ -1294,13 +1287,7 @@ func NewConfigClusterConfiguration(name, namespace string, client client.Client)
 	if err != nil {
 		return ConfigClusterConfiguration{}, err
 	}
-	nodes := []string{}
-	if instance.Status.Nodes != nil {
-		for _, ip := range instance.Status.Nodes {
-			nodes = append(nodes, ip)
-		}
-		sort.SliceStable(nodes, func(i, j int) bool { return nodes[i] < nodes[j] })
-	}
+	nodes := info2nodes(instance.Status.Nodes)
 	config := instance.ConfigurationParameters()
 	clusterConfig := ConfigClusterConfiguration{
 		APIServerPort:   *config.APIPort,
@@ -1316,13 +1303,7 @@ func NewRedisClusterConfiguration(name, namespace string, client client.Client) 
 	if err != nil {
 		return RedisClusterConfiguration{}, err
 	}
-	nodes := []string{}
-	if instance.Status.Nodes != nil {
-		for _, ip := range instance.Status.Nodes {
-			nodes = append(nodes, ip)
-		}
-		sort.SliceStable(nodes, func(i, j int) bool { return nodes[i] < nodes[j] })
-	}
+	nodes := info2nodes(instance.Status.Nodes)
 	config := instance.ConfigurationParameters()
 	clusterConfig := RedisClusterConfiguration{
 		ServerIPList: nodes,

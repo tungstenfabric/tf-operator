@@ -95,7 +95,12 @@ func (c *Zookeeper) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 	copy(pods, podList)
 	sort.SliceStable(pods, func(i, j int) bool { return pods[i].Name < pods[j].Name })
 
-	data, err = configtemplates.DynamicZookeeperConfig(pods, strconv.Itoa(*zookeeperConfig.ElectionPort), strconv.Itoa(*zookeeperConfig.ServerPort), strconv.Itoa(*zookeeperConfig.ClientPort))
+	data, err = configtemplates.DynamicZookeeperConfig(
+		pods,
+		strconv.Itoa(*zookeeperConfig.ElectionPort),
+		strconv.Itoa(*zookeeperConfig.ServerPort),
+		strconv.Itoa(*zookeeperConfig.ClientPort),
+		pod2node)
 	if err != nil {
 		return
 	}
@@ -202,7 +207,7 @@ func (c *Zookeeper) AddVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeConfi
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
-func (c *Zookeeper) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
+func (c *Zookeeper) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]NodeInfo, error) {
 	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, "")
 }
 
@@ -224,18 +229,16 @@ func (zp *zookeeperPod) execToZookeeperContainer(command []string) (stdout, stde
 
 // getPodId returns number of the pod from name, where pod name is `<zookeeper_sts_name>-<number_of_pod>`.
 func getPodId(pod *corev1.Pod) (id int, err error) {
-	name := pod.ObjectMeta.Name
-
 	re := regexp.MustCompile(`\d+$`)
-	id, err = strconv.Atoi(re.FindString(name))
+	id, err = strconv.Atoi(re.FindString(pod.ObjectMeta.Name))
 	return
 }
 
 // Registrate registrates pod in the cluster.
 func (zp *zookeeperPod) registrate(zConfig ZookeeperConfiguration) error {
-	ip := zp.Pod.Status.PodIP
 	electionPort := *zConfig.ElectionPort
 	serverPort := *zConfig.ServerPort
+	addr := pod2node(*zp.Pod)
 	id, err := getPodId(zp.Pod)
 	if err != nil {
 		zookeeperLog.Error(err, "Failed to get pod id for pod "+zp.Pod.ObjectMeta.Name)
@@ -243,21 +246,21 @@ func (zp *zookeeperPod) registrate(zConfig ZookeeperConfiguration) error {
 	}
 
 	command := fmt.Sprintf("zkCli.sh -server %s reconfig -add \"server.%d=%s:%d:%d;%s:2181\"",
-		ip,
+		addr,
 		id+1,
-		ip,
+		addr,
 		electionPort,
 		serverPort,
-		ip,
+		addr,
 	)
 	_, _, err = zp.execToZookeeperContainer([]string{"bash", "-c", command})
 	return err
 }
 
-func (c *Zookeeper) AddZKNode(podIPList []corev1.Pod) (nodes map[string]string, err error) {
+func (c *Zookeeper) AddZKNode(podIPList []corev1.Pod) (nodes map[string]NodeInfo, err error) {
 	config := c.ConfigurationParameters()
 
-	nodes = make(map[string]string)
+	nodes = make(map[string]NodeInfo)
 	for _, pod := range podIPList {
 		name := pod.ObjectMeta.Name
 		if _, _ok := c.Status.Nodes[name]; !_ok {
@@ -266,13 +269,13 @@ func (c *Zookeeper) AddZKNode(podIPList []corev1.Pod) (nodes map[string]string, 
 				return nodes, _err
 			}
 		}
-		ip := pod.Status.PodIP
-		nodes[name] = ip
+		nodes[name] = NodeInfo{IP: pod.Status.PodIP, Hostname: pod.Annotations["hostname"]}
+		c.Status.Nodes = nodes
 	}
 	return nodes, nil
 }
 
-func (c *Zookeeper) ManageNodeStatus(nodes map[string]string,
+func (c *Zookeeper) ManageNodeStatus(nodes map[string]NodeInfo,
 	client client.Client,
 ) (requequeNeeded bool, err error) {
 	requequeNeeded = false

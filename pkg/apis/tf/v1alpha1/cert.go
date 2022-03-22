@@ -74,8 +74,9 @@ func touchCertSecretsOnCAUpdate(ns string, cl client.Client) error {
 
 func retrieveDataIPs(pod corev1.Pod) []string {
 	var altIPs []string
-	altIP, _ := getPodDataIP(&pod)
-	altIPs = append(altIPs, altIP)
+	if altIP, err := getPodDataIP(&pod); err == nil {
+		altIPs = append(altIPs, altIP)
+	}
 	return altIPs
 }
 

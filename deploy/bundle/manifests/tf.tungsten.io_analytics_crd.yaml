@@ -218,7 +218,12 @@ spec:
                 type: string
               nodes:
                 additionalProperties:
-                  type: string
+                  properties:
+                    hostname:
+                      type: string
+                    ip:
+                      type: string
+                  type: object
                 type: object
             type: object
         type: object

@@ -222,6 +222,7 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 		hostname := pod.Annotations["hostname"]
 		podIP := pod.Status.PodIP
 		podListenAddress, _err := getPodDataIP(&pod)
+
 		if _err != nil {
 			err = _err
 			return
@@ -475,7 +476,7 @@ func (c *Control) AddVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeConfigM
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
-func (c *Control) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
+func (c *Control) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]NodeInfo, error) {
 	datanetwork := c.Spec.ServiceConfiguration.DataSubnet
 	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, datanetwork)
 }
@@ -485,7 +486,7 @@ func (c *Control) SetInstanceActive(client client.Client, activeStatus *bool, de
 	return SetInstanceActive(client, activeStatus, degradedStatus, sts, request, c)
 }
 
-func (c *Control) ManageNodeStatus(podNameIPMap map[string]string,
+func (c *Control) ManageNodeStatus(nodes map[string]NodeInfo,
 	client client.Client) (updated bool, err error) {
 	updated = false
 	err = nil
@@ -501,7 +502,7 @@ func (c *Control) ManageNodeStatus(podNameIPMap map[string]string,
 		xmppPort == c.Status.Ports.XMPPPort &&
 		dnsPort == c.Status.Ports.DNSPort &&
 		dnsIntrospectPort == c.Status.Ports.DNSIntrospectPort &&
-		reflect.DeepEqual(c.Status.Nodes, podNameIPMap) {
+		reflect.DeepEqual(c.Status.Nodes, nodes) {
 		return
 	}
 
@@ -510,7 +511,7 @@ func (c *Control) ManageNodeStatus(podNameIPMap map[string]string,
 	c.Status.Ports.XMPPPort = xmppPort
 	c.Status.Ports.DNSPort = dnsPort
 	c.Status.Ports.DNSIntrospectPort = dnsIntrospectPort
-	c.Status.Nodes = podNameIPMap
+	c.Status.Nodes = nodes
 	if err = client.Status().Update(context.TODO(), c); err != nil {
 		return
 	}

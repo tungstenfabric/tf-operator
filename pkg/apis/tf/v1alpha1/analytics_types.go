@@ -156,20 +156,16 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 	if rabbitmqSecretVhost == "" {
 		rabbitmqSecretVhost = RabbitmqVhost
 	}
-	var collectorServerList, analyticsServerSpaceSeparatedList string
-	var podIPList []string
-	for _, pod := range podList {
-		podIPList = append(podIPList, pod.Status.PodIP)
-	}
+	nodes := pods2nodes(podList)
 	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
-	sort.SliceStable(podIPList, func(i, j int) bool { return podIPList[i] < podIPList[j] })
 
 	configApiIPListCommaSeparated := configtemplates.JoinListWithSeparator(configNodesInformation.APIServerIPList, ",")
-	analyticsNodes := strings.Join(podIPList, ",")
+	analyticsNodes := strings.Join(nodes, ",")
 
-	collectorServerList = strings.Join(podIPList, ":"+strconv.Itoa(*analyticsConfig.CollectorPort)+" ")
+	var collectorServerList, analyticsServerSpaceSeparatedList string
+	collectorServerList = strings.Join(nodes, ":"+strconv.Itoa(*analyticsConfig.CollectorPort)+" ")
 	collectorServerList = collectorServerList + ":" + strconv.Itoa(*analyticsConfig.CollectorPort)
-	analyticsServerSpaceSeparatedList = strings.Join(podIPList, ":"+strconv.Itoa(*analyticsConfig.AnalyticsPort)+" ")
+	analyticsServerSpaceSeparatedList = strings.Join(nodes, ":"+strconv.Itoa(*analyticsConfig.AnalyticsPort)+" ")
 	analyticsServerSpaceSeparatedList = analyticsServerSpaceSeparatedList + ":" + strconv.Itoa(*analyticsConfig.AnalyticsPort)
 	apiServerEndpointList := configtemplates.EndpointList(configNodesInformation.APIServerIPList, configNodesInformation.APIServerPort)
 	apiServerEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(apiServerEndpointList, " ")
@@ -436,12 +432,12 @@ func (c *Analytics) SetInstanceActive(client client.Client, activeStatus *bool, 
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
-func (c *Analytics) PodIPListAndIPMapFromInstance(request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
+func (c *Analytics) PodIPListAndIPMapFromInstance(request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]NodeInfo, error) {
 	return PodIPListAndIPMapFromInstance("analytics", request, reconcileClient, "")
 }
 
 // ManageNodeStatus updates nodes in status
-func (c *Analytics) ManageNodeStatus(podNameIPMap map[string]string,
+func (c *Analytics) ManageNodeStatus(podNameIPMap map[string]NodeInfo,
 	client client.Client) (updated bool, err error) {
 	updated = false
 	err = nil

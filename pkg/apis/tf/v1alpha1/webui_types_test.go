@@ -52,9 +52,9 @@ var webuiControl = &Control{
 	},
 	Status: ControlStatus{
 		CommonStatus: CommonStatus{
-			Nodes: map[string]string{
-				"pod1": "1.1.1.1",
-				"pod2": "2.2.2.2",
+			Nodes: map[string]NodeInfo{
+				"pod1": {IP: "1.1.1.1", Hostname: "node1"},
+				"pod2": {IP: "2.2.2.2", Hostname: "node2"},
 			},
 		},
 	},
@@ -67,9 +67,9 @@ var webuiCassandra = &Cassandra{
 	},
 	Status: CassandraStatus{
 		CommonStatus: CommonStatus{
-			Nodes: map[string]string{
-				"pod1": "1.1.1.1",
-				"pod2": "2.2.2.2",
+			Nodes: map[string]NodeInfo{
+				"pod1": {IP: "1.1.1.1", Hostname: "node1"},
+				"pod2": {IP: "2.2.2.2", Hostname: "node2"},
 			},
 		},
 	},
@@ -82,9 +82,9 @@ var webuiConfig = &Config{
 	},
 	Status: ConfigStatus{
 		CommonStatus: CommonStatus{
-			Nodes: map[string]string{
-				"pod1": "1.1.1.1",
-				"pod2": "2.2.2.2",
+			Nodes: map[string]NodeInfo{
+				"pod1": {IP: "1.1.1.1", Hostname: "node1"},
+				"pod2": {IP: "2.2.2.2", Hostname: "node2"},
 			},
 		},
 	},
@@ -96,10 +96,11 @@ var webuiAnalytics = &Analytics{
 		Namespace: "test-ns",
 	},
 	Status: AnalyticsStatus{
-		CommonStatus: CommonStatus{Nodes: map[string]string{
-			"pod1": "1.1.1.1",
-			"pod2": "2.2.2.2",
-		},
+		CommonStatus: CommonStatus{
+			Nodes: map[string]NodeInfo{
+				"pod1": {IP: "1.1.1.1", Hostname: "node1"},
+				"pod2": {IP: "2.2.2.2", Hostname: "node2"},
+			},
 		},
 	},
 }
