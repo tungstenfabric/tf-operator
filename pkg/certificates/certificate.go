@@ -23,9 +23,9 @@ import (
 const (
 	CAFilename      = "ca-bundle.crt"
 	CAConfigMapName = "csr-signer-ca"
-
-	certKeyLength = 2048
 )
+
+var CertKeyLength = 4096
 
 // Signers
 //
@@ -197,7 +197,7 @@ func (r *Certificate) createCertificateForPod(subject CertificateSubject, secret
 	}
 	privateKey, err := subject.getPrivKeyFromSecret(secret)
 	if err != nil {
-		privateKey, err = rsa.GenerateKey(rand.Reader, certKeyLength)
+		privateKey, err = rsa.GenerateKey(rand.Reader, CertKeyLength)
 		if err != nil {
 			return fmt.Errorf("Failed to generate private key: %w", err)
 		}
