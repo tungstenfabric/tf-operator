@@ -31,6 +31,7 @@ import (
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
+	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 )
 
 var log = logf.Log.WithName("controller_manager")
@@ -1247,5 +1248,9 @@ func (r *ReconcileManager) processVRouters(manager *v1alpha1.Manager) error {
 }
 
 func (r *ReconcileManager) processCSRSignerCaConfigMap(manager *v1alpha1.Manager) error {
+	if manager.Spec.CommonConfiguration.CertKeyLength > 0 {
+		certificates.CACertKeyLength = manager.Spec.CommonConfiguration.CertKeyLength
+		certificates.CertKeyLength = certificates.CACertKeyLength
+	}
 	return v1alpha1.InitCA(r.Client, r.Scheme, manager, "manager")
 }

@@ -24,9 +24,10 @@ const (
 	CaSecretName                = "contrail-ca-certificate"
 	SignerCAPrivateKeyFilename  = "ca-priv-key.pem"
 	caCertValidityPeriod10Years = 10 * 365 * 24 * time.Hour // 10 years
-	caCertKeyLength             = 2048
 	caRootCommonName            = "tf_csr_singer"
 )
+
+var CACertKeyLength = 4096
 
 type CACertificate struct {
 	client client.Client
@@ -102,7 +103,7 @@ func GetCaCertSecret(cl client.Client, ns string) (*corev1.Secret, error) {
 }
 
 func GenerateCaCertificateTemplateEx(cn string, validityDuration time.Duration) (x509.Certificate, *rsa.PrivateKey, error) {
-	caPrivKey, err := rsa.GenerateKey(rand.Reader, caCertKeyLength)
+	caPrivKey, err := rsa.GenerateKey(rand.Reader, CACertKeyLength)
 	if err != nil {
 		return x509.Certificate{}, nil, fmt.Errorf("failed to generate private key: %w", err)
 	}
