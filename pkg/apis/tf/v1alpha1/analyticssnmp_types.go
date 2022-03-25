@@ -180,13 +180,8 @@ func (c *AnalyticsSnmp) InstanceConfiguration(podList []corev1.Pod, client clien
 
 	logLevel := ConvertLogLevel(c.Spec.CommonConfiguration.LogLevel)
 
-
-	var podIPList []string
-	for _, pod := range podList {
-		podIPList = append(podIPList, pod.Status.PodIP)
-	}
-	sort.SliceStable(podIPList, func(i, j int) bool { return podIPList[i] < podIPList[j] })
-	analyticsSnmpNodes := strings.Join(podIPList, ",")
+	nodes := pods2nodes(podList)
+	analyticsSnmpNodes := strings.Join(nodes, ",")
 
 	for _, pod := range podList {
 		hostname := pod.Annotations["hostname"]
@@ -351,7 +346,7 @@ func (c *AnalyticsSnmp) InstanceConfiguration(podList []corev1.Pod, client clien
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
-func (c *AnalyticsSnmp) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
+func (c *AnalyticsSnmp) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]NodeInfo, error) {
 	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, "")
 }
 

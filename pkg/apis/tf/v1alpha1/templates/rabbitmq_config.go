@@ -20,6 +20,7 @@ SCRIPT
 }
 
 source /etc/rabbitmq/rabbitmq-common.env
+source /etc/rabbitmq/rabbitmq-env.conf
 
 mkdir -p /var/lib/rabbitmq /var/log/rabbitmq
 echo $RABBITMQ_ERLANG_COOKIE > /var/lib/rabbitmq/.erlang.cookie
@@ -28,7 +29,6 @@ set -m
 chmod 0600 /var/lib/rabbitmq/.erlang.cookie
 touch /var/run/rabbitmq.pid
 chown -R rabbitmq:rabbitmq /var/lib/rabbitmq /var/log/rabbitmq /var/run/rabbitmq.pid /etc/rabbitmq
-export RABBITMQ_NODENAME=rabbit@${POD_IP}
 bootstrap_node="rabbit@$(cat /etc/rabbitmq/0)"
 
 rpid=""
@@ -164,7 +164,7 @@ log.file.level = {{ lowerOrDefault .LogLevel "info" }}
 {{ if .TCPListenOptions.ExitOnClose }}tcp_listen_options.exit_on_close = {{ .TCPListenOptions.ExitOnClose }}{{ end }}
 {{ end }}
 {{ $podsCount := len .PodsList }}{{ if gt $podsCount 1 }}cluster_formation.peer_discovery_backend = classic_config
-{{ range $idx, $pod := .PodsList }}cluster_formation.classic_config.nodes.{{ add $idx 1 }} = rabbit@{{ $pod.Status.PodIP }}
+{{ range $idx, $pod := .PodsList }}cluster_formation.classic_config.nodes.{{ add $idx 1 }} = rabbit@{{ $pod }}
 {{ end }}
 {{ end }}
 `))

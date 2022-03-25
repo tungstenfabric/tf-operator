@@ -166,15 +166,11 @@ func (c *Config) InstanceConfiguration(podList []corev1.Pod, client client.Clien
 	if rabbitmqSecretVhost == "" {
 		rabbitmqSecretVhost = RabbitmqVhost
 	}
-	var analyticsServerList, apiServerList string
-	var podIPList []string
-	for _, pod := range podList {
-		podIPList = append(podIPList, pod.Status.PodIP)
-	}
+	nodes := pods2nodes(podList)
 	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
-	sort.SliceStable(podIPList, func(i, j int) bool { return podIPList[i] < podIPList[j] })
 
-	apiServerList = strings.Join(podIPList, ",")
+	var analyticsServerList, apiServerList string
+	apiServerList = strings.Join(nodes, ",")
 	analyticsServerList = strings.Join(analyticsNodesInformation.AnalyticsServerIPList, ",")
 	analyticsEndpointList := configtemplates.EndpointList(analyticsNodesInformation.AnalyticsServerIPList, analyticsNodesInformation.AnalyticsServerPort)
 	analyticsEndpointListSpaceSeparated := configtemplates.JoinListWithSeparator(analyticsEndpointList, " ")
@@ -631,21 +627,21 @@ func (c *Config) SetInstanceActive(client client.Client, activeStatus *bool, deg
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
-func (c *Config) PodIPListAndIPMapFromInstance(request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
+func (c *Config) PodIPListAndIPMapFromInstance(request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]NodeInfo, error) {
 	return PodIPListAndIPMapFromInstance("config", request, reconcileClient, "")
 }
 
 // ManageNodeStatus updates nodes in status
-func (c *Config) ManageNodeStatus(podNameIPMap map[string]string,
+func (c *Config) ManageNodeStatus(nodes map[string]NodeInfo,
 	client client.Client) (updated bool, err error) {
 	updated = false
 	err = nil
 
-	if reflect.DeepEqual(c.Status.Nodes, podNameIPMap) {
+	if reflect.DeepEqual(c.Status.Nodes, nodes) {
 		return
 	}
 
-	c.Status.Nodes = podNameIPMap
+	c.Status.Nodes = nodes
 	if err = client.Status().Update(context.TODO(), c); err != nil {
 		return
 	}

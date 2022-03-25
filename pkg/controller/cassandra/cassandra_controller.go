@@ -322,7 +322,7 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 	}
 
 	// Preapare / udpate configmaps if pods are created
-	podIPList, podIPMap, err := instance.PodIPListAndIPMapFromInstance(instanceType, request, r.Client)
+	podIPList, nodesInfo, err := instance.PodIPListAndIPMapFromInstance(instanceType, request, r.Client)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -356,27 +356,26 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		seedsIPList := []string{}
 		for _, pod := range podIPList {
 
-			seedsIPList = append(seedsIPList, pod.Status.PodIP)
+			seedsIPList = append(seedsIPList, nodesInfo[pod.Name].Hostname)
 		}
 		firstRun := len(instance.Status.Nodes) == 0
 		if firstRun {
 			seedsIPList = seedsIPList[:1]
 			podIPList = podIPList[:1]
-			podIPMap = map[string]string{podIPList[0].Name: podIPList[0].Status.PodIP}
 		} else if len(seedsIPList) < 3 {
 			seedsIPList = seedsIPList[:1]
 		} else {
 			seedsIPList = seedsIPList[:2]
 		}
 
-		if err = instance.InstanceConfiguration(request, podIPList, seedsIPList, r.Client); err != nil {
+		if err = instance.InstanceConfiguration(request, podIPList, nodesInfo, seedsIPList, r.Client); err != nil {
 			reqLogger.Error(err, "InstanceConfiguration failed")
 			return reconcile.Result{}, err
 		}
 
 		for i := 0; i < len(seedsIPList); i++ {
 			seedPod := podIPList[i]
-			ip_addr := seedsIPList[i]
+			ip_addr := nodesInfo[podIPList[i].Name].IP
 			command := "nodetool -p " + strconv.Itoa(*cassandraConfig.JmxLocalPort) + " status | grep \"UN \\+" + ip_addr + "\""
 			stdout, stderr, err := v1alpha1.ExecToContainer(&seedPod, instanceType, []string{"/usr/bin/bash", "-c", command}, nil)
 			if err != nil {
@@ -392,7 +391,7 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		reqLogger.Error(err, "QuerySTS failed")
 		return reconcile.Result{}, err
 	}
-	if instance.UpdateStatus(cassandraConfig, podIPMap, currentSTS) {
+	if instance.UpdateStatus(cassandraConfig, nodesInfo, currentSTS) {
 		reqLogger.Info("Update Status")
 		if err = r.Client.Status().Update(context.TODO(), instance); err != nil && !v1alpha1.IsOKForRequeque(err) {
 			reqLogger.Error(err, "Update Status failed")

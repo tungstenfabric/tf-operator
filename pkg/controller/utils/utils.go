@@ -219,7 +219,8 @@ func PodIPChange(appLabel map[string]string) predicate.Funcs {
 					if !ok {
 						reqLogger.Info("type conversion mismatch")
 					}
-					return oldPod.Status.PodIP != newPod.Status.PodIP
+					return oldPod.Status.PodIP != newPod.Status.PodIP ||
+						oldPod.Annotations["hostname"] != newPod.Annotations["hostname"]
 				}
 			}
 			return false

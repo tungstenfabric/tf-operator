@@ -317,7 +317,7 @@ func (r *ReconcileZookeeper) Reconcile(request reconcile.Request) (reconcile.Res
 			return reconcile.Result{}, err
 		}
 
-		var nodes map[string]string
+		var nodes map[string]v1alpha1.NodeInfo
 		var failedAddZKNode bool = false
 		if nodes, err = instance.AddZKNode(podIPList); err != nil {
 			reqLogger.Error(err, "Failed to add zookeeper node.")

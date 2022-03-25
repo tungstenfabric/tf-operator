@@ -26,8 +26,10 @@ skipACL=yes
 dynamicConfigFile=/var/lib/zookeeper/zoo.cfg.dynamic
 `))
 
+type pod2nodeconvert func(core.Pod) string
+
 // DynamicZookeeperConfig creates zk dynamic config
-func DynamicZookeeperConfig(pods []core.Pod, electionPort, serverPort, clientPort string) (map[string]string, error) {
+func DynamicZookeeperConfig(pods []core.Pod, electionPort, serverPort, clientPort string, pod2node pod2nodeconvert) (map[string]string, error) {
 	dynamicConf := make(map[string]string)
 	serverDef := ""
 	sort.SliceStable(pods, func(i, j int) bool { return pods[i].Name < pods[j].Name })
@@ -37,9 +39,9 @@ func DynamicZookeeperConfig(pods []core.Pod, electionPort, serverPort, clientPor
 		if err != nil {
 			return nil, err
 		}
+		n := pod2node(pod)
 		serverDef = serverDef + fmt.Sprintf("server.%d=%s:%s:participant;%s:%s\n",
-			myidInt+1, pod.Status.PodIP,
-			electionPort+":"+serverPort, pod.Status.PodIP, clientPort)
+			myidInt+1, n, electionPort+":"+serverPort, n, clientPort)
 	}
 	for _, pod := range pods {
 		myidString := pod.Name[len(pod.Name)-1:]

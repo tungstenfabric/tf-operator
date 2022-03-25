@@ -85,8 +85,8 @@ func TestRabbitmqConfigMapsWithDefaultValues(t *testing.T) {
 	assert.Equal(t, false, rabbitmqConfig.Section("").HasKey("tcp_listen_options.linger.timeout"))
 	assert.Equal(t, false, rabbitmqConfig.Section("").HasKey("tcp_listen_options.exit_on_close"))
 	assert.Equal(t, "classic_config", rabbitmqConfig.Section("").Key("cluster_formation.peer_discovery_backend").String())
-	assert.Equal(t, "rabbit@1.1.1.1", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.1").String())
-	assert.Equal(t, "rabbit@2.2.2.2", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.2").String())
+	assert.Equal(t, "rabbit@pod1-host", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.1").String())
+	assert.Equal(t, "rabbit@pod2-host", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.2").String())
 
 	rabbitmqConfig, err = ini.Load([]byte(data["rabbitmq.conf.2.2.2.2"]))
 	require.NoError(t, err)
@@ -106,8 +106,8 @@ func TestRabbitmqConfigMapsWithDefaultValues(t *testing.T) {
 	assert.Equal(t, false, rabbitmqConfig.Section("").HasKey("tcp_listen_options.linger.timeout"))
 	assert.Equal(t, false, rabbitmqConfig.Section("").HasKey("tcp_listen_options.exit_on_close"))
 	assert.Equal(t, "classic_config", rabbitmqConfig.Section("").Key("cluster_formation.peer_discovery_backend").String())
-	assert.Equal(t, "rabbit@1.1.1.1", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.1").String())
-	assert.Equal(t, "rabbit@2.2.2.2", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.2").String())
+	assert.Equal(t, "rabbit@pod1-host", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.1").String())
+	assert.Equal(t, "rabbit@pod2-host", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.2").String())
 }
 
 func TestRabbitmqConfigMapsWithInetDistListenValues(t *testing.T) {
@@ -150,8 +150,8 @@ func TestRabbitmqConfigMapsWithInetDistListenValues(t *testing.T) {
 	assert.Equal(t, false, rabbitmqConfig.Section("").HasKey("tcp_listen_options.linger.timeout"))
 	assert.Equal(t, false, rabbitmqConfig.Section("").HasKey("tcp_listen_options.exit_on_close"))
 	assert.Equal(t, "classic_config", rabbitmqConfig.Section("").Key("cluster_formation.peer_discovery_backend").String())
-	assert.Equal(t, "rabbit@1.1.1.1", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.1").String())
-	assert.Equal(t, "rabbit@2.2.2.2", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.2").String())
+	assert.Equal(t, "rabbit@pod1-host", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.1").String())
+	assert.Equal(t, "rabbit@pod2-host", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.2").String())
 
 	rabbitmqConfig, err = ini.Load([]byte(data["rabbitmq.conf.2.2.2.2"]))
 	require.NoError(t, err)
@@ -171,8 +171,8 @@ func TestRabbitmqConfigMapsWithInetDistListenValues(t *testing.T) {
 	assert.Equal(t, false, rabbitmqConfig.Section("").HasKey("tcp_listen_options.linger.timeout"))
 	assert.Equal(t, false, rabbitmqConfig.Section("").HasKey("tcp_listen_options.exit_on_close"))
 	assert.Equal(t, "classic_config", rabbitmqConfig.Section("").Key("cluster_formation.peer_discovery_backend").String())
-	assert.Equal(t, "rabbit@1.1.1.1", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.1").String())
-	assert.Equal(t, "rabbit@2.2.2.2", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.2").String())
+	assert.Equal(t, "rabbit@pod1-host", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.1").String())
+	assert.Equal(t, "rabbit@pod2-host", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.2").String())
 }
 
 func TestRabbitmqConfigMapsWithTCPListenOptionsValues(t *testing.T) {
@@ -228,8 +228,8 @@ func TestRabbitmqConfigMapsWithTCPListenOptionsValues(t *testing.T) {
 	assert.Equal(t, "700", rabbitmqConfig.Section("").Key("tcp_listen_options.linger.timeout").String())
 	assert.Equal(t, "true", rabbitmqConfig.Section("").Key("tcp_listen_options.exit_on_close").String())
 	assert.Equal(t, "classic_config", rabbitmqConfig.Section("").Key("cluster_formation.peer_discovery_backend").String())
-	assert.Equal(t, "rabbit@1.1.1.1", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.1").String())
-	assert.Equal(t, "rabbit@2.2.2.2", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.2").String())
+	assert.Equal(t, "rabbit@pod1-host", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.1").String())
+	assert.Equal(t, "rabbit@pod2-host", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.2").String())
 
 	rabbitmqConfig, err = ini.Load([]byte(data["rabbitmq.conf.2.2.2.2"]))
 	require.NoError(t, err)
@@ -249,8 +249,8 @@ func TestRabbitmqConfigMapsWithTCPListenOptionsValues(t *testing.T) {
 	assert.Equal(t, "700", rabbitmqConfig.Section("").Key("tcp_listen_options.linger.timeout").String())
 	assert.Equal(t, "true", rabbitmqConfig.Section("").Key("tcp_listen_options.exit_on_close").String())
 	assert.Equal(t, "classic_config", rabbitmqConfig.Section("").Key("cluster_formation.peer_discovery_backend").String())
-	assert.Equal(t, "rabbit@1.1.1.1", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.1").String())
-	assert.Equal(t, "rabbit@2.2.2.2", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.2").String())
+	assert.Equal(t, "rabbit@pod1-host", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.1").String())
+	assert.Equal(t, "rabbit@pod2-host", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.2").String())
 }
 
 func TestRabbitmqConfigMapsWithAllValues(t *testing.T) {
@@ -306,8 +306,8 @@ func TestRabbitmqConfigMapsWithAllValues(t *testing.T) {
 	assert.Equal(t, "700", rabbitmqConfig.Section("").Key("tcp_listen_options.linger.timeout").String())
 	assert.Equal(t, "true", rabbitmqConfig.Section("").Key("tcp_listen_options.exit_on_close").String())
 	assert.Equal(t, "classic_config", rabbitmqConfig.Section("").Key("cluster_formation.peer_discovery_backend").String())
-	assert.Equal(t, "rabbit@1.1.1.1", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.1").String())
-	assert.Equal(t, "rabbit@2.2.2.2", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.2").String())
+	assert.Equal(t, "rabbit@pod1-host", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.1").String())
+	assert.Equal(t, "rabbit@pod2-host", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.2").String())
 
 	rabbitmqConfig, err = ini.Load([]byte(data["rabbitmq.conf.2.2.2.2"]))
 	require.NoError(t, err)
@@ -327,8 +327,8 @@ func TestRabbitmqConfigMapsWithAllValues(t *testing.T) {
 	assert.Equal(t, "700", rabbitmqConfig.Section("").Key("tcp_listen_options.linger.timeout").String())
 	assert.Equal(t, "true", rabbitmqConfig.Section("").Key("tcp_listen_options.exit_on_close").String())
 	assert.Equal(t, "classic_config", rabbitmqConfig.Section("").Key("cluster_formation.peer_discovery_backend").String())
-	assert.Equal(t, "rabbit@1.1.1.1", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.1").String())
-	assert.Equal(t, "rabbit@2.2.2.2", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.2").String())
+	assert.Equal(t, "rabbit@pod1-host", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.1").String())
+	assert.Equal(t, "rabbit@pod2-host", rabbitmqConfig.Section("").Key("cluster_formation.classic_config.nodes.2").String())
 }
 
 func TestRabbitmqUpdateSecret(t *testing.T) {

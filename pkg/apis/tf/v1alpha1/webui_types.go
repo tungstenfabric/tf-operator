@@ -252,7 +252,7 @@ func (c *Webui) AddVolumesToIntendedSTS(sts *appsv1.StatefulSet, volumeConfigMap
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
-func (c *Webui) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
+func (c *Webui) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]NodeInfo, error) {
 	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, "")
 }
 
@@ -262,15 +262,15 @@ func (c *Webui) SetInstanceActive(client client.Client, activeStatus *bool, degr
 }
 
 // ManageNodeStatus updates nodes map
-func (c *Webui) ManageNodeStatus(podNameIPMap map[string]string,
+func (c *Webui) ManageNodeStatus(nodes map[string]NodeInfo,
 	client client.Client) (updated bool, err error) {
 	updated = false
 	err = nil
 
-	if reflect.DeepEqual(c.Status.Nodes, podNameIPMap) {
+	if reflect.DeepEqual(c.Status.Nodes, nodes) {
 		return
 	}
-	c.Status.Nodes = podNameIPMap
+	c.Status.Nodes = nodes
 	if err = client.Status().Update(context.TODO(), c); err != nil {
 		return
 	}

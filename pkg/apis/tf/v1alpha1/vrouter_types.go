@@ -49,10 +49,10 @@ type VrouterStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html
-	Nodes               map[string]string `json:"nodes,omitempty"`
-	Active              *bool             `json:"active,omitempty"`
-	ActiveOnControllers *bool             `json:"activeOnControllers,omitempty"`
-	Agents              []*AgentStatus    `json:"agents,omitempty"`
+	Nodes               map[string]NodeInfo `json:"nodes,omitempty"`
+	Active              *bool               `json:"active,omitempty"`
+	ActiveOnControllers *bool               `json:"activeOnControllers,omitempty"`
+	Agents              []*AgentStatus      `json:"agents,omitempty"`
 }
 
 // AgentStatus is the Status of the agent.
@@ -437,7 +437,7 @@ func (c *Vrouter) SetInstanceActive(client client.Client, activeStatus *bool, ds
 }
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
-func (c *Vrouter) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
+func (c *Vrouter) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]NodeInfo, error) {
 	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, "")
 }
 
@@ -456,16 +456,16 @@ func (c *Vrouter) CreateCNIConfigMap(client client.Client, scheme *runtime.Schem
 }
 
 // ManageNodeStatus updates nodes map
-func (c *Vrouter) ManageNodeStatus(podNameIPMap map[string]string,
+func (c *Vrouter) ManageNodeStatus(nodes map[string]NodeInfo,
 	client client.Client) (updated bool, err error) {
 	updated = false
 	err = nil
 
-	if reflect.DeepEqual(c.Status.Nodes, podNameIPMap) {
+	if reflect.DeepEqual(c.Status.Nodes, nodes) {
 		return
 	}
 
-	c.Status.Nodes = podNameIPMap
+	c.Status.Nodes = nodes
 	if err = client.Status().Update(context.TODO(), c); err != nil {
 		return
 	}
@@ -856,16 +856,25 @@ func (c *Vrouter) RemoveAgentConfigMapForPod(vrouterPod *VrouterPod,
 func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouterPod *VrouterPod, configMap *corev1.ConfigMap, clnt client.Client) (bool, error) {
 
 	ll := vrouter_log.WithName("UpdateAgent").WithValues("nodeName", nodeName)
-	controlNodesList, err := GetControlNodes(c.GetNamespace(), c.Spec.ServiceConfiguration.ControlInstance,
+	ns := c.GetNamespace()
+	controlNodesList, err := GetControlNodes(ns, c.Spec.ServiceConfiguration.ControlInstance,
 		c.Spec.ServiceConfiguration.DataSubnet, clnt)
 	if err != nil {
 		return true, err
 	}
-	configNodes, err := GetConfigNodes(c.Namespace, clnt)
+	configNodes, err := GetConfigNodes(ns, clnt)
 	if err != nil {
 		return true, err
 	}
-	clusterNodes := ClusterNodes{ConfigNodes: configNodes, ControlNodes: controlNodesList, AnalyticsNodes: GetAnalyticsNodes(clnt)}
+	analyticsNodes, err := GetAnalyticsNodes(ns, clnt)
+	if err != nil {
+		return true, err
+	}
+	clusterNodes := ClusterNodes{
+		ConfigNodes:    configNodes,
+		ControlNodes:   controlNodesList,
+		AnalyticsNodes: analyticsNodes,
+	}
 
 	ll.Info("Check params", "clusterNodes", clusterNodes)
 	params, err := c.GetParamsEnv(clnt, &clusterNodes)
