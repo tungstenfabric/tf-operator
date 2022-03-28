@@ -37,7 +37,7 @@ func contains(list []string, val string) bool {
 }
 
 func (c CertificateSubject) generateCertificateTemplate(client client.Client) (x509.Certificate, *rsa.PrivateKey, error) {
-	certPrivKey, err := rsa.GenerateKey(rand.Reader, certKeyLength)
+	certPrivKey, err := rsa.GenerateKey(rand.Reader, CertKeyLength)
 
 	if err != nil {
 		return x509.Certificate{}, nil, fmt.Errorf("failed to generate private key: %w", err)

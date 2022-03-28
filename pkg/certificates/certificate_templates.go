@@ -14,12 +14,13 @@ const (
 	caCommonName         = "contrail-signer"
 	caCertValidityPeriod = 10 * 365 * 24 * time.Hour // 10 years
 	certValidityPeriod   = 10 * 365 * 24 * time.Hour // 10 years
-	caCertKeyLength      = 2048
-	certKeyLength        = 2048
 )
 
+var CACertKeyLength = 4096
+var CertKeyLength = 4096
+
 func generateCaCertificateTemplate() (x509.Certificate, *rsa.PrivateKey, error) {
-	caPrivKey, err := rsa.GenerateKey(rand.Reader, caCertKeyLength)
+	caPrivKey, err := rsa.GenerateKey(rand.Reader, CACertKeyLength)
 
 	if err != nil {
 		return x509.Certificate{}, nil, fmt.Errorf("failed to generate private key: %w", err)

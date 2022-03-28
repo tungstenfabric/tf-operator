@@ -822,6 +822,10 @@ func (r *ReconcileManager) processVRouters(manager *v1alpha1.Manager, replicas i
 }
 
 func (r *ReconcileManager) processCSRSignerCaConfigMap(manager *v1alpha1.Manager) error {
+	if manager.Spec.CommonConfiguration.CertKeyLength > 0 {
+		certificates.CACertKeyLength = manager.Spec.CommonConfiguration.CertKeyLength
+		certificates.CertKeyLength = certificates.CACertKeyLength
+	}
 	caCertificate := certificates.NewCACertificate(r.client, r.scheme, manager, "manager")
 	if err := caCertificate.EnsureExists(); err != nil {
 		return err
