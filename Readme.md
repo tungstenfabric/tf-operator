@@ -80,6 +80,13 @@ export CNI_MTU=1450
 ./tf-operator/contrib/render_manifests.sh
 ```
 
+## Set certificate private key lenght (bits) 
+```bash
+export CERT_KEY_LENGHT=8192
+# ... other options
+./tf-operator/contrib/render_manifests.sh
+```
+
 ## Use own root CA
 ```bash
 # generate root CA key and cert and provide base64 encoded values

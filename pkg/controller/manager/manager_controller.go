@@ -1,10 +1,10 @@
 package manager
 
 import (
-        "fmt"
 	"context"
+	"fmt"
+	"strings"
 	"time"
-        "strings"
 
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -258,7 +258,7 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 				return reconcile.Result{}, fmt.Errorf("Failed to get openshift network configuration, err=%+v", err)
 			}
 		}
-		if openshiftConfig.Spec.NetworkType == "TF" ||  openshiftConfig.Spec.NetworkType == "Contrail" {
+		if openshiftConfig.Spec.NetworkType == "TF" || openshiftConfig.Spec.NetworkType == "Contrail" {
 			openshiftConfig.Status.ClusterNetwork = openshiftConfig.Spec.ClusterNetwork
 			openshiftConfig.Status.ServiceNetwork = openshiftConfig.Spec.ServiceNetwork
 			openshiftConfig.Status.NetworkType = openshiftConfig.Spec.NetworkType

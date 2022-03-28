@@ -108,6 +108,8 @@ type ManagerConfiguration struct {
 	// +kubebuilder:validation:Enum=info;debug;warning;error;critical;none
 	// +optional
 	LogLevel string `json:"logLevel,omitempty"`
+	// Certificate private key length
+	// +optional
 	CertKeyLength int `json:"certKeyLength,omitempty"`
 }
 

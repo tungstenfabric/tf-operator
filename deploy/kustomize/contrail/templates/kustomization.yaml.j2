@@ -15,6 +15,9 @@ patchesStrategicMerge:
   - linklocal.yaml
   - tftp.yaml
   - vrouter.yaml
+{%- if CERT_KEY_LENGHT is defined and CERT_KEY_LENGHT != "" %}
+  - cert-key-length.yaml
+{%- endif %}
 
 # set contrail-status image
 patchesJson6902:
