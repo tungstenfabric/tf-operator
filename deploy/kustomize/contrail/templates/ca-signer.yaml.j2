@@ -1,0 +1,11 @@
+{%- if CERT_SIGNER | default("") != "" -%}
+---
+apiVersion: tf.tungsten.io/v1alpha1
+kind: Manager
+metadata:
+  name: cluster1
+  namespace: tf
+spec:
+  commonConfiguration:
+    certSigner: {{ CERT_SIGNER }}
+{%- endif -%}

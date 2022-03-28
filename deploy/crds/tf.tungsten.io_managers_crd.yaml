@@ -75,6 +75,12 @@ spec:
                       keystoneSecretName:
                         type: string
                     type: object
+                  certKeyLength:
+                    description: Certificate private key length
+                    type: integer
+                  certSigner:
+                    description: Certificate signer
+                    type: string
                   distribution:
                     description: OS family
                     type: string

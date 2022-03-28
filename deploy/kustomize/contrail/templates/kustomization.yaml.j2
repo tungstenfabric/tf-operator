@@ -29,6 +29,12 @@ patchesStrategicMerge:
 {%- if CONFIG_API_WORKER_COUNT is defined and CONFIG_API_WORKER_COUNT != "" %}
   - worker-count.yaml
 {%- endif %}
+{%- if CERT_KEY_LENGHT is defined and CERT_KEY_LENGHT != "" %}
+  - cert-key-length.yaml
+{%- endif %}
+{%- if CERT_SIGNER is defined and CERT_SIGNER != "" %}
+  - ca-signer.yaml
+{%- endif %}
 
 # set contrail-status image
 {%- if DATA_NETWORK | default("") != "" %}
