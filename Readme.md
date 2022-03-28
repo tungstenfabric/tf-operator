@@ -86,11 +86,25 @@ export L3MH_CIDR="100.1.1.0/42"
 ./tf-operator/contrib/render_manifests.sh
 ```
 
+## Set certificate private key lenght (bits) 
+```bash
+export CERT_KEY_LENGHT=8192
+# ... other options
+./tf-operator/contrib/render_manifests.sh
+```
+
 ## Use own root CA
 ```bash
 # generate root CA key and cert and provide base64 encoded values
 export TF_ROOT_CA_CERT_BASE64=<base64 of root ca cert>
 export TF_ROOT_CA_KEY_BASE64=<base64 of root ca key>
+# ... other options
+./tf-operator/contrib/render_manifests.sh
+```
+
+## Use external certificates, e.g. provided by IPA
+```bash
+export CERT_SIGNER='External'
 # ... other options
 ./tf-operator/contrib/render_manifests.sh
 ```

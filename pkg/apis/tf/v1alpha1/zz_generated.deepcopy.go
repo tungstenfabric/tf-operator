@@ -1814,6 +1814,11 @@ func (in *ManagerConfiguration) DeepCopyInto(out *ManagerConfiguration) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.CertSigner != nil {
+		in, out := &in.CertSigner, &out.CertSigner
+		*out = new(string)
+		**out = **in
+	}
 	return
 }
 

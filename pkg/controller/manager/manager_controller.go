@@ -29,9 +29,9 @@ import (
 	"github.com/fatih/structs"
 	"github.com/go-logr/logr"
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
+	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/utils"
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
-	"github.com/tungstenfabric/tf-operator/pkg/certificates"
 )
 
 var log = logf.Log.WithName("controller_manager")
@@ -1251,6 +1251,10 @@ func (r *ReconcileManager) processCSRSignerCaConfigMap(manager *v1alpha1.Manager
 	if manager.Spec.CommonConfiguration.CertKeyLength > 0 {
 		certificates.CACertKeyLength = manager.Spec.CommonConfiguration.CertKeyLength
 		certificates.CertKeyLength = certificates.CACertKeyLength
+	}
+	if manager.Spec.CommonConfiguration.CertSigner != nil {
+		certificates.ServerSignerName = *manager.Spec.CommonConfiguration.CertSigner
+		certificates.ClientSignerName = *manager.Spec.CommonConfiguration.CertSigner
 	}
 	return v1alpha1.InitCA(r.Client, r.Scheme, manager, "manager")
 }

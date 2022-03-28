@@ -161,7 +161,12 @@ type ManagerConfiguration struct {
 	// OS family
 	// +optional
 	Distribution *string `json:"distribution,omitempty"`
+	// Certificate private key length
+	// +optional
 	CertKeyLength int `json:"certKeyLength,omitempty"`
+	// Certificate signer
+	// +optional
+	CertSigner *string `json:"certSigner,omitempty"`
 }
 
 // ZIU status for orchestrating cluster ZIU process
