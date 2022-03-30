@@ -1096,6 +1096,14 @@ func GetControlNodes(ns string, controlName string, cidr string, clnt client.Cli
 	return strings.Join(ipList, ","), nil
 }
 
+func removeLastDot(v string) string {
+	sz := len(v)
+	if sz > 0 && v[sz-1] == '.' {
+		return v[:sz-1]
+	}
+	return v
+}
+
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 // TODO: Implement selection of returning either ip's or hostnames
 func PodIPListAndIPMapFromInstance(instanceType string,
@@ -1122,13 +1130,21 @@ func PodIPListAndIPMapFromInstance(instanceType string,
 				return nil, nil, err
 			}
 			var names []string
-			if names, err = net.LookupAddr(ip); err == nil {
+			if names, err = net.LookupAddr(ip); err != nil {
 				return nil, nil, err
 			}
-			podIP = ip
-			names = append(names, pod.Annotations["hostname"])
 			sort.SliceStable(names, func(i, j int) bool { return len(names[i]) > len(names[j]) })
-			hostname = names[0]
+			for _, v := range names {
+				n := removeLastDot(v)
+				if n == pod.Annotations["hostname"] {
+					hostname = pod.Annotations["hostname"]
+					break
+				}
+			}
+			podIP = ip
+			if hostname == "" {
+				hostname = removeLastDot(names[0])
+			}
 		} else {
 			podIP = pod.Status.PodIP
 			hostname = pod.Annotations["hostname"]

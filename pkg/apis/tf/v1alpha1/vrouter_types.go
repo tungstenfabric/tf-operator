@@ -210,14 +210,6 @@ type VrouterConfiguration struct {
 	CniMTU *int `json:"cniMTU,omitempty"`
 }
 
-// VrouterNodesConfiguration is the static configuration for vrouter.
-// +k8s:openapi-gen=true
-type VrouterNodesConfiguration struct {
-	ControlNodesConfiguration   *ControlClusterConfiguration   `json:"controlNodesConfiguration,omitempty"`
-	ConfigNodesConfiguration    *ConfigClusterConfiguration    `json:"configNodesConfiguration,omitempty"`
-	AnalyticsNodesConfiguration *AnalyticsClusterConfiguration `json:"analyticsNodesConfiguration,omitempty"`
-}
-
 // VrouterList contains a list of Vrouter.
 // +k8s:openapi-gen=true
 type VrouterList struct {
