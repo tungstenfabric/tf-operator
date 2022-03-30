@@ -61,20 +61,10 @@ type ControlConfiguration struct {
 // ControlStatus defines the observed state of Control.
 // +k8s:openapi-gen=true
 type ControlStatus struct {
-	CommonStatus  `json:",inline"`
-	Ports         ControlStatusPorts              `json:"ports,omitempty"`
-	ServiceStatus map[string]ControlServiceStatus `json:"serviceStatus,omitempty"`
-}
-
-// ControlServiceStatus status of control
-// +k8s:openapi-gen=true
-type ControlServiceStatus struct {
-	Connections              []Connection `json:"connections,omitempty"`
-	NumberOfXMPPPeers        string       `json:"numberOfXMPPPeers,omitempty"`
-	NumberOfRoutingInstances string       `json:"numberOfRoutingInstances,omitempty"`
-	StaticRoutes             StaticRoutes `json:"staticRoutes,omitempty"`
-	BGPPeer                  BGPPeer      `json:"bgpPeer,omitempty"`
-	State                    string       `json:"state,omitempty"`
+	CommonStatus `json:",inline"`
+	Ports        ControlStatusPorts `json:"ports,omitempty"`
+	Subcluster   string             `json:"subcluster,omitempty"`
+	ASNNumber    string             `json:"asnNumber,omitempty"`
 }
 
 // StaticRoutes statuic routes
@@ -104,7 +94,6 @@ type Connection struct {
 // +k8s:openapi-gen=true
 type ControlStatusPorts struct {
 	BGPPort           string `json:"bgpPort,omitempty"`
-	ASNNumber         string `json:"asnNumber,omitempty"`
 	XMPPPort          string `json:"xmppPort,omitempty"`
 	DNSPort           string `json:"dnsPort,omitempty"`
 	DNSIntrospectPort string `json:"dnsIntrospectPort,omitempty"`
@@ -494,11 +483,13 @@ func (c *Control) ManageNodeStatus(nodes map[string]NodeInfo,
 	config := c.ConfigurationParameters()
 	bgpPort := strconv.Itoa(*config.BGPPort)
 	asnNumber := strconv.Itoa(*config.ASNNumber)
+	subcluster := config.Subcluster
 	xmppPort := strconv.Itoa(*config.XMPPPort)
 	dnsPort := strconv.Itoa(*config.DNSPort)
 	dnsIntrospectPort := strconv.Itoa(*config.DNSIntrospectPort)
-	if bgpPort == c.Status.Ports.BGPPort &&
-		asnNumber == c.Status.Ports.ASNNumber &&
+	if asnNumber == c.Status.ASNNumber &&
+		subcluster == c.Status.Subcluster &&
+		bgpPort == c.Status.Ports.BGPPort &&
 		xmppPort == c.Status.Ports.XMPPPort &&
 		dnsPort == c.Status.Ports.DNSPort &&
 		dnsIntrospectPort == c.Status.Ports.DNSIntrospectPort &&
@@ -506,8 +497,9 @@ func (c *Control) ManageNodeStatus(nodes map[string]NodeInfo,
 		return
 	}
 
+	c.Status.ASNNumber = asnNumber
+	c.Status.Subcluster = subcluster
 	c.Status.Ports.BGPPort = bgpPort
-	c.Status.Ports.ASNNumber = asnNumber
 	c.Status.Ports.XMPPPort = xmppPort
 	c.Status.Ports.DNSPort = dnsPort
 	c.Status.Ports.DNSIntrospectPort = dnsIntrospectPort
@@ -523,12 +515,18 @@ func (c *Control) ManageNodeStatus(nodes map[string]NodeInfo,
 // ConfigurationParameters makes ControlConfiguration
 func (c *Control) ConfigurationParameters() ControlConfiguration {
 	controlConfiguration := ControlConfiguration{}
-	var bgpPort int
 	var asnNumber int
+	var bgpPort int
 	var xmppPort int
 	var dnsPort int
 	var dnsIntrospectPort int
 	var rndckey string
+
+	if c.Spec.ServiceConfiguration.ASNNumber != nil {
+		asnNumber = *c.Spec.ServiceConfiguration.ASNNumber
+	} else {
+		asnNumber = BgpAsn
+	}
 
 	if c.Spec.ServiceConfiguration.RndcKey != "" {
 		rndckey = c.Spec.ServiceConfiguration.RndcKey
@@ -540,12 +538,6 @@ func (c *Control) ConfigurationParameters() ControlConfiguration {
 		bgpPort = *c.Spec.ServiceConfiguration.BGPPort
 	} else {
 		bgpPort = BgpPort
-	}
-
-	if c.Spec.ServiceConfiguration.ASNNumber != nil {
-		asnNumber = *c.Spec.ServiceConfiguration.ASNNumber
-	} else {
-		asnNumber = BgpAsn
 	}
 
 	if c.Spec.ServiceConfiguration.XMPPPort != nil {
@@ -566,8 +558,10 @@ func (c *Control) ConfigurationParameters() ControlConfiguration {
 		dnsIntrospectPort = DnsIntrospectPort
 	}
 
-	controlConfiguration.BGPPort = &bgpPort
+	controlConfiguration.DataSubnet = c.Spec.ServiceConfiguration.DataSubnet
+	controlConfiguration.Subcluster = c.Spec.ServiceConfiguration.Subcluster
 	controlConfiguration.ASNNumber = &asnNumber
+	controlConfiguration.BGPPort = &bgpPort
 	controlConfiguration.XMPPPort = &xmppPort
 	controlConfiguration.DNSPort = &dnsPort
 	controlConfiguration.DNSIntrospectPort = &dnsIntrospectPort
