@@ -189,6 +189,8 @@ spec:
             properties:
               active:
                 type: boolean
+              asnNumber:
+                type: string
               configChanged:
                 type: boolean
               degraded:
@@ -205,8 +207,6 @@ spec:
               ports:
                 description: ControlStatusPorts status of connection ports
                 properties:
-                  asnNumber:
-                    type: string
                   bgpPort:
                     type: string
                   dnsIntrospectPort:
@@ -216,50 +216,8 @@ spec:
                   xmppPort:
                     type: string
                 type: object
-              serviceStatus:
-                additionalProperties:
-                  description: ControlServiceStatus status of control
-                  properties:
-                    bgpPeer:
-                      description: BGPPeer bgp peer status
-                      properties:
-                        number:
-                          type: string
-                        up:
-                          type: string
-                      type: object
-                    connections:
-                      items:
-                        description: Connection connection status
-                        properties:
-                          name:
-                            type: string
-                          nodes:
-                            items:
-                              type: string
-                            type: array
-                          status:
-                            type: string
-                          type:
-                            type: string
-                        type: object
-                      type: array
-                    numberOfRoutingInstances:
-                      type: string
-                    numberOfXMPPPeers:
-                      type: string
-                    state:
-                      type: string
-                    staticRoutes:
-                      description: StaticRoutes statuic routes
-                      properties:
-                        down:
-                          type: string
-                        number:
-                          type: string
-                      type: object
-                  type: object
-                type: object
+              subcluster:
+                type: string
             type: object
         type: object
     served: true

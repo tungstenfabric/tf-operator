@@ -77,6 +77,7 @@ while true ; do
     source $config
     echo -e "INFO: $(date): config\n$(cat $config)"
     [ -z "$CONFIG_NODES" ] || break
+    [ -z "$CONTROL_NODES" ] || break
   fi
 done
 export PROVISION_RETRIES=1000
