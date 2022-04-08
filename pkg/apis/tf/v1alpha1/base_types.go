@@ -1058,6 +1058,14 @@ func GetAnalyticsNodes(ns string, clnt client.Client) (string, error) {
 
 }
 
+func GetAnalyticsAlarmNodes(ns string, clnt client.Client) ([]string, error) {
+	cfg, err := NewAnalyticsAlarmClusterConfiguration(AnalyticsAlarmInstance, ns, clnt)
+	if err != nil && !k8serrors.IsNotFound(err) {
+		return nil, err
+	}
+	return cfg.AnalyticsAlarmServerIPList, nil
+}
+
 func GetControllerNodes(c client.Client) ([]corev1.Node, error) {
 	return GetNodes(map[string]string{"node-role.kubernetes.io/master": ""}, c)
 }
@@ -1280,6 +1288,19 @@ func NewAnalyticsClusterConfiguration(name, namespace string, client client.Clie
 	return clusterConfig, nil
 }
 
+func NewAnalyticsAlarmClusterConfiguration(name, namespace string, client client.Client) (AnalyticsAlarmClusterConfiguration, error) {
+	instance := &AnalyticsAlarm{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, instance)
+	if err != nil {
+		return AnalyticsAlarmClusterConfiguration{}, err
+	}
+	nodes := info2nodes(instance.Status.Nodes)
+	clusterConfig := AnalyticsAlarmClusterConfiguration{
+		AnalyticsAlarmServerIPList: nodes,
+	}
+	return clusterConfig, nil
+}
+
 // NewQueryEngineClusterConfiguration gets a struct containing various representations of QueryEngine nodes string.
 func NewQueryEngineClusterConfiguration(name, namespace string, client client.Client) (QueryEngineClusterConfiguration, error) {
 	instance := &QueryEngine{}
@@ -1336,6 +1357,10 @@ type AnalyticsClusterConfiguration struct {
 	AnalyticsDataTTL      int      `json:"analyticsDataTTL,omitempty"`
 	CollectorPort         int      `json:"collectorPort,omitempty"`
 	CollectorServerIPList []string `json:"collectorServerIPList,omitempty"`
+}
+
+type AnalyticsAlarmClusterConfiguration struct {
+	AnalyticsAlarmServerIPList []string `json:"analyticsAlarmServerIPList,omitempty"`
 }
 
 // QueryEngineConfiguration  stores all information about service's endpoints

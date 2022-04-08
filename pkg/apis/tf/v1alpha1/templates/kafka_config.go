@@ -9,9 +9,9 @@ import (
 // KafkaConfig is the template of a Kafka configuration.
 var KafkaConfig = htemplate.Must(htemplate.New("").Funcs(sprig.FuncMap()).Parse(`
 broker.id={{ default "1" .BrokerId }}
-port=9092
-listeners=SSL://{{ .PodIP }}:9092
-advertised.listeners=SSL://{{ .PodIP }}:9092
+port={{ .KafkaPort }}
+listeners=SSL://{{ .PodIP }}:{{ .KafkaPort }}
+advertised.listeners=SSL://{{ .PodIP }}:{{ .KafkaPort }}
 num.network.threads=3
 num.io.threads=8
 socket.send.buffer.bytes=102400

@@ -331,6 +331,14 @@ func (r *ReconcileAnalyticsAlarm) Reconcile(request reconcile.Request) (reconcil
 			reqLogger.Error(err, "Failed to update config map.")
 			return reconcile.Result{}, err
 		}
+
+		if updated, err := instance.ManageNodeStatus(podIPMap, r.Client); err != nil || updated {
+			if err != nil && !v1alpha1.IsOKForRequeque(err) {
+				reqLogger.Error(err, "Failed to manage node status")
+				return reconcile.Result{}, err
+			}
+			return requeueReconcile, nil
+		}
 	}
 
 	falseVal := false
