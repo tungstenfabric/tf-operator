@@ -186,6 +186,16 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 	redisEndpointList := configtemplates.EndpointList(redisNodesInformation.ServerIPList, redisNodesInformation.ServerPort)
 	redisEndpointListSpaceSpearated := configtemplates.JoinListWithSeparator(redisEndpointList, " ")
 
+	kafkaServerList, err := GetAnalyticsAlarmNodes(c.Namespace, client)
+	if err != nil {
+		return
+	}
+	kafkaServerSpaceSeparatedList := ""
+	if len(kafkaServerList) > 0 {
+		kafkaPortSuffix := ":" + strconv.Itoa(KafkaPort)
+		kafkaServerSpaceSeparatedList = strings.Join(kafkaServerList, kafkaPortSuffix+" ") + kafkaPortSuffix
+	}
+
 	logLevel := ConvertLogLevel(c.Spec.CommonConfiguration.LogLevel)
 
 	for _, pod := range podList {
@@ -249,6 +259,7 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 			ApiServerList                  string
 			CassandraServerList            string
 			AnalyticsdbCassandraServerList string
+			KafkaServerList                string
 			ZookeeperServerList            string
 			RabbitmqServerList             string
 			RabbitmqUser                   string
@@ -270,6 +281,7 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 			ApiServerList:                  apiServerEndpointListSpaceSeparated,
 			CassandraServerList:            cassandraCQLEndpointListSpaceSeparated,
 			AnalyticsdbCassandraServerList: analyticsdbCassandraCQLEndpointListSpaceSeparated,
+			KafkaServerList:                kafkaServerSpaceSeparatedList,
 			ZookeeperServerList:            zookeeperEndpointListCommaSeparated,
 			RabbitmqServerList:             rabbitmqSSLEndpointListSpaceSeparated,
 			RabbitmqUser:                   rabbitmqSecretUser,

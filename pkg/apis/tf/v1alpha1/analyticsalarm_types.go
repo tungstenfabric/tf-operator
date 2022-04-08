@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"html/template"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -237,7 +238,9 @@ func (c *AnalyticsAlarm) InstanceConfiguration(podList []corev1.Pod, client clie
 	nodes := pods2nodes(podList)
 	sort.SliceStable(podList, func(i, j int) bool { return podList[i].Status.PodIP < podList[j].Status.PodIP })
 
-	kafkaServerSpaceSeparatedList := strings.Join(nodes, ":9092 ") + ":9092"
+	kafkaPortSuffix := ":" + strconv.Itoa(KafkaPort)
+	kafkaServerSpaceSeparatedList := strings.Join(nodes, kafkaPortSuffix+" ") + kafkaPortSuffix
+
 	analyticsAlarmNodes := strings.Join(nodes, ",")
 
 	kafkaSecret := &corev1.Secret{}
@@ -318,6 +321,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(podList []corev1.Pod, client clie
 			PodIP              string
 			BrokerId           string
 			Hostname           string
+			KafkaPort          int
 			ZookeeperServers   string
 			ReplicationFactor  string
 			MinInsyncReplicas  string
@@ -329,6 +333,7 @@ func (c *AnalyticsAlarm) InstanceConfiguration(podList []corev1.Pod, client clie
 			PodIP:              podIP,
 			BrokerId:           strconv.Itoa(myidInt),
 			Hostname:           hostname,
+			KafkaPort:          KafkaPort,
 			ZookeeperServers:   zookeeperEndpointListCommaSeparated,
 			ReplicationFactor:  strconv.Itoa(replicationFactor),
 			MinInsyncReplicas:  strconv.Itoa(minInsyncReplicas),
@@ -437,4 +442,23 @@ func (c *AnalyticsAlarm) SetInstanceActive(client client.Client, activeStatus *b
 //   { "api.${POD_IP}": "", "vnc_api.ini.${POD_IP}": "vnc_api.ini"}
 func (c *AnalyticsAlarm) CommonStartupScript(command string, configs map[string]string) string {
 	return CommonStartupScript(command, configs)
+}
+
+// ManageNodeStatus updates nodes in status
+func (c *AnalyticsAlarm) ManageNodeStatus(podNameIPMap map[string]NodeInfo,
+	client client.Client) (updated bool, err error) {
+	updated = false
+	err = nil
+
+	if reflect.DeepEqual(c.Status.Nodes, podNameIPMap) {
+		return
+	}
+
+	c.Status.Nodes = podNameIPMap
+	if err = client.Status().Update(context.TODO(), c); err != nil {
+		return
+	}
+
+	updated = true
+	return
 }

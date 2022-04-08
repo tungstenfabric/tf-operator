@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"bytes"
 	"context"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -362,4 +363,23 @@ func (c *AnalyticsSnmp) SetInstanceActive(client client.Client, activeStatus *bo
 //   { "api.${POD_IP}": "", "vnc_api.ini.${POD_IP}": "vnc_api.ini"}
 func (c *AnalyticsSnmp) CommonStartupScript(command string, configs map[string]string) string {
 	return CommonStartupScript(command, configs)
+}
+
+// ManageNodeStatus updates nodes in status
+func (c *AnalyticsSnmp) ManageNodeStatus(podNameIPMap map[string]NodeInfo,
+	client client.Client) (updated bool, err error) {
+	updated = false
+	err = nil
+
+	if reflect.DeepEqual(c.Status.Nodes, podNameIPMap) {
+		return
+	}
+
+	c.Status.Nodes = podNameIPMap
+	if err = client.Status().Update(context.TODO(), c); err != nil {
+		return
+	}
+
+	updated = true
+	return
 }

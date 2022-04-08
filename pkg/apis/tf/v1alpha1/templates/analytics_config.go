@@ -88,6 +88,14 @@ api_server_use_ssl=True
 port={{ .RedisPort }}
 server=127.0.0.1
 password=
+{{ if .KafkaServerList }}
+[KAFKA]
+kafka_broker_list={{ .KafkaServerList }}
+kafka_ssl_enable=True
+kafka_keyfile=/etc/certificates/client-key-{{ .PodIP }}.pem
+kafka_certfile=/etc/certificates/client-{{ .PodIP }}.crt
+kafka_ca_cert={{ .CAFilePath }}
+{{ end }}
 [CONFIGDB]
 config_db_server_list={{ .CassandraServerList }}
 config_db_use_ssl=True
