@@ -25,6 +25,7 @@ spec:
           operator: Exists
         - effect: NoSchedule
           operator: Exists
+
       containers:
         - name: tf-operator
           image: tf-operator
@@ -39,3 +40,26 @@ spec:
                   fieldPath: metadata.name
             - name: OPERATOR_NAME
               value: "tf-operator"
+          volumeMounts:
+          - mountPath: /etc/hosts
+            name: etc-hosts
+            readOnly: true
+          - mountPath: /etc/resolv.conf
+            name: etc-resolv
+            readOnly: true
+          - mountPath: /etc/localtime
+            name: etc-localtime
+            readOnly: true
+      volumes:
+      - hostPath:
+          path: /etc/resolv.conf
+          type: ""
+        name: etc-resolv
+      - hostPath:
+          path: /etc/hosts
+          type: ""
+        name: etc-hosts
+      - hostPath:
+          path: /etc/localtime
+          type: ""
+        name: etc-localtime
