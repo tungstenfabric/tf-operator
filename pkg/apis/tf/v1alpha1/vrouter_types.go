@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"fmt"
 	"net"
 	"reflect"
 	"sort"
@@ -464,7 +465,17 @@ func (c *Vrouter) SetInstanceActive(client client.Client, activeStatus *bool, ds
 
 // PodIPListAndIPMapFromInstance gets a list with POD IPs and a map of POD names and IPs.
 func (c *Vrouter) PodIPListAndIPMapFromInstance(instanceType string, request reconcile.Request, reconcileClient client.Client) ([]corev1.Pod, map[string]string, error) {
-	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, "")
+	datanetwork := c.Spec.ServiceConfiguration.DataSubnet
+	if gw := c.Spec.ServiceConfiguration.VrouterGateway; gw != "" {
+		if _, network, err := net.ParseCIDR(datanetwork); err == nil {
+			if !network.Contains(net.ParseIP(gw)) {
+				return nil, nil, fmt.Errorf("DataSubnet and Vrouter Gateway mismatch: dataSubnet=%s gw=%s", datanetwork, gw)
+			}
+		} else {
+			return nil, nil, fmt.Errorf("DataSubnet is not provided or doesnt contain a valid CIDR: dataSubnet=%s (err=%+v)", datanetwork, err)
+		}
+	}
+	return PodIPListAndIPMapFromInstance(instanceType, request, reconcileClient, datanetwork)
 }
 
 //PodsCertSubjects gets list of Vrouter pods certificate subjets which can be passed to the certificate API
