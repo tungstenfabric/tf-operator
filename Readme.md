@@ -174,6 +174,17 @@ target=localhost:5000/tf-operator:latest
 operator-sdk build $target
 docker push $target
 ```
+### Build for podman
+```bash
+cd tf-operator
+target=localhost:5000/tf-operator:latest
+operator-sdk build \
+  --image-builder podman \
+  --image-build-args "--format docker --network host -v /etc/resolv.conf:/etc/resolv.conf:ro" \
+  $target
+docker push --format docker $target
+```
+
 
 # Documentation
 [Tungsten Fabric Operator official documentation](https://docs.tungsten.io/en/latest/tungsten-fabric-operator/index.html)
