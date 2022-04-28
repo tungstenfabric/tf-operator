@@ -9,14 +9,10 @@ bases:
 
 patchesStrategicMerge:
   - auth.yaml
+  - config.yaml
+  - control.yaml
 {%- if IMAGE_PULL_SECRETS is defined and IMAGE_PULL_SECRETS != "" %}
   - image-secrets.yaml
-{%- endif %}
-{%- if IPFABRIC_SERVICE_HOST is defined and IPFABRIC_SERVICE_HOST != "" %}
-  - linklocal.yaml
-{%- endif %}
-{%- if USE_EXTERNAL_TFTP is defined and USE_EXTERNAL_TFTP != "" %}
-  - tftp.yaml
 {%- endif %}
   - db.yaml
 {%- if CNI is not defined or CNI == "" %}
@@ -26,25 +22,11 @@ patchesStrategicMerge:
 {%- if DISTRIBUTION is defined and DISTRIBUTION != "" %}
   - distribution.yaml
 {%- endif %}
-{%- if CONFIG_API_WORKER_COUNT is defined and CONFIG_API_WORKER_COUNT != "" %}
-  - worker-count.yaml
-{%- endif %}
 {%- if CERT_KEY_LENGHT is defined and CERT_KEY_LENGHT != "" %}
   - cert-key-length.yaml
 {%- endif %}
 {%- if CERT_SIGNER is defined and CERT_SIGNER != "" %}
   - ca-signer.yaml
-{%- endif %}
-
-# set contrail-status image
-{%- if DATA_NETWORK | default("") != "" %}
-patchesJson6902:
-  - target:
-      kind: Manager
-      name: cluster1
-      group: tf.tungsten.io
-      version: v1alpha1
-    path: datasubnet.json
 {%- endif %}
 
 images:

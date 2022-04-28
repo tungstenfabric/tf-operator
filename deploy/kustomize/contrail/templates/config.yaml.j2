@@ -1,0 +1,61 @@
+{%- if GLOBAL_BGP_ASN | default("") == "" %}
+{%- set GLOBAL_BGP_ASN = BGP_ASN | default("") -%}
+{%- endif -%}
+---
+apiVersion: tf.tungsten.io/v1alpha1
+kind: Manager
+metadata:
+  name: cluster1
+  namespace: tf
+spec:
+  services:
+    config:
+      metadata:
+        labels:
+          tf_cluster: cluster1
+        name: config1
+      spec:
+        commonConfiguration:
+          nodeSelector:
+            node-role.kubernetes.io/master: ""
+        serviceConfiguration:
+{%- if CONFIG_API_WORKER_COUNT | default("") != "" %}
+          apiWorkerCount: {{ CONFIG_API_WORKER_COUNT }}
+{%- endif %}
+{%- if IPFABRIC_SERVICE_HOST | default("") != "" %}
+          linklocalServiceConfig:
+            ipFabricServiceHost: {{ IPFABRIC_SERVICE_HOST }}
+{%- endif %}
+{%- if USE_EXTERNAL_TFTP | default("") != "" %}
+          useExternalTFTP: {{ USE_EXTERNAL_TFTP }}
+{%- endif %}
+{%- if BGP_AUTO_MESH | default("") != "" %}
+          bgpAutoMesh: {{ BGP_AUTO_MESH }}
+{%- endif %}
+{%- if ENABLE_4BYTE_AS | default("") != "" %}
+          bgpEnable4Byte: {{ ENABLE_4BYTE_AS }}
+{%- endif %}
+{%- if GLOBAL_BGP_ASN | default("") != "" %}
+          globlaASNNumber: {{ GLOBAL_BGP_ASN }}
+{%- endif %}
+          containers:
+          - name: api
+            image: contrail-controller-config-api
+          - name: devicemanager
+            image: contrail-controller-config-devicemgr
+          - name: dnsmasq
+            image: contrail-controller-config-dnsmasq
+          - name: schematransformer
+            image: contrail-controller-config-schema
+          - name: servicemonitor
+            image: contrail-controller-config-svcmonitor
+          - name: nodemanager
+            image: contrail-nodemgr
+          - name: nodeinit
+            image: contrail-node-init
+          - name: nodeinit-status-prefetch
+            image: contrail-status
+          - name: nodeinit-tools-prefetch
+            image: contrail-tools
+          - name: provisioner
+            image: contrail-provisioner
