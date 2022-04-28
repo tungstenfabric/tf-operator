@@ -1,9 +1,0 @@
-[
-{%- if DATA_NETWORK | default("") != "" -%}
-  {
-    "op": "add",
-    "path": "/spec/services/controls/0/spec/serviceConfiguration/dataSubnet",
-    "value": "{{ DATA_NETWORK }}"
-  }
-{%- endif -%}
-]

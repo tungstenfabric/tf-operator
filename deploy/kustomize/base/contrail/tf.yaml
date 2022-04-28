@@ -93,59 +93,6 @@ spec:
             image: contrail-nodemgr
           - name: provisioner
             image: contrail-provisioner
-    config:
-      metadata:
-        labels:
-          tf_cluster: cluster1
-        name: config1
-      spec:
-        commonConfiguration:
-          nodeSelector:
-            node-role.kubernetes.io/master: ""
-        serviceConfiguration:
-          containers:
-          - name: api
-            image: contrail-controller-config-api
-          - name: devicemanager
-            image: contrail-controller-config-devicemgr
-          - name: dnsmasq
-            image: contrail-controller-config-dnsmasq
-          - name: schematransformer
-            image: contrail-controller-config-schema
-          - name: servicemonitor
-            image: contrail-controller-config-svcmonitor
-          - name: nodemanager
-            image: contrail-nodemgr
-          - name: nodeinit
-            image: contrail-node-init
-          - name: nodeinit-status-prefetch
-            image: contrail-status
-          - name: nodeinit-tools-prefetch
-            image: contrail-tools
-          - name: provisioner
-            image: contrail-provisioner
-    controls:
-    - metadata:
-        labels:
-          tf_cluster: cluster1
-          control_role: master
-        name: control1
-      spec:
-        commonConfiguration:
-          nodeSelector:
-            node-role.kubernetes.io/master: ""
-        serviceConfiguration:
-          containers:
-          - name: control
-            image: contrail-controller-control-control
-          - name: dns
-            image: contrail-controller-control-dns
-          - name: named
-            image: contrail-controller-control-named
-          - name: nodemanager
-            image: contrail-nodemgr
-          - name: provisioner
-            image: contrail-provisioner
     rabbitmq:
       metadata:
         labels:
