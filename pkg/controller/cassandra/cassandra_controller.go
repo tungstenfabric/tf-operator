@@ -376,7 +376,7 @@ func (r *ReconcileCassandra) Reconcile(request reconcile.Request) (reconcile.Res
 		for i := 0; i < len(seedsIPList); i++ {
 			seedPod := podIPList[i]
 			ip_addr := nodesInfo[podIPList[i].Name].IP
-			command := "nodetool -p " + strconv.Itoa(*cassandraConfig.JmxLocalPort) + " status | grep \"UN \\+" + ip_addr + "\""
+			command := "nodetool -p " + strconv.Itoa(*cassandraConfig.JmxLocalPort) + " -Dcom.sun.jndi.rmiURLParsing=legacy status | grep \"UN \\+" + ip_addr + "\""
 			stdout, stderr, err := v1alpha1.ExecToContainer(&seedPod, instanceType, []string{"/usr/bin/bash", "-c", command}, nil)
 			if err != nil {
 				reqLogger.Info("Seed node not ready", "Pod", seedPod.Name, "IP", ip_addr, "err", err, "stdout", stdout, "stderr", stderr)
