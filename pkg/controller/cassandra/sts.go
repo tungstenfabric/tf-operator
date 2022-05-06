@@ -61,8 +61,8 @@ spec:
               command:
               - /bin/sh
               - -c
-              - nodetool -p {{ .LocalJmxPort }} drain
-              #- nodetool -p {{ .LocalJmxPort }} decommission
+              - nodetool -p {{ .LocalJmxPort }} -Dcom.sun.jndi.rmiURLParsing=legacy drain
+              #- nodetool -p {{ .LocalJmxPort }} -Dcom.sun.jndi.rmiURLParsing=legacy decommission
         securityContext:
           capabilities:
             add:
