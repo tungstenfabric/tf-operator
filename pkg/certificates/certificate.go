@@ -65,11 +65,12 @@ var CertKeyLength = 4096
 //
 const SelfSigner = "SelfSignedCA"
 const ExternalSigner = "External"
+const SelfSignedCALegacyUnknown = "kubernetes.io/legacy-unknown"
 const ExternalCAHostPath = "/etc/contrail/ssl/ca-certs"
 const ExternalCertHostPath = "/etc/contrail/ssl/certs"
 
-var ClientSignerName string = "kubernetes.io/legacy-unknown"
-var ServerSignerName string = "kubernetes.io/legacy-unknown"
+var ClientSignerName string = SelfSigner
+var ServerSignerName string = SelfSigner
 
 var log = logf.Log.WithName("cert")
 

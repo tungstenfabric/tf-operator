@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"math/rand"
-	"os"
 	"runtime"
 	"strconv"
 	"time"
@@ -16,7 +15,6 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
 	"github.com/tungstenfabric/tf-operator/pkg/k8s"
-	"k8s.io/client-go/discovery"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -25,48 +23,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/tungstenfabric/tf-operator/pkg/apis"
-	cert "github.com/tungstenfabric/tf-operator/pkg/certificates"
 	"github.com/tungstenfabric/tf-operator/pkg/controller"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/kubemanager"
 )
 
 var log = logf.Log.WithName("cmd")
-
-func setClientSignerName(major, minor int) {
-	if signer, ok := os.LookupEnv("CLIENT_SIGNER_NAME"); ok {
-		cert.ClientSignerName = signer
-	} else if major > 1 || minor > 21 || k8s.IsOpenshift() {
-		cert.ClientSignerName = cert.SelfSigner
-	}
-	log.Info(fmt.Sprintf("ClientSignerName: '%s'", cert.ClientSignerName))
-}
-
-func setServerSignerName(major, minor int) {
-	if signer, ok := os.LookupEnv("SERVER_SIGNER_NAME"); ok {
-		cert.ServerSignerName = signer
-	} else if major > 1 || minor > 21 || k8s.IsOpenshift() {
-		cert.ServerSignerName = cert.SelfSigner
-	}
-	log.Info(fmt.Sprintf("ServerSignerName: '%s'", cert.ServerSignerName))
-}
-
-func setSignerName(clnt *discovery.DiscoveryClient) error {
-	if ver, err := clnt.ServerVersion(); err == nil {
-		major, _ := strconv.Atoi(ver.Major)
-		minor, _ := strconv.Atoi(ver.Minor)
-		log.Info(fmt.Sprintf("K8S Server Version: %d.%d", major, minor))
-		setClientSignerName(major, minor)
-		setServerSignerName(major, minor)
-		if cert.ClientSignerName != cert.ServerSignerName &&
-			(cert.ClientSignerName == cert.SelfSigner || cert.ClientSignerName == cert.ExternalSigner) {
-			return fmt.Errorf("Client and Server signers mismatch client=%s server=%s",
-				cert.ClientSignerName, cert.ServerSignerName)
-		}
-	} else {
-		return err
-	}
-	return nil
-}
 
 func printVersion() {
 	log.Info(fmt.Sprintf("Go Version: %s", runtime.Version()))
@@ -117,12 +78,6 @@ func runOperator(sigHandler <-chan struct{}) (err error) {
 		return err
 	}
 	log.Info("IsOpenshift=" + strconv.FormatBool(k8s.IsOpenshift()))
-
-	dclnt := discovery.NewDiscoveryClientForConfigOrDie(cfg)
-	if err := setSignerName(dclnt); err != nil {
-		log.Error(err, "Failed set signer")
-		return err
-	}
 
 	// Check is ZIU Required?
 	if f, err := v1alpha1.IsZiuRequired(clnt); err != nil {
