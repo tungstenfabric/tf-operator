@@ -46,7 +46,7 @@ func appendSignerSpecificUsages(usages *[]certificates.KeyUsage, signer string) 
 		certificates.KubeAPIServerClientSignerName:        {certificates.UsageClientAuth},
 		certificates.KubeAPIServerClientKubeletSignerName: {certificates.UsageClientAuth},
 		certificates.KubeletServingSignerName:             {certificates.UsageServerAuth},
-		"kubernetes.io/legacy-unknown":                    {certificates.UsageClientAuth, certificates.UsageServerAuth},
+		SelfSignedCALegacyUnknown:                         {certificates.UsageClientAuth, certificates.UsageServerAuth},
 	}
 	*usages = append(*usages, usagesMap[signer]...)
 }
