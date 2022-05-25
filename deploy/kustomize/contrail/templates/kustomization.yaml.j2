@@ -28,6 +28,11 @@ patchesStrategicMerge:
 {%- if CERT_SIGNER is defined and CERT_SIGNER != "" %}
   - ca-signer.yaml
 {%- endif %}
+{%- if TF_CUSTOMIZE_FILES is defined and TF_CUSTOMIZE_FILES != "" -%}
+{%- for file in TF_CUSTOMIZE_FILES.split(',') %}
+  - {{ file }}
+{%- endfor -%}
+{%- endif %}
 
 images:
 # Contrail externals
