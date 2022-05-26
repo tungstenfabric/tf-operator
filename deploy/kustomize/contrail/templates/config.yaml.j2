@@ -1,0 +1,72 @@
+{%- if GLOBAL_BGP_ASN | default("") == "" %}
+{%- set GLOBAL_BGP_ASN = BGP_ASN | default("") -%}
+{%- endif -%}
+---
+apiVersion: tf.tungsten.io/v1alpha1
+kind: Manager
+metadata:
+  name: cluster1
+  namespace: tf
+spec:
+  services:
+    config:
+      metadata:
+        labels:
+          tf_cluster: cluster1
+        name: config1
+      spec:
+        commonConfiguration:
+          nodeSelector:
+            node-role.kubernetes.io/master: ""
+        serviceConfiguration:
+          logLevel: SYS_DEBUG
+          zookeeperInstance: zookeeper1
+          cassandraInstance: configdb1
+          rabbitmqInstance: rabbitmq1
+{%- if IPFABRIC_SERVICE_HOST | default("") != "" %}
+          linklocalServiceConfig:
+            ipFabricServiceHost: {{ IPFABRIC_SERVICE_HOST }}
+{%- endif %}
+{%- if USE_EXTERNAL_TFTP | default("") != "" %}
+          useExternalTFTP: {{ USE_EXTERNAL_TFTP }}
+{%- endif %}
+{%- if BGP_AUTO_MESH | default("") != "" %}
+          bgpAutoMesh: {{ BGP_AUTO_MESH }}
+{%- endif %}
+{%- if ENABLE_4BYTE_AS | default("") != "" %}
+          bgpEnable4Byte: {{ ENABLE_4BYTE_AS }}
+{%- endif %}
+{%- if GLOBAL_BGP_ASN | default("") != "" %}
+          globlaASNNumber: {{ GLOBAL_BGP_ASN }}
+{%- endif %}
+          containers:
+          - name: redis
+            image: contrail-external-redis
+          - name: stunnel
+            image: contrail-external-stunnel
+          - name: api
+            image: contrail-controller-config-api
+          - name: devicemanager
+            image: contrail-controller-config-devicemgr
+          - name: dnsmasq
+            image: contrail-controller-config-dnsmasq
+          - name: schematransformer
+            image: contrail-controller-config-schema
+          - name: servicemonitor
+            image: contrail-controller-config-svcmonitor
+          - name: nodemanagerconfig
+            image: contrail-nodemgr
+          - name: provisionerconfig
+            image: contrail-provisioner
+          - name: analyticsapi
+            image: contrail-analytics-api
+          - name: collector
+            image: contrail-analytics-collector
+          - name: queryengine
+            image: contrail-analytics-query-engine
+          - name: nodemanageranalytics
+            image: contrail-nodemgr
+          - name: provisioneranalytics
+            image: contrail-provisioner
+          - name: nodeinit
+            image: contrail-node-init

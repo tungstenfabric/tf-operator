@@ -770,6 +770,21 @@ func (in *ConfigConfiguration) DeepCopyInto(out *ConfigConfiguration) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.BgpAutoMesh != nil {
+		in, out := &in.BgpAutoMesh, &out.BgpAutoMesh
+		*out = new(bool)
+		**out = **in
+	}
+	if in.BgpEnable4Byte != nil {
+		in, out := &in.BgpEnable4Byte, &out.BgpEnable4Byte
+		*out = new(bool)
+		**out = **in
+	}
+	if in.GloblaASNNumber != nil {
+		in, out := &in.GloblaASNNumber, &out.GloblaASNNumber
+		*out = new(int)
+		**out = **in
+	}
 	return
 }
 

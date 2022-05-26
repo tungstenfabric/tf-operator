@@ -8,12 +8,12 @@ bases:
 - ../../base/contrail
 
 patchesStrategicMerge:
-  - replicas.yaml
-  - cluster.yaml
   - auth.yaml
+  - cluster.yaml
+  - config.yaml
+  - control.yaml
+  - replicas.yaml
   - image-secrets.yaml
-  - linklocal.yaml
-  - tftp.yaml
   - vrouter.yaml
 {%- if CERT_KEY_LENGHT is defined and CERT_KEY_LENGHT != "" %}
   - cert-key-length.yaml
@@ -33,12 +33,6 @@ patchesJson6902:
       group: tf.tungsten.io
       version: v1alpha1
     path: db.json
-  - target:
-      kind: Manager
-      name: cluster1
-      group: tf.tungsten.io
-      version: v1alpha1
-    path: datasubnet.json
 
 images:
 # Contrail externals

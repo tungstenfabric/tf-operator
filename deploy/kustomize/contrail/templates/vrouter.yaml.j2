@@ -31,6 +31,12 @@ spec:
 {%- if HUGE_PAGES_1GB is defined and HUGE_PAGES_1GB != "" %}
           hugePages1G: {{ HUGE_PAGES_1GB }}
 {%- endif %}
+{%- if DATA_NETWORK is defined and DATA_NETWORK != "" %}
+          dataSubnet: {{ DATA_NETWORK }}
+{%- endif %}
+{%- if VROUTER_GATEWAY is defined and VROUTER_GATEWAY != "" %}
+          vrouterGateway: {{ VROUTER_GATEWAY }}
+{%- endif %}
           containers:
           - name: nodeinit
             image: contrail-node-init

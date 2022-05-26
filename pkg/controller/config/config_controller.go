@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -504,8 +505,9 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 				command := []string{"bash", "/etc/contrailconfigmaps/config-provisioner.sh"}
 				container.Command = command
 			}
-			if instance.Spec.ServiceConfiguration.LinklocalServiceConfig != nil {
-				ll := instance.ConfigurationParameters().LinklocalServiceConfig
+			cfg := instance.ConfigurationParameters()
+			if cfg.LinklocalServiceConfig != nil {
+				ll := cfg.LinklocalServiceConfig
 				container.Env = append(container.Env,
 					corev1.EnvVar{
 						Name:  "IPFABRIC_SERVICE_HOST",
@@ -529,6 +531,20 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 					},
 				)
 			}
+			container.Env = append(container.Env,
+				corev1.EnvVar{
+					Name:  "BGP_ASN",
+					Value: strconv.Itoa(*cfg.GloblaASNNumber),
+				},
+				corev1.EnvVar{
+					Name:  "BGP_AUTO_MESH",
+					Value: strconv.FormatBool(*cfg.BgpAutoMesh),
+				},
+				corev1.EnvVar{
+					Name:  "ENABLE_4BYTE_AS",
+					Value: strconv.FormatBool(*cfg.BgpEnable4Byte),
+				},
+			)
 		}
 	}
 

@@ -1,0 +1,40 @@
+---
+apiVersion: tf.tungsten.io/v1alpha1
+kind: Manager
+metadata:
+  name: cluster1
+  namespace: tf
+spec:
+  services:
+    controls:
+    - metadata:
+        labels:
+          tf_cluster: cluster1
+          control_role: master
+        name: control1
+      spec:
+        commonConfiguration:
+          nodeSelector:
+            node-role.kubernetes.io/master: ""
+        serviceConfiguration:
+          cassandraInstance: configdb1
+          rabbitmqInstance: rabbitmq1
+          configInstance: config1
+          logLevel: SYS_DEBUG
+{%- if DATA_NETWORK | default("") != "" %}
+          dataSubnet: "{{ DATA_NETWORK }}"
+{%- endif %}
+{%- if BGP_ASN | default("") != "" %}
+          asnNumber: {{ BGP_ASN }}
+{%- endif %}
+          containers:
+          - name: control
+            image: contrail-controller-control-control
+          - name: dns
+            image: contrail-controller-control-dns
+          - name: named
+            image: contrail-controller-control-named
+          - name: nodemanager
+            image: contrail-nodemgr
+          - name: provisioner
+            image: contrail-provisioner

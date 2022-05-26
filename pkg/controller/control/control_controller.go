@@ -2,6 +2,7 @@ package control
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1"
@@ -334,6 +335,13 @@ func (r *ReconcileControl) Reconcile(request reconcile.Request) (reconcile.Resul
 				command := []string{"bash", "/etc/contrailconfigmaps/control-provisioner.sh"}
 				container.Command = command
 			}
+
+			cfg := instance.ConfigurationParameters()
+			container.Env = append(container.Env,
+				corev1.EnvVar{
+					Name:  "BGP_ASN",
+					Value: strconv.Itoa(*cfg.ASNNumber),
+				})
 		}
 	}
 
