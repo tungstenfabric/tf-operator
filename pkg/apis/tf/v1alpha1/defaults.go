@@ -257,6 +257,7 @@ const (
 	ZookeeperInstance                           string = "zookeeper1"
 	AnalyticsInstance                           string = "analytics1"
 	AnalyticsAlarmInstance                      string = "analyticsalarm1"
+	AnalyticsSnmpInstance                       string = "analyticssnmp1"
 	KubemanagerInstance                         string = "kubemanager1"
 	WebuiInstance                               string = "webui1"
 	OpenShiftClusterName                        string = "test"

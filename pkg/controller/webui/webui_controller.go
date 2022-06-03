@@ -3,6 +3,7 @@ package webui
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -301,6 +302,29 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 			command := []string{"bash", fmt.Sprintf("/etc/contrailconfigmaps/run-%s.sh", container.Name)}
 			container.Command = command
 		}
+
+		alarmEnabled, err := v1alpha1.GetAnalyticsAlarmEnabled(r.Client)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		snmpEnabled, err := v1alpha1.GetAnalyticsSnmpEnabled(r.Client)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		container.Env = append(container.Env,
+			corev1.EnvVar{
+				Name:  "ANALYTICS_ALARM_ENABLE",
+				Value: strconv.FormatBool(alarmEnabled),
+			},
+			corev1.EnvVar{
+				Name:  "ANALYTICS_SNMP_ENABLE",
+				Value: strconv.FormatBool(snmpEnabled),
+			},
+			corev1.EnvVar{
+				Name:  "ANALYTICSDB_ENABLE",
+				Value: strconv.FormatBool(true),
+			},
+		)
 
 		if container.Name == "webuiweb" {
 			container.ReadinessProbe = &corev1.Probe{

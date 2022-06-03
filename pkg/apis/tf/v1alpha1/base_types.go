@@ -2005,6 +2005,19 @@ func GetAnalyticsAlarmEnabled(cl client.Client) (bool, error) {
 	return true, nil
 }
 
+// Return if analytics-snmp is enabled
+func GetAnalyticsSnmpEnabled(cl client.Client) (bool, error) {
+	var mgr *Manager
+	var err error
+	if mgr, err = GetManagerObject(cl); err != nil {
+		return false, err
+	}
+	if mgr.Spec.Services.AnalyticsSnmp == nil {
+		return false, nil
+	}
+	return true, nil
+}
+
 func updateMap(values map[string]string, data *map[string]string) {
 	for k, v := range values {
 		(*data)[k] = v
