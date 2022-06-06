@@ -2,6 +2,7 @@ package webui
 
 import (
 	"context"
+	"strconv"
 	"strings"
 	"time"
 
@@ -253,6 +254,20 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 	instance.AddSecretVolumesToIntendedSTS(statefulSet, map[string]string{secretCertificates.Name: request.Name + "-secret-certificates"})
 
 	for idx, container := range statefulSet.Spec.Template.Spec.Containers {
+		container.Env = append(container.Env,
+			corev1.EnvVar{
+				Name:  "ANALYTICS_ALARM_ENABLE",
+				Value: strconv.FormatBool(true),
+			},
+			corev1.EnvVar{
+				Name:  "ANALYTICS_SNMP_ENABLE",
+				Value: strconv.FormatBool(true),
+			},
+			corev1.EnvVar{
+				Name:  "ANALYTICSDB_ENABLE",
+				Value: strconv.FormatBool(true),
+			},
+		)
 		if container.Name == "webuiweb" {
 			command := []string{"bash", "-c", instance.CommonStartupScript(
 				// use copy as webui resolves symlinks just to "..data/config.global.js.10.0.0.206"
