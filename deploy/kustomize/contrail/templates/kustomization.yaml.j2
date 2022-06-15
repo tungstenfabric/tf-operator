@@ -15,6 +15,7 @@ patchesStrategicMerge:
   - image-secrets.yaml
 {%- endif %}
   - db.yaml
+  - snmp.yaml
 {%- if CNI is not defined or CNI == "" %}
   - vrouter.yaml
   - kube-manager.yaml
