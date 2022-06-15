@@ -38,25 +38,6 @@ spec:
           containers:
           - name: queryengine
             image: contrail-analytics-query-engine
-    analyticsSnmp:
-      metadata:
-        labels:
-          tf_cluster: cluster1
-        name: analyticssnmp1
-      spec:
-        commonConfiguration:
-          nodeSelector:
-            node-role.kubernetes.io/master: ""
-        serviceConfiguration:
-          containers:
-          - name: nodemanager
-            image: contrail-nodemgr
-          - name: provisioner
-            image: contrail-provisioner
-          - name: analytics-snmp-collector
-            image: contrail-analytics-snmp-collector
-          - name: analytics-snmp-topology
-            image: contrail-analytics-snmp-topology
     analyticsAlarm:
       metadata:
         labels:
