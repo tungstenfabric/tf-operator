@@ -95,7 +95,7 @@ type ConfigConfiguration struct {
 	UseExternalTFTP        *bool                   `json:"useExternalTFTP,omitempty"`
 	BgpAutoMesh            *bool                   `json:"bgpAutoMesh,omitempty"`
 	BgpEnable4Byte         *bool                   `json:"bgpEnable4Byte,omitempty"`
-	GloblaASNNumber        *int                    `json:"globlaASNNumber,omitempty"`
+	GlobalASNNumber        *int                    `json:"globalASNNumber,omitempty"`
 }
 
 // LinklocalServiceConfig is the Spec for link local coniguration
@@ -910,11 +910,11 @@ func (c *Config) ConfigurationParameters() ConfigConfiguration {
 	}
 	configConfiguration.BgpEnable4Byte = &bgpEnable4Byte
 
-	globlaASNNumber := BgpAsn
-	if c.Spec.ServiceConfiguration.GloblaASNNumber != nil {
-		globlaASNNumber = *c.Spec.ServiceConfiguration.GloblaASNNumber
+	globalASNNumber := BgpAsn
+	if c.Spec.ServiceConfiguration.GlobalASNNumber != nil {
+		globalASNNumber = *c.Spec.ServiceConfiguration.GlobalASNNumber
 	}
-	configConfiguration.GloblaASNNumber = &globlaASNNumber
+	configConfiguration.GlobalASNNumber = &globalASNNumber
 
 	return configConfiguration
 

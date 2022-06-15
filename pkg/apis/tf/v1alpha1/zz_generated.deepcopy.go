@@ -780,8 +780,8 @@ func (in *ConfigConfiguration) DeepCopyInto(out *ConfigConfiguration) {
 		*out = new(bool)
 		**out = **in
 	}
-	if in.GloblaASNNumber != nil {
-		in, out := &in.GloblaASNNumber, &out.GloblaASNNumber
+	if in.GlobalASNNumber != nil {
+		in, out := &in.GlobalASNNumber, &out.GlobalASNNumber
 		*out = new(int)
 		**out = **in
 	}

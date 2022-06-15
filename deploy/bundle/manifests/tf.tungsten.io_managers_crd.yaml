@@ -75,6 +75,9 @@ spec:
                     keystoneSecretName:
                       type: string
                   type: object
+                certKeyLength:
+                  description: Certificate private key length
+                  type: integer
                 clusterConfig:
                   description: Kubernetes Cluster Configuration
                   properties:
@@ -1121,6 +1124,10 @@ spec:
                               type: integer
                             apiPort:
                               type: integer
+                            bgpAutoMesh:
+                              type: boolean
+                            bgpEnable4Byte:
+                              type: boolean
                             cassandraInstance:
                               type: string
                             collectorIntrospectPort:
@@ -1145,6 +1152,8 @@ spec:
                               type: integer
                             fabricMgmtIP:
                               type: string
+                            globalASNNumber:
+                              type: integer
                             linklocalServiceConfig:
                               description: LinklocalServiceConfig is the Spec for
                                 link local coniguration

@@ -37,7 +37,7 @@ spec:
           bgpEnable4Byte: {{ ENABLE_4BYTE_AS }}
 {%- endif %}
 {%- if GLOBAL_BGP_ASN | default("") != "" %}
-          globlaASNNumber: {{ GLOBAL_BGP_ASN }}
+          globalASNNumber: {{ GLOBAL_BGP_ASN }}
 {%- endif %}
           containers:
           - name: redis

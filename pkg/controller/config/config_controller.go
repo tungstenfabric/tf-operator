@@ -534,7 +534,7 @@ func (r *ReconcileConfig) Reconcile(request reconcile.Request) (reconcile.Result
 			container.Env = append(container.Env,
 				corev1.EnvVar{
 					Name:  "BGP_ASN",
-					Value: strconv.Itoa(*cfg.GloblaASNNumber),
+					Value: strconv.Itoa(*cfg.GlobalASNNumber),
 				},
 				corev1.EnvVar{
 					Name:  "BGP_AUTO_MESH",
