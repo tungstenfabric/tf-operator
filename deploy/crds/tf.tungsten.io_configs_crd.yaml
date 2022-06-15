@@ -191,7 +191,7 @@ spec:
                     type: integer
                   fabricMgmtIP:
                     type: string
-                  globlaASNNumber:
+                  globalASNNumber:
                     type: integer
                   linklocalServiceConfig:
                     description: LinklocalServiceConfig is the Spec for link local
