@@ -38,25 +38,6 @@ spec:
           containers:
           - name: queryengine
             image: contrail-analytics-query-engine
-    analyticsAlarm:
-      metadata:
-        labels:
-          tf_cluster: cluster1
-        name: analyticsalarm1
-      spec:
-        commonConfiguration:
-          nodeSelector:
-            node-role.kubernetes.io/master: ""
-        serviceConfiguration:
-          containers:
-          - name: nodemanager
-            image: contrail-nodemgr
-          - name: provisioner
-            image: contrail-provisioner
-          - name: analytics-alarm-gen
-            image: contrail-analytics-alarm-gen
-          - name: kafka
-            image: contrail-external-kafka
     cassandras:
     - metadata:
         labels:
