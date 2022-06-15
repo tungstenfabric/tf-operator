@@ -1,0 +1,29 @@
+---
+apiVersion: tf.tungsten.io/v1alpha1
+kind: Manager
+metadata:
+  name: cluster1
+  namespace: tf
+{%- if ANALYTICS_ALARM_ENABLE | default("true") != "false" %}
+spec:
+  services:
+    analyticsAlarm:
+      metadata:
+        labels:
+          tf_cluster: cluster1
+        name: analyticsalarm1
+      spec:
+        commonConfiguration:
+          nodeSelector:
+            node-role.kubernetes.io/master: ""
+        serviceConfiguration:
+          containers:
+          - name: nodemanager
+            image: contrail-nodemgr
+          - name: provisioner
+            image: contrail-provisioner
+          - name: analytics-alarm-gen
+            image: contrail-analytics-alarm-gen
+          - name: kafka
+            image: contrail-external-kafka
+{%- endif -%}
