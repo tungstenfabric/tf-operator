@@ -311,6 +311,10 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+		queryengineEnabled, err := v1alpha1.GetQueryEngineEnabled(r.Client)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 		container.Env = append(container.Env,
 			corev1.EnvVar{
 				Name:  "ANALYTICS_ALARM_ENABLE",
@@ -322,7 +326,7 @@ func (r *ReconcileWebui) Reconcile(request reconcile.Request) (reconcile.Result,
 			},
 			corev1.EnvVar{
 				Name:  "ANALYTICSDB_ENABLE",
-				Value: strconv.FormatBool(true),
+				Value: strconv.FormatBool(queryengineEnabled),
 			},
 		)
 

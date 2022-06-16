@@ -198,6 +198,11 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 
 	logLevel := ConvertLogLevel(c.Spec.CommonConfiguration.LogLevel)
 
+	queryengineEnabled, err := GetQueryEngineEnabled(client)
+	if err != nil {
+		return
+	}
+
 	for _, pod := range podList {
 		hostname := pod.Annotations["hostname"]
 		podIP := pod.Status.PodIP
@@ -224,6 +229,7 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 			AAAMode                    AAAMode
 			CAFilePath                 string
 			LogLevel                   string
+			QueryEngineEnabled         bool
 		}{
 			PodIP:                      podIP,
 			ListenAddress:              podIP,
@@ -243,6 +249,7 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 			AAAMode:                    analyticsConfig.AAAMode,
 			CAFilePath:                 SignerCAFilepath,
 			LogLevel:                   logLevel,
+			QueryEngineEnabled:         queryengineEnabled,
 		})
 		if err != nil {
 			panic(err)
@@ -272,6 +279,7 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 			AnalyticsStatisticsTTL         string
 			AnalyticsFlowTTL               string
 			RedisPort                      int
+			QueryEngineEnabled             bool
 		}{
 			Hostname:                       hostname,
 			PodIP:                          podIP,
@@ -294,6 +302,7 @@ func (c *Analytics) InstanceConfiguration(podList []corev1.Pod, client client.Cl
 			AnalyticsStatisticsTTL:         strconv.Itoa(*analyticsConfig.AnalyticsStatisticsTTL),
 			AnalyticsFlowTTL:               strconv.Itoa(*analyticsConfig.AnalyticsFlowTTL),
 			RedisPort:                      redisNodesInformation.ServerPort,
+			QueryEngineEnabled:             queryengineEnabled,
 		})
 		if err != nil {
 			panic(err)
