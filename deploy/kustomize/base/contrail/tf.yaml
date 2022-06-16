@@ -25,36 +25,6 @@ spec:
             image: contrail-nodemgr
           - name: provisioner
             image: contrail-provisioner
-    queryengine:
-      metadata:
-        labels:
-          tf_cluster: cluster1
-        name: queryengine1
-      spec:
-        commonConfiguration:
-          nodeSelector:
-            node-role.kubernetes.io/master: ""
-        serviceConfiguration:
-          containers:
-          - name: queryengine
-            image: contrail-analytics-query-engine
-    cassandras:
-    - metadata:
-        labels:
-          tf_cluster: cluster1
-        name: configdb1
-      spec:
-        commonConfiguration:
-          nodeSelector:
-            node-role.kubernetes.io/master: ""
-        serviceConfiguration:
-          containers:
-          - name: cassandra
-            image: contrail-external-cassandra
-          - name: nodemanager
-            image: contrail-nodemgr
-          - name: provisioner
-            image: contrail-provisioner
     rabbitmq:
       metadata:
         labels:

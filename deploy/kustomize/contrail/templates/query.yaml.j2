@@ -1,0 +1,24 @@
+---
+apiVersion: tf.tungsten.io/v1alpha1
+kind: Manager
+metadata:
+  name: cluster1
+  namespace: tf
+{%- if ANALYTICSDB_ENABLE | default("true") != "false" %}
+spec:
+  services:
+    queryengine:
+      metadata:
+        labels:
+          tf_cluster: cluster1
+        name: queryengine1
+      spec:
+        commonConfiguration:
+          nodeSelector:
+            node-role.kubernetes.io/master: ""
+        serviceConfiguration:
+          containers:
+          - name: queryengine
+            image: contrail-analytics-query-engine
+{%- endif -%}
+
