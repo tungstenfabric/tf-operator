@@ -867,17 +867,28 @@ func UpdatePodsAnnotations(podList []corev1.Pod, client client.Client) (updated 
 
 // GetDataAddresses gets ip addresses of Control pods in data network
 func GetDataAddresses(pod *corev1.Pod, instanceType string, cidr string) (string, error) {
-	_, network, _ := net.ParseCIDR(cidr)
-
+	// TODO: hack: somehow either rename instance or container
+	// this is because vrouter agent container and object instance type are not same like for control
+	instanceToContainerMap := map[string]string{
+		"vrouter": "vrouteragent",
+	}
+	container := instanceType
+	if c, ok := instanceToContainerMap[instanceType]; ok {
+		container = c
+	}
 	command := "ip address | awk '/inet /{print $2}' | cut -d '/' -f1"
-	stdout, _, err := ExecToContainer(pod, instanceType, []string{"/usr/bin/bash", "-c", command}, nil)
+	stdout, _, err := ExecToContainer(pod, container, []string{"/usr/bin/bash", "-c", command}, nil)
 	if err != nil {
-		return stdout, err
+		return stdout, fmt.Errorf("failed to get IP adresses for POD %s (err=%+v)", pod.Name, err)
 	}
 	var ip_addresses []string
 	scanner := bufio.NewScanner(strings.NewReader(string(stdout)))
 	for scanner.Scan() {
 		ip_addresses = append(ip_addresses, scanner.Text())
+	}
+	_, network, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return stdout, fmt.Errorf("dataSubnet CIDR is invalid %s (err=%+v)", cidr, err)
 	}
 	for _, ip := range ip_addresses {
 		if network.Contains(net.ParseIP(ip)) {
