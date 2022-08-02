@@ -675,7 +675,7 @@ func (r *ReconcileManager) setConditions(manager *v1alpha1.Manager) {
 	}}
 }
 
-func (r *ReconcileManager) processAnalytics(manager *v1alpha1.Manager) error {
+func ProcessAnalytics(manager *v1alpha1.Manager, clnt client.Client, scheme *runtime.Scheme) (*v1alpha1.Analytics, error) {
 	if manager.Spec.Services.Analytics == nil {
 		if manager.Status.Analytics != nil {
 			oldConfig := &v1alpha1.Analytics{}
@@ -686,35 +686,40 @@ func (r *ReconcileManager) processAnalytics(manager *v1alpha1.Manager) error {
 					"tf_cluster": manager.Name,
 				},
 			}
-			err := r.Client.Delete(context.TODO(), oldConfig)
+			err := clnt.Delete(context.TODO(), oldConfig)
 			if err != nil && !errors.IsNotFound(err) {
-				return err
+				return nil, err
 			}
 			manager.Status.Analytics = nil
 		}
-		return nil
+		return nil, nil
 	}
 
 	analytics := &v1alpha1.Analytics{}
 	analytics.ObjectMeta.Name = manager.Spec.Services.Analytics.Metadata.Name
 	analytics.ObjectMeta.Labels = manager.Spec.Services.Analytics.Metadata.Labels
 	analytics.ObjectMeta.Namespace = manager.Namespace
-	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, analytics, func() error {
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), clnt, analytics, func() error {
 		analytics.Spec = manager.Spec.Services.Analytics.Spec
 		analytics.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, analytics.Spec.CommonConfiguration)
-		return controllerutil.SetControllerReference(manager, analytics, r.Scheme)
+		return controllerutil.SetControllerReference(manager, analytics, scheme)
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	status := &v1alpha1.ServiceStatus{}
 	status.Name = &analytics.Name
 	status.Active = analytics.Status.Active
 	manager.Status.Analytics = status
-	return nil
+	return analytics, nil
 }
 
-func (r *ReconcileManager) processQueryEngine(manager *v1alpha1.Manager) error {
+func (r *ReconcileManager) processAnalytics(manager *v1alpha1.Manager) error {
+	_, err := ProcessAnalytics(manager, r.Client, r.Scheme)
+	return err
+}
+
+func ProcessQueryEngine(manager *v1alpha1.Manager, clnt client.Client, scheme *runtime.Scheme) (*v1alpha1.QueryEngine, error) {
 	if manager.Spec.Services.QueryEngine == nil {
 		if manager.Status.QueryEngine != nil {
 			oldConfig := &v1alpha1.QueryEngine{}
@@ -725,32 +730,37 @@ func (r *ReconcileManager) processQueryEngine(manager *v1alpha1.Manager) error {
 					"tf_cluster": manager.Name,
 				},
 			}
-			err := r.Client.Delete(context.TODO(), oldConfig)
+			err := clnt.Delete(context.TODO(), oldConfig)
 			if err != nil && !errors.IsNotFound(err) {
-				return err
+				return nil, err
 			}
 			manager.Status.QueryEngine = nil
 		}
-		return nil
+		return nil, nil
 	}
 
 	queryengine := &v1alpha1.QueryEngine{}
 	queryengine.ObjectMeta.Name = manager.Spec.Services.QueryEngine.Metadata.Name
 	queryengine.ObjectMeta.Labels = manager.Spec.Services.QueryEngine.Metadata.Labels
 	queryengine.ObjectMeta.Namespace = manager.Namespace
-	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, queryengine, func() error {
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), clnt, queryengine, func() error {
 		queryengine.Spec = manager.Spec.Services.QueryEngine.Spec
 		queryengine.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, queryengine.Spec.CommonConfiguration)
-		return controllerutil.SetControllerReference(manager, queryengine, r.Scheme)
+		return controllerutil.SetControllerReference(manager, queryengine, scheme)
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	status := &v1alpha1.ServiceStatus{}
 	status.Name = &queryengine.Name
 	status.Active = queryengine.Status.Active
 	manager.Status.QueryEngine = status
-	return nil
+	return queryengine, nil
+}
+
+func (r *ReconcileManager) processQueryEngine(manager *v1alpha1.Manager) error {
+	_, err := ProcessQueryEngine(manager, r.Client, r.Scheme)
+	return err
 }
 
 func (r *ReconcileManager) processAnalyticsSnmp(manager *v1alpha1.Manager) error {
@@ -831,6 +841,60 @@ func (r *ReconcileManager) processAnalyticsAlarm(manager *v1alpha1.Manager) erro
 	return err
 }
 
+func ProcessCassandras(manager *v1alpha1.Manager, clnt client.Client, scheme *runtime.Scheme) ([]*v1alpha1.Cassandra, error) {
+	for _, existingCassandra := range manager.Status.Cassandras {
+		found := false
+		for _, intendedCassandra := range manager.Spec.Services.Cassandras {
+			if *existingCassandra.Name == intendedCassandra.Metadata.Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			oldCassandra := &v1alpha1.Cassandra{}
+			oldCassandra.ObjectMeta = v1.ObjectMeta{
+				Namespace: manager.Namespace,
+				Name:      *existingCassandra.Name,
+				Labels: map[string]string{
+					"tf_cluster": manager.Name,
+				},
+			}
+			err := clnt.Delete(context.TODO(), oldCassandra)
+			if err != nil && !errors.IsNotFound(err) {
+				return nil, err
+			}
+		}
+	}
+
+	if !manager.IsVrouterActiveOnControllers(clnt) {
+		return nil, nil
+	}
+
+	result := []*v1alpha1.Cassandra{}
+	cassandraStatusList := []*v1alpha1.ServiceStatus{}
+	for _, cassandraService := range manager.Spec.Services.Cassandras {
+		cassandra := &v1alpha1.Cassandra{}
+		cassandra.ObjectMeta.Name = cassandraService.Metadata.Name
+		cassandra.ObjectMeta.Labels = cassandraService.Metadata.Labels
+		cassandra.ObjectMeta.Namespace = manager.Namespace
+		_, err := controllerutil.CreateOrUpdate(context.TODO(), clnt, cassandra, func() error {
+			cassandra.Spec = cassandraService.Spec
+			cassandra.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, cassandra.Spec.CommonConfiguration)
+			return controllerutil.SetControllerReference(manager, cassandra, scheme)
+		})
+		if err != nil {
+			return nil, err
+		}
+		status := &v1alpha1.ServiceStatus{}
+		status.Name = &cassandra.Name
+		status.Active = cassandra.Status.Active
+		cassandraStatusList = append(cassandraStatusList, status)
+		result = append(result, cassandra)
+	}
+	manager.Status.Cassandras = cassandraStatusList
+	return result, nil
+}
+
 func (r *ReconcileManager) processZookeepers(manager *v1alpha1.Manager) error {
 	if manager.Spec.Services.Zookeeper == nil {
 		if manager.Status.Zookeeper != nil {
@@ -873,58 +937,16 @@ func (r *ReconcileManager) processZookeepers(manager *v1alpha1.Manager) error {
 }
 
 func (r *ReconcileManager) processCassandras(manager *v1alpha1.Manager) error {
-	for _, existingCassandra := range manager.Status.Cassandras {
-		found := false
-		for _, intendedCassandra := range manager.Spec.Services.Cassandras {
-			if *existingCassandra.Name == intendedCassandra.Metadata.Name {
-				found = true
-				break
-			}
-		}
-		if !found {
-			oldCassandra := &v1alpha1.Cassandra{}
-			oldCassandra.ObjectMeta = v1.ObjectMeta{
-				Namespace: manager.Namespace,
-				Name:      *existingCassandra.Name,
-				Labels: map[string]string{
-					"tf_cluster": manager.Name,
-				},
-			}
-			err := r.Client.Delete(context.TODO(), oldCassandra)
-			if err != nil && !errors.IsNotFound(err) {
-				return err
-			}
-		}
-	}
-
-	if !manager.IsVrouterActiveOnControllers(r.Client) {
-		return nil
-	}
-
-	cassandraStatusList := []*v1alpha1.ServiceStatus{}
-	for _, cassandraService := range manager.Spec.Services.Cassandras {
-		cassandra := &v1alpha1.Cassandra{}
-		cassandra.ObjectMeta.Name = cassandraService.Metadata.Name
-		cassandra.ObjectMeta.Labels = cassandraService.Metadata.Labels
-		cassandra.ObjectMeta.Namespace = manager.Namespace
-		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, cassandra, func() error {
-			cassandra.Spec = cassandraService.Spec
-			cassandra.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, cassandra.Spec.CommonConfiguration)
-			return controllerutil.SetControllerReference(manager, cassandra, r.Scheme)
-		})
-		if err != nil {
-			return err
-		}
-		status := &v1alpha1.ServiceStatus{}
-		status.Name = &cassandra.Name
-		status.Active = cassandra.Status.Active
-		cassandraStatusList = append(cassandraStatusList, status)
-	}
-	manager.Status.Cassandras = cassandraStatusList
-	return nil
+	_, err := ProcessCassandras(manager, r.Client, r.Scheme)
+	return err
 }
 
 func (r *ReconcileManager) processRedis(manager *v1alpha1.Manager) error {
+	_, err := ProcessRedis(manager, r.Client, r.Scheme)
+	return err
+}
+
+func ProcessRedis(manager *v1alpha1.Manager, clnt client.Client, scheme *runtime.Scheme) ([]*v1alpha1.Redis, error) {
 	for _, existingRedis := range manager.Status.Redis {
 		found := false
 		for _, intendedRedis := range manager.Spec.Services.Redis {
@@ -942,40 +964,41 @@ func (r *ReconcileManager) processRedis(manager *v1alpha1.Manager) error {
 					"tf_cluster": manager.Name,
 				},
 			}
-			err := r.Client.Delete(context.TODO(), oldRedis)
+			err := clnt.Delete(context.TODO(), oldRedis)
 			if err != nil && !errors.IsNotFound(err) {
-				return err
+				return nil, err
 			}
 		}
 	}
 
-	if !manager.IsVrouterActiveOnControllers(r.Client) {
-		return nil
+	if !manager.IsVrouterActiveOnControllers(clnt) {
+		return nil, nil
 	}
 
+	result := []*v1alpha1.Redis{}
 	redisStatusList := []*v1alpha1.ServiceStatus{}
 	for _, redisService := range manager.Spec.Services.Redis {
 		redis := &v1alpha1.Redis{}
 		redis.ObjectMeta.Name = redisService.Metadata.Name
 		redis.ObjectMeta.Labels = redisService.Metadata.Labels
 		redis.ObjectMeta.Namespace = manager.Namespace
-		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, redis, func() error {
+		_, err := controllerutil.CreateOrUpdate(context.TODO(), clnt, redis, func() error {
 			redis.Spec = redisService.Spec
 			if redis.Spec.ServiceConfiguration.ClusterName == "" {
 				redis.Spec.ServiceConfiguration.ClusterName = manager.GetName()
 			}
 			redis.Spec.CommonConfiguration = utils.MergeCommonConfiguration(manager.Spec.CommonConfiguration, redis.Spec.CommonConfiguration)
-			return controllerutil.SetControllerReference(manager, redis, r.Scheme)
+			return controllerutil.SetControllerReference(manager, redis, scheme)
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 		status := &v1alpha1.ServiceStatus{Name: &redis.Name, Active: redis.Status.Active}
 		redisStatusList = append(redisStatusList, status)
+		result = append(result, redis)
 	}
 	manager.Status.Redis = redisStatusList
-
-	return nil
+	return result, nil
 }
 
 func (r *ReconcileManager) processWebui(manager *v1alpha1.Manager) error {
