@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"time"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -267,7 +268,8 @@ func main() {
 	for i := 0; i < repeate; i++ {
 		log.Info("Repeate", "i", i)
 		do()
-		log.Info("")
+		log.Info("Sleep", "seconds", delay)
+		time.Sleep(time.Duration(time.Second * time.Duration(delay)))
 	}
 
 	os.Exit(0)
