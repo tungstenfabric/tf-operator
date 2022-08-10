@@ -134,7 +134,7 @@ sandesh_ca_cert={{ .CAFilePath }}
 `))
 
 // ConfigKeystoneAuthConf is the template of the DeviceManager keystone auth configuration.
-var ConfigKeystoneAuthConf = template.Must(template.New("").Parse(`
+var ConfigKeystoneAuthConf = template.Must(template.New("").Funcs(tfFuncs).Parse(`
 {{ if eq .AuthMode "keystone" }}
 [KEYSTONE]
 admin_password = {{ .KeystoneAuthParameters.AdminPassword }}
@@ -146,7 +146,7 @@ auth_protocol = {{ .KeystoneAuthParameters.AuthProtocol }}
 auth_url = {{ .KeystoneAuthParameters.AuthProtocol }}://{{ .KeystoneAuthParameters.Address }}:{{ .KeystoneAuthParameters.AdminPort }}/v3
 auth_type = password
 {{ if eq .KeystoneAuthParameters.AuthProtocol "https" }}
-{{ if .KeystoneAuthParameters.Insecure }}
+{{ if isEnabled .KeystoneAuthParameters.Insecure }}
 insecure = {{ .KeystoneAuthParameters.Insecure }}
 {{ else }}
 cafile = {{ .CAFilePath }}
