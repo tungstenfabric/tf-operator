@@ -3,7 +3,7 @@ package templates
 import "text/template"
 
 // ProvisionerConfig is the template of the Provisioner env configuration
-var ProvisionerConfig = template.Must(template.New("").Parse(`export SSL_ENABLE=true
+var ProvisionerConfig = template.Must(template.New("").Funcs(tfFuncs).Parse(`export SSL_ENABLE=true
 export SERVER_CA_CERTFILE={{ .SignerCAFilepath }}
 export SERVER_CERTFILE="/etc/certificates/server-${POD_IP}.crt"
 export SERVER_KEYFILE="/etc/certificates/server-key-${POD_IP}.pem"
@@ -52,7 +52,7 @@ export KEYSTONE_AUTH_ADMIN_PORT="{{ .KeystoneAuthParameters.AdminPort }}"
 export KEYSTONE_AUTH_PROJECT_DOMAIN_NAME="{{ .KeystoneAuthParameters.ProjectDomainName }}"
 export KEYSTONE_AUTH_INSECURE="{{ .KeystoneAuthParameters.Insecure }}"
 {{ if eq .KeystoneAuthParameters.AuthProtocol "https" }}
-{{ if not .KeystoneAuthParameters.Insecure }}
+{{ if not (isEnabled .KeystoneAuthParameters.Insecure) }}
 export KEYSTONE_AUTH_CA_CERTFILE="{{ .SignerCAFilepath }}"
 {{ end }}
 {{ end }}

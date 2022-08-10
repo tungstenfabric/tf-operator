@@ -23,4 +23,10 @@ var tfFuncs = template.FuncMap{
 		}
 		return strings.ToLower(word)
 	},
+	"isEnabled": func(param *bool) bool {
+		if param != nil {
+			return *param
+		}
+		return false
+	},
 }

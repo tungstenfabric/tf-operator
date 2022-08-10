@@ -58,7 +58,7 @@ config.identityManager.port = "{{ .KeystoneAuthParameters.Port }}";
 config.identityManager.authProtocol = "{{ .KeystoneAuthParameters.AuthProtocol }}";
 config.identityManager.apiVersion = ['v3'];
 config.identityManager.defaultDomain = "{{ .KeystoneAuthParameters.UserDomainName }}";
-{{ if .KeystoneAuthParameters.Insecure }}
+{{ if isEnabled .KeystoneAuthParameters.Insecure }}
 config.identityManager.strictSSL = "false";
 config.identityManager.ca = "";
 {{ else }}

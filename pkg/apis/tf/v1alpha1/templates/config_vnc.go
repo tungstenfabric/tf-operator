@@ -2,7 +2,7 @@ package templates
 
 import "text/template"
 
-var ConfigAPIVNC = template.Must(template.New("").Parse(`[global]
+var ConfigAPIVNC = template.Must(template.New("").Funcs(tfFuncs).Parse(`[global]
 WEB_SERVER = {{ .APIServerList }}
 WEB_PORT = {{ .APIServerPort }} ; connection to api-server directly
 BASE_URL = /
@@ -19,7 +19,7 @@ AUTHN_PORT = {{ .KeystoneAuthParameters.AdminPort }}
 AUTHN_URL = /v3/auth/tokens
 AUTHN_DOMAIN = {{ .KeystoneAuthParameters.ProjectDomainName }}
 {{ if eq .KeystoneAuthParameters.AuthProtocol "https" }}
-{{ if .KeystoneAuthParameters.Insecure }}
+{{ if isEnabled .KeystoneAuthParameters.Insecure }}
 insecure = {{ .KeystoneAuthParameters.Insecure }}
 {{ else }}
 cafile = {{ .CAFilePath }}
