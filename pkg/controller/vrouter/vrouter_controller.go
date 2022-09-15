@@ -463,9 +463,19 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 	// but some workers are not
 	if reconcileAgain {
 		reqLogger.Info("Update Status")
-		if err := r.Client.Status().Update(context.TODO(), instance); err != nil && !v1alpha1.IsOKForRequeque(err) {
-			reqLogger.Error(err, "Failed to update status.")
-			return reconcile.Result{}, err
+		if err := r.Client.Status().Update(context.TODO(), instance); err != nil {
+			if v1alpha1.IsOKForRequeque(err) {
+				// retry with freshly read obj
+				vi := &v1alpha1.Vrouter{}
+				if err = r.Client.Get(context.TODO(), request.NamespacedName, vi); err == nil {
+					vi.Status = instance.Status
+					err = r.Client.Status().Update(context.TODO(), vi)
+				}
+			}
+			if err != nil {
+				reqLogger.Error(err, "Failed to update status.")
+				return reconcile.Result{}, err
+			}
 		}
 		return requeueReconcile, nil
 	}
