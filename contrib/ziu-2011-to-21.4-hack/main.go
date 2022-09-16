@@ -96,6 +96,7 @@ func resetStatusNodes(ns, kind, name string, clnt client.Client) *unstructured.U
 		status := controller_manager.GetChildObject("status", obj.UnstructuredContent())
 		log.Info(kind, "name", name, "status", status)
 		delete(status, "nodes")
+		delete(status, "agents")
 		log.Info(kind, "name", name, "status with reset nodes", status)
 		return obj
 	}
