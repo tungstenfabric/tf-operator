@@ -445,8 +445,18 @@ func (r *ReconcileVrouter) Reconcile(request reconcile.Request) (reconcile.Resul
 			instance.Status.Agents = append(instance.Status.Agents, agentStatus)
 			reqLogger.Info("newAgentStatus", "node.Name", node.Name)
 		}
+		var again bool
+		if pod.Spec.Containers[0].Image == daemonSet.Spec.Template.Spec.Containers[0].Image {
+			// check configs and update params if needed
+			again, _ = instance.UpdateAgent(node.Name, agentStatus, vrouterPod, configMapAgent, r.Client)
+		} else {
+			// Upgrade case - wait till an user delete pod to let DaemonSet to create new with new images
+			agentStatus.Status = "Upgrading"
+			// Reset config sha to let UpdateAgent recreate it explicitly after upgraded pod be created
+			agentStatus.EncryptedParams = ""
+			again = true
+		}
 
-		again, _ := instance.UpdateAgent(node.Name, agentStatus, vrouterPod, configMapAgent, r.Client)
 		reconcileAgain = reconcileAgain || again
 	}
 

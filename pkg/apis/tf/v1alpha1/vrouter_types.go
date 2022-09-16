@@ -883,6 +883,7 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 	ll.Info("Check params", "clusterNodes", clusterNodes)
 	params, err := c.GetParamsEnv(clnt, &clusterNodes)
 	if err != nil {
+		ll.Error(err, "GetParamsEnv failed")
 		return true, err
 	}
 	paramsSha256 := EncryptString(params)
@@ -1041,7 +1042,7 @@ func (c *Vrouter) IsActiveOnControllers(clnt client.Client) (bool, error) {
 		return false, err
 	}
 	for _, node := range nodes {
-		if s := c.LookupAgentStatus(node.Name); s == nil || s.Status != "Ready" {
+		if s := c.LookupAgentStatus(node.Name); s == nil || (s.Status != "Ready" && s.Status != "Upgrading") {
 			return false, nil
 		}
 	}
