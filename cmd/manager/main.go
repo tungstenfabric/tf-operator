@@ -25,6 +25,8 @@ import (
 	"github.com/tungstenfabric/tf-operator/pkg/apis"
 	"github.com/tungstenfabric/tf-operator/pkg/controller"
 	"github.com/tungstenfabric/tf-operator/pkg/controller/kubemanager"
+
+	manager_controller "github.com/tungstenfabric/tf-operator/pkg/controller/manager"
 )
 
 var log = logf.Log.WithName("cmd")
@@ -87,7 +89,10 @@ func runOperator(sigHandler <-chan struct{}) (err error) {
 		if f {
 			// We start ZIU process
 			log.Info("Start ZIU process")
-			err = v1alpha1.InitZiu(clnt)
+			if err = v1alpha1.InitZiu(clnt); err == nil {
+				err = manager_controller.EnableZiu2011(namespace, clnt, mgr.GetScheme(), log)
+			}
+
 		} else {
 			// We not needed ZIU
 			log.Info("ZIU not needed")

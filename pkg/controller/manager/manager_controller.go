@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -37,6 +38,7 @@ import (
 var log = logf.Log.WithName("controller_manager")
 var restartTime, _ = time.ParseDuration("3s")
 var requeueReconcile = reconcile.Result{Requeue: true, RequeueAfter: restartTime}
+var ziuLock = sync.Mutex{}
 
 var resourcesList = []runtime.Object{
 	&v1alpha1.Analytics{},
@@ -181,15 +183,20 @@ func iterateOverKindInstances(kind string,
 	return res, nil
 }
 
-func getObjectKey(name string) client.ObjectKey {
+func getObjectKey(ns, name string) client.ObjectKey {
 	return client.ObjectKey{
-		Namespace: "tf",
+		Namespace: ns,
 		Name:      name,
 	}
 }
 
+func getObjectKeyTF(name string) client.ObjectKey {
+	// TODO: avoid hardcode
+	return getObjectKey("tf", name)
+}
+
 func getClusterObjectKey() client.ObjectKey {
-	return getObjectKey("cluster1")
+	return getObjectKeyTF("cluster1")
 }
 
 func getUnstructured(name string) *unstructured.Unstructured {
@@ -435,7 +442,7 @@ func updateResource(kind string, serviceName string, isSlice bool, clnt client.C
 		return err
 	}
 	res := getUnstructured(kind)
-	if err = clnt.Get(context.Background(), getObjectKey(serviceName), res); err != nil && !errors.IsNotFound(err) {
+	if err = clnt.Get(context.Background(), getObjectKeyTF(serviceName), res); err != nil && !errors.IsNotFound(err) {
 		return err
 	}
 	createNew := errors.IsNotFound(err)
@@ -467,7 +474,10 @@ func processZiuStage(ziuStage v1alpha1.ZIUStatus, clnt client.Client) error {
 	return v1alpha1.SetZiuStage(int(ziuStage)+1, clnt)
 }
 
-func ReconcileZiu(log logr.Logger, clnt client.Client) (reconcile.Result, error) {
+func ReconcileZiu(namespace string, log logr.Logger, clnt client.Client, scheme *runtime.Scheme) (reconcile.Result, error) {
+	ziuLock.Lock()
+	defer ziuLock.Unlock()
+
 	reqLogger := log.WithName("ZIU")
 	restartTime, _ := time.ParseDuration("15s")
 	requeueResult := reconcile.Result{Requeue: true, RequeueAfter: restartTime}
@@ -486,7 +496,9 @@ func ReconcileZiu(log logr.Logger, clnt client.Client) (reconcile.Result, error)
 		}
 		if f {
 			log.Info("Start ZIU process")
-			err = v1alpha1.InitZiu(clnt)
+			if err = v1alpha1.InitZiu(clnt); err == nil {
+				err = EnableZiu2011(namespace, clnt, scheme, reqLogger)
+			}
 			return requeueResult, err
 		}
 		return reconcile.Result{}, err
@@ -503,6 +515,9 @@ func ReconcileZiu(log logr.Logger, clnt client.Client) (reconcile.Result, error)
 		// ZIU have been finished - set stage to -1
 		reqLogger.Info("ZIU done")
 		return requeueResult, v1alpha1.SetZiuStage(-1, clnt)
+	}
+	if err := EnableZiu2011ForCR(v1alpha1.ZiuKinds[ziuStage], namespace, clnt, scheme, reqLogger); err != nil {
+		return requeueResult, err
 	}
 	reqLogger.Info("Process ZIU stage", "ziuStage", ziuStage)
 	return requeueResult, processZiuStage(ziuStage, clnt)
@@ -527,7 +542,7 @@ func (r *ReconcileManager) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	// Run ZIU Process if no error in status get
-	if res, err := ReconcileZiu(reqLogger, r.Client); err != nil || res.Requeue {
+	if res, err := ReconcileZiu(instance.Namespace, reqLogger, r.Client, r.Scheme); err != nil || res.Requeue {
 		return res, err
 	}
 

@@ -358,10 +358,10 @@ func (m *Manager) IsVrouterActiveOnControllers(clnt client.Client) bool {
 	if err := clnt.Get(context.TODO(), types.NamespacedName{Name: spec.Metadata.Name, Namespace: m.Namespace}, vrouter); err != nil {
 		return false
 	}
-	if f, err := vrouter.IsActiveOnControllers(clnt); err == nil {
-		return f
+	if vrouter.Status.ActiveOnControllers == nil {
+		return false
 	}
-	return false
+	return *vrouter.Status.ActiveOnControllers
 }
 
 func init() {
