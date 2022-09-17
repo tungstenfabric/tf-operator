@@ -31,7 +31,7 @@ RUN \
     yum clean all -y && \
     rm -rf /var/cache/yum
 
-COPY build/_output/bin/tf-operator /usr/local/bin/tf-operator
+COPY build/_output/bin/* /usr/local/bin/
 COPY LICENSE /licenses/
 
 ENTRYPOINT [ "/usr/local/bin/tf-operator" ]
