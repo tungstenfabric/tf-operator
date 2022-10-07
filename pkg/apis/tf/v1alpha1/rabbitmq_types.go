@@ -146,6 +146,7 @@ func (c *Rabbitmq) InstanceConfiguration(podList []corev1.Pod, client client.Cli
 	// common env vars
 	rabbitmqCommonEnvString := fmt.Sprintf("export RABBITMQ_ERLANG_COOKIE=%s\n", c.Spec.ServiceConfiguration.ErlangCookie)
 	rabbitmqCommonEnvString = rabbitmqCommonEnvString + "export RABBITMQ_CONFIG_FILE=/etc/rabbitmq/rabbitmq.conf\n"
+	rabbitmqCommonEnvString = rabbitmqCommonEnvString + "export CONFIG_FILE=/etc/rabbitmq/rabbitmq.conf\n"
 	rabbitmqCommonEnvString = rabbitmqCommonEnvString + "export RABBITMQ_CONF_ENV_FILE=/etc/rabbitmq/rabbitmq-env.conf\n"
 	rabbitmqCommonEnvString = rabbitmqCommonEnvString + "export RABBITMQ_ENABLED_PLUGINS_FILE=/etc/rabbitmq/plugins.conf\n"
 	rabbitmqCommonEnvString = rabbitmqCommonEnvString + "export RABBITMQ_USE_LONGNAME=true\n"
@@ -154,6 +155,7 @@ func (c *Rabbitmq) InstanceConfiguration(podList []corev1.Pod, client client.Cli
 	rabbitmqCommonEnvString = rabbitmqCommonEnvString + fmt.Sprintf("export ERL_EPMD_PORT=%d\n", *c.Spec.ServiceConfiguration.ErlEpmdPort)
 	distPort := *c.Spec.ServiceConfiguration.Port + 20000
 	rabbitmqCommonEnvString = rabbitmqCommonEnvString + fmt.Sprintf("export RABBITMQ_DIST_PORT=%d\n", distPort)
+	rabbitmqCommonEnvString = rabbitmqCommonEnvString + fmt.Sprintf("export DIST_PORT=%d\n", distPort)
 	// TODO: for now tls is not enabled for dist & management ports
 	// rabbitmqCommonEnvString = rabbitmqCommonEnvString + fmt.Sprintf("export RABBITMQ_CTL_ERL_ARGS=\"-proto_dist inet_tls\"\n")
 
