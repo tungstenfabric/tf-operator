@@ -27,6 +27,7 @@ RUN \
     chmod -R ug+rwx ${HOME} && \
     echo "${USER_NAME}:x:${USER_UID}:${USER_UID}:${USER_NAME} user:${HOME}:/sbin/nologin" >> /etc/passwd && \
     mkdir -p /licenses && \
+    yum update -y -x "redhat-release*" -x "coreutils*" && \
     yum -y update-minimal --security --sec-severity=Important --sec-severity=Critical && \
     yum clean all -y && \
     rm -rf /var/cache/yum
