@@ -642,8 +642,14 @@ type VrouterPod struct {
 }
 
 // ExecToAgentContainer uninterractively exec to the vrouteragent container.
-func (vrouterPod *VrouterPod) ExecToAgentContainer(command []string) (string, string, error) {
-	return ExecToContainer(vrouterPod.Pod, "vrouteragent", command, nil)
+func (vrouterPod *VrouterPod) ExecToAgentContainer(command string) (string, string, error) {
+	cmd := `
+source /etc/contrailconfigmaps/params.env.${POD_IP} || exit 1;
+source /actions.sh;
+source /common.sh;
+source /agent-functions.sh;
+` + command
+	return ExecToContainer(vrouterPod.Pod, "vrouteragent", []string{"/usr/bin/bash", "-c", cmd}, nil)
 }
 
 // ExecToNodemanagerContainer uninterractively exec to the vrouteragent container.
@@ -653,7 +659,7 @@ func (vrouterPod *VrouterPod) ExecToNodemanagerContainer(command []string) (stri
 
 // IsAgentContainerRunning checks if agent running on the vrouteragent container.
 func (vrouterPod *VrouterPod) IsAgentContainerRunning() bool {
-	_, _, err := vrouterPod.ExecToAgentContainer([]string{"true"})
+	_, _, err := vrouterPod.ExecToAgentContainer("true")
 	return err == nil
 }
 
@@ -664,8 +670,7 @@ func (vrouterPod *VrouterPod) IsFileInAgentContainerEqualTo(path string, content
 
 // RecalculateAgentParameters recalculates parameters for agent from `/etc/contrail/params.env` to `/parameters.sh`
 func (vrouterPod *VrouterPod) RecalculateAgentParameters() (string, string, error) {
-	command := "source /etc/contrailconfigmaps/params.env.${POD_IP}; source /actions.sh; source /common.sh; source /agent-functions.sh; prepare_agent_config_vars"
-	return vrouterPod.ExecToAgentContainer([]string{"/usr/bin/bash", "-c", command})
+	return vrouterPod.ExecToAgentContainer("prepare_agent_config_vars")
 }
 
 // ValidateVrouterNIC checks if vrouter pod configured on correct NIC
@@ -673,16 +678,12 @@ func (vrouterPod *VrouterPod) ValidateVrouterNIC() (string, string, error) {
 	// check nic only if vhost0 is up
 	// dont check for l3mh and if phys iface explicetely set
 	command := `
-source /etc/contrailconfigmaps/params.env.${POD_IP};
-source /actions.sh ;
-source /common.sh ;
-source /agent-functions.sh ;
 [ -z "$PHYSICAL_INTERFACE" ] || exit 0 ;
 [ -z "$L3MH_CIDR" ] || exit 0 ;
 wait_vhost0 1 0 || exit 0 ;
 [[ $(get_vrouter_physical_iface) == vhost0 ]] || echo "REQUIRES VHOST RELOAD"
 `
-	return vrouterPod.ExecToAgentContainer([]string{"/usr/bin/bash", "-c", command})
+	return vrouterPod.ExecToAgentContainer(command)
 }
 
 func (vrouterPod *VrouterPod) NeedVhostReload() (bool, error) {
@@ -703,8 +704,7 @@ func (vrouterPod *VrouterPod) NeedVhostReload() (bool, error) {
 
 // GetAgentParameters gets parametrs from `/parametrs.sh`
 func (vrouterPod *VrouterPod) GetAgentParameters(hostParams *map[string]string) (string, string, error) {
-	command := []string{"/usr/bin/bash", "-c", "source /actions.sh; get_parameters"}
-	stdout, stderr, err := vrouterPod.ExecToAgentContainer(command)
+	stdout, stderr, err := vrouterPod.ExecToAgentContainer("get_parameters")
 	if err != nil {
 		return stdout, stderr, err
 	}
@@ -712,6 +712,9 @@ func (vrouterPod *VrouterPod) GetAgentParameters(hostParams *map[string]string) 
 	for scanner.Scan() {
 		keyValue := strings.SplitAfterN(scanner.Text(), "=", 2)
 		key := strings.TrimSuffix(keyValue[0], "=")
+		if len(keyValue) != 2 {
+			continue
+		}
 		value := removeQuotes(keyValue[1])
 		(*hostParams)[key] = value
 	}
@@ -721,8 +724,7 @@ func (vrouterPod *VrouterPod) GetAgentParameters(hostParams *map[string]string) 
 // ReloadAgentConfigs sends SIGHUP to the vrouteragent container process to reload config file.
 func (vrouterPod *VrouterPod) ReloadAgentConfigs() error {
 	vrouter_log.Info("ReloadAgentConfigs", "pod", vrouterPod.Pod.Name)
-	command := []string{"/usr/bin/bash", "-c", "source /contrail-functions.sh; reload_config"}
-	_, _, err := vrouterPod.ExecToAgentContainer(command)
+	_, _, err := vrouterPod.ExecToAgentContainer("reload_config")
 	return err
 }
 
