@@ -833,8 +833,13 @@ func (c *Vrouter) UpdateAgentConfigMapForPod(vrouterPod *VrouterPod,
 
 	// update with provisioner configs
 	srvCfg := c.Spec.ServiceConfiguration
+	tenant_hostname, err := GetHostname(vrouterPod.Pod, "vrouter", c.Spec.ServiceConfiguration.DataSubnet)
+	if err != nil {
+		return err
+	}
+
 	configMap.Data["vrouter-provisioner.env."+podIP] = ProvisionerEnvDataEx(
-		clusterNodes, vrouterPod.Pod.Annotations["hostname"],
+		clusterNodes, tenant_hostname,
 		c.Spec.CommonConfiguration.AuthParameters,
 		srvCfg.PhysicalInterface, srvCfg.VrouterGateway, srvCfg.L3MHCidr)
 
@@ -957,7 +962,12 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 	}
 
 	srvCfg := c.Spec.ServiceConfiguration
-	provData := ProvisionerEnvDataEx(&clusterNodes, vrouterPod.Pod.Annotations["hostname"],
+	tenant_hostname, err := GetHostname(vrouterPod.Pod, "vrouter", c.Spec.ServiceConfiguration.DataSubnet)
+	if err != nil {
+		return true, err
+	}
+
+	provData := ProvisionerEnvDataEx(&clusterNodes, tenant_hostname,
 		c.Spec.CommonConfiguration.AuthParameters, srvCfg.PhysicalInterface,
 		srvCfg.VrouterGateway, srvCfg.L3MHCidr)
 

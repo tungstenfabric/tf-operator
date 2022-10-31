@@ -1115,6 +1115,24 @@ func GetControlNodes(ns string, controlName string, cidr string, clnt client.Cli
 	return strings.Join(ipList, ","), nil
 }
 
+// GetHostname depending on existance of dataSubnet
+func GetHostname(pod *corev1.Pod, instanceType string, cidr string) (string, error) {
+	hostname := pod.Annotations["hostname"]
+	if cidr != "" {
+		ip, err := GetDataAddresses(pod, instanceType, cidr)
+		if err != nil {
+			return "", err
+		}
+		var names []string
+		if names, err = net.LookupAddr(ip); err != nil {
+			return "", fmt.Errorf("failed to resolve FQDN for IP %s (err=%+v)", ip, err)
+		}
+		sort.SliceStable(names, func(i, j int) bool { return len(names[i]) > len(names[j]) })
+		hostname = removeLastDot(names[0])
+	}
+	return hostname, nil
+}
+
 func removeLastDot(v string) string {
 	sz := len(v)
 	if sz > 0 && v[sz-1] == '.' {
