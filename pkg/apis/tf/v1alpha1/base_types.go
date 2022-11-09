@@ -1117,6 +1117,8 @@ func GetControlNodes(ns string, controlName string, cidr string, clnt client.Cli
 
 // GetHostname depending on existance of dataSubnet
 func GetHostname(pod *corev1.Pod, instanceType string, cidr string) (string, error) {
+	logger := log.WithName("GetHostname")
+
 	hostname := pod.Annotations["hostname"]
 	if cidr != "" {
 		ip, err := GetDataAddresses(pod, instanceType, cidr)
@@ -1130,6 +1132,10 @@ func GetHostname(pod *corev1.Pod, instanceType string, cidr string) (string, err
 		sort.SliceStable(names, func(i, j int) bool { return len(names[i]) > len(names[j]) })
 		hostname = removeLastDot(names[0])
 	}
+	logger.Info("Hostname in subnet",
+		"CIDR", cidr,
+		"hostname", hostname,
+	)
 	return hostname, nil
 }
 

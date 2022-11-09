@@ -833,13 +833,13 @@ func (c *Vrouter) UpdateAgentConfigMapForPod(vrouterPod *VrouterPod,
 
 	// update with provisioner configs
 	srvCfg := c.Spec.ServiceConfiguration
-	tenant_hostname, err := GetHostname(vrouterPod.Pod, "vrouter", c.Spec.ServiceConfiguration.DataSubnet)
+	vrouterHostname, err := GetHostname(vrouterPod.Pod, "vrouter", c.Spec.ServiceConfiguration.DataSubnet)
 	if err != nil {
 		return err
 	}
 
 	configMap.Data["vrouter-provisioner.env."+podIP] = ProvisionerEnvDataEx(
-		clusterNodes, tenant_hostname,
+		clusterNodes, vrouterHostname,
 		c.Spec.CommonConfiguration.AuthParameters,
 		srvCfg.PhysicalInterface, srvCfg.VrouterGateway, srvCfg.L3MHCidr)
 
@@ -962,12 +962,13 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 	}
 
 	srvCfg := c.Spec.ServiceConfiguration
-	tenant_hostname, err := GetHostname(vrouterPod.Pod, "vrouter", c.Spec.ServiceConfiguration.DataSubnet)
+	vrouterHostname, err := GetHostname(vrouterPod.Pod, "vrouter", c.Spec.ServiceConfiguration.DataSubnet)
 	if err != nil {
 		return true, err
 	}
+	ll.Info("Check params", "vrouterHostname", vrouterHostname)
 
-	provData := ProvisionerEnvDataEx(&clusterNodes, tenant_hostname,
+	provData := ProvisionerEnvDataEx(&clusterNodes, vrouterHostname,
 		c.Spec.CommonConfiguration.AuthParameters, srvCfg.PhysicalInterface,
 		srvCfg.VrouterGateway, srvCfg.L3MHCidr)
 
