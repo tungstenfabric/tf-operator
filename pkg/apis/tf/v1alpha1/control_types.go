@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	configtemplates "github.com/tungstenfabric/tf-operator/pkg/apis/tf/v1alpha1/templates"
@@ -107,6 +108,8 @@ type ControlList struct {
 	Items           []Control `json:"items"`
 }
 
+var control_log = logf.Log.WithName("controller_control")
+
 func init() {
 	SchemeBuilder.Register(&Control{}, &ControlList{})
 }
@@ -126,6 +129,7 @@ func getPodDataIP(pod *corev1.Pod) (string, error) {
 func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Client,
 ) (data map[string]string, err error) {
 	data, err = make(map[string]string), nil
+	ll := control_log.WithName("InstanceConfiguration")
 
 	cassandraNodesInformation, err := NewCassandraClusterConfiguration(CassandraInstance,
 		c.Namespace, client)
@@ -364,13 +368,14 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 		data["vnc_api_lib.ini."+podIP] = vncApiConfigBuffer.String()
 
 		clusterNodes := ClusterNodes{ConfigNodes: configApiIPListCommaSeparated, ControlNodes: controlNodes}
-		tenant_hostname, err := GetHostname(&pod, "control", c.Spec.ServiceConfiguration.DataSubnet)
+		controlHostname, err := GetHostname(&pod, "control", c.Spec.ServiceConfiguration.DataSubnet)
 		if err != nil {
 			return nil, err
 		}
+		ll.Info("Check params", "controlHostname", controlHostname)
 
 		data["control-provisioner.env."+podIP] = ProvisionerEnvData(&clusterNodes,
-			tenant_hostname, c.Spec.CommonConfiguration.AuthParameters)
+			controlHostname, c.Spec.CommonConfiguration.AuthParameters)
 
 		var controlDeProvisionBuffer bytes.Buffer
 		// TODO: use auth options from config instead of defaults
