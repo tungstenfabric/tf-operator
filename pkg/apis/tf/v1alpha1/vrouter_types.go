@@ -615,7 +615,7 @@ func (c *Vrouter) GetAgentNodes(daemonset *appsv1.DaemonSet, clnt client.Client)
 }
 
 // GetParamsEnv returns agent params (str comma separated)
-func (c *Vrouter) GetParamsEnv(clnt client.Client, clusterNodes *ClusterNodes) (string, error) {
+func (c *Vrouter) GetParamsEnv(clnt client.Client, clusterNodes *ClusterNodes, vrouterHostname string) (string, error) {
 	vrouterConfig, err := c.VrouterConfigurationParameters(clnt)
 	if err != nil {
 		return "", err
@@ -624,10 +624,12 @@ func (c *Vrouter) GetParamsEnv(clnt client.Client, clusterNodes *ClusterNodes) (
 	err = configtemplates.VRouterAgentParams.Execute(&vrouterManifestParamsEnv, struct {
 		ServiceConfig VrouterConfiguration
 		ClusterNodes  ClusterNodes
+		Hostname      string
 		LogLevel      string
 	}{
 		ServiceConfig: *vrouterConfig,
 		ClusterNodes:  *clusterNodes,
+		Hostname:      vrouterHostname,
 		LogLevel:      ConvertLogLevel(c.Spec.CommonConfiguration.LogLevel),
 	})
 	if err != nil {
@@ -886,9 +888,13 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 		ControlNodes:   controlNodesList,
 		AnalyticsNodes: analyticsNodes,
 	}
+	vrouterHostname, err := GetHostname(vrouterPod.Pod, "vrouter", c.Spec.ServiceConfiguration.DataSubnet)
+	if err != nil {
+		return true, err
+	}
 
-	ll.Info("Check params", "clusterNodes", clusterNodes)
-	params, err := c.GetParamsEnv(clnt, &clusterNodes)
+	ll.Info("Check params", "clusterNodes", clusterNodes, "vrouterHostname", vrouterHostname)
+	params, err := c.GetParamsEnv(clnt, &clusterNodes, vrouterHostname)
 	if err != nil {
 		ll.Error(err, "GetParamsEnv failed")
 		return true, err
@@ -962,11 +968,6 @@ func (c *Vrouter) UpdateAgent(nodeName string, agentStatus *AgentStatus, vrouter
 	}
 
 	srvCfg := c.Spec.ServiceConfiguration
-	vrouterHostname, err := GetHostname(vrouterPod.Pod, "vrouter", c.Spec.ServiceConfiguration.DataSubnet)
-	if err != nil {
-		return true, err
-	}
-	ll.Info("Check params", "vrouterHostname", vrouterHostname)
 
 	provData := ProvisionerEnvDataEx(&clusterNodes, vrouterHostname,
 		c.Spec.CommonConfiguration.AuthParameters, srvCfg.PhysicalInterface,

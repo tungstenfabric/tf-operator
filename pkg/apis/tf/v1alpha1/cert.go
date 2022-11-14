@@ -93,7 +93,7 @@ func EnsureCertificatesExistEx(instance metav1.Object, pods []corev1.Pod, instan
 		return err
 	}
 	altIPs := PodAlternativeIPs{Retriever: retrieveDataIPs}
-	subjects := PodsCertSubjects(domain, pods, altIPs, clientAuth)
+	subjects := PodsCertSubjects(domain, pods, altIPs, clientAuth, instanceType)
 	crt, err := certificates.NewCertificate(signer, cl, scheme, instance, subjects, instanceType)
 	if err != nil {
 		return err
