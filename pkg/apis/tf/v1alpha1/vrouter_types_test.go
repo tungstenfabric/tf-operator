@@ -103,7 +103,8 @@ func TestVrouterParamsTest(t *testing.T) {
 	require.NoError(t, err, "Failed to get VrouterConfigurationParameters")
 	require.Equal(t, "ens3,ens4", cfg.PhysicalInterface)
 
-	paramsStr, err := vrouter.GetParamsEnv(cl, &ClusterNodes{})
+	paramsStr, err := vrouter.GetParamsEnv(cl, &ClusterNodes{}, "test.k8s")
 	require.NoError(t, err, "Failed to get GetParamsEnv")
 	require.Contains(t, paramsStr, "PHYSICAL_INTERFACE=\"ens3,ens4\"")
+	require.Contains(t, paramsStr, "VROUTER_HOSTNAME=test.k8s")
 }

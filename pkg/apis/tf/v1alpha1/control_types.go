@@ -212,7 +212,6 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 	data["contrail-rndc.conf"] = controlRDNCConfigBuffer.String()
 
 	for _, pod := range podList {
-		hostname := pod.Annotations["hostname"]
 		podIP := pod.Status.PodIP
 		podListenAddress, _err := getPodDataIP(&pod)
 
@@ -221,6 +220,12 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 			return
 		}
 		instrospectListenAddress := c.Spec.CommonConfiguration.IntrospectionListenAddress(podIP)
+		controlHostname, err := GetHostname(&pod, "control", c.Spec.ServiceConfiguration.DataSubnet)
+		if err != nil {
+			return nil, err
+		}
+		ll.Info("Check params", "controlHostname", controlHostname)
+
 		var controlControlConfigBuffer bytes.Buffer
 		err = configtemplates.ControlControlConfig.Execute(&controlControlConfigBuffer, struct {
 			PodIP                    string
@@ -242,7 +247,7 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 			LogLevel                 string
 		}{
 			PodIP:                    podIP,
-			Hostname:                 hostname,
+			Hostname:                 controlHostname,
 			ListenAddress:            podListenAddress,
 			InstrospectListenAddress: instrospectListenAddress,
 			BGPPort:                  strconv.Itoa(*controlConfig.BGPPort),
@@ -294,7 +299,7 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 			LogLevel                 string
 		}{
 			PodIP:                    podIP,
-			Hostname:                 hostname,
+			Hostname:                 controlHostname,
 			ListenAddress:            podListenAddress,
 			InstrospectListenAddress: instrospectListenAddress,
 			APIServerList:            configApiIPListSpaceSeparated,
@@ -329,7 +334,7 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 			LogFile                  string
 			LogLocal                 string
 		}{
-			Hostname:                 hostname,
+			Hostname:                 controlHostname,
 			PodIP:                    podIP,
 			ListenAddress:            podListenAddress,
 			InstrospectListenAddress: instrospectListenAddress,
@@ -368,11 +373,6 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 		data["vnc_api_lib.ini."+podIP] = vncApiConfigBuffer.String()
 
 		clusterNodes := ClusterNodes{ConfigNodes: configApiIPListCommaSeparated, ControlNodes: controlNodes}
-		controlHostname, err := GetHostname(&pod, "control", c.Spec.ServiceConfiguration.DataSubnet)
-		if err != nil {
-			return nil, err
-		}
-		ll.Info("Check params", "controlHostname", controlHostname)
 
 		data["control-provisioner.env."+podIP] = ProvisionerEnvData(&clusterNodes,
 			controlHostname, c.Spec.CommonConfiguration.AuthParameters)
@@ -392,7 +392,7 @@ func (c *Control) InstanceConfiguration(podList []corev1.Pod, client client.Clie
 			AdminTenant:   KeystoneAuthAdminTenant,
 			APIServerList: configApiIPListCommaSeparatedQuoted,
 			APIServerPort: strconv.Itoa(configNodesInformation.APIServerPort),
-			Hostname:      hostname,
+			Hostname:      controlHostname,
 		})
 		if err != nil {
 			panic(err)

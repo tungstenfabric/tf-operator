@@ -349,9 +349,25 @@ type PodAlternativeIPs struct {
 	ServiceIP string
 }
 
+// Retrieve and add hostname from data subnet
+func _addAltHostname(pod corev1.Pod, instanceType string, altNames []string) []string {
+	if cidr, isSet := pod.Annotations["dataSubnet"]; isSet {
+		altName, err := GetHostname(&pod, instanceType, cidr)
+		if err == nil && altName != "" {
+			for _, name := range altNames {
+				if name == altName {
+					return altNames
+				}
+			}
+			altNames = append(altNames, altName)
+		}
+	}
+	return altNames
+}
+
 // PodsCertSubjects iterates over passed list of pods and for every pod prepares certificate subject
 // which can be later used for generating certificate for given pod.
-func PodsCertSubjects(domain string, podList []corev1.Pod, podAltIPs PodAlternativeIPs, clientAuth bool) []certificates.CertificateSubject {
+func PodsCertSubjects(domain string, podList []corev1.Pod, podAltIPs PodAlternativeIPs, clientAuth bool, instanceType string) []certificates.CertificateSubject {
 	var pods []certificates.CertificateSubject
 	var osName string
 	if hn, err := os.Hostname(); err != nil && hn != "" {
@@ -377,6 +393,9 @@ func PodsCertSubjects(domain string, podList []corev1.Pod, podAltIPs PodAlternat
 		}
 		if osName != "" {
 			altNames = append(altNames, osName)
+		}
+		if instanceType == "control" || instanceType == "vrouter" {
+			altNames = _addAltHostname(pod, instanceType, altNames)
 		}
 		podInfo := certificates.NewSubject(pod.Name, domain, pod.Spec.NodeName,
 			pod.Status.PodIP, alternativeIPs, altNames, clientAuth)

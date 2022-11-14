@@ -166,6 +166,9 @@ HUGE_PAGES_1GB="{{ default 0 .ServiceConfig.HugePages1G }}"
 # L3MH
 L3MH_CIDR="{{ .ServiceConfig.L3MHCidr }}"
 
+# Hostnames depending on DataSubnet
+VROUTER_HOSTNAME={{ .Hostname }}
+
 # Custom envs from user
 {{ if .ServiceConfig.EnvVariablesConfig }}
 {{ range $k, $v := .ServiceConfig.EnvVariablesConfig }}
