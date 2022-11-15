@@ -754,7 +754,12 @@ func (c *Vrouter) GetAgentConfigsForPod(vrouterPod *VrouterPod, hostVars *map[st
 	for key, val := range *hostVars {
 		newMap[key] = val
 	}
-	newMap["Hostname"] = vrouterPod.Pod.Annotations["hostname"]
+	vrouterHostname, err := GetHostname(vrouterPod.Pod, "vrouter", c.Spec.ServiceConfiguration.DataSubnet)
+	if err != nil {
+		return "", "", "", "", err
+	}
+
+	newMap["Hostname"] = vrouterHostname
 
 	var agentConfigBuffer bytes.Buffer
 	if err = configtemplates.VRouterAgentConfig.Execute(&agentConfigBuffer, newMap); err != nil {
