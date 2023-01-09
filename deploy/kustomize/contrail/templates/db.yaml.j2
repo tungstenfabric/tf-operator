@@ -25,6 +25,11 @@ spec:
           minHeapSize: "{{ CONFIGDB_MIN_HEAP_SIZE }}"
           maxHeapSize: "{{ CONFIGDB_MAX_HEAP_SIZE }}"
 {%- endif %}
+{%- if REAPER_ENABLED | default("true") != "false" %}
+          reaperEnabled: true
+          reaperAppPort: 8071
+          reaperAdmPort: 8072
+{%- endif %}
           containers:
           - name: cassandra
             image: contrail-external-cassandra
@@ -51,6 +56,7 @@ spec:
           minHeapSize: "{{ ANALYTICSDB_MIN_HEAP_SIZE }}"
           maxHeapSize: "{{ ANALYTICSDB_MAX_HEAP_SIZE }}"
 {%- endif %}
+          reaperEnabled: false
           containers:
           - name: cassandra
             image: contrail-external-cassandra
