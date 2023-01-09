@@ -58,6 +58,9 @@ type CassandraConfiguration struct {
 	MinHeapSize         string                    `json:"minHeapSize,omitempty"`
 	StartRPC            *bool                     `json:"startRPC,omitempty"`
 	MinimumDiskGB       *int                      `json:"minimumDiskGB,omitempty"`
+	ReaperEnabled       *bool                     `json:"reaperEnabled,omitempty"`
+	ReaperAppPort       *int                      `json:"reaperAppPort,omitempty"`
+	ReaperAdmPort       *int                      `json:"reaperAdmPort,omitempty"`
 	CassandraParameters CassandraConfigParameters `json:"cassandraParameters,omitempty"`
 }
 
@@ -209,6 +212,58 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 		}
 		cassandraCqlShrcConfigString := cassandraCqlShrcBuffer.String()
 
+		var cassandraJmxRemotePasswordBuffer bytes.Buffer
+		err = configtemplates.CassandraJmxRemotePassword.Execute(&cassandraJmxRemotePasswordBuffer, struct{}{})
+		if err != nil {
+			panic(err)
+		}
+		cassandraJmxRemotePasswordString := cassandraJmxRemotePasswordBuffer.String()
+
+		var cassandraJmxRemoteAccessBuffer bytes.Buffer
+		err = configtemplates.CassandraJmxRemoteAccess.Execute(&cassandraJmxRemoteAccessBuffer, struct{}{})
+		if err != nil {
+			panic(err)
+		}
+		cassandraJmxRemoteAccessString := cassandraJmxRemoteAccessBuffer.String()
+
+		var cassandraNodetoolSslPropertiesBuffer bytes.Buffer
+		err = configtemplates.CassandraNodetoolSslProperties.Execute(&cassandraNodetoolSslPropertiesBuffer, struct {
+			KeystorePassword   string
+			TruststorePassword string
+		}{
+			KeystorePassword:   string(cassandraSecret.Data["keystorePassword"]),
+			TruststorePassword: string(cassandraSecret.Data["truststorePassword"]),
+		})
+		if err != nil {
+			panic(err)
+		}
+		cassandraNodetoolSslPropertiesString := cassandraNodetoolSslPropertiesBuffer.String()
+
+		var reaperEnvBuffer bytes.Buffer
+		err = configtemplates.ReaperEnvTemplate.Execute(&reaperEnvBuffer, struct {
+			KeystorePassword    string
+			TruststorePassword  string
+			JmxLocalPort        string
+			CqlPort             string
+			ReaperEnabled       bool
+			ReaperAppPort       string
+			ReaperAdmPort       string
+			CassandraServerList string
+		}{
+			KeystorePassword:    string(cassandraSecret.Data["keystorePassword"]),
+			TruststorePassword:  string(cassandraSecret.Data["truststorePassword"]),
+			JmxLocalPort:        strconv.Itoa(*cassandraConfig.JmxLocalPort),
+			CqlPort:             strconv.Itoa(*cassandraConfig.CqlPort),
+			ReaperEnabled:       *cassandraConfig.ReaperEnabled,
+			ReaperAppPort:       strconv.Itoa(*cassandraConfig.ReaperAppPort),
+			ReaperAdmPort:       strconv.Itoa(*cassandraConfig.ReaperAdmPort),
+			CassandraServerList: cassandraIPListCommaSeparated,
+		})
+		if err != nil {
+			panic(err)
+		}
+		reaperEnvString := reaperEnvBuffer.String()
+
 		logLevels := map[string]string{
 			"info":  "INFO",
 			"debug": "DEBUG",
@@ -289,6 +344,10 @@ func (c *Cassandra) InstanceConfiguration(request reconcile.Request,
 
 		configMapInstanceDynamicConfig.Data["cassandra."+pod.Status.PodIP+".yaml"] = cassandraConfigString
 		configMapInstanceDynamicConfig.Data["cqlshrc."+pod.Status.PodIP] = cassandraCqlShrcConfigString
+		configMapInstanceDynamicConfig.Data["jmxremote.password."+pod.Status.PodIP] = cassandraJmxRemotePasswordString
+		configMapInstanceDynamicConfig.Data["jmxremote.access."+pod.Status.PodIP] = cassandraJmxRemoteAccessString
+		configMapInstanceDynamicConfig.Data["nodetool-ssl.properties."+pod.Status.PodIP] = cassandraNodetoolSslPropertiesString
+		configMapInstanceDynamicConfig.Data["reaper."+pod.Status.PodIP+".env"] = reaperEnvString
 		// wait for api, nodemgr container will wait for config files be ready
 		if apiServerIPListCommaSeparated != "" {
 			configMapInstanceDynamicConfig.Data["vnc_api_lib.ini."+pod.Status.PodIP] = vncAPIConfigBufferString
@@ -325,11 +384,15 @@ func (c *Cassandra) CreateConfigMap(configMapName string,
 		TruststorePassword string
 		CAFilePath         string
 		JmxLocalPort       string
+		CqlPort            string
+		ReaperEnabled      bool
 	}{
 		KeystorePassword:   string(cassandraSecret.Data["keystorePassword"]),
 		TruststorePassword: string(cassandraSecret.Data["truststorePassword"]),
 		CAFilePath:         SignerCAFilepath,
 		JmxLocalPort:       strconv.Itoa(*cassandraConfig.JmxLocalPort),
+		CqlPort:            strconv.Itoa(*cassandraConfig.CqlPort),
+		ReaperEnabled:      *cassandraConfig.ReaperEnabled,
 	})
 	if err != nil {
 		panic(err)
@@ -339,8 +402,11 @@ func (c *Cassandra) CreateConfigMap(configMapName string,
 	data["run-cassandra.sh"] = c.CommonStartupScript(
 		cassandraCommandBuffer.String(),
 		map[string]string{
-			"cqlshrc.${POD_IP}":        "",
-			"cassandra.${POD_IP}.yaml": "",
+			"cqlshrc.${POD_IP}":                 "",
+			"cassandra.${POD_IP}.yaml":          "",
+			"jmxremote.password.${POD_IP}":      "",
+			"jmxremote.access.${POD_IP}":        "",
+			"nodetool-ssl.properties.${POD_IP}": "",
 		})
 
 	return CreateConfigMap(configMapName,
@@ -436,6 +502,9 @@ func (c *Cassandra) ConfigurationParameters() *CassandraConfiguration {
 	var storagePort int
 	var sslStoragePort int
 	var minimumDiskGB int
+	var reaperEnabled bool
+	var reaperAppPort int
+	var reaperAdmPort int
 
 	if c.Spec.ServiceConfiguration.Port != nil {
 		port = *c.Spec.ServiceConfiguration.Port
@@ -476,6 +545,24 @@ func (c *Cassandra) ConfigurationParameters() *CassandraConfiguration {
 		minimumDiskGB = CassandraMinimumDiskGB
 	}
 	cassandraConfiguration.MinimumDiskGB = &minimumDiskGB
+	if c.Spec.ServiceConfiguration.ReaperEnabled != nil {
+		reaperEnabled = *c.Spec.ServiceConfiguration.ReaperEnabled
+	} else {
+		reaperEnabled = CassandraReaperEnabled
+	}
+	cassandraConfiguration.ReaperEnabled = &reaperEnabled
+	if c.Spec.ServiceConfiguration.ReaperAppPort != nil {
+		reaperAppPort = *c.Spec.ServiceConfiguration.ReaperAppPort
+	} else {
+		reaperAppPort = CassandraReaperAppPort
+	}
+	cassandraConfiguration.ReaperAppPort = &reaperAppPort
+	if c.Spec.ServiceConfiguration.ReaperAdmPort != nil {
+		reaperAdmPort = *c.Spec.ServiceConfiguration.ReaperAdmPort
+	} else {
+		reaperAdmPort = CassandraReaperAdmPort
+	}
+	cassandraConfiguration.ReaperAdmPort = &reaperAdmPort
 
 	return cassandraConfiguration
 }

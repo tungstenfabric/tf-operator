@@ -139,6 +139,46 @@ userkey = /etc/certificates/client-key-{{ .ListenAddress }}.pem
 usercert = /etc/certificates/client-{{ .ListenAddress }}.crt
 `))
 
+// CassandraJmxRemotePassword is a template for jmxrempote.password file
+var CassandraJmxRemotePassword = template.Must(template.New("").Parse(`
+cassandra cassandra
+reaperUser reaperPass
+`))
+
+// CassandraJmxRemoteAccess is a template for jmxrempote.access file
+var CassandraJmxRemoteAccess = template.Must(template.New("").Parse(`
+cassandra readwrite
+reaperUser readwrite
+`))
+
+// CassandraJmxRemoteAccess is a template for jmxrempote.access file
+var CassandraNodetoolSslProperties = template.Must(template.New("").Parse(`
+-Dssl.enable=true
+-Djavax.net.ssl.keyStore=/etc/keystore/server-keystore.jks
+-Djavax.net.ssl.keyStorePassword={{ .KeystorePassword }}
+-Djavax.net.ssl.trustStore=/etc/keystore/server-truststore.jks
+-Djavax.net.ssl.trustStorePassword={{ .TruststorePassword }}
+`))
+
+// ReaperEnvTemplate start script
+var ReaperEnvTemplate = template.Must(template.New("").Parse(`
+CASSANDRA_SEEDS={{ .CassandraServerList }}
+export CASSANDRA_COUNT=$(echo $CASSANDRA_SEEDS | tr ',' ' ' | wc -w)
+export CASSANDRA_CONNECT_POINTS=$(echo $CASSANDRA_SEEDS | sed 's/,/", "/g')
+export CASSANDRA_REAPER_APP_PORT={{ .ReaperAppPort }}
+export CASSANDRA_REAPER_ADM_PORT={{ .ReaperAdmPort }}
+export CASSANDRA_REAPER_JMX_AUTH_USERNAME=reaperUser
+export CASSANDRA_REAPER_JMX_AUTH_PASSWORD=reaperPass
+export CASSANDRA_CLUSTER_NAME=ContrailConfigDB
+export CASSANDRA_CQL_PORT={{ .CqlPort }}
+export CASSANDRA_SSL_ENABLE=True
+export CASSANDRA_SSL_KEYSTORE_PASSWORD={{ .KeystorePassword }}
+export CASSANDRA_SSL_TRUSTSTORE_PASSWORD={{ .TruststorePassword }}
+export CASSANDRA_LISTEN_ADDRESS=${POD_IP}
+export CASSANDRA_JMX_LOCAL_PORT={{ .JmxLocalPort }}
+export JKS_DIR="/etc/keystore"
+`))
+
 // CassandraCommandTemplate start script
 var CassandraCommandTemplate = template.Must(template.New("").Parse(`
 function _prepare_keystore() {
@@ -187,10 +227,37 @@ rm -f /etc/cassandra/cassandra.yaml ;
 cp /etc/contrailconfigmaps/cassandra.${POD_IP}.yaml /etc/cassandra/cassandra.yaml ;
 cat /etc/cassandra/cassandra.yaml ;
 
+# reaper configurations
+{{ if .ReaperEnabled }}
+# for reaper access
+ln -sf /etc/contrailconfigmaps/jmxremote.password.${POD_IP} /etc/cassandra/jmxremote.password ;
+ln -sf /etc/contrailconfigmaps/jmxremote.access.${POD_IP} /etc/cassandra/jmxremote.access ;
+ln -sf /etc/contrailconfigmaps/nodetool-ssl.properties.${POD_IP} ~/.cassandra/nodetool-ssl.properties ;
+source /etc/contrailconfigmaps/reaper.${POD_IP}.env
+export LOCAL_JMX=no
+{{ end }}
+
 # for gracefull shutdown implemented in docker-entrypoint.sh in trap_cassandra_term
 export CASSANDRA_JMX_LOCAL_PORT={{ .JmxLocalPort }}
 export CASSANDRA_LISTEN_ADDRESS=${POD_IP}
 
+{{ if .ReaperEnabled }}
+/run-reaper.sh &
+
+# start service
+exec /docker-entrypoint.sh -f -Dcassandra.jmx.local.port={{ .JmxLocalPort }} \
+  -Dcom.sun.management.jmxremote.access.file=/etc/cassandra/jmxremote.access \
+  -Dcom.sun.management.jmxremote.ssl=true \
+  -Dcom.sun.management.jmxremote.ssl.need.client.auth=true \
+  -Dcassandra.jmx.remote.port={{ .JmxLocalPort }} \
+  -Dcom.sun.management.jmxremote.rmi.port={{ .JmxLocalPort }} \
+  -Djavax.net.ssl.keyStore=/etc/keystore/server-keystore.jks \
+  -Djavax.net.ssl.keyStorePassword={{ .KeystorePassword }} \
+  -Djavax.net.ssl.trustStore=/etc/keystore/server-truststore.jks \
+  -Djavax.net.ssl.trustStorePassword={{ .TruststorePassword }} \
+  -Dcassandra.config=file:///etc/contrailconfigmaps/cassandra.${POD_IP}.yaml
+{{ else }}
 # start service
 exec /docker-entrypoint.sh -f -Dcassandra.jmx.local.port={{ .JmxLocalPort }} -Dcassandra.config=file:///etc/contrailconfigmaps/cassandra.${POD_IP}.yaml
+{{ end }}
 `))

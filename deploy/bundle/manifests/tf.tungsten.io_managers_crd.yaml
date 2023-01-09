@@ -893,6 +893,12 @@ spec:
                                   type: boolean
                                 storagePort:
                                   type: integer
+                                reaperEnabled:
+                                  type: boolean
+                                reaperAppPort:
+                                  type: integer
+                                reaperAdmPort:
+                                  type: integer
                               type: object
                           required:
                           - serviceConfiguration

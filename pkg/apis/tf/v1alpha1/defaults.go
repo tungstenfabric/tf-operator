@@ -67,6 +67,9 @@ const (
 	CassandraStoragePort                        int    = 7012
 	CassandraJmxLocalPort                       int    = 7201
 	CassandraMinimumDiskGB                      int    = 4
+	CassandraReaperEnabled                      bool   = false
+	CassandraReaperAppPort                      int    = 8071
+	CassandraReaperAdmPort                      int    = 8072
 	ConfigNodes                                 string = ""
 	ConfigdbNodes                               string = ""
 	ConfigApiPort                               int    = 8082

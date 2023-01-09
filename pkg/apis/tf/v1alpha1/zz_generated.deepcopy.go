@@ -827,6 +827,21 @@ func (in *CassandraConfiguration) DeepCopyInto(out *CassandraConfiguration) {
 		*out = new(int)
 		**out = **in
 	}
+	if in.ReaperEnabled != nil {
+		in, out := &in.ReaperEnabled, &out.ReaperEnabled
+		*out = new(bool)
+		**out = **in
+	}
+	if in.ReaperAppPort != nil {
+		in, out := &in.ReaperAppPort, &out.ReaperAppPort
+		*out = new(int)
+		**out = **in
+	}
+	if in.ReaperAdmPort != nil {
+		in, out := &in.ReaperAdmPort, &out.ReaperAdmPort
+		*out = new(int)
+		**out = **in
+	}
 	return
 }
 

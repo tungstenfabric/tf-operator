@@ -61,8 +61,8 @@ spec:
               command:
               - /bin/sh
               - -c
-              - nodetool -p {{ .LocalJmxPort }} -Dcom.sun.jndi.rmiURLParsing=legacy drain
-              #- nodetool -p {{ .LocalJmxPort }} -Dcom.sun.jndi.rmiURLParsing=legacy decommission
+              - nodetool -p {{ .LocalJmxPort }} {{ .JmxremoteParams }} -Dcom.sun.jndi.rmiURLParsing=legacy drain
+              #- nodetool -p {{ .LocalJmxPort }} {{ .JmxremoteParams }} -Dcom.sun.jndi.rmiURLParsing=legacy decommission
         securityContext:
           capabilities:
             add:
@@ -130,14 +130,20 @@ spec:
 // GetSTS returns cassandra sts object by template
 func GetSTS(cassandraConfig *v1alpha1.CassandraConfiguration, databaseNodeType string) *appsv1.StatefulSet {
 	var buf bytes.Buffer
+	jmxremoteParams := ""
+	if *cassandraConfig.ReaperEnabled {
+		jmxremoteParams = "--ssl -u cassandra -p cassandra"
+	}
 	err := yamlDatacassandraSTS.Execute(&buf, struct {
 		LocalJmxPort     int
 		DatabaseNodeType string
 		CqlPort          int
+		JmxremoteParams  string
 	}{
 		LocalJmxPort:     *cassandraConfig.JmxLocalPort,
 		DatabaseNodeType: databaseNodeType,
 		CqlPort:          *cassandraConfig.CqlPort,
+		JmxremoteParams:  jmxremoteParams,
 	})
 	if err != nil {
 		panic(err)
